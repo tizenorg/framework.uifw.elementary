@@ -1570,7 +1570,7 @@ _magnifier_move(void *data)
    else
      return;
 
-   evas_object_move(wd->mgf_proxy, (1 - wd->mgf_scale) * cx + x + ox, (1 - wd->mgf_scale) * cy + y - wd->mgf_height/2 - ch/2 + oy);
+   evas_object_move(wd->mgf_proxy, (1 - wd->mgf_scale) * cx + x + ox, (1 - wd->mgf_scale) * cy + y - wd->mgf_height/2 - ch/2 + wd->mgf_scale * oy);
 }
 
 static void
