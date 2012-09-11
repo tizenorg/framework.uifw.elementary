@@ -987,24 +987,13 @@ _content_get_hook(const Evas_Object *obj, const char *part)
 static void
 _item_text_set_hook(Elm_Object_Item *it, const char *part, const char *label)
 {
-   Widget_Data *wd;
    Elm_Ctxpopup_Item *ctxpopup_it;
 
    if (part && strcmp(part, "default")) return;
 
    ctxpopup_it = (Elm_Ctxpopup_Item *)it;
 
-   wd = elm_widget_data_get(WIDGET(ctxpopup_it));
-   if (!wd) return;
-
    _item_label_set(ctxpopup_it, label);
-   wd->dir = ELM_CTXPOPUP_DIRECTION_UNKNOWN;
-
-   if (wd->visible)
-     {
-        _scroller_size_reset(wd);
-        _sizing_eval(WIDGET(ctxpopup_it));
-     }
 }
 
 static const char *
