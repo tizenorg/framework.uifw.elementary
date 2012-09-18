@@ -80,6 +80,7 @@ struct _Widget_Data
      void *add_callback_data;
 
      Eina_Bool editable;
+     Eina_Bool guidetext_vis_enable: 1;
   };
 
 static void _del_hook(Evas_Object *obj);
@@ -591,7 +592,8 @@ _view_update(Evas_Object *obj)
      _shrink_mode_set(obj, EINA_TRUE);
 
    // update guidetext
-   _set_vis_guidetext(obj);
+   if(wd->guidetext_vis_enable)
+     _set_vis_guidetext(obj);
 }
 
 static void
@@ -1153,7 +1155,7 @@ _view_init(Evas_Object *obj)
         wd->box = elm_box_add(obj);
         if (!wd->box) return;
         elm_widget_sub_object_add(obj, wd->box);
-        elm_box_layout_set(wd->box, _box_layout_cb, NULL, NULL);
+        elm_box_layout_set(wd->box, _box_layout_cb, obj, NULL);
         elm_box_homogeneous_set(wd->box, EINA_FALSE);
         edje_object_part_swallow(wd->base, "box.swallow", wd->box);
      }
@@ -1310,7 +1312,7 @@ _calculate_item_max_height(Evas_Object *box, Evas_Object_Box_Data *priv, int obj
 }
 
 static void
-_box_layout_cb(Evas_Object *o, Evas_Object_Box_Data *priv, void *data __UNUSED__)
+_box_layout_cb(Evas_Object *o, Evas_Object_Box_Data *priv, void *data)
 {
    Evas_Coord x, y, w, h, xx, yy;
    const Eina_List *l;
@@ -1318,6 +1320,9 @@ _box_layout_cb(Evas_Object *o, Evas_Object_Box_Data *priv, void *data __UNUSED__
    Evas_Coord minw, minh;
    double ax, ay;
    Evas_Object_Box_Option *opt;
+   Widget_Data *wd = elm_widget_data_get(data);
+
+   if (!wd) return;
 
    _calculate_box_min_size(o, priv);
 
@@ -1340,6 +1345,8 @@ _box_layout_cb(Evas_Object *o, Evas_Object_Box_Data *priv, void *data __UNUSED__
    yy = y;
 
    Evas_Coord cw = 0, ch = 0, cmaxh = 0, obj_index = 0;
+
+   wd->guidetext_vis_enable = EINA_FALSE;
 
    EINA_LIST_FOREACH(priv->children, l, opt)
      {
@@ -1394,6 +1401,9 @@ _box_layout_cb(Evas_Object *o, Evas_Object_Box_Data *priv, void *data __UNUSED__
 
         obj_index++;
      }
+
+   wd->guidetext_vis_enable = EINA_TRUE;
+
 }
 
 static void
@@ -1485,6 +1495,7 @@ elm_multibuttonentry_add(Evas_Object *parent)
    wd->add_callback = NULL;
    wd->add_callback_data = NULL;
    wd->editable = EINA_TRUE;
+   wd->guidetext_vis_enable = EINA_TRUE;
 
    evas_object_smart_callbacks_descriptions_set(obj, _signals);
 
