@@ -352,6 +352,8 @@ elm_button_add(Evas_Object *parent)
    if (!elm_widget_sub_object_add(parent, obj))
      ERR("could not add %p as sub object of %p", obj, parent);
 
+   _elm_widget_orient_signal_emit(obj);
+
    return obj;
 }
 

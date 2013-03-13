@@ -3755,6 +3755,19 @@ elm_widget_display_mode_set(Evas_Object *obj, Evas_Display_Mode dispmode)
 
 }
 
+// temporary code. should be removed after eo is applied.
+EAPI void
+_elm_widget_orient_signal_emit(Evas_Object *obj)
+{
+   ELM_WIDGET_DATA_GET(obj, sd);
+   char buf[128];
+   if (sd->orient_mode > 0)
+     {
+        snprintf(buf, sizeof(buf), "elm,state,orient,%d", sd->orient_mode);
+        elm_widget_signal_emit(obj, buf, "elm");
+     }
+}
+
 /**
  * @internal
  *

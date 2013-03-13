@@ -1599,6 +1599,8 @@ elm_popup_add(Evas_Object *parent)
    ELM_WIDGET_DATA_GET(obj, sd);
    sd->highlight_root = EINA_TRUE;
 
+   _elm_widget_orient_signal_emit(obj);
+
    return obj;
 }
 
