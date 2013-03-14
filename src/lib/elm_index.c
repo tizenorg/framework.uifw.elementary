@@ -313,8 +313,11 @@ _index_box_auto_fill(Evas_Object *obj,
      }
 
    // TIZEN ONLY adjust the last item's theme according to winset gui
-   it = eina_list_nth(sd->items, i - 1);
-   edje_object_signal_emit(VIEW(it), "elm,last,item", "elm");
+   if (sd->items)
+     {
+        it = eina_list_nth(sd->items, i - 1);
+        edje_object_signal_emit(VIEW(it), "elm,last,item", "elm");
+     }
    // TIZEN ONLY
 
    evas_object_smart_calculate(box);
