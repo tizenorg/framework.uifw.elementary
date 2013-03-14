@@ -804,6 +804,8 @@ _elm_ctxpopup_smart_sizing_eval(Evas_Object *obj)
    Evas_Coord_Rectangle rect = { 0, 0, 1, 1 };
    Evas_Coord_Point box_size = { 0, 0 };
    Evas_Coord_Point _box_size = { 0, 0 };
+   Evas_Coord maxw = 0;
+   const char *str;
 
    ELM_CTXPOPUP_DATA_GET(obj, sd);
 
@@ -812,6 +814,20 @@ _elm_ctxpopup_smart_sizing_eval(Evas_Object *obj)
      {
         _item_sizing_eval(item);
         evas_object_size_hint_min_get(VIEW(item), &_box_size.x, &_box_size.y);
+
+        str = edje_object_data_get(VIEW(item), "item_max_size");
+        if (str)
+          {
+             maxw = atoi(str);
+             maxw = maxw * elm_widget_scale_get(obj) * elm_config_scale_get();
+
+             if (_box_size.x > maxw)
+               {
+                  edje_object_signal_emit(VIEW(item), "elm,state,text,ellipsis", "elm");
+                  edje_object_message_signal_process(VIEW(item));
+               }
+          }
+
         if (!sd->horizontal)
           {
              if (_box_size.x > box_size.x)
