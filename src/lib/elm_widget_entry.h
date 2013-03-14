@@ -138,6 +138,7 @@ struct _Elm_Entry_Smart_Data
    Ecore_Event_Handler                  *client_msg_handler;  // TIZEN ONLY
    Ecore_Timer                          *longpress_timer;
    Ecore_Timer                          *delay_write;
+   Ecore_Timer                          *click_timer; // TIZEN ONLY
    /* for deferred appending */
    Ecore_Idler                          *append_text_idler;
    char                                 *append_text_left;
@@ -179,6 +180,7 @@ struct _Elm_Entry_Smart_Data
    Evas_Object *mgf_bg;
    Evas_Coord mgf_height;
    float mgf_scale;
+   int mgf_arrow_height;
    int mgf_type;
    Ecore_Job *region_get_job;
    Ecore_Job *region_recalc_job;
@@ -189,6 +191,9 @@ struct _Elm_Entry_Smart_Data
    Eina_Bool long_pressed : 1;
    Eina_Bool magnifier_enabled : 1;
    Eina_Bool magnifier_showing : 1;
+   Eina_Bool mouse_upped : 1;
+   Eina_Bool sel_allow : 1;
+   Eina_Bool cursor_handler_disabled : 1;
    //
    Eina_Bool                             input_panel_return_key_disabled : 1;
    Eina_Bool                             drag_selection_asked : 1;

@@ -11,7 +11,7 @@
 #define S_CUT MULTI_(IDS_COM_BODY_CUT)
 #define S_PASTE MULTI_(IDS_COM_BODY_PASTE)
 #define S_CLIPBOARD MULTI_(IDS_COM_BODY_CLIPBOARD)
-
+#define S_COPIED MULTI_(IDS_COM_POP_COPIED_TO_CLIPBOARD)
 
 Elm_Entry_Extension_data *ext_mod;
 static int _mod_hook_count = 0;
@@ -120,99 +120,135 @@ _ctxpopup_hide(Evas_Object *popup)
 }
 
 static void
-_ctxpopup_position(Evas_Object *obj)
+_ctxpopup_position(Evas_Object *obj __UNUSED__)
 {
    if(!ext_mod) return;
 
-   Evas_Coord cx, cy, cw, ch, x, y, w, h;
+   Evas_Coord ex, ey;
+   Evas_Coord sx, sy, sw, sh;
+   Evas_Coord x, y, w, h;
+   int gap = 22; //in GUI
+
+   evas_object_geometry_get(ext_mod->ent, &ex, &ey, NULL, NULL);
    elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_UP, ELM_CTXPOPUP_DIRECTION_DOWN, ELM_CTXPOPUP_DIRECTION_LEFT, ELM_CTXPOPUP_DIRECTION_RIGHT);
-   if (!edje_object_part_text_selection_geometry_get(ext_mod->ent, "elm.text", &x, &y, &w, &h))
-     {
-        evas_object_geometry_get(ext_mod->ent, &x, &y, NULL, NULL);
+   if (!edje_object_part_text_selection_geometry_get(ext_mod->ent, "elm.text", &sx, &sy, &sw, &sh))
+     { //cannot get selection shape
+        Evas_Coord cx, cy, cw, ch;
+
         edje_object_part_text_cursor_geometry_get(ext_mod->ent, "elm.text",
                                                   &cx, &cy, &cw, &ch);
-        evas_object_size_hint_min_get(ext_mod->popup, &w, &h);
-        if (cw < w)
-          {
-             cx += (cw - w) / 2;
-             cw = w;
-          }
-        if (ch < h)
-          {
-             cy += (ch - h) / 2;
-             ch = h;
-          }
 
         Elm_Ctxpopup_Direction dir = elm_ctxpopup_direction_get(ext_mod->popup);
         if (dir == ELM_CTXPOPUP_DIRECTION_DOWN)
           {
              elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_DOWN, ELM_CTXPOPUP_DIRECTION_UP, ELM_CTXPOPUP_DIRECTION_LEFT, ELM_CTXPOPUP_DIRECTION_RIGHT);
-             x = x + cx;
-             if (ext_mod->have_selection)
-               y = y + cy + ch + 40; //+40: height of selection handler
-             else
-               y = y + cy + ch;
+             x = ex + cx;
+             y = ey + cy + ch;
           }
         else
           {
-             x = x + cx;
-             y = y + cy;
+             x = ex + cx;
+             y = ey + cy;
           }
 
         evas_object_move(ext_mod->popup, x, y);
         evas_object_resize(ext_mod->popup, cw, ch);
      }
-   else
+   else //get selection shape
      {
+        Evas_Coord shx, shy, shw, shh;
+        Evas_Coord ehx, ehy, ehw, ehh;
+
+        edje_object_part_text_selection_handler_geometry_get(ext_mod->ent, "elm.text", EDJE_SELECTION_HANDLER_START, &shx, &shy, &shw, &shh);
+        edje_object_part_text_selection_handler_geometry_get(ext_mod->ent, "elm.text", EDJE_SELECTION_HANDLER_END, &ehx, &ehy, &ehw, &ehh);
+
         if (ext_mod->viewport_rect.x != -1 || ext_mod->viewport_rect.y != -1
             || ext_mod->viewport_rect.w != -1 || ext_mod->viewport_rect.h != -1)
           {
              Evas_Coord vx, vy, vw, vh, x2, y2;
-             x2 = x + w;
-             y2 = y + h;
+             x2 = sx + sw;
+             if ((ehh > 0) && (ey + ehy + ehh > sy + sh))
+               {
+                  //y2 = ey + ehy + ehh;
+                  y2 = ey + ehy + gap;
+               }
+             else
+               y2 = sy + sh;
              vx = ext_mod->viewport_rect.x;
              vy = ext_mod->viewport_rect.y;
              vw = ext_mod->viewport_rect.w;
              vh = ext_mod->viewport_rect.h;
 
-             if (x < vx) x = vx;
-             if (y < vy) y = vy;
+             //limit ctx in viewport
+             x = sx;
+             if (sx < vx) x = vx;
+             if (sy < vy)
+               {
+                  y = vy; //case: start of selection is behind the viewport
+               }
+             else
+               {
+                  if (ey + shy < sy) //case: start handler is upside
+                    {
+                       //y = ey + shy;
+                       y = sy - gap;
+                    }
+                  else
+                    y = sy;
+               }
              if (x2 > vx + vw) x2 = vx + vw;
              if (y2 > vy + vh) y2 = vy + vh;
              w = x2 - x;
              h = y2 - y;
           }
-        else
+        else //get selection & cannot get viewport
           {
-             Evas_Coord sw, sh, x2, y2;
-             x2 = x + w;
-             y2 = y + h;
-             ecore_x_window_size_get(ecore_x_window_root_first_get(), &sw, &sh);
+             Evas_Coord ww, wh, x2, y2;
+             x2 = sx + sw;
+             if (ey + ehy + ehh > sy + sh)
+               y2 = ey + ehy + ehh; //end handler is downside
+             else
+               y2 = sy + sh;
 
-             if (x < 0) x = 0;
-             if (y < 0) y = 0;
-             if (x2 > sw) x2 = sw;
-             if (y2 > sh) y2 = sh;
+             ecore_x_window_size_get(ecore_x_window_root_first_get(), &ww, &wh);
+
+             x = sx;
+             if (sx < 0) x = 0;
+             if (sy < 0)
+               {
+                  y = 0; //start of selection is negative
+               }
+             else
+               {
+                  if (ey + shy < sy) //start handler is upside
+                    {
+                       //y = ey + shy;
+                       y = sy - gap;
+                    }
+                  else
+                    y = sy;
+               }
+             if (x2 > ww) x2 = ww;
+             if (y2 > wh) y2 = wh;
              w = x2 - x;
              h = y2 - y;
           }
-        cx = x + (w / 2);
-        cy = y;
+        x = x + (w / 2);
         Elm_Ctxpopup_Direction dir = elm_ctxpopup_direction_get(ext_mod->popup);
         if (dir != ELM_CTXPOPUP_DIRECTION_UNKNOWN)
           {
-             if (dir == ELM_CTXPOPUP_DIRECTION_UP)
-               cy = y;
-             else if (dir == ELM_CTXPOPUP_DIRECTION_DOWN)
+             if (dir == ELM_CTXPOPUP_DIRECTION_DOWN)
                {
                   elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_DOWN, ELM_CTXPOPUP_DIRECTION_UP, ELM_CTXPOPUP_DIRECTION_LEFT, ELM_CTXPOPUP_DIRECTION_RIGHT);
-                  if (ext_mod->have_selection)
-                    cy = y + h + 40; //+40: height of selection handler
-                  else
-                    cy = y + h;
+                  y = sy + sh;
+                  if (y < ey + ehy + ehh)
+                    {
+                       //y = ey + ehy + ehh;
+                       y =  sy + sh + gap; //ey + ehy + 8 + 22;
+                    }
                }
           }
-        evas_object_move(ext_mod->popup, cx, cy);
+        evas_object_move(ext_mod->popup, x, y);
      }
 }
 
@@ -250,6 +286,7 @@ _cut(void *data, Evas_Object *obj, void *event_info)
 
    ext_mod->cut(data,obj,event_info);
    _ctxpopup_hide(obj);
+
    //elm_object_scroll_freeze_pop(ext_mod->popup);
 }
 
@@ -260,6 +297,7 @@ _copy(void *data, Evas_Object *obj, void *event_info)
 
    ext_mod->copy(data,obj,event_info);
    _ctxpopup_hide(obj);
+
    //elm_object_scroll_freeze_pop(ext_mod->popup);
 }
 

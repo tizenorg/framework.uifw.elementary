@@ -126,14 +126,34 @@ static void _paste_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info 
 static void _menu_call(Evas_Object *obj);
 
 static void
-_selectall(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_select_all(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    ELM_ENTRY_DATA_GET(data, sd);
 
+   if (!sd->sel_allow) return;
    sd->sel_mode = EINA_TRUE;
    edje_object_part_text_select_none(sd->entry_edje, "elm.text");
    edje_object_signal_emit(sd->entry_edje, "elm,state,select,on", "elm");
    edje_object_part_text_select_all(sd->entry_edje, "elm.text");
+   elm_object_scroll_freeze_pop(data);
+}
+
+static void
+_select_word(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+{
+   ELM_ENTRY_DATA_GET(data, sd);
+
+   if (!sd->sel_allow) return;
+   sd->sel_mode = EINA_TRUE;
+
+   if (!_elm_config->desktop_entry)
+     {
+        if (!sd->password)
+          edje_object_part_text_select_allow_set
+            (sd->entry_edje, "elm.text", EINA_TRUE);
+     }
+   edje_object_signal_emit(sd->entry_edje, "elm,state,select,on", "elm");
+   edje_object_part_text_select_word(sd->entry_edje, "elm.text");
    elm_object_scroll_freeze_pop(data);
 }
 
@@ -227,8 +247,11 @@ _magnifier_hide(void *data)
 {
    ELM_ENTRY_DATA_GET(data, sd);
 
-   evas_object_hide(sd->mgf_bg);
-   evas_object_hide(sd->mgf_clip);
+   if (sd->magnifier_showing)
+     {
+        evas_object_hide(sd->mgf_bg);
+        evas_object_hide(sd->mgf_clip);
+     }
 
    if (sd->scroll)
      sd->s_iface->freeze_set(data, EINA_FALSE);
@@ -241,8 +264,11 @@ _magnifier_show(void *data)
 {
    ELM_ENTRY_DATA_GET(data, sd);
 
-   evas_object_show(sd->mgf_bg);
-   evas_object_show(sd->mgf_clip);
+   if (!sd->magnifier_showing)
+   {
+      evas_object_show(sd->mgf_bg);
+      evas_object_show(sd->mgf_clip);
+   }
 
    sd->magnifier_showing = EINA_TRUE;
 }
@@ -281,7 +307,7 @@ _magnifier_move(void *data)
 
    evas_object_move(sd->mgf_proxy,
                     (1 - sd->mgf_scale) * cx + x + ox,
-                    (1 - sd->mgf_scale) * cy + y - sd->mgf_height/2 - ch/2 + sd->mgf_scale * oy);
+                    (1 - sd->mgf_scale) * cy + y - sd->mgf_height/2 - ch/2 - sd->mgf_arrow_height + sd->mgf_scale * oy);
 }
 
 static void
@@ -331,6 +357,11 @@ _magnifier_create(void *data)
    if (key_data) sd->mgf_height = atoi(key_data);
    key_data = edje_object_data_get(sd->mgf_bg, "scale");
    if (key_data) sd->mgf_scale = atof(key_data);
+   key_data = edje_object_data_get(sd->mgf_bg, "arrow");
+   if (key_data)
+     sd->mgf_arrow_height = atoi(key_data);
+   else
+     sd->mgf_arrow_height = 0;
 
    elm_scale = elm_config_scale_get();
    sd->mgf_height = (int)((float)sd->mgf_height * elm_scale);
@@ -408,7 +439,7 @@ _signal_long_pressed(void *data, Evas_Object *obj __UNUSED__, const char *emissi
 }
 
 static void
-_signal_handler_move_start(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_signal_handler_move_start_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
    ELM_ENTRY_DATA_GET(data, sd);
 
@@ -426,21 +457,16 @@ _signal_handler_move_start(void *data, Evas_Object *obj __UNUSED__, const char *
 }
 
 static void
-_signal_handler_move_end(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_signal_handler_move_end_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
-   ELM_ENTRY_DATA_GET(data, sd);
-
    elm_object_scroll_freeze_pop(data);
 
-   if (sd->have_selection)
-     {
-        _magnifier_hide(data);
-        _menu_call(data);
-     }
+   _magnifier_hide(data);
+   _menu_call(data);
 }
 
 static void
-_signal_handler_moving(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_signal_handler_moving_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
    ELM_ENTRY_DATA_GET(data, sd);
 
@@ -449,6 +475,12 @@ _signal_handler_moving(void *data, Evas_Object *obj __UNUSED__, const char *emis
         _magnifier_move(data);
         _magnifier_show(data);
      }
+}
+
+static void
+_signal_handler_click_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+{
+   _select_word(data, NULL, NULL);
 }
 
 static Evas_Coord_Rectangle
@@ -608,6 +640,23 @@ _signal_magnifier_changed(void *data, Evas_Object *obj __UNUSED__, const char *e
      }
 }
 
+static void
+_elm_entry_key_down_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+{
+   Evas_Event_Key_Down *ev = event_info;
+   if (!ev->keyname) return;
+
+   ELM_ENTRY_DATA_GET(data, sd);
+   if (sd->sel_allow)
+     {
+        if (!_elm_config->desktop_entry)
+          edje_object_part_text_select_allow_set
+             (sd->entry_edje, "elm.text", EINA_TRUE);
+     }
+   if ((sd->api) && (sd->api->obj_hidemenu))
+     sd->api->obj_hidemenu(data);
+}
+
 void elm_entry_extension_module_data_get(Evas_Object *obj, Elm_Entry_Extension_data *ext_mod)
 {
    ELM_ENTRY_DATA_GET(obj, sd);
@@ -616,8 +665,8 @@ void elm_entry_extension_module_data_get(Evas_Object *obj, Elm_Entry_Extension_d
    ext_mod->copy = _copy_cb;
    ext_mod->cut = _cut_cb;
    ext_mod->paste = _paste_cb;
-   ext_mod->select = _hover_selected_cb;
-   ext_mod->selectall = _selectall;
+   ext_mod->select = _select_word;
+   ext_mod->selectall = _select_all;
    ext_mod->ent = sd->entry_edje;
    ext_mod->items = sd->items;
    ext_mod->editable = sd->editable;
@@ -1910,6 +1959,21 @@ _long_press_cb(void *data)
    return ECORE_CALLBACK_CANCEL;
 }
 
+// TIZEN ONLY - START
+static Eina_Bool
+_click_cb(void *data)
+{
+   ELM_ENTRY_DATA_GET(data, sd);
+
+   sd->click_timer = NULL;
+   if ((!_elm_config->desktop_entry) && sd->mouse_upped && sd->editable)
+     {
+        _menu_call(data);
+     }
+   return ECORE_CALLBACK_CANCEL;
+}
+// TIZEN ONLY - END
+
 static void
 _mouse_down_cb(void *data,
                Evas *evas __UNUSED__,
@@ -1930,11 +1994,33 @@ _mouse_down_cb(void *data,
         if (sd->longpress_timer) ecore_timer_del(sd->longpress_timer);
         sd->longpress_timer = ecore_timer_add
             (_elm_config->longpress_timeout, _long_press_cb, data);
+
+        // TIZEN ONLY - START
+        if (sd->click_timer)
+          {
+             ecore_timer_del(sd->click_timer); // avoid double click
+             sd->click_timer = NULL;
+          }
+        else
+          {
+             if (!sd->have_selection)
+               sd->click_timer = ecore_timer_add (0.2, _click_cb, data); //FIXME: time out
+          }
+        sd->mouse_upped = EINA_FALSE;
+        // TIZEN ONLY - END
      }
    else if (ev->button == 3)
      {
         if (_elm_config->desktop_entry)
           _menu_call(data);
+     }
+   if (!sd->editable)
+     {
+         edje_object_part_text_cursor_handler_disabled_set(sd->entry_edje, "elm.text", EINA_TRUE);
+     }
+   else if (!sd->cursor_handler_disabled)
+     {
+         edje_object_part_text_cursor_handler_disabled_set(sd->entry_edje, "elm.text", EINA_FALSE);
      }
 }
 
@@ -1963,6 +2049,15 @@ _mouse_up_cb(void *data,
              elm_object_scroll_freeze_pop(data);
              if (sd->long_pressed) _menu_call(data);
           }
+        if (sd->click_timer)
+          {
+             if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
+               {
+                  ecore_timer_del(sd->click_timer);
+                  sd->click_timer = NULL;
+               }
+          }
+        sd->mouse_upped = EINA_TRUE;
         /////
         if (sd->longpress_timer)
           {
@@ -2208,7 +2303,15 @@ _entry_selection_none_signal_cb(void *data,
                                 const char *emission __UNUSED__,
                                 const char *source __UNUSED__)
 {
+   ELM_ENTRY_DATA_GET(data, sd); // TIZEN ONLY
+
    elm_entry_select_none(data);
+
+   // TIZEN ONLY
+   if ((sd->api) && (sd->api->obj_hidemenu))
+     sd->api->obj_hidemenu(data);
+   /////
+
 }
 
 static void
@@ -2680,6 +2783,18 @@ _entry_mouse_double_signal_cb(void *data,
    ELM_ENTRY_DATA_GET(data, sd);
    if (sd->disabled) return;
    sd->double_clicked = EINA_TRUE;
+   if (!sd->sel_allow) return;
+
+   if (sd->click_timer)
+     {
+        ecore_timer_del(sd->click_timer);
+        sd->click_timer = NULL;
+     }
+
+   edje_object_part_text_select_word(sd->entry_edje, "elm.text");
+   if (!_elm_config->desktop_entry)
+     edje_object_part_text_select_allow_set
+        (sd->entry_edje, "elm.text", EINA_TRUE);
    /////
    evas_object_smart_callback_call(data, SIG_CLICKED_DOUBLE, NULL);
 }
@@ -3521,6 +3636,9 @@ _elm_entry_smart_add(Evas_Object *obj)
    priv->input_panel_imdata = NULL;
    //TIZEN ONLY
    priv->magnifier_enabled = EINA_TRUE;
+   priv->mouse_upped = EINA_FALSE;
+   priv->sel_allow = EINA_TRUE;
+   priv->cursor_handler_disabled = EINA_FALSE;
    //
 
    elm_layout_theme_set(obj, "entry", "base", elm_widget_style_get(obj));
@@ -3621,13 +3739,13 @@ _elm_entry_smart_add(Evas_Object *obj)
    // TIZEN ONLY
    edje_object_signal_callback_add
       (priv->entry_edje, "handler,move,start", "elm.text",
-       _signal_handler_move_start, obj);
+       _signal_handler_move_start_cb, obj);
    edje_object_signal_callback_add
       (priv->entry_edje, "handler,move,end", "elm.text",
-       _signal_handler_move_end, obj);
+       _signal_handler_move_end_cb, obj);
    edje_object_signal_callback_add
       (priv->entry_edje, "handler,moving", "elm.text",
-       _signal_handler_moving, obj);
+       _signal_handler_moving_cb, obj);
    edje_object_signal_callback_add
       (priv->entry_edje, "selection,end", "elm.text",
        _signal_selection_end, obj);
@@ -3637,6 +3755,20 @@ _elm_entry_smart_add(Evas_Object *obj)
    edje_object_signal_callback_add
       (priv->entry_edje, "magnifier,changed", "elm.text",
        _signal_magnifier_changed, obj);
+   edje_object_signal_callback_add
+      (priv->entry_edje, "cursor,handler,move,start", "elm.text",
+       _signal_handler_move_start_cb, obj);
+   edje_object_signal_callback_add
+      (priv->entry_edje, "cursor,handler,move,end", "elm.text",
+       _signal_handler_move_end_cb, obj);
+   edje_object_signal_callback_add
+      (priv->entry_edje, "cursor,handler,moving", "elm.text",
+       _signal_handler_moving_cb, obj);
+   edje_object_signal_callback_add
+      (priv->entry_edje, "cursor,handler,clicked", "elm.text",
+       _signal_handler_click_cb, obj);
+   evas_object_event_callback_add(priv->entry_edje, EVAS_CALLBACK_KEY_DOWN,
+                                  _elm_entry_key_down_cb, obj);
    /////////
 
    elm_layout_text_set(obj, "elm.text", "");
@@ -3650,7 +3782,7 @@ _elm_entry_smart_add(Evas_Object *obj)
    else
      {
         // TIZEN ONLY
-        edje_object_part_text_copy_paste_disabled_set(priv->entry_edje, "elm.text", EINA_FALSE);
+        edje_object_part_text_select_allow_set(priv->entry_edje, "elm.text", EINA_TRUE);
         edje_object_part_text_viewport_region_set(priv->entry_edje, "elm.text", -1, -1, -1, -1);
         edje_object_part_text_layout_region_set(priv->entry_edje, "elm.text", -1, -1, -1, -1);
         ////////
@@ -3783,6 +3915,7 @@ _elm_entry_smart_del(Evas_Object *obj)
    if (sd->mgf_proxy) evas_object_del(sd->mgf_proxy);
    if (sd->mgf_bg) evas_object_del(sd->mgf_bg);
    if (sd->mgf_clip) evas_object_del(sd->mgf_clip);
+   if (sd->click_timer) ecore_timer_del(sd->click_timer);
    //
    evas_event_thaw(evas_object_evas_get(obj));
    evas_event_thaw_eval(evas_object_evas_get(obj));
@@ -4491,11 +4624,6 @@ elm_entry_context_menu_disabled_set(Evas_Object *obj,
 
    if (sd->context_menu == !disabled) return;
    sd->context_menu = !disabled;
-
-   // TIZEN ONLY : SHOULD BE COMMITTED ? 
-   if (!_elm_config->desktop_entry)
-     edje_object_part_text_copy_paste_disabled_set(sd->entry_edje, "elm.text", disabled);
-   /////////////
 }
 
 EAPI Eina_Bool
@@ -4506,6 +4634,52 @@ elm_entry_context_menu_disabled_get(const Evas_Object *obj)
 
    return !sd->context_menu;
 }
+
+// TIZEN ONLY - START
+EAPI void
+elm_entry_select_allow_set(Evas_Object *obj,
+                           Eina_Bool allow)
+{
+   ELM_ENTRY_CHECK(obj);
+   ELM_ENTRY_DATA_GET(obj, sd);
+
+   if (sd->sel_allow == allow) return;
+   sd->sel_allow = allow;
+
+   edje_object_part_text_select_allow_set(sd->entry_edje, "elm.text", allow);
+}
+
+EAPI Eina_Bool
+elm_entry_select_allow_get(const Evas_Object *obj)
+{
+   ELM_ENTRY_CHECK(obj);
+   ELM_ENTRY_DATA_GET(obj, sd);
+
+   return sd->sel_allow;
+}
+
+EAPI void
+elm_entry_cursor_handler_disabled_set(Evas_Object *obj,
+                                      Eina_Bool disabled)
+{
+   ELM_ENTRY_CHECK(obj);
+   ELM_ENTRY_DATA_GET(obj, sd);
+
+   if (sd->cursor_handler_disabled == disabled) return;
+   sd->cursor_handler_disabled = disabled;
+
+   if (!_elm_config->desktop_entry)
+     edje_object_part_text_cursor_handler_disabled_set(sd->entry_edje, "elm.text", disabled);
+}
+
+EAPI Eina_Bool
+elm_entry_cursor_handler_disabled_get(const Evas_Object *obj)
+{
+   ELM_ENTRY_CHECK(obj);
+   ELM_ENTRY_DATA_GET(obj, sd);
+   return sd->cursor_handler_disabled;
+}
+// TIZEN ONLY - END
 
 EAPI void
 elm_entry_item_provider_append(Evas_Object *obj,

@@ -1067,6 +1067,46 @@ EAPI void               elm_entry_context_menu_disabled_set(Evas_Object *obj, Ei
 EAPI Eina_Bool          elm_entry_context_menu_disabled_get(const Evas_Object *obj);
 
 /**
+ * This enables selection in entry.
+ *
+ * @param obj The entry object
+ * @param allow If true, enable selection in entry, otherwise, disable.
+ *
+ * @ingroup Entry
+ */
+EAPI void               elm_entry_select_allow_set(Evas_Object *obj, Eina_Bool allow);
+
+/**
+ * This returns whether selection in entry is allowed or not.
+ *
+ * @param obj The entry object
+ * @return If true, enable selection in entry, otherwise, disable.
+ *
+ * @ingroup Entry
+ */
+EAPI Eina_Bool               elm_entry_select_allow_get(const Evas_Object *obj);
+
+/**
+ * This disables the entry's cursor handler.
+ *
+ * @param obj The entry object
+ * @param disabled If true, the cursor handler is disabled
+ *
+ * @ingroup Entry
+ */
+EAPI void               elm_entry_cursor_handler_disabled_set(Evas_Object *obj, Eina_Bool disabled);
+
+/**
+ * This returns whether the entry's cursor handler is disabled.
+ *
+ * @param obj The entry object
+ * @return If true, the cursor handlers are disabled
+ *
+ * @ingroup Entry
+ */
+EAPI Eina_Bool          elm_entry_cursor_handler_disabled_get(const Evas_Object *obj);
+
+/**
  * This appends a custom item provider to the list for that entry
  *
  * This appends the given callback. The list is walked from beginning to end
