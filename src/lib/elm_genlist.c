@@ -2077,8 +2077,8 @@ _item_block_position(Item_Block *itb,
                               }
                             it->item->old_scrl_y = it->item->scrl_y;
 #if GENLIST_PINCH_ZOOM_SUPPORT
-                            if ((GL_IT(it)->wsd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT)
-                                && (!IS_ROOT_PARENT_IT(it)))
+                            if (((GL_IT(it)->wsd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT)
+                                 && (!IS_ROOT_PARENT_IT(it))) || (GL_IT(it)->wsd->sorting))
                               {
                                  if (it->deco_all_view) evas_object_hide(it->deco_all_view);
                                  else evas_object_hide(VIEW(it));
@@ -5617,9 +5617,12 @@ _elm_genlist_fx_clear(Evas_Object *obj)
      }
    if (sd->alpha_bg) evas_object_del(sd->alpha_bg);
    sd->alpha_bg = NULL;
+   if (sd->fx_timer) ecore_timer_del(sd->fx_timer);
+   sd->fx_timer = NULL;
 
    sd->genlist_clearing = EINA_TRUE;
    sd->fx_playing = EINA_FALSE;
+   sd->sorting = EINA_FALSE;
    sd->fx_first_captured = EINA_FALSE;
    sd->fx_items_deleted = EINA_FALSE;
 }
@@ -7053,7 +7056,7 @@ static void
 _elm_genlist_proxy_item_del(const Elm_Object_Item *item)
 {
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-   if ((!it) || (!it->item)) return EINA_FALSE;
+   if ((!it) || (!it->item)) return;
 
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
    Proxy_Item *pi;
@@ -7121,10 +7124,12 @@ _elm_genlist_fx_capture(Evas_Object *obj, int level)
    Proxy_Item *pi;
    Evas_Coord ox, oy, ow, oh;
 
-   if ((!sd->rendered) || (sd->fx_playing)) return EINA_FALSE;
-   if ((!level) && (sd->fx_first_captured)) return EINA_FALSE;
-   if ((level) && (!sd->fx_first_captured)) return EINA_FALSE;
-
+   if (!sd->sorting)
+     {
+        if ((!sd->rendered) || (sd->fx_playing)) return EINA_FALSE;
+        if ((!level) && (sd->fx_first_captured)) return EINA_FALSE;
+        if ((level) && (!sd->fx_first_captured)) return EINA_FALSE;
+     }
    evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
 
    if (!level)
@@ -7519,6 +7524,7 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
            evas_object_hide(pi->proxy);
 
         sd->fx_playing = EINA_FALSE;
+        sd->sorting = EINA_FALSE;
         sd->fx_first_captured = EINA_FALSE;
         evas_object_hide(sd->alpha_bg);
 
@@ -7526,6 +7532,44 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
         sd->pan_changed = EINA_TRUE;
         evas_object_smart_changed(sd->pan_obj);
      }
+}
+
+static Eina_Bool
+_sorting_effect_animator_cb(void *data)
+{
+   Elm_Genlist_Smart_Data *sd = data;
+   Elm_Gen_FX_Item *fi;
+   Eina_List *l;
+
+   Evas_Coord ox, oy, ow, oh;
+   evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
+
+   sd->fx_timer = NULL;
+   EINA_LIST_FOREACH(sd->fx_items, l, fi)
+     {
+        if (!fi->changed)
+          {
+             fi->changed = EINA_TRUE;
+             evas_object_resize(fi->proxy, ow, fi->to.h);
+
+             fi->trans = elm_transit_add();
+             elm_transit_object_add(fi->trans, fi->proxy);
+             evas_object_image_source_visible_set(fi->proxy, EINA_FALSE);
+             elm_transit_tween_mode_set(fi->trans, ELM_TRANSIT_TWEEN_MODE_DECELERATE);
+
+             elm_transit_effect_translation_add(fi->trans, fi->to.x, fi->to.y - 30 * elm_config_scale_get(), fi->to.x, fi->to.y);
+             elm_transit_effect_color_add(fi->trans,0, 0, 0, 0, 255,255,255,255);
+
+             elm_transit_effect_add(fi->trans, _item_fx_op, fi, _item_fx_done);
+             elm_transit_del_cb_set(fi->trans, _item_fx_del_cb, fi);
+             elm_transit_duration_set(fi->trans,0.3);
+             elm_transit_objects_final_state_keep_set(fi->trans, EINA_FALSE);
+             elm_transit_go(fi->trans);
+
+             return ECORE_CALLBACK_RENEW;
+          }
+     }
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static void
@@ -7561,6 +7605,15 @@ _elm_genlist_fx_play(Evas_Object *obj)
 
    evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
    evas_output_viewport_get(evas_object_evas_get(obj), &cvx, &cvy, &cvw, &cvh);
+
+   if (sd->sorting)
+     {
+        EINA_LIST_FOREACH(sd->fx_items, l, fi)
+           evas_object_image_source_visible_set(fi->proxy, EINA_FALSE);
+        if (sd->fx_timer) ecore_timer_del(sd->fx_timer);
+        sd->fx_timer = ecore_timer_add(0.05, _sorting_effect_animator_cb, sd);
+        return;
+     }
 
    EINA_LIST_FOREACH(sd->fx_items, l, fi)
      {
@@ -7660,3 +7713,123 @@ elm_genlist_pinch_zoom_mode_set(Evas_Object *obj, Elm_Gen_Pinch_Zoom_Mode mode)
    return EINA_TRUE;
 }
 #endif
+
+static Eina_List *
+eina_list_sort_merge(Eina_List *a, Eina_List *b, Eina_Compare_Cb func)
+{
+   Eina_List *first, *last;
+
+   if (func(a->data, b->data) > 0)
+     {
+        _item_move_after(a->data, b->data);
+        a = (last = first = a)->next;
+
+     }
+   else
+     b = (last = first = b)->next;
+
+   while (a && b)
+     if (func(a->data, b->data) > 0)
+       {
+          _item_move_after(a->data, b->data);
+          a = (last = last->next = a)->next;
+       }
+     else
+       b = (last = last->next = b)->next;
+
+   last->next = a ? a : b;
+
+   return first;
+}
+
+EAPI Eina_List *
+elm_genlist_sort(Evas_Object *obj, Eina_Compare_Cb func)
+{
+   ELM_GENLIST_CHECK(obj) NULL;
+   ELM_GENLIST_DATA_GET(obj, sd);
+   Eina_List *list = NULL;
+   Elm_Gen_Item  *it, *next;
+   unsigned int limit = 0, i = 0, n = 0;
+   Eina_List *tail = NULL, *unsort = NULL, *stack[32], *prev = NULL;
+
+   sd->sorting = EINA_TRUE;
+
+   it = (Elm_Gen_Item*)elm_genlist_first_item_get(obj);
+   while(1)
+     {
+        list = eina_list_append(list, it);
+        next = (Elm_Gen_Item*)elm_genlist_item_next_get((Elm_Object_Item *)it);
+        if (!next) break;
+        it = next;
+     }
+
+   if (!list)
+     return NULL;
+
+   limit = eina_list_count(list);
+   tail = list;
+
+   if ((limit == 0) ||
+       (limit > list->accounting->count))
+     limit = list->accounting->count;
+
+   if (limit != list->accounting->count)
+     {
+        unsort = eina_list_nth_list(list, limit);
+        if (unsort)
+          unsort->prev->next = NULL;
+     }
+
+   while (tail)
+     {
+        unsigned int idx, tmp;
+
+        Eina_List *a = tail;
+        Eina_List *b = tail->next;
+
+        if (!b)
+          {
+             stack[i++] = a;
+             break;
+          }
+
+        tail = b->next;
+
+        if (func(a->data, b->data) > 0)
+          ((stack[i++] = a)->next = b)->next = 0;
+        else
+             ((stack[i++] = b)->next = a)->next = 0;
+
+        tmp = n++;
+        for (idx = n ^ tmp; idx &= idx - 1; i--)
+          stack[i - 2] = eina_list_sort_merge(stack[i - 2], stack[i - 1], func);
+     }
+
+   while (i-- > 1)
+     stack[i - 1] = eina_list_sort_merge(stack[i - 1], stack[i], func);
+
+   list = stack[0];
+
+   for (; stack[0]; stack[0] = stack[0]->next)
+     {
+        stack[0]->prev = prev;
+        prev = stack[0];
+     }
+   tail = prev;
+
+   if (unsort)
+     {
+        tail->next = unsort;
+        unsort->prev = tail;
+     }
+   else
+     list->accounting->last = tail;
+
+   if (!sd->fx_mode) sd->sorting = EINA_FALSE;
+   if (sd->decorate_all_mode) sd->sorting = EINA_FALSE;
+   sd->s_iface->content_region_show(obj, 0,0,0,0);
+   sd->pan_changed = EINA_TRUE;
+   evas_object_smart_changed(sd->pan_obj);
+
+   return list;
+}

@@ -104,6 +104,7 @@ struct _Elm_Gen_FX_Item
    } to;
 
    Eina_Bool update : 1;
+   Eina_Bool changed : 1;
 };
 
 typedef enum

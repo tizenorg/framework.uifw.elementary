@@ -231,6 +231,7 @@ struct _Elm_Genlist_Smart_Data
    Eina_List                            *pending_del_items, *pending_unrealized_items;
    Eina_List                            *pending_unrealized_decorate_all_items;
    Elm_Gen_Item                         *realized_top_item;
+   Ecore_Timer                          *fx_timer;
 #endif
 
    Eina_Bool                             auto_scroll_enabled : 1;
@@ -294,6 +295,7 @@ struct _Elm_Genlist_Smart_Data
    Elm_Gen_Pinch_Zoom_Mode               pinch_zoom_mode;
    Evas_Coord                            pinch_pan_y, pinch_zoom_h;
 #endif
+   Eina_Bool                             sorting : 1;
 };
 
 typedef struct _Item_Block Item_Block;
