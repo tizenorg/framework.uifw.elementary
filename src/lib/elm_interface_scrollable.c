@@ -1364,8 +1364,6 @@ _elm_scroll_content_pos_set(Evas_Object *obj,
    edje_object_part_drag_value_set
      (sid->edje_obj, "elm.dragable.hbar", vx, 0.0);
 
-   if (sig && ((px != x) || (py != y)))
-     edje_object_signal_emit(sid->edje_obj, "elm,action,scroll", "elm");
    if (!sid->down.bounce_x_animator)
      {
         if (((x < minx) && (0 <= sid->down.dx)) ||
@@ -1389,13 +1387,38 @@ _elm_scroll_content_pos_set(Evas_Object *obj,
           sid->bouncemey = EINA_FALSE;
      }
 
-   if ((x != px) || (y != py))
-     {
-        if (sid->cb_func.scroll)
-          sid->cb_func.scroll(obj, NULL);
-     }
    if (sig)
      {
+        if ((x != px) || (y != py))
+          {
+             if (sid->cb_func.scroll)
+               sid->cb_func.scroll(obj, NULL);
+             edje_object_signal_emit(sid->edje_obj, "elm,action,scroll", "elm");
+             if (x < px)
+               {
+                  if (sid->cb_func.scroll_left)
+                    sid->cb_func.scroll_left(obj, NULL);
+                  edje_object_signal_emit(sid->edje_obj, "elm,action,scroll,left", "elm");
+               }
+             if (x > px)
+               {
+                  if (sid->cb_func.scroll_right)
+                    sid->cb_func.scroll_right(obj, NULL);
+                  edje_object_signal_emit(sid->edje_obj, "elm,action,scroll,right", "elm");
+               }
+             if (y < py)
+               {
+                  if (sid->cb_func.scroll_up)
+                    sid->cb_func.scroll_up(obj, NULL);
+                  edje_object_signal_emit(sid->edje_obj, "elm,action,scroll,up", "elm");
+               }
+             if (y > py)
+               {
+                  if (sid->cb_func.scroll_down)
+                    sid->cb_func.scroll_down(obj, NULL);
+                  edje_object_signal_emit(sid->edje_obj, "elm,action,scroll,down", "elm");
+               }
+          }
         if (x != px)
           {
              if (x == minx)
@@ -3343,6 +3366,46 @@ _elm_scroll_scroll_cb_set(Evas_Object *obj,
 }
 
 static void
+_elm_scroll_scroll_left_cb_set(Evas_Object *obj,
+                          void (*scroll_left_cb)(Evas_Object *obj,
+                                            void *data))
+{
+   ELM_SCROLL_IFACE_DATA_GET_OR_RETURN(obj, sid);
+
+   sid->cb_func.scroll_left = scroll_left_cb;
+}
+
+static void
+_elm_scroll_scroll_right_cb_set(Evas_Object *obj,
+                          void (*scroll_right_cb)(Evas_Object *obj,
+                                            void *data))
+{
+   ELM_SCROLL_IFACE_DATA_GET_OR_RETURN(obj, sid);
+
+   sid->cb_func.scroll_right = scroll_right_cb;
+}
+
+static void
+_elm_scroll_scroll_up_cb_set(Evas_Object *obj,
+                          void (*scroll_up_cb)(Evas_Object *obj,
+                                            void *data))
+{
+   ELM_SCROLL_IFACE_DATA_GET_OR_RETURN(obj, sid);
+
+   sid->cb_func.scroll_up = scroll_up_cb;
+}
+
+static void
+_elm_scroll_scroll_down_cb_set(Evas_Object *obj,
+                          void (*scroll_down_cb)(Evas_Object *obj,
+                                            void *data))
+{
+   ELM_SCROLL_IFACE_DATA_GET_OR_RETURN(obj, sid);
+
+   sid->cb_func.scroll_down = scroll_down_cb;
+}
+
+static void
 _elm_scroll_edge_left_cb_set(Evas_Object *obj,
                              void (*edge_left_cb)(Evas_Object *obj,
                                                   void *data))
@@ -3952,6 +4015,10 @@ EAPI const Elm_Scrollable_Smart_Interface ELM_SCROLLABLE_IFACE =
    _elm_scroll_animate_start_cb_set,
    _elm_scroll_animate_stop_cb_set,
    _elm_scroll_scroll_cb_set,
+   _elm_scroll_scroll_left_cb_set,
+   _elm_scroll_scroll_right_cb_set,
+   _elm_scroll_scroll_up_cb_set,
+   _elm_scroll_scroll_down_cb_set,
    _elm_scroll_edge_left_cb_set,
    _elm_scroll_edge_right_cb_set,
    _elm_scroll_edge_top_cb_set,

@@ -4,6 +4,10 @@
 EAPI const char ELM_SCROLLER_SMART_NAME[] = "elm_scroller";
 
 static const char SIG_SCROLL[] = "scroll";
+static const char SIG_SCROLL_LEFT[] = "scroll,left";
+static const char SIG_SCROLL_RIGHT[] = "scroll,right";
+static const char SIG_SCROLL_UP[] = "scroll,up";
+static const char SIG_SCROLL_DOWN[] = "scroll,down";
 static const char SIG_SCROLL_ANIM_START[] = "scroll,anim,start";
 static const char SIG_SCROLL_ANIM_STOP[] = "scroll,anim,stop";
 static const char SIG_SCROLL_DRAG_START[] = "scroll,drag,start";
@@ -21,6 +25,10 @@ static const char SIG_HBAR_UNPRESS[] = "hbar,unpress";
 static const Evas_Smart_Cb_Description _smart_callbacks[] =
 {
    {SIG_SCROLL, ""},
+   {SIG_SCROLL_LEFT, ""},
+   {SIG_SCROLL_RIGHT, ""},
+   {SIG_SCROLL_UP, ""},
+   {SIG_SCROLL_DOWN, ""},
    {SIG_SCROLL_ANIM_START, ""},
    {SIG_SCROLL_ANIM_STOP, ""},
    {SIG_SCROLL_DRAG_START, ""},
@@ -541,6 +549,34 @@ _scroll_cb(Evas_Object *obj,
 }
 
 static void
+_scroll_left_cb(Evas_Object *obj,
+           void *data __UNUSED__)
+{
+   evas_object_smart_callback_call(obj, SIG_SCROLL_LEFT, NULL);
+}
+
+static void
+_scroll_right_cb(Evas_Object *obj,
+           void *data __UNUSED__)
+{
+   evas_object_smart_callback_call(obj, SIG_SCROLL_RIGHT, NULL);
+}
+
+static void
+_scroll_up_cb(Evas_Object *obj,
+           void *data __UNUSED__)
+{
+   evas_object_smart_callback_call(obj, SIG_SCROLL_UP, NULL);
+}
+
+static void
+_scroll_down_cb(Evas_Object *obj,
+           void *data __UNUSED__)
+{
+   evas_object_smart_callback_call(obj, SIG_SCROLL_DOWN, NULL);
+}
+
+static void
 _scroll_anim_start_cb(Evas_Object *obj,
                       void *data __UNUSED__)
 {
@@ -690,6 +726,10 @@ _elm_scroller_smart_add(Evas_Object *obj)
    priv->s_iface->hbar_press_cb_set(obj, _hbar_press_cb);
    priv->s_iface->hbar_unpress_cb_set(obj, _hbar_unpress_cb);
    priv->s_iface->scroll_cb_set(obj, _scroll_cb);
+   priv->s_iface->scroll_left_cb_set(obj, _scroll_left_cb);
+   priv->s_iface->scroll_right_cb_set(obj, _scroll_right_cb);
+   priv->s_iface->scroll_up_cb_set(obj, _scroll_up_cb);
+   priv->s_iface->scroll_down_cb_set(obj, _scroll_down_cb);
    priv->s_iface->animate_start_cb_set(obj, _scroll_anim_start_cb);
    priv->s_iface->animate_stop_cb_set(obj, _scroll_anim_stop_cb);
    priv->s_iface->drag_start_cb_set(obj, _scroll_drag_start_cb);

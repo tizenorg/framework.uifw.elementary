@@ -261,6 +261,14 @@ struct _Elm_Scrollable_Smart_Interface_Data
                            void *data);
       void (*scroll)(Evas_Object *obj,
                      void *data);
+      void (*scroll_left)(Evas_Object *obj,
+                     void *data);
+      void (*scroll_right)(Evas_Object *obj,
+                     void *data);
+      void (*scroll_up)(Evas_Object *obj,
+                     void *data);
+      void (*scroll_down)(Evas_Object *obj,
+                     void *data);
       void (*edge_left)(Evas_Object *obj,
                         void *data);
       void (*edge_right)(Evas_Object *obj,
@@ -349,6 +357,18 @@ struct _Elm_Scrollable_Smart_Interface
                                                              void *data));
    void       (*scroll_cb_set)(Evas_Object *obj,
                                void (*s_cb)(Evas_Object *obj,
+                                                 void *data));
+   void       (*scroll_left_cb_set)(Evas_Object *obj,
+                               void (*s_left_cb)(Evas_Object *obj,
+                                                 void *data));
+   void       (*scroll_right_cb_set)(Evas_Object *obj,
+                               void (*s_right_cb)(Evas_Object *obj,
+                                                 void *data));
+   void       (*scroll_up_cb_set)(Evas_Object *obj,
+                               void (*s_up_cb)(Evas_Object *obj,
+                                                 void *data));
+   void       (*scroll_down_cb_set)(Evas_Object *obj,
+                               void (*s_down_cb)(Evas_Object *obj,
                                                  void *data));
    void       (*edge_left_cb_set)(Evas_Object *obj,
                                   void (*e_left_cb)(Evas_Object *obj,
