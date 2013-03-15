@@ -1526,7 +1526,7 @@ _entry_filter(void *data,
 
 // handles enter key
 static void
-_on_entry_key_up(void *data,
+_on_entry_key_down(void *data,
                  Evas *e __UNUSED__,
                  Evas_Object *obj,
                  void *event_info)
@@ -1571,9 +1571,9 @@ _on_entry_key_up(void *data,
 }
 
 // handles delete key
-// it can be pressed when button is selected, so it is handled on layout_key_up
+// it can be pressed when button is selected, so it is handled on layout_key_down
 static void
-_on_layout_key_up(void *data __UNUSED__,
+_on_layout_key_down(void *data __UNUSED__,
                   Evas *e __UNUSED__,
                   Evas_Object *obj,
                   void *event_info)
@@ -1801,7 +1801,7 @@ _elm_multibuttonentry_smart_add(Evas_Object *obj)
    elm_layout_signal_callback_add
       (obj, "elm,action,clicked", "", _on_layout_clicked, NULL);
    evas_object_event_callback_add
-      (obj, EVAS_CALLBACK_KEY_UP, _on_layout_key_up, NULL);
+      (obj, EVAS_CALLBACK_KEY_DOWN, _on_layout_key_down, NULL);
 
    priv->box = elm_box_add(obj);
    str = elm_layout_data_get(obj, "horizontal_pad");
@@ -1825,7 +1825,7 @@ _elm_multibuttonentry_smart_add(Evas_Object *obj)
    evas_object_size_hint_align_set
       (priv->entry, EVAS_HINT_FILL, EVAS_HINT_FILL);
    evas_object_event_callback_add
-      (priv->entry, EVAS_CALLBACK_KEY_UP, _on_entry_key_up, obj);
+      (priv->entry, EVAS_CALLBACK_KEY_DOWN, _on_entry_key_down, obj);
    evas_object_smart_callback_add
       (priv->entry, "unfocused", _on_entry_unfocused, obj);
    elm_entry_markup_filter_append(priv->entry, _entry_filter, obj);
