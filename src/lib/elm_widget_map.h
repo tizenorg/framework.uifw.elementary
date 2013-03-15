@@ -648,6 +648,8 @@ struct _Elm_Map_Smart_Data
      {
         unsigned int st;
         int x, y;
+        double perspect;
+        double perspect_y;
      } pinch_pan;
 
    Eina_List                            *routes;

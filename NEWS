@@ -1,4 +1,6 @@
-Changes since Elementary 1.7.0:
+Elementary 1.7.99
+
+Changes since elementary 1.7.98:
 -------------------------
 
 Additions:
@@ -15,6 +17,22 @@ Additions:
    * Add virtualkeypad, clipboard state change signals from conformant.
    * Add elm_toolbar_item_show/bring_in.
    * Add "highlighted" and "unhighlighted" callbacks to list, genlist, and gengrid.
+   * Add elm_index smart callback - "language,changed".
+   * Add smart callback signals of a scroller. "vbar,drag", "vbar,press", "vbar,unpress", "hbar,drag", "hbar,press", "hbar,unpress".
+   * Add elm_glview, elm_gengrid smart callback - "language,changed".
+   * Add APIs - elm_object_item_domain_translatable_part_text_set(), elm_object_item_translatable_part_text_get().
+   * Add APIs - elm_object_domain_translatable_part_text_set(), elm_object_translatable_part_text_get().
+   * Add APIs - elm_object_orientation_mode_disabled_set(), elm_object_orientation_mode_disabled_get().
+   * Add the reorder effect in toolbar.
+   * Added new APIs elm_transit_tween_mode_facator_set()/get()
+   * Support widget orientation mode in order to widgets have multiple styles for each window degree.
+   * Add elm_drop_target_add() elm_drop_target_del() and elm_drag_start()
+   * Add the option about sending signals in content_pos_set.
+   * Add omit feature to elm_index.
+   * Add elm_transit_smooth_set(), elm_transit_smooth_get()
+   * Add edje_object_message_signal_process before edje_object_size_min_restricted_calc.
+   * Add elm_object_item_signal_callback_add(), elm_object_item_signal_callback_del().
+   * Add the config ELM_THUMBSCROLL_HOLD_THRESHOLD.
 
 Improvements:
 
@@ -33,6 +51,89 @@ Improvements:
    * Elm_Transit image animation effects supports elm_image object type.
    * Expand elm_transit_tween_mode ELM_TRANSIT_TWEEN_MODE_DIVISOR_INTERP, ELM_TRANSIT_TWEEN_MODE_BOUNCE, ELM_TRANSIT_TWEEN_MODE_SPRING
    * Added new APIs elm_transit_tween_mode_facator_set()/get()
+
+Fixes :
+
+   * Fix glview crash even if the object is failed allocating.
+   * Fix the elm_flip to accept proxy object.
+   * Fix wrong parameter for thumbnail error in elm_icon.
+   * Fix missing selected event in elm_index (elm_index_item_selected_set)
+   * Fix the elm_image which is made up of a edje object can call a callback function
+   * Fix the naviframe to delete contents which are preserved_on set if the naviframe is deleted.
+   * Fix the naviframe to clear the title contents when it's item is deleted.
+   * Fix entry to enable have_selection only when a text is actually selected.
+   * Fix the naviframe to clear the text parts when it's item is deleted.
+   * Fix the mapbuf to update it's content correcltly evenif they go outside of the buffer.
+   * Fix the naviframe to resize it's items which are inserted.
+   * Fix the naviframe to send signal emits one time for content show/hide, text show/hide.
+   * Update mapbuf forcely whenever it's states are changed.
+   * Now, dummy object is always smart member of naviframe.
+   * Fix naviframe's resize object problem when item was deleted.
+   * Fix the popup that returned invalid action buttons.
+   * Fix the naviframe to not have crash even if user deletes the naviframe in the transition finished cb.
+   * Fix Don't elm_transit image animation use the image preloading to avoid image flickering.
+   * Fix the image to show the image right now if the image preloading is disabled.
+   * Fix a elm_transit crash issue when user delete all target objects in the effect end callback.
+   * Fix small memory leak in elm_map error path
+   * Focus highlight should not be shown on (0, 0).
+
+Removals:
+
+   * All internal widget hooks (and related macros) were removed, due
+     to deprecation. Thus, people using that (unstable) API will have
+     to adapt themselves.
+
+
+Elementary 1.7.5
+
+Changes since Elementary 1.7.4:
+-------------------------
+
+Fixes:
+   * Fix bug where genlist would delete items added during selection callback if a clear was queued
+   * Tooltips now correctly set NETWM tooltip window type
+   * Fix the scroll position is calculated by the size of pan object, not the size of scroller.
+
+
+Elementary 1.7.4
+
+Changes since elementary 1.7.3:
+-------------------------
+
+Fixes:
+
+   * Make sure data is not NULL in elm_interface_scrollable.
+
+
+Elementary 1.7.3
+
+Changes since elementary 1.7.2:
+-------------------------
+
+Fixes:
+
+   * Fix uninitialized data path in elm_flip.
+   * Fix uninitialized data path in elm_gesture_layer.
+   * Fix possible segv in elm_quicklaunch infrastructure.
+
+
+Elementary 1.7.2
+
+Changes since elementary 1.7.1:
+-------------------------
+
+Fixes:
+
+   * Fix promote and demote in genlist when the object isn't yet fully builded
+   * Fix the elm_flip to accept proxy object.
+   * Fix wrong parameter for thumbnail error in elm_icon.
+   * Fix update the min size hint on elm_label after a text set
+   * Fix flip widget who show the two face at same time
+
+
+Changes since elementary 1.7.0:
+-------------------------
+
 Fixes:
 
    * Now elm_datetime_field_limit_set() can set year limits wihtout problems.
@@ -53,31 +154,6 @@ Fixes:
    * Fixed gengrid wrong_calc_job parameter.
    * Fix elm_transit image animation that last few frames are skipped.
    * FIx elm_transit to accept proxy object.
-   * Fix glview crash even if the object is failed allocating.
-   * Fix the elm_flip to accept proxy object.
-   * Fix wrong parameter for thumbnail error in elm_icon.
-   * Fix missing selected event in elm_index (elm_index_item_selected_set)
-   * Fix the elm_image which is made up of a edje object can call a callback function
-   * Fix the naviframe to delete contents which are preserved_on set if the naviframe is deleted.
-   * Fix the naviframe to clear the title contents when it's item is deleted.
-   * Fix entry to enable have_selection only when a text is actually selected.
-   * Fix the naviframe to clear the text parts when it's item is deleted.
-   * Fix the mapbuf to update it's content correcltly evenif they go outside of the buffer.
-   * Fix the naviframe to resize it's items which are inserted.
-   * Fix the naviframe to send signal emits one time for content show/hide, text show/hide.
-   * Update mapbuf forcely whenever it's states are changed.
-   * Now, dummy object is always smart member of naviframe.
-   * Fix naviframe's resize object problem when item was deleted.
-   * Fix the popup that returned invalid action buttons.
-   * Fix the naviframe to not have crash even if user deletes the naviframe in the transition finished cb.
-   * Fix Don't elm_transit image animation use the image preloading to avoid image flickering.
-   * Fix the image to show the image right now if the image preloading is disabled.
-
-Removals:
-
-   * All internal widget hooks (and related macros) were removed, due
-     to deprecation. Thus, people using that (unstable) API will have
-     to adapt themselves.
 
 Changes since Elementary 1.0.0:
 -------------------------

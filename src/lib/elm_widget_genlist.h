@@ -7,6 +7,8 @@
 
 // FIXME: Difference from upstream
 #define GENLIST_ENTRY_SUPPORT 1
+#define GENLIST_FX_SUPPORT 1
+#define GENLIST_PINCH_ZOOM_SUPPORT 1
 
 /**
  * @addtogroup Widget
@@ -125,13 +127,6 @@ typedef struct _Elm_Genlist_Smart_Class
  */
 typedef struct _Elm_Genlist_Smart_Data Elm_Genlist_Smart_Data;
 
-typedef enum
-{
-   ELM_GENLIST_TREE_EFFECT_NONE = 0,
-   ELM_GENLIST_TREE_EFFECT_EXPAND = 1,
-   ELM_GENLIST_TREE_EFFECT_CONTRACT = 2
-} Elm_Genlist_Item_Move_Effect_Mode;
-
 struct _Elm_Genlist_Smart_Data
 {
    Elm_Layout_Smart_Data                 base; /* base widget smart data as
@@ -227,13 +222,17 @@ struct _Elm_Genlist_Smart_Data
                                                     * event when tree
                                                     * effect is not
                                                     * finished */
-   Eina_List                            *move_items; /* items move for
-                                                      * tree effect */
    Elm_Gen_Item                         *expanded_next_item;
-   Ecore_Animator                       *tree_effect_animator;
-   Elm_Genlist_Item_Move_Effect_Mode     move_effect_mode;
+   int                                   reorder_fast;
 
-   Eina_Bool                             tree_effect_enabled : 1;
+#if GENLIST_FX_SUPPORT
+   Eina_List                            *fx_items;
+   Eina_List                            *capture_before_items, *capture_after_items;
+   Eina_List                            *pending_del_items, *pending_unrealized_items;
+   Eina_List                            *pending_unrealized_decorate_all_items;
+   Elm_Gen_Item                         *realized_top_item;
+#endif
+
    Eina_Bool                             auto_scroll_enabled : 1;
    Eina_Bool                             decorate_all_mode : 1;
    Eina_Bool                             height_for_width : 1;
@@ -279,9 +278,21 @@ struct _Elm_Genlist_Smart_Data
                                                      * selection */
 
    Eina_Bool                             swipe : 1;
-   int                                   reorder_fast;
 #if GENLIST_ENTRY_SUPPORT
    Eina_Bool                             size_changed : 1;
+#endif
+
+#if GENLIST_FX_SUPPORT
+   Eina_Bool                             fx_mode : 1;
+   Eina_Bool                             fx_first_captured : 1;
+   Eina_Bool                             fx_playing : 1;
+   Eina_Bool                             rendered : 1;
+   Eina_Bool                             fx_items_deleted : 1;
+   Eina_Bool                             genlist_clearing : 1;
+#endif
+#if GENLIST_PINCH_ZOOM_SUPPORT
+   Elm_Gen_Pinch_Zoom_Mode               pinch_zoom_mode;
+   Evas_Coord                            pinch_pan_y, pinch_zoom_h;
 #endif
 };
 
@@ -310,14 +321,18 @@ struct Elm_Gen_Item_Type
    Elm_Gen_Item           *rel;
    Eina_List              *rel_revs; // FIXME: find better way not to use this
    Evas_Object            *deco_it_view;
+#if GENLIST_FX_SUPPORT
+   Elm_Gen_FX_Item         *fi;
+   int                     num;
+#endif
+#if GENLIST_PINCH_ZOOM_SUPPORT
+   Evas_Coord              pan_scrl_y;
+#endif
    int                     expanded_depth;
    int                     order_num_in;
 
    Eina_Bool               decorate_all_item_realized : 1;
-   Eina_Bool               tree_effect_finished : 1; /* tree effect */
    Eina_Bool               move_effect_enabled : 1;
-   Eina_Bool               tree_effect_hide_me : 1; /* item hide for
-                                                    * tree effect */
 
    Eina_Bool               stacking_even : 1;
    Eina_Bool               want_realize : 1;
@@ -333,6 +348,9 @@ struct Elm_Gen_Item_Type
    Eina_Bool               show_me : 1;
    /* if item is realized once, it is not unrealized & realized again. */
    Eina_Bool               unrealize_disabled: 1;
+#if GENLIST_FX_SUPPORT
+   Eina_Bool               has_proxy_it : 1;
+#endif
 };
 
 struct _Item_Block

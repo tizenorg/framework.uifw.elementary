@@ -125,9 +125,9 @@ _conformant_part_sizing_eval(Evas_Object *obj,
 #ifdef HAVE_ELEMENTARY_X
    Ecore_X_Window zone = 0;
    Evas_Object *top;
+   Ecore_X_Window xwin;
 #endif
    int sx = -1, sy = -1, sw = -1, sh = -1;
-   Ecore_X_Window xwin;
 
    ELM_CONFORMANT_DATA_GET(obj, sd);
 
@@ -166,13 +166,23 @@ _conformant_part_sizing_eval(Evas_Object *obj,
           {
 #ifdef HAVE_ELEMENTARY_X
              //No information of the keyboard geometry, reset the geometry.
-             if (!ecore_x_e_illume_keyboard_geometry_get
-                   (zone, &sx, &sy, &sw, &sh))
-               sx = sy = sw = sh = 0;
+#ifdef __linux__
+	         DBG("[KEYPAD]:pid=%d, xwin=0x%x, zone=0x%x: no env value and check window property.", getpid(), xwin, zone);
+#endif
+             if (!ecore_x_e_illume_keyboard_geometry_get(xwin, &sx, &sy, &sw, &sh))
+               {
+		          DBG("[KEYPAD]:no window property, check zone property.");
+				  if (!ecore_x_e_illume_keyboard_geometry_get(zone, &sx, &sy, &sw, &sh))
+                    {
+		               DBG("[KEYPAD]:no zone property, reset value.");
+                       sx = sy = sw = sh = 0;
+				    }
+               }
 #else
              ;
 #endif
           }
+		DBG("[KEYPAD]: size(%d,%d, %dx%d).", sx, sy, sw, sh);
         _conformant_part_size_hints_set
           (obj, sd->virtualkeypad, sx, sy, sw, sh);
      }
@@ -421,10 +431,46 @@ _access_obj_process(Evas_Object *obj, Eina_Bool is_access)
      }
 }
 
+static const char PLUG_KEY[] = "__Plug_Ecore_Evas";
+// procotol version - change this as needed
+#define MSG_DOMAIN_CONTROL_INDICATOR 0x10001
+#define MSG_ID_INDICATOR_REPEAT_EVENT 0x10002
+#define MSG_ID_INDICATOR_ROTATION 0x10003
+#define MSG_ID_INDICATOR_OPACITY 0X1004
+#define MSG_ID_INDICATOR_TYPE 0X1005
+
+static void
+_plug_msg_handle(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int size)
+{
+   Evas_Object *conformant;
+
+   if (!data) return;
+   DBG("Receive msg from plug ee=%p msg_domain=%x msg_id=%x size=%d", ee, msg_domain, msg_id, size);
+   //get plug object form ee
+   conformant = (Evas_Object *)ecore_evas_data_get(ee, CONFORMANT_KEY);
+   ELM_CONFORMANT_DATA_GET(conformant, sd);
+   if (msg_domain == MSG_DOMAIN_CONTROL_INDICATOR)
+     {
+        if (msg_id == MSG_ID_INDICATOR_REPEAT_EVENT)
+          {
+             int *repeat = data;
+             DBG("Receive repeat event change message:(%d)", *repeat);
+          }
+        if (msg_id == MSG_ID_INDICATOR_TYPE)
+          {
+             Elm_Win_Indicator_Type_Mode *indi_t_mode = data;
+             Evas_Object *win = elm_widget_top_get(conformant);
+             DBG("Receive indicator type change message:(%d)", *indi_t_mode);
+             elm_win_indicator_type_set(win, *indi_t_mode);
+          }
+	 }
+}
+
 static Evas_Object *
 _create_portrait_indicator(Evas_Object *obj)
 {
    Evas_Object *port_indicator = NULL;
+   Ecore_Evas *indicator_ee = NULL;
    const char *port_indicator_serv_name;
 
    ELM_CONFORMANT_DATA_GET(obj, sd);
@@ -449,6 +495,15 @@ _create_portrait_indicator(Evas_Object *obj)
         return NULL;
      }
 
+   //callback to deal with extn socket message
+   indicator_ee = ecore_evas_object_ecore_evas_get(elm_plug_image_object_get(port_indicator));
+   DBG("This is portrait indicator's ee=%p.", indicator_ee);
+   ecore_evas_callback_msg_handle_set(indicator_ee, _plug_msg_handle);
+   ecore_evas_data_set(indicator_ee, CONFORMANT_KEY, obj);
+
+   DBG("The rotation value of portrait indicator was changed:(%d)", sd->rot);
+   ecore_evas_msg_parent_send(indicator_ee, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
+
    elm_widget_sub_object_add(obj, port_indicator);
    evas_object_smart_callback_add(port_indicator, "image.deleted", _port_indicator_disconnected, obj);
 
@@ -464,6 +519,7 @@ _create_portrait_indicator(Evas_Object *obj)
 static Evas_Object *
 _create_landscape_indicator(Evas_Object *obj)
 {
+   Ecore_Evas *indicator_ee = NULL;
    Evas_Object *land_indicator = NULL;
    const char *land_indicator_serv_name;
 
@@ -488,6 +544,14 @@ _create_landscape_indicator(Evas_Object *obj)
         DBG("Conformant cannot connect to server[%s]\n", land_indicator_serv_name);
         return NULL;
      }
+
+   //callback to deal with extn socket message
+   indicator_ee = ecore_evas_object_ecore_evas_get(elm_plug_image_object_get(land_indicator));
+   ecore_evas_data_set(indicator_ee, CONFORMANT_KEY, obj);
+   DBG("This is landscape indicator's ee=%p.", indicator_ee);
+   ecore_evas_callback_msg_handle_set(indicator_ee, _plug_msg_handle);
+   DBG("The rotation value of landscape indicator was changed:(%d)", sd->rot);
+   ecore_evas_msg_parent_send(indicator_ee, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
 
    elm_widget_sub_object_add(obj, land_indicator);
    evas_object_smart_callback_add(land_indicator, "image.deleted",_land_indicator_disconnected, obj);
@@ -562,6 +626,21 @@ _indicator_opacity_set(Evas_Object *conformant, Elm_Win_Indicator_Opacity_Mode i
    ELM_CONFORMANT_DATA_GET(conformant, sd);
    sd->ind_o_mode = ind_o_mode;
    //TODO: opacity change
+   //send indicator information
+   if (sd->landscape_indicator)
+     {
+        Ecore_Evas *indicator_ee = NULL;
+        DBG("The opacity mode of landscape indicator was changed:(%d)", ind_o_mode);
+        indicator_ee = ecore_evas_object_ecore_evas_get(elm_plug_image_object_get(sd->landscape_indicator));
+        ecore_evas_msg_parent_send(indicator_ee, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_OPACITY, &(sd->ind_o_mode), sizeof(Elm_Win_Indicator_Opacity_Mode));
+     }
+   if (sd->portrait_indicator)
+     {
+        Ecore_Evas *indicator_ee = NULL;
+        DBG("The opacity mode of portrait indicator was changed:(%d)", ind_o_mode);
+        indicator_ee = ecore_evas_object_ecore_evas_get(elm_plug_image_object_get(sd->portrait_indicator));
+        ecore_evas_msg_parent_send(indicator_ee, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_OPACITY, &(sd->ind_o_mode), sizeof(Elm_Win_Indicator_Opacity_Mode));
+     }
 }
 
 static void
@@ -579,14 +658,10 @@ _on_indicator_mode_changed(void *data,
 
    indmode = elm_win_indicator_mode_get(win);
    ind_o_mode = elm_win_indicator_opacity_get(win);
-   if (indmode == sd->indmode)
-     {
-        if (ind_o_mode == sd->ind_o_mode) return;
-        else _indicator_opacity_set(conformant, ind_o_mode);
-     }
-   else
+   if (indmode != sd->indmode)
      _indicator_mode_set(conformant, indmode);
-
+   if (ind_o_mode != sd->ind_o_mode)
+     _indicator_opacity_set(conformant, ind_o_mode);
 }
 
 static void
@@ -606,6 +681,21 @@ _on_rotation_changed(void *data,
    if (rot == sd->rot) return;
 
    sd->rot = rot;
+   //send indicator information
+   if (sd->landscape_indicator)
+     {
+        Ecore_Evas *indicator_ee = NULL;
+        DBG("The rotation value of landscape indicator was changed:(%d)", rot);
+        indicator_ee = ecore_evas_object_ecore_evas_get(elm_plug_image_object_get(sd->landscape_indicator));
+        ecore_evas_msg_parent_send(indicator_ee, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
+     }
+   if (sd->portrait_indicator)
+     {
+        Ecore_Evas *indicator_ee = NULL;
+        DBG("The rotation value of portrait indicator was changed:(%d)", rot);
+        indicator_ee = ecore_evas_object_ecore_evas_get(elm_plug_image_object_get(sd->portrait_indicator));
+        ecore_evas_msg_parent_send(indicator_ee, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
+     }
    old_indi = elm_layout_content_unset(conformant, INDICATOR_PART);
    /* this means ELM_WIN_INDICATOR_SHOW never be set.we don't need to change indicator type*/
    if (!old_indi) return;
@@ -809,15 +899,22 @@ _virtualkeypad_state_change(Evas_Object *obj, Ecore_X_Event_Window_Property *ev)
 
    Ecore_X_Window zone = ecore_x_e_illume_zone_get(ev->win);
    Ecore_X_Virtual_Keyboard_State state =
-      ecore_x_e_virtual_keyboard_state_get(zone);
+      ecore_x_e_virtual_keyboard_state_get(ev->win);
+
+   DBG("[KEYPAD]:window's state win=0x%x, state=%d.", ev->win, state);
+   if (state == ECORE_X_VIRTUAL_KEYBOARD_STATE_UNKNOWN)
+     {
+        state = ecore_x_e_virtual_keyboard_state_get(zone);
+        DBG("[KEYPAD]:zone's state zone=0x%x, state=%d.", zone, state);
+     }
 
    if (sd->vkb_state == state) return;
    sd->vkb_state = state;
 
    if (state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF)
      {
-        evas_object_size_hint_min_set(sd->virtualkeypad, -1, 0);
-        evas_object_size_hint_max_set(sd->virtualkeypad, -1, 0);
+        DBG("[KEYPAD]:ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF");
+        _conformant_part_sizing_eval(obj, ELM_CONFORMANT_VIRTUAL_KEYPAD_PART);
         // Tizen Only - SIP regions for virtual keypad and clipboard are the same in Tizen
         if (sd->clipboard_state == ECORE_X_ILLUME_CLIPBOARD_STATE_OFF)
           elm_widget_display_mode_set(obj, EVAS_DISPLAY_MODE_NONE);
@@ -825,6 +922,8 @@ _virtualkeypad_state_change(Evas_Object *obj, Ecore_X_Event_Window_Property *ev)
      }
    else if (state == ECORE_X_VIRTUAL_KEYBOARD_STATE_ON)
      {
+        DBG("[KEYPAD]:ECORE_X_VIRTUAL_KEYBOARD_STATE_ON");
+        _conformant_part_sizing_eval(obj, ELM_CONFORMANT_VIRTUAL_KEYPAD_PART);
         elm_widget_display_mode_set(obj, EVAS_DISPLAY_MODE_COMPRESS);
         _autoscroll_objects_update(obj);
         evas_object_smart_callback_call(obj, SIG_VIRTUALKEYPAD_STATE_ON, NULL);
@@ -838,7 +937,15 @@ _clipboard_state_change(Evas_Object *obj, Ecore_X_Event_Window_Property *ev)
 
    Ecore_X_Window zone = ecore_x_e_illume_zone_get(ev->win);
    Ecore_X_Illume_Clipboard_State state =
-      ecore_x_e_illume_clipboard_state_get(zone);
+      ecore_x_e_illume_clipboard_state_get(ev->win);
+
+   DBG("[CLIPBOARD]:window's state win=0x%x, state=%d.", ev->win, state);
+
+   if (state == ECORE_X_ILLUME_CLIPBOARD_STATE_UNKNOWN)
+     {
+        state = ecore_x_e_illume_clipboard_state_get(ev->win);
+        DBG("[CLIPBOARD]:zone's state zone=0x%x, state=%d.", zone, state);
+     }
 
    if (sd->clipboard_state == state) return;
    sd->clipboard_state = state;
@@ -867,8 +974,15 @@ _on_prop_change(void *data,
 {
    Ecore_X_Event_Window_Property *ev = event;
 
+   int pid = 0;
+
+#ifdef __linux__
+   pid = (int)getpid();
+#endif
+
    if (ev->atom == ECORE_X_ATOM_E_ILLUME_ZONE)
      {
+		DBG("pid=%d, win=0x%x, ECORE_X_ATOM_E_ILLUME_ZONE.\n", pid, ev->win);
         Conformant_Part_Type part_type;
 
         part_type = (ELM_CONFORMANT_INDICATOR_PART |
@@ -879,17 +993,35 @@ _on_prop_change(void *data,
         _conformant_part_sizing_eval(data, part_type);
      }
    else if (ev->atom == ECORE_X_ATOM_E_ILLUME_INDICATOR_GEOMETRY)
-     _conformant_part_sizing_eval(data, ELM_CONFORMANT_INDICATOR_PART);
+     {
+		DBG("pid=%d, win=0x%x, ECORE_X_ATOM_E_ILLUME_INDICATOR_GEOMETRY.", pid, ev->win);
+        _conformant_part_sizing_eval(data, ELM_CONFORMANT_INDICATOR_PART);
+	 }
    else if (ev->atom == ECORE_X_ATOM_E_ILLUME_SOFTKEY_GEOMETRY)
-     _conformant_part_sizing_eval(data, ELM_CONFORMANT_SOFTKEY_PART);
+     {
+		DBG("pid=%d, win=0x%x, ECORE_X_ATOM_E_ILLUME_SOFTKEY_GEOMETRY.", pid, ev->win);
+        _conformant_part_sizing_eval(data, ELM_CONFORMANT_SOFTKEY_PART);
+	 }
    else if (ev->atom == ECORE_X_ATOM_E_ILLUME_KEYBOARD_GEOMETRY)
-     _conformant_part_sizing_eval(data, ELM_CONFORMANT_VIRTUAL_KEYPAD_PART);
+     {
+		DBG("[KEYPAD]:pid=%d, win=0x%x, ECORE_X_ATOM_E_ILLUME_KEYBOARD_GEOMETRY.", pid, ev->win);
+        _conformant_part_sizing_eval(data, ELM_CONFORMANT_VIRTUAL_KEYPAD_PART);
+     }
    else if (ev->atom == ECORE_X_ATOM_E_ILLUME_CLIPBOARD_GEOMETRY)
-     _conformant_part_sizing_eval(data, ELM_CONFORMANT_CLIPBOARD_PART);
+     {
+		DBG("pid=%d, win=0x%x, ECORE_X_ATOM_E_ILLUME_CLIPBOARD_GEOMETRY.", pid, ev->win);
+        _conformant_part_sizing_eval(data, ELM_CONFORMANT_CLIPBOARD_PART);
+     }
    else if (ev->atom == ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_STATE)
-     _virtualkeypad_state_change(data, ev);
+     {
+		DBG("[KEYPAD]:pid=%d, win=0x%x, ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_STATE.", pid, ev->win);
+        _virtualkeypad_state_change(data, ev);
+     }
    else if (ev->atom == ECORE_X_ATOM_E_ILLUME_CLIPBOARD_STATE)
-     _clipboard_state_change(data, ev);
+     {
+		DBG("pid=%d, win=0x%x, ECORE_X_ATOM_E_ILLUME_CLIPBOARD_STATE.", pid, ev->win);
+        _clipboard_state_change(data, ev);
+     }
 
    return ECORE_CALLBACK_PASS_ON;
 }

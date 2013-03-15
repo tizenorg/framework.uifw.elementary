@@ -13,11 +13,16 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
 EVAS_SMART_SUBCLASS_NEW
   (ELM_CTXPOPUP_SMART_NAME, _elm_ctxpopup, Elm_Ctxpopup_Smart_Class,
    Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks);
+
 static Eina_Bool
 _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
                                Elm_Focus_Direction dir,
                                Evas_Object **next)
 {
+   Eina_List *items = NULL;
+   Eina_List *elist = NULL;
+   Elm_Ctxpopup_Item *it;
+
    ELM_CTXPOPUP_DATA_GET(obj, sd);
 
    if (!sd)
@@ -29,7 +34,11 @@ _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
         elm_widget_focus_next_get(sd->box, dir, next);
      }
 
-   return EINA_TRUE;
+   EINA_LIST_FOREACH(sd->items, elist, it)
+     items = eina_list_append(items, it->base.access_obj);
+
+   return elm_widget_focus_list_next_get
+            (obj, items, eina_list_data_get, dir, next);
 }
 
 static Eina_Bool
@@ -158,6 +167,79 @@ _item_select_cb(void *data, Evas_Object *obj __UNUSED__,
      item->func((void*)item->base.data, WIDGET(item), data);
 }
 
+static char *
+_access_info_cb(void *data, Evas_Object *obj __UNUSED__)
+{
+   Elm_Ctxpopup_Item *it = (Elm_Ctxpopup_Item *)data;
+   const char *txt = NULL;
+   Evas_Object *icon = NULL;
+   Eina_Strbuf *buf = NULL;
+   char *str = NULL;
+
+   if (!it) return NULL;
+
+   if ((!txt) && (!icon))
+     {
+        txt = it->label;
+        icon = it->icon;
+     }
+   else if (!txt) txt = it->label;
+   else if (!icon) icon = it->icon;
+
+   if (txt && icon)
+     {
+        buf = eina_strbuf_new();
+        eina_strbuf_append(buf, E_("icon "));
+        eina_strbuf_append(buf, txt);
+        str = eina_strbuf_string_steal(buf);
+        eina_strbuf_free(buf);
+        return str;
+     }
+   else if ((!txt) && icon) return strdup(E_("icon"));
+   else if (txt && (!icon)) return strdup(txt);
+
+   return NULL;
+}
+
+static char *
+_access_state_cb(void *data, Evas_Object *obj __UNUSED__)
+{
+   Elm_Ctxpopup_Item *it = (Elm_Ctxpopup_Item *)data;
+   if (!it) return NULL;
+
+   if (it->base.disabled)
+     return strdup(E_("State: Disabled"));
+
+   return NULL;
+}
+
+static void
+_access_activate_cb(void *data __UNUSED__,
+                    Evas_Object *part_obj __UNUSED__,
+                    Elm_Object_Item *item)
+{
+   _item_select_cb(item, NULL, NULL, NULL);
+}
+
+static void
+_access_widget_item_register(Elm_Ctxpopup_Item *it, Eina_Bool is_access)
+{
+   Elm_Access_Info *ai;
+
+   if (!is_access) _elm_access_widget_item_unregister((Elm_Widget_Item *)it);
+   else
+     {
+        _elm_access_widget_item_register((Elm_Widget_Item *)it);
+
+        ai = _elm_access_object_get(it->base.access_obj);
+
+        _elm_access_callback_set(ai, ELM_ACCESS_INFO, _access_info_cb, it);
+        _elm_access_callback_set(ai, ELM_ACCESS_STATE, _access_state_cb, it);
+        _elm_access_text_set(ai, ELM_ACCESS_TYPE, E_("Contextual Popup"));
+        _elm_access_activate_callback_set(ai, _access_activate_cb, it);
+     }
+}
+
 static void
 _item_new(Elm_Ctxpopup_Item *item,
           char *group_name)
@@ -173,6 +255,9 @@ _item_new(Elm_Ctxpopup_Item *item,
                                    _item_select_cb, item);
    evas_object_size_hint_align_set(VIEW(item), EVAS_HINT_FILL, EVAS_HINT_FILL);
    evas_object_show(VIEW(item));
+
+   /* access */
+   if (_elm_config->access_mode) _access_widget_item_register(item, EINA_TRUE);
 }
 
 static void
@@ -301,6 +386,8 @@ _base_geometry_calc(Evas_Object *obj,
 
    //Limit to Max Size
    evas_object_size_hint_max_get(obj, &max_size.x, &max_size.y);
+   if ((max_size.x == -1) || (max_size.y == -1))
+     edje_object_size_max_get(sd->layout, &max_size.x, &max_size.y);
 
    if ((max_size.y > 0) && (base_size.y > max_size.y))
      base_size.y = max_size.y;
@@ -310,6 +397,8 @@ _base_geometry_calc(Evas_Object *obj,
 
    //Limit to Min Size
    evas_object_size_hint_min_get(obj, &min_size.x, &min_size.y);
+   if ((min_size.x == 0) || (min_size.y == 0))
+     edje_object_size_min_get(sd->layout, &min_size.x, &min_size.y);
 
    if ((min_size.y > 0) && (base_size.y < min_size.y))
      base_size.y = min_size.y;
@@ -453,12 +542,19 @@ _arrow_update(Evas_Object *obj,
    Evas_Coord_Rectangle arrow_size;
    Evas_Coord x, y;
    double drag;
+   Evas_Coord_Rectangle shadow_left_top, shadow_right_bottom, arrow_padding;
 
    ELM_CTXPOPUP_DATA_GET(obj, sd);
 
    evas_object_geometry_get(obj, &x, &y, NULL, NULL);
    evas_object_geometry_get
      (sd->arrow, NULL, NULL, &arrow_size.w, &arrow_size.h);
+
+   /* tizen only : since ctxpopup of tizen has shadow, start and end padding of arrow, it should be put together when updating arrow
+    * so there are some differences between open source and tizen */
+   edje_object_part_geometry_get(ELM_WIDGET_DATA(sd)->resize_obj, "frame_shadow_left_top_padding", NULL, NULL, &shadow_left_top.w, &shadow_left_top.h);
+   edje_object_part_geometry_get(ELM_WIDGET_DATA(sd)->resize_obj, "frame_shadow_right_bottom_padding", NULL, NULL, &shadow_right_bottom.w, &shadow_right_bottom.h);
+   edje_object_part_geometry_get(ELM_WIDGET_DATA(sd)->resize_obj, "ctxpopup_frame_left_top", NULL, NULL, &arrow_padding.w, &arrow_padding.h);
 
    /* arrow is not being kept as sub-object on purpose, here. the
     * design of the widget does not help with the contrary */
@@ -474,13 +570,13 @@ _arrow_update(Evas_Object *obj,
 
         if (base_size.h > 0)
           {
-             if (y < ((arrow_size.h * 0.5) + base_size.y))
+             if (y <= ((arrow_size.h * 0.5) + base_size.y + shadow_left_top.h + arrow_padding.h))
                y = 0;
-             else if (y > base_size.y + base_size.h - (arrow_size.h * 0.5))
-               y = base_size.h - arrow_size.h;
+             else if (y >= (base_size.y + base_size.h - ((arrow_size.h * 0.5) + shadow_right_bottom.h + arrow_padding.h)))
+               y = base_size.h - (arrow_size.h + shadow_right_bottom.h + shadow_left_top.h + (arrow_padding.h * 2));
              else
-               y = y - base_size.y - (arrow_size.h * 0.5);
-             drag = (double)(y) / (double)(base_size.h - arrow_size.h);
+               y = y - base_size.y - ((arrow_size.h * 0.5) + shadow_left_top.h + arrow_padding.h);
+             drag = (double)(y) / (double)(base_size.h - (arrow_size.h + shadow_right_bottom.h + shadow_left_top.h + (arrow_padding.h * 2)));
              edje_object_part_drag_value_set
                 (ELM_WIDGET_DATA(sd)->resize_obj,
                  (elm_widget_mirrored_get(obj) ? "elm.swallow.arrow_right" :
@@ -497,13 +593,13 @@ _arrow_update(Evas_Object *obj,
 
         if (base_size.h > 0)
           {
-             if (y < ((arrow_size.h * 0.5) + base_size.y))
+             if (y <= ((arrow_size.h * 0.5) + base_size.y + shadow_left_top.h + arrow_padding.h))
                y = 0;
-             else if (y > (base_size.y + base_size.h - (arrow_size.h * 0.5)))
-               y = base_size.h - arrow_size.h;
+             else if (y >= (base_size.y + base_size.h - ((arrow_size.h * 0.5) + shadow_right_bottom.h + arrow_padding.h)))
+               y = base_size.h - (arrow_size.h + shadow_right_bottom.h + shadow_left_top.h + (arrow_padding.h * 2));
              else
-               y = y - base_size.y - (arrow_size.h * 0.5);
-             drag = (double)(y) / (double)(base_size.h - arrow_size.h);
+               y = y - base_size.y - ((arrow_size.h * 0.5) + shadow_left_top.h + arrow_padding.h);
+             drag = (double)(y) / (double)(base_size.h - (arrow_size.h + shadow_right_bottom.h + shadow_left_top.h + (arrow_padding.h * 2)));
              edje_object_part_drag_value_set
                 (ELM_WIDGET_DATA(sd)->resize_obj,
                  (elm_widget_mirrored_get(obj) ? "elm.swallow.arrow_left" :
@@ -519,16 +615,16 @@ _arrow_update(Evas_Object *obj,
 
         if (base_size.w > 0)
           {
-             if (x < ((arrow_size.w * 0.5) + base_size.x))
+             if (x <= ((arrow_size.w * 0.5) + base_size.x + shadow_left_top.w + arrow_padding.w))
                x = 0;
-             else if (x > (base_size.x + base_size.w - (arrow_size.w * 0.5)))
-               x = base_size.w - arrow_size.w;
+             else if (x >= (base_size.x + base_size.w - ((arrow_size.w * 0.5) + shadow_right_bottom.w + arrow_padding.w)))
+               x = base_size.w - (arrow_size.w + shadow_right_bottom.w + shadow_left_top.w + (arrow_padding.w * 2));
              else
-               x = x - base_size.x - (arrow_size.w * 0.5);
-             drag = (double)(x) / (double)(base_size.w - arrow_size.w);
+               x = x - base_size.x - ((arrow_size.w * 0.5) + shadow_left_top.w + arrow_padding.w);
+             drag = (double)(x) / (double)(base_size.w - (arrow_size.w + shadow_right_bottom.w + shadow_left_top.w + (arrow_padding.w * 2)));
              edje_object_part_drag_value_set
-               (ELM_WIDGET_DATA(sd)->resize_obj, "elm.swallow.arrow_up", drag,
-               1);
+               (ELM_WIDGET_DATA(sd)->resize_obj, "elm.swallow.arrow_up",
+               drag, 1);
           }
         break;
 
@@ -540,12 +636,13 @@ _arrow_update(Evas_Object *obj,
 
         if (base_size.w > 0)
           {
-             if (x < ((arrow_size.w * 0.5) + base_size.x))
+             if (x <= ((arrow_size.w * 0.5) + base_size.x + shadow_left_top.w + arrow_padding.w))
                x = 0;
-             else if (x > (base_size.x + base_size.w - (arrow_size.w * 0.5)))
-               x = base_size.w - arrow_size.w;
-             else x = x - base_size.x - (arrow_size.w * 0.5);
-             drag = (double)(x) / (double)(base_size.w - arrow_size.w);
+             else if (x >= (base_size.x + base_size.w - ((arrow_size.w * 0.5) + shadow_right_bottom.w + arrow_padding.w)))
+               x = base_size.w - (arrow_size.w + shadow_right_bottom.w + shadow_left_top.w + (arrow_padding.w * 2));
+             else
+               x = x - base_size.x - ((arrow_size.w * 0.5) + shadow_left_top.w + arrow_padding.w);
+             drag = (double)(x) / (double)(base_size.w - (arrow_size.w + shadow_right_bottom.w + shadow_left_top.w + (arrow_padding.w * 2)));
              edje_object_part_drag_value_set
                (ELM_WIDGET_DATA(sd)->resize_obj, "elm.swallow.arrow_down",
                drag, 0);
@@ -571,23 +668,21 @@ _show_signals_emit(Evas_Object *obj,
    switch (dir)
      {
       case ELM_CTXPOPUP_DIRECTION_UP:
-        elm_layout_signal_emit(obj, "elm,state,show,up", "elm");
+        edje_object_signal_emit(sd->layout, "elm,state,show,up", "elm");
         break;
 
       case ELM_CTXPOPUP_DIRECTION_LEFT:
-        elm_layout_signal_emit(obj,
-              (elm_widget_mirrored_get(obj) ? "elm,state,show,right" :
+        edje_object_signal_emit(sd->layout, (elm_widget_mirrored_get(obj) ? "elm,state,show,right" :
                "elm,state,show,left"), "elm");
         break;
 
       case ELM_CTXPOPUP_DIRECTION_RIGHT:
-        elm_layout_signal_emit(obj,
-              (elm_widget_mirrored_get(obj) ? "elm,state,show,left" :
+        edje_object_signal_emit(sd->layout, (elm_widget_mirrored_get(obj) ? "elm,state,show,left" :
                "elm,state,show,right"), "elm");
         break;
 
       case ELM_CTXPOPUP_DIRECTION_DOWN:
-        elm_layout_signal_emit(obj, "elm,state,show,down", "elm");
+        edje_object_signal_emit(sd->layout, "elm,state,show,down", "elm");
         break;
 
       default:
@@ -595,7 +690,7 @@ _show_signals_emit(Evas_Object *obj,
      }
 
    edje_object_signal_emit(sd->bg, "elm,state,show", "elm");
-   elm_layout_signal_emit(obj, "elm,state,show", "elm");
+//   elm_layout_signal_emit(obj, "elm,state,show", "elm");
 }
 
 static void
@@ -609,23 +704,21 @@ _hide_signals_emit(Evas_Object *obj,
    switch (dir)
      {
       case ELM_CTXPOPUP_DIRECTION_UP:
-        elm_layout_signal_emit(obj, "elm,state,hide,up", "elm");
+        edje_object_signal_emit(sd->layout, "elm,state,hide,up", "elm");
         break;
 
       case ELM_CTXPOPUP_DIRECTION_LEFT:
-        elm_layout_signal_emit(obj,
-              (elm_widget_mirrored_get(obj) ? "elm,state,hide,right" :
+        edje_object_signal_emit(sd->layout, (elm_widget_mirrored_get(obj) ? "elm,state,hide,right" :
                "elm,state,hide,left"), "elm");
         break;
 
       case ELM_CTXPOPUP_DIRECTION_RIGHT:
-        elm_layout_signal_emit(obj,
-              (elm_widget_mirrored_get(obj) ? "elm,state,hide,left" :
+        edje_object_signal_emit(sd->layout, (elm_widget_mirrored_get(obj) ? "elm,state,hide,left" :
                "elm,state,hide,right"), "elm");
         break;
 
       case ELM_CTXPOPUP_DIRECTION_DOWN:
-        elm_layout_signal_emit(obj, "elm,state,hide,down", "elm");
+        edje_object_signal_emit(sd->layout, "elm,state,hide,down", "elm");
         break;
 
       default:
@@ -735,7 +828,7 @@ _elm_ctxpopup_smart_sizing_eval(Evas_Object *obj)
      }
 
    if (!sd->arrow) return;  /* simple way to flag "under deletion" */
-   
+
    if ((!sd->content) && (sd->scr))
      {
         evas_object_size_hint_min_set(sd->box, box_size.x, box_size.y);
@@ -760,8 +853,11 @@ _elm_ctxpopup_smart_sizing_eval(Evas_Object *obj)
         evas_object_smart_calculate(sd->scr);
      }
 
-   evas_object_move(ELM_WIDGET_DATA(sd)->resize_obj, rect.x, rect.y);
+   evas_object_size_hint_min_set(ELM_WIDGET_DATA(sd)->resize_obj, rect.w, rect.h);
    evas_object_resize(ELM_WIDGET_DATA(sd)->resize_obj, rect.w, rect.h);
+
+   evas_object_move(sd->layout, rect.x, rect.y);
+   evas_object_resize(sd->layout, rect.w, rect.h);
 
    _show_signals_emit(obj, sd->dir);
 }
@@ -854,6 +950,8 @@ _elm_ctxpopup_smart_theme(Evas_Object *obj)
      (obj, sd->bg, "ctxpopup", "bg", elm_widget_style_get(obj));
    elm_widget_theme_object_set
      (obj, sd->arrow, "ctxpopup", "arrow", elm_widget_style_get(obj));
+   elm_widget_theme_object_set
+     (obj, sd->layout, "ctxpopup", "layout", elm_widget_style_get(obj));
 
    //Items
    EINA_LIST_FOREACH(sd->items, elist, item)
@@ -1123,6 +1221,7 @@ _on_show(void *data __UNUSED__,
 
    evas_object_show(sd->bg);
    evas_object_show(sd->arrow);
+   evas_object_show(sd->layout);
 
    edje_object_signal_emit(sd->bg, "elm,state,show", "elm");
    elm_layout_signal_emit(obj, "elm,state,show", "elm");
@@ -1162,6 +1261,7 @@ _on_hide(void *data __UNUSED__,
 
    evas_object_hide(sd->bg);
    evas_object_hide(sd->arrow);
+   evas_object_hide(sd->layout);
 
    _scroller_size_reset(sd);
 
@@ -1231,8 +1331,8 @@ _ctxpopup_restack_cb(void *data __UNUSED__,
                      void *event_info __UNUSED__)
 {
    ELM_CTXPOPUP_DATA_GET(obj, sd);
-
-   evas_object_layer_set(sd->bg, evas_object_layer_get(obj));
+   evas_object_stack_below(sd->bg, obj);
+   evas_object_stack_below(sd->layout, obj);
 }
 
 static void
@@ -1298,6 +1398,7 @@ static void
 _elm_ctxpopup_smart_add(Evas_Object *obj)
 {
    EVAS_SMART_DATA_ALLOC(obj, Elm_Ctxpopup_Smart_Data);
+   ELM_CTXPOPUP_DATA_GET(obj, sd);
 
    ELM_WIDGET_CLASS(_elm_ctxpopup_parent_sc)->base.add(obj);
 
@@ -1347,6 +1448,15 @@ _elm_ctxpopup_smart_add(Evas_Object *obj)
    ELM_CONTAINER_CLASS(_elm_ctxpopup_parent_sc)->content_set
      (obj, "elm.swallow.content", priv->box);
 
+   priv->layout = edje_object_add(evas_object_evas_get(obj));
+   elm_widget_theme_object_set(obj, priv->layout, "ctxpopup", "layout", "default");
+
+   edje_object_signal_callback_add
+     (priv->layout, "elm,action,hide,finished", "", _hide_finished_cb, obj);
+   edje_object_part_swallow(priv->layout, "swallow", ELM_WIDGET_DATA(sd)->resize_obj);
+   evas_object_size_hint_weight_set
+     (priv->layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+
    evas_object_event_callback_add(obj, EVAS_CALLBACK_SHOW, _on_show, NULL);
    evas_object_event_callback_add(obj, EVAS_CALLBACK_HIDE, _on_hide, NULL);
    evas_object_event_callback_add(obj, EVAS_CALLBACK_MOVE, _on_move, NULL);
@@ -1370,6 +1480,9 @@ _elm_ctxpopup_smart_del(Evas_Object *obj)
    evas_object_del(sd->bg);
    sd->bg = NULL;
 
+   evas_object_del(sd->layout);
+   sd->layout = NULL;
+
    ELM_WIDGET_CLASS(_elm_ctxpopup_parent_sc)->base.del(obj);
 }
 
@@ -1379,6 +1492,19 @@ _elm_ctxpopup_smart_parent_set(Evas_Object *obj,
 {
    //default parent is to be hover parent
    elm_ctxpopup_hover_parent_set(obj, parent);
+}
+
+static void
+_elm_ctxpopup_smart_access(Evas_Object *obj, Eina_Bool is_access)
+{
+   Eina_List *elist = NULL;
+   Elm_Ctxpopup_Item *it;
+
+   ELM_CTXPOPUP_CHECK(obj);
+   ELM_CTXPOPUP_DATA_GET(obj, sd);
+
+   EINA_LIST_FOREACH(sd->items, elist, it)
+     _access_widget_item_register(it, is_access);
 }
 
 static void
@@ -1400,6 +1526,8 @@ _elm_ctxpopup_smart_set_user(Elm_Ctxpopup_Smart_Class *sc)
    ELM_CONTAINER_CLASS(sc)->content_unset = _elm_ctxpopup_smart_content_unset;
 
    ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_ctxpopup_smart_sizing_eval;
+
+   ELM_WIDGET_CLASS(sc)->access = _elm_ctxpopup_smart_access;
 }
 
 EAPI const Elm_Ctxpopup_Smart_Class *
@@ -1432,6 +1560,11 @@ elm_ctxpopup_add(Evas_Object *parent)
 
    if (!elm_widget_sub_object_add(parent, obj))
      ERR("could not add %p as sub object of %p", obj, parent);
+
+   /* access: parent could be any object such as elm_list which does
+      not know elc_ctxpopup as its child object in the focus_next(); */
+   ELM_WIDGET_DATA_GET(obj, sd);
+   sd->highlight_root = EINA_TRUE;
 
    return obj;
 }
@@ -1527,7 +1660,7 @@ elm_ctxpopup_horizontal_set(Evas_Object *obj,
         else
           edje_object_signal_emit(VIEW(item), "elm,state,separator", "elm");
 
-        _item_disable_hook(item);
+        _item_disable_hook((Elm_Object_Item *)item);
      }
 
    sd->dir = ELM_CTXPOPUP_DIRECTION_UNKNOWN;

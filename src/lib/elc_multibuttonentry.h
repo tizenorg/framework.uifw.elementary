@@ -38,6 +38,7 @@
  * - @c "contracted" - when multi-button entry is contracted.
  * - @c "expand,state,changed" - when shrink mode state of
  *       multi-button entry is changed.
+ * - @c "longpressed" - when multi-button entry is pressed for a long time.
  *
  * Default text parts of the multi-button entry widget that you can use are:
  * @li "default" - A label of the multi-button entry
@@ -190,6 +191,18 @@ EAPI Elm_Object_Item *elm_multibuttonentry_item_insert_after(Evas_Object *obj, E
  * @ingroup Multibuttonentry
  */
 EAPI const Eina_List           *elm_multibuttonentry_items_get(const Evas_Object *obj);
+
+/**
+ * Gets the base object of the item.
+ *
+ * @param it The multibuttonentry item
+ * @return The base object associated with @p item
+ *
+ * Base object is the @c Evas_Object that represents that item.
+ *
+ * @ingroup List
+ */
+EAPI Evas_Object *elm_multibuttonentry_item_object_get(const Elm_Object_Item *it);
 
 /**
  * Get the first item in the multibuttonentry

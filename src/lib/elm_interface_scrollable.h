@@ -269,6 +269,18 @@ struct _Elm_Scrollable_Smart_Interface_Data
                        void *data);
       void (*edge_bottom)(Evas_Object *obj,
                           void *data);
+      void (*vbar_drag)(Evas_Object *obj,
+                          void *data);
+      void (*vbar_press)(Evas_Object *obj,
+                          void *data);
+      void (*vbar_unpress)(Evas_Object *obj,
+                          void *data);
+      void (*hbar_drag)(Evas_Object *obj,
+                          void *data);
+      void (*hbar_press)(Evas_Object *obj,
+                          void *data);
+      void (*hbar_unpress)(Evas_Object *obj,
+                          void *data);
       void (*content_min_limit)(Evas_Object *obj,
                                 Eina_Bool w,
                                 Eina_Bool h);
@@ -350,6 +362,24 @@ struct _Elm_Scrollable_Smart_Interface
    void       (*edge_bottom_cb_set)(Evas_Object *obj,
                                     void (*e_bottom_cb)(Evas_Object *obj,
                                                            void *data));
+   void       (*vbar_drag_cb_set)(Evas_Object *obj,
+                                    void (*v_drag_cb)(Evas_Object *obj,
+                                                           void *data));
+   void       (*vbar_press_cb_set)(Evas_Object *obj,
+                                    void (*v_press_cb)(Evas_Object *obj,
+                                                           void *data));
+   void       (*vbar_unpress_cb_set)(Evas_Object *obj,
+                                    void (*v_unpress_cb)(Evas_Object *obj,
+                                                           void *data));
+   void       (*hbar_drag_cb_set)(Evas_Object *obj,
+                                    void (*h_drag_cb)(Evas_Object *obj,
+                                                           void *data));
+   void       (*hbar_press_cb_set)(Evas_Object *obj,
+                                    void (*h_press_cb)(Evas_Object *obj,
+                                                           void *data));
+   void       (*hbar_unpress_cb_set)(Evas_Object *obj,
+                                    void (*h_unpress_cb)(Evas_Object *obj,
+                                                           void *data));
 
    void       (*content_min_limit_cb_set)(Evas_Object *obj,
                                           void (*c_limit_cb)(Evas_Object *obj,
@@ -360,7 +390,8 @@ struct _Elm_Scrollable_Smart_Interface
     * immediately */
    void       (*content_pos_set)(Evas_Object *obj,
                                  Evas_Coord x,
-                                 Evas_Coord y);
+                                 Evas_Coord y,
+                                 Eina_Bool sig);
    void       (*content_pos_get)(const Evas_Object *obj,
                                  Evas_Coord *x,
                                  Evas_Coord *y);

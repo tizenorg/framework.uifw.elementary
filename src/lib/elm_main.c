@@ -610,11 +610,15 @@ static int (*qr_main)(int    argc,
                       char **argv) = NULL;
 
 EAPI Eina_Bool
-elm_quicklaunch_prepare(int argc __UNUSED__,
-                        char   **argv)
+elm_quicklaunch_prepare(int    argc,
+                        char **argv)
 {
 #ifdef HAVE_FORK
-   char *exe = elm_quicklaunch_exe_path_get(argv[0]);
+   char *exe;
+
+   if (argc <= 0 || argv == NULL) return EINA_FALSE;
+
+   exe = elm_quicklaunch_exe_path_get(argv[0]);
    if (!exe)
      {
         ERR("requested quicklaunch binary '%s' does not exist\n", argv[0]);
@@ -1406,9 +1410,65 @@ elm_object_name_find(const Evas_Object *obj, const char *name, int recurse)
 }
 
 EAPI void
+elm_object_orientation_mode_disabled_set(Evas_Object *obj, Eina_Bool disabled)
+{
+   elm_widget_orientation_mode_disabled_set(obj, disabled);
+}
+
+EAPI Eina_Bool
+elm_object_orientation_mode_disabled_get(const Evas_Object *obj)
+{
+   return elm_widget_orientation_mode_disabled_get(obj);
+}
+
+EAPI void
 elm_object_item_access_info_set(Elm_Object_Item *it, const char *txt)
 {
    _elm_widget_item_access_info_set((Elm_Widget_Item *)it, txt);
+}
+
+EAPI Evas_Object *
+elm_object_item_access_register(Elm_Object_Item *item)
+{
+   Elm_Widget_Item *it;
+
+   it = (Elm_Widget_Item *)item;
+
+   _elm_access_widget_item_register(it);
+
+   if (it) return it->access_obj;
+   return NULL;
+}
+
+EAPI void
+elm_object_item_access_unregister(Elm_Object_Item *item)
+{
+   _elm_access_widget_item_unregister((Elm_Widget_Item *)item);
+}
+
+EAPI Evas_Object *
+elm_object_item_access_object_get(const Elm_Object_Item *item)
+{
+   if (!item) return NULL;
+   return ((Elm_Widget_Item *)item)->access_obj;
+}
+
+EAPI void
+elm_object_item_access_order_set(Elm_Object_Item *item, Eina_List *objs)
+{
+   _elm_access_widget_item_access_order_set((Elm_Widget_Item *)item, objs);
+}
+
+EAPI const Eina_List *
+elm_object_item_access_order_get(const Elm_Object_Item *item)
+{
+   return _elm_access_widget_item_access_order_get((Elm_Widget_Item *)item);
+}
+
+EAPI void
+elm_object_item_access_order_unset(Elm_Object_Item *item)
+{
+   _elm_access_widget_item_access_order_unset((Elm_Widget_Item *)item);
 }
 
 EAPI void *

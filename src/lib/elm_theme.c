@@ -223,7 +223,7 @@ _elm_theme_reload(void *data __UNUSED__, Evas_Object *obj,
         evas_object_event_callback_add(elm, EVAS_CALLBACK_DEL, _elm_theme_idler_clean, NULL);
         evas_object_data_set(elm, "elm-theme-reload-idler", ecore_idler_add(_elm_theme_reload_idler, elm));
      }
-}                  
+}
 
 Eina_Bool
 _elm_theme_object_set(Evas_Object *parent, Evas_Object *o, const char *clas, const char *group, const char *style)
@@ -232,13 +232,16 @@ _elm_theme_object_set(Evas_Object *parent, Evas_Object *o, const char *clas, con
    void *test;
 
    if (parent) th = elm_widget_theme_get(parent);
+   if (!_elm_theme_set(th, o, clas, group, style)) return EINA_FALSE;
+
    test = evas_object_data_get(o, "edje,theme,watcher");
    if (!test)
      {
-        edje_object_signal_callback_add(o, "edje,change,file", "edje", _elm_theme_reload, NULL);
+        edje_object_signal_callback_add(o, "edje,change,file", "edje",
+                                        _elm_theme_reload, NULL);
         evas_object_data_set(o, "edje,theme,watcher", (void*) -1);
      }
-   return _elm_theme_set(th, o, clas, group, style);
+   return EINA_TRUE;
 }
 
 /* only issued by elm_icon.c */
@@ -257,28 +260,29 @@ _elm_theme_set(Elm_Theme *th, Evas_Object *o, const char *clas, const char *grou
 {
    const char *file;
    char buf2[1024];
-   Eina_Bool ok;
 
    if ((!clas) || (!group) || (!style)) return EINA_FALSE;
    if (!th) th = &(theme_default);
+
    snprintf(buf2, sizeof(buf2), "elm/%s/%s/%s", clas, group, style);
    file = _elm_theme_group_file_find(th, buf2);
    if (file)
      {
-        ok = edje_object_file_set(o, file, buf2);
-        if (ok) return EINA_TRUE;
+        if (edje_object_file_set(o, file, buf2))
+          return EINA_TRUE;
         else
           DBG("could not set theme group '%s' from file '%s': %s",
               buf2, file, edje_load_error_str(edje_object_load_error_get(o)));
      }
+
    snprintf(buf2, sizeof(buf2), "elm/%s/%s/default", clas, group);
    file = _elm_theme_group_file_find(th, buf2);
    if (!file) return EINA_FALSE;
-   ok = edje_object_file_set(o, file, buf2);
-   if (!ok)
-     DBG("could not set theme group '%s' from file '%s': %s",
-         buf2, file, edje_load_error_str(edje_object_load_error_get(o)));
-   return ok;
+   if (edje_object_file_set(o, file, buf2)) return EINA_TRUE;
+   DBG("could not set theme group '%s' from file '%s': %s",
+       buf2, file, edje_load_error_str(edje_object_load_error_get(o)));
+
+   return EINA_FALSE;
 }
 
 Eina_Bool

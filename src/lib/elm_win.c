@@ -43,6 +43,7 @@ static const Elm_Win_Trap *trap = NULL;
 
 #define ENGINE_GET() (_elm_preferred_engine ? _elm_preferred_engine : (_elm_config->engine ? _elm_config->engine : ""))
 #define ENGINE_COMPARE(name) (!strcmp(ENGINE_GET(), name))
+#define EE_ENGINE_COMPARE(ee, name) (!strcmp(ecore_evas_engine_name_get(ee), name))
 
 typedef struct _Elm_Win_Smart_Data Elm_Win_Smart_Data;
 
@@ -81,6 +82,7 @@ struct _Elm_Win_Smart_Data
    Elm_Win_Keyboard_Mode          kbdmode;
    Elm_Win_Indicator_Mode         indmode;
    Elm_Win_Indicator_Opacity_Mode ind_o_mode;
+   Elm_Win_Indicator_Type_Mode ind_t_mode;
    struct
    {
       const char  *info;
@@ -205,26 +207,6 @@ static int _elm_win_count = 0;
 static Eina_Bool _elm_win_auto_throttled = EINA_FALSE;
 
 static Ecore_Job *_elm_win_state_eval_job = NULL;
-
-static void
-_elm_win_obj_intercept_move(void *data, Evas_Object *obj, Evas_Coord x, Evas_Coord y)
-{
-   Elm_Win_Smart_Data *sd = data;
-
-   if (sd->img_obj)
-     {
-        if ((x != sd->screen.x) || (y != sd->screen.y))
-          {
-             sd->screen.x = x;
-             sd->screen.y = y;
-             evas_object_smart_callback_call(obj, SIG_MOVED, NULL);
-          }
-     }
-   else
-     {
-        evas_object_move(obj, x, y);
-     }
-}
 
 static void
 _elm_win_obj_intercept_show(void *data, Evas_Object *obj)
@@ -580,14 +562,13 @@ _elm_win_obj_intercept_layer_set(void *data, Evas_Object *obj __UNUSED__, int l)
    TRAP(sd, layer_set, l);
 }
 
-    static void
+static void
 _ecore_evas_move_(void *data, Evas_Object *obj __UNUSED__, int a, int b)
 {
    printf("[%s][%d] a=%d, b=%d\n", __FUNCTION__, __LINE__, a, b);
    Elm_Win_Smart_Data *sd = data;
    TRAP(sd, move, a, b);
 }
-
 
 /* Event Callbacks */
 
@@ -722,18 +703,18 @@ _elm_win_focus_highlight_anim_setup(Elm_Win_Smart_Data *sd,
    evas_object_geometry_get(ELM_WIDGET_DATA(sd)->obj, NULL, NULL, &w, &h);
    evas_object_geometry_get(target, &tx, &ty, &tw, &th);
    evas_object_geometry_get(previous, &px, &py, &pw, &ph);
-   evas_object_move(obj, 0, 0);
+   evas_object_move(obj, tx, ty);
    evas_object_resize(obj, tw, th);
    evas_object_clip_unset(obj);
 
    m = alloca(sizeof(*m) + (sizeof(int) * 8));
    m->count = 8;
-   m->val[0] = px;
-   m->val[1] = py;
+   m->val[0] = px - tx;
+   m->val[1] = py - ty;
    m->val[2] = pw;
    m->val[3] = ph;
-   m->val[4] = tx;
-   m->val[5] = ty;
+   m->val[4] = 0;
+   m->val[5] = 0;
    m->val[6] = tw;
    m->val[7] = th;
    edje_object_message_send(obj, EDJE_MESSAGE_INT_SET, 1, m);
@@ -894,6 +875,9 @@ _elm_win_focus_out(Ecore_Evas *ee)
      {
         edje_object_signal_emit(sd->frame_obj, "elm,action,unfocus", "elm");
      }
+
+   /* access */
+   _elm_access_object_hilight_disable(evas_object_evas_get(obj));
 
    /* do nothing */
    /* if (sd->img_obj) */
@@ -1418,9 +1402,81 @@ _elm_win_on_img_obj_del(void *data,
 }
 
 static void
+_elm_win_resize_objects_eval(Evas_Object *obj)
+{
+   const Eina_List *l;
+   const Evas_Object *child;
+
+   ELM_WIN_DATA_GET(obj, sd);
+   Evas_Coord w, h, minw = -1, minh = -1, maxw = -1, maxh = -1;
+   int xx = 1, xy = 1;
+   double wx, wy;
+
+   EINA_LIST_FOREACH(sd->resize_objs, l, child)
+     {
+        evas_object_size_hint_weight_get(child, &wx, &wy);
+        if (wx == 0.0) xx = 0;
+        if (wy == 0.0) xy = 0;
+
+        evas_object_size_hint_min_get(child, &w, &h);
+        if (w < 1) w = 1;
+        if (h < 1) h = 1;
+        if (w > minw) minw = w;
+        if (h > minh) minh = h;
+
+        evas_object_size_hint_max_get(child, &w, &h);
+        if (w < 1) w = -1;
+        if (h < 1) h = -1;
+        if (maxw == -1) maxw = w;
+        else if ((w > 0) && (w < maxw))
+          maxw = w;
+        if (maxh == -1) maxh = h;
+        else if ((h > 0) && (h < maxh))
+          maxh = h;
+     }
+   if (!xx) maxw = minw;
+   else maxw = 32767;
+   if (!xy) maxh = minh;
+   else maxh = 32767;
+   evas_object_size_hint_min_set(obj, minw, minh);
+   evas_object_size_hint_max_set(obj, maxw, maxh);
+   evas_object_geometry_get(obj, NULL, NULL, &w, &h);
+   if (w < minw) w = minw;
+   if (h < minh) h = minh;
+   if ((maxw >= 0) && (w > maxw)) w = maxw;
+   if ((maxh >= 0) && (h > maxh)) h = maxh;
+   evas_object_resize(obj, w, h);
+}
+
+static void
+_elm_win_on_resize_obj_del(void *data,
+                           Evas *e __UNUSED__,
+                           Evas_Object *obj __UNUSED__,
+                           void *event_info __UNUSED__)
+{
+   ELM_WIN_DATA_GET(data, sd);
+
+   sd->resize_objs = eina_list_remove(sd->resize_objs, obj);
+
+   _elm_win_resize_objects_eval(data);
+}
+
+static void
+_elm_win_on_resize_obj_changed_size_hints(void *data,
+                                          Evas *e __UNUSED__,
+                                          Evas_Object *obj __UNUSED__,
+                                          void *event_info __UNUSED__)
+{
+   _elm_win_resize_objects_eval(data);
+}
+
+static void
 _elm_win_smart_del(Evas_Object *obj)
 {
    const char *str;
+   const Eina_List *l;
+   const Evas_Object *child;
+
    ELM_WIN_DATA_GET(obj, sd);
 
    /* NB: child deletion handled by parent's smart del */
@@ -1433,6 +1489,15 @@ _elm_win_smart_del(Evas_Object *obj)
         evas_object_event_callback_del_full
           (sd->parent, EVAS_CALLBACK_DEL, _elm_win_on_parent_del, sd);
         sd->parent = NULL;
+     }
+
+   EINA_LIST_FOREACH(sd->resize_objs, l, child)
+     {
+        evas_object_event_callback_del_full
+           (child, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
+            _elm_win_on_resize_obj_changed_size_hints, obj);
+        evas_object_event_callback_del_full
+           (child, EVAS_CALLBACK_DEL, _elm_win_on_resize_obj_del, obj);
      }
 
    if (sd->autodel_clear) *(sd->autodel_clear) = -1;
@@ -1607,31 +1672,31 @@ _elm_ee_xwin_get(const Ecore_Evas *ee)
    Ecore_X_Window xwin = 0;
 
    if (!ee) return 0;
-   if (ENGINE_COMPARE(ELM_SOFTWARE_X11))
+   if (EE_ENGINE_COMPARE(ee, ELM_SOFTWARE_X11))
      {
         if (ee) xwin = ecore_evas_software_x11_window_get(ee);
      }
-   else if (ENGINE_COMPARE(ELM_SOFTWARE_FB) ||
-            ENGINE_COMPARE(ELM_SOFTWARE_16_WINCE) ||
-            ENGINE_COMPARE(ELM_SOFTWARE_SDL) ||
-            ENGINE_COMPARE(ELM_SOFTWARE_16_SDL) ||
-            ENGINE_COMPARE(ELM_OPENGL_SDL) ||
-            ENGINE_COMPARE(ELM_OPENGL_COCOA))
+   else if (EE_ENGINE_COMPARE(ee, ELM_SOFTWARE_FB) ||
+            EE_ENGINE_COMPARE(ee, ELM_SOFTWARE_16_WINCE) ||
+            EE_ENGINE_COMPARE(ee, ELM_SOFTWARE_SDL) ||
+            EE_ENGINE_COMPARE(ee, ELM_SOFTWARE_16_SDL) ||
+            EE_ENGINE_COMPARE(ee, ELM_OPENGL_SDL) ||
+            EE_ENGINE_COMPARE(ee, ELM_OPENGL_COCOA))
      {
      }
-   else if (ENGINE_COMPARE(ELM_SOFTWARE_16_X11))
+   else if (EE_ENGINE_COMPARE(ee, ELM_SOFTWARE_16_X11))
      {
         if (ee) xwin = ecore_evas_software_x11_16_window_get(ee);
      }
-   else if (ENGINE_COMPARE(ELM_SOFTWARE_8_X11))
+   else if (EE_ENGINE_COMPARE(ee, ELM_SOFTWARE_8_X11))
      {
         if (ee) xwin = ecore_evas_software_x11_8_window_get(ee);
      }
-   else if (ENGINE_COMPARE(ELM_OPENGL_X11))
+   else if (EE_ENGINE_COMPARE(ee, ELM_OPENGL_X11))
      {
         if (ee) xwin = ecore_evas_gl_x11_window_get(ee);
      }
-   else if (ENGINE_COMPARE(ELM_SOFTWARE_WIN32))
+   else if (EE_ENGINE_COMPARE(ee, ELM_SOFTWARE_WIN32))
      {
         if (ee) xwin = (long)ecore_evas_win32_window_get(ee);
      }
@@ -1799,74 +1864,6 @@ _elm_win_xwin_update(Elm_Win_Smart_Data *sd)
 
 #endif
 
-static void
-_elm_win_resize_objects_eval(Evas_Object *obj)
-{
-   const Eina_List *l;
-   const Evas_Object *child;
-
-   ELM_WIN_DATA_GET(obj, sd);
-   Evas_Coord w, h, minw = -1, minh = -1, maxw = -1, maxh = -1;
-   int xx = 1, xy = 1;
-   double wx, wy;
-
-   EINA_LIST_FOREACH(sd->resize_objs, l, child)
-     {
-        evas_object_size_hint_weight_get(child, &wx, &wy);
-        if (wx == 0.0) xx = 0;
-        if (wy == 0.0) xy = 0;
-
-        evas_object_size_hint_min_get(child, &w, &h);
-        if (w < 1) w = 1;
-        if (h < 1) h = 1;
-        if (w > minw) minw = w;
-        if (h > minh) minh = h;
-
-        evas_object_size_hint_max_get(child, &w, &h);
-        if (w < 1) w = -1;
-        if (h < 1) h = -1;
-        if (maxw == -1) maxw = w;
-        else if ((w > 0) && (w < maxw))
-          maxw = w;
-        if (maxh == -1) maxh = h;
-        else if ((h > 0) && (h < maxh))
-          maxh = h;
-     }
-   if (!xx) maxw = minw;
-   else maxw = 32767;
-   if (!xy) maxh = minh;
-   else maxh = 32767;
-   evas_object_size_hint_min_set(obj, minw, minh);
-   evas_object_size_hint_max_set(obj, maxw, maxh);
-   evas_object_geometry_get(obj, NULL, NULL, &w, &h);
-   if (w < minw) w = minw;
-   if (h < minh) h = minh;
-   if ((maxw >= 0) && (w > maxw)) w = maxw;
-   if ((maxh >= 0) && (h > maxh)) h = maxh;
-   evas_object_resize(obj, w, h);
-}
-
-static void
-_elm_win_on_resize_obj_del(void *data,
-                           Evas *e __UNUSED__,
-                           Evas_Object *obj __UNUSED__,
-                           void *event_info __UNUSED__)
-{
-   ELM_WIN_DATA_GET(data, sd);
-
-   sd->resize_objs = eina_list_remove(sd->resize_objs, obj);
-
-   _elm_win_resize_objects_eval(data);
-}
-
-static void
-_elm_win_on_resize_obj_changed_size_hints(void *data,
-                                          Evas *e __UNUSED__,
-                                          Evas_Object *obj __UNUSED__,
-                                          void *event_info __UNUSED__)
-{
-   _elm_win_resize_objects_eval(data);
-}
 
 void
 _elm_win_shutdown(void)
@@ -1981,8 +1978,17 @@ _elm_win_client_message(void *data,
                       ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_READ)
                {
                   /* there would be better way to read highlight object */
-                  ecore_x_mouse_in_send(sd->x.xwin, e->data.l[2], e->data.l[3]);
-                  ecore_x_mouse_move_send(sd->x.xwin, e->data.l[2], e->data.l[3]);
+                  Evas *evas;
+                  evas = evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj);
+                  if (!evas) return ECORE_CALLBACK_PASS_ON;
+
+                  _elm_access_mouse_event_enabled_set(EINA_TRUE);
+
+                  evas_event_feed_mouse_in(evas, 0, NULL);
+                  evas_event_feed_mouse_move
+                    (evas, e->data.l[2], e->data.l[3], 0, NULL);
+
+                  _elm_access_mouse_event_enabled_set(EINA_FALSE);
                }
              else if ((unsigned int)e->data.l[1] ==
                       ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_READ_NEXT)
@@ -2611,6 +2617,7 @@ elm_win_add(Evas_Object *parent,
                   opt_i++;
                   opt[opt_i] = 1;
                   opt_i++;
+				  opt[opt_i] = 0;
                }
              if (opt_i > 0)
                tmp_sd.ee = ecore_evas_gl_x11_options_new
@@ -2830,11 +2837,11 @@ elm_win_add(Evas_Object *parent,
      (obj, _elm_win_obj_intercept_stack_below, sd);
    evas_object_intercept_layer_set_callback_add
      (obj, _elm_win_obj_intercept_layer_set, sd);
-//   evas_object_intercept_show_callback_add
-//     (obj, _elm_win_obj_intercept_show, sd);
+   evas_object_intercept_show_callback_add
+     (obj, _elm_win_obj_intercept_show, sd);
+   evas_object_intercept_move_callback_add
+     (obj, _ecore_evas_move_, sd);
 
-   evas_object_intercept_move_callback_add(obj,
-                                             _ecore_evas_move_, sd);
    TRAP(sd, name_class_set, name, _elm_appname);
    ecore_evas_callback_delete_request_set(sd->ee, _elm_win_delete_request);
    ecore_evas_callback_resize_set(sd->ee, _elm_win_resize);
@@ -3660,25 +3667,43 @@ elm_win_render(Evas_Object *obj)
    ecore_evas_manual_render(sd->ee);
 }
 
-EAPI void
-elm_win_rotation_set(Evas_Object *obj,
-                     int rotation)
+static int
+_win_rotation_degree_check(int rotation)
 {
-   ELM_WIN_CHECK(obj);
-   ELM_WIN_DATA_GET_OR_RETURN(obj, sd);
+   if ((rotation > 360) || (rotation < 0))
+     {
+        WRN("Rotation degree should be 0 ~ 360 (passed degree: %d)", rotation);
+        rotation %= 360;
+        if (rotation < 0) rotation += 360;
+     }
+   return rotation;
+}
 
-   rotation %= 360;
-   if (rotation < 0) rotation += 360;
+static void
+_win_rotate(Evas_Object *obj, Elm_Win_Smart_Data *sd, int rotation, Eina_Bool resize)
+{
+   rotation = _win_rotation_degree_check(rotation);
    if (sd->rot == rotation) return;
    sd->rot = rotation;
-   TRAP(sd, rotation_set, rotation);
+   if (resize) TRAP(sd, rotation_with_resize_set, rotation);
+   else TRAP(sd, rotation_set, rotation);
    evas_object_size_hint_min_set(obj, -1, -1);
    evas_object_size_hint_max_set(obj, -1, -1);
    _elm_win_resize_objects_eval(obj);
 #ifdef HAVE_ELEMENTARY_X
    _elm_win_xwin_update(sd);
 #endif
+   elm_widget_orientation_set(obj, rotation);
    evas_object_smart_callback_call(obj, SIG_ROTATION_CHANGED, NULL);
+}
+
+EAPI void
+elm_win_rotation_set(Evas_Object *obj,
+                     int rotation)
+{
+   ELM_WIN_CHECK(obj);
+   ELM_WIN_DATA_GET_OR_RETURN(obj, sd);
+   _win_rotate(obj, sd, rotation, EINA_FALSE);
 }
 
 EAPI void
@@ -3687,20 +3712,7 @@ elm_win_rotation_with_resize_set(Evas_Object *obj,
 {
    ELM_WIN_CHECK(obj);
    ELM_WIN_DATA_GET_OR_RETURN(obj, sd);
-
-   rotation %= 360;
-   if (rotation < 0) rotation += 360;
-   if (sd->rot == rotation) return;
-   sd->rot = rotation;
-   TRAP(sd, rotation_with_resize_set, rotation);
-   evas_object_size_hint_min_set(obj, -1, -1);
-   evas_object_size_hint_max_set(obj, -1, -1);
-   _elm_win_resize_objects_eval(obj);
-
-#ifdef HAVE_ELEMENTARY_X
-   _elm_win_xwin_update(sd);
-#endif
-   evas_object_smart_callback_call(obj, SIG_ROTATION_CHANGED, NULL);
+   _win_rotate(obj, sd, rotation, EINA_TRUE);
 }
 
 EAPI int
@@ -3864,6 +3876,38 @@ elm_win_indicator_opacity_get(const Evas_Object *obj)
    return sd->ind_o_mode;
 }
 
+EAPI void
+elm_win_indicator_type_set(Evas_Object *obj,
+                              Elm_Win_Indicator_Type_Mode mode)
+{
+   ELM_WIN_CHECK(obj);
+   ELM_WIN_DATA_GET_OR_RETURN(obj, sd);
+
+   if (mode == sd->ind_t_mode) return;
+   sd->ind_t_mode = mode;
+#ifdef HAVE_ELEMENTARY_X
+   _elm_win_xwindow_get(sd);
+   if (sd->x.xwin)
+     {
+        if (sd->ind_t_mode == ELM_WIN_INDICATOR_TYPE_1)
+          ecore_x_e_illume_indicator_type_set
+            (sd->x.xwin, ECORE_X_ILLUME_INDICATOR_TYPE_1);
+        else if (sd->ind_t_mode == ELM_WIN_INDICATOR_TYPE_2)
+          ecore_x_e_illume_indicator_type_set
+            (sd->x.xwin, ECORE_X_ILLUME_INDICATOR_TYPE_2);
+     }
+#endif
+   //evas_object_smart_callback_call(obj, SIG_INDICATOR_PROP_CHANGED, NULL);
+}
+
+EAPI Elm_Win_Indicator_Type_Mode
+elm_win_indicator_type_get(const Evas_Object *obj)
+{
+   ELM_WIN_CHECK(obj) ELM_WIN_INDICATOR_TYPE_UNKNOWN;
+   ELM_WIN_DATA_GET_OR_RETURN_VAL(obj, sd, ELM_WIN_INDICATOR_TYPE_UNKNOWN);
+
+   return sd->ind_t_mode;
+}
 EAPI void
 elm_win_screen_position_get(const Evas_Object *obj,
                             int *x,

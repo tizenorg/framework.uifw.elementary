@@ -190,7 +190,7 @@ _cbhm_msg_send(Evas_Object *obj, char *msg)
 }
 
 static Eina_Bool
-_xclient_msg_cb(void *data, int type, void *event)
+_xclient_msg_cb(void *data, int type __UNUSED__, void *event)
 {
 #ifdef HAVE_ELEMENTARY_X
    Evas_Object *obj = (Evas_Object *)data;
@@ -315,9 +315,11 @@ _magnifier_create(void *data)
    sd->mgf_bg = edje_object_add(evas_object_evas_get(data));
 
    if (sd->mgf_type == _ENTRY_MAGNIFIER_FIXEDSIZE)
-     _elm_theme_object_set(data, sd->mgf_bg, "entry", "magnifier", "fixed-size");
+     _elm_theme_object_set(data, sd->mgf_bg, "entry", "magnifier",
+                           "fixed-size");
    else if (sd->mgf_type == _ENTRY_MAGNIFIER_FILLWIDTH)
-     _elm_theme_object_set(data, sd->mgf_bg, "entry", "magnifier", "fill-width");
+     _elm_theme_object_set(data, sd->mgf_bg, "entry", "magnifier",
+                           "fill-width");
    else
      return;
 
@@ -1027,6 +1029,10 @@ _elm_entry_smart_theme(Evas_Object *obj)
 
    evas_event_freeze(evas_object_evas_get(obj));
 
+   // TIZEN ONLY(130129) : Currently, for freezing cursor movement only.
+   edje_object_part_text_freeze(sd->entry_edje, "elm.text");
+   //
+
    edje_object_mirrored_set
      (ELM_WIDGET_DATA(sd)->resize_obj, elm_widget_mirrored_get(obj));
 
@@ -1036,7 +1042,11 @@ _elm_entry_smart_theme(Evas_Object *obj)
 
    _mirrored_set(obj, elm_widget_mirrored_get(obj));
 
-   t = eina_stringshare_add(elm_object_text_get(obj));
+   // TIZEN ONLY(130225) : when password mode, elm_object_text_get returns utf8 string.
+   if (sd->password)
+     t = eina_stringshare_add(elm_entry_utf8_to_markup(elm_object_text_get(obj)));
+   else
+     t = eina_stringshare_add(elm_object_text_get(obj));
 
    elm_widget_theme_object_set
      (obj, sd->entry_edje, "entry", _elm_entry_theme_group_get(obj),
@@ -1098,6 +1108,10 @@ _elm_entry_smart_theme(Evas_Object *obj)
    _elm_entry_guide_update(obj, !sd->has_text);
    evas_event_thaw(evas_object_evas_get(obj));
    evas_event_thaw_eval(evas_object_evas_get(obj));
+
+   // TIZEN ONLY(130129) : Currently, for freezing cursor movement only.
+   edje_object_part_text_thaw(sd->entry_edje, "elm.text");
+   //
 
    evas_object_smart_callback_call(obj, SIG_THEME_CHANGED, NULL);
 
@@ -2780,7 +2794,7 @@ _event_selection_clear(void *data __UNUSED__,
           formats |= ELM_SEL_FORMAT_IMAGE;
         elm_cnp_selection_get(data, ELM_SEL_TYPE_SECONDARY, formats, NULL, NULL);
 
-		return ECORE_CALLBACK_DONE;
+        return ECORE_CALLBACK_DONE;
      }
    ///////////
 #endif
@@ -3342,7 +3356,7 @@ _access_info_cb(void *data __UNUSED__, Evas_Object *obj)
 
    txt = elm_widget_access_info_get(obj);
 
-   if (!txt) txt = elm_entry_entry_get(obj);
+   if (!txt) txt = _elm_util_mkup_to_text(elm_entry_entry_get(obj));
    if (txt) return strdup(txt);
 
    return NULL;
@@ -3352,10 +3366,11 @@ static char *
 _access_state_cb(void *data __UNUSED__, Evas_Object *obj)
 {
    Eina_Strbuf *buf;
-   char *txt;
+   char *ret;
 
    ELM_ENTRY_DATA_GET(obj, sd);
 
+   ret = NULL;
    buf = eina_strbuf_new();
 
    if (elm_widget_disabled_get(obj))
@@ -3375,11 +3390,13 @@ _access_state_cb(void *data __UNUSED__, Evas_Object *obj)
         else eina_strbuf_append(buf, ", Password");
      }
 
-   txt = strdup(eina_strbuf_string_get(buf));
-   eina_strbuf_free(buf);
-   if (txt) return txt;
+   if (!eina_strbuf_length_get(buf)) goto buf_free;
 
-   return NULL;
+   ret = eina_strbuf_string_steal(buf);
+
+buf_free:
+   eina_strbuf_free(buf);
+   return ret;
 }
 
 static void

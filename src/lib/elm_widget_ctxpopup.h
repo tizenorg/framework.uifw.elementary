@@ -137,6 +137,7 @@ struct _Elm_Ctxpopup_Smart_Data
    Evas_Object           *parent;
    Evas_Object           *box;
 
+   Evas_Object           *layout;
    Evas_Object           *arrow;
    Evas_Object           *scr;
    Evas_Object           *bg;

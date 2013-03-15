@@ -109,6 +109,70 @@ EAPI const char                  *elm_object_item_part_text_get(const Elm_Object
 EAPI void                         elm_object_item_access_info_set(Elm_Object_Item *it, const char *txt);
 
 /**
+ * @brief Register object item as an accessible object.
+ * @since 1.8
+ *
+ * @param item The elementary object item
+ * @return Accessible object of the object item or NULL for any error
+ *
+ * @ingroup General
+ */
+EAPI Evas_Object                 *elm_object_item_access_register(Elm_Object_Item *item);
+
+/**
+ * @brief Unregister accessible object of the object item.
+ * @since 1.8
+ *
+ * @param item The elementary object item
+ *
+ * @ingroup General
+ */
+EAPI void                         elm_object_item_access_unregister(Elm_Object_Item *item);
+
+/**
+ * @brief Get an accessible object of the object item.
+ * @since 1.8
+ *
+ * @param item The elementary object item
+ * @return Accessible object of the object item or NULL for any error
+ *
+ * @ingroup General
+ */
+EAPI Evas_Object                 *elm_object_item_access_object_get(const Elm_Object_Item *item);
+
+/**
+ * @brief Set highlight order
+ * @since 1.8
+ *
+ * @param item The container object item
+ * @param objs Order of objects to pass highlight
+ *
+ * @ingroup General
+ */
+EAPI void                         elm_object_item_access_order_set(Elm_Object_Item *item, Eina_List *objs);
+
+/**
+ * @brief Get highlight order
+ * @since 1.8
+ *
+ * @param item The container object item
+ * @return Order of objects to pass highlight
+ *
+ * @ingroup General
+ */
+EAPI const Eina_List              *elm_object_item_access_order_get(const Elm_Object_Item *item);
+
+/**
+ * @brief Unset highlight order
+ * @since 1.8
+ *
+ * @param item The container object item
+ *
+ * @ingroup General
+ */
+EAPI void                         elm_object_item_access_order_unset(Elm_Object_Item *item);
+
+/**
  * Get the data associated with an object item
  * @param it The Elementary object item
  * @return The data associated with @p it

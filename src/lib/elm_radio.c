@@ -282,7 +282,7 @@ _elm_radio_smart_del(Evas_Object *obj)
    ELM_WIDGET_CLASS(_elm_radio_parent_sc)->base.del(obj);
 }
 
-static void
+static Eina_Bool
 _elm_radio_smart_activate(Evas_Object *obj, Elm_Activate act)
 {
    if (act != ELM_ACTIVATE_DEFAULT) return EINA_FALSE;

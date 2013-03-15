@@ -210,6 +210,19 @@ typedef enum
 } Elm_Win_Indicator_Opacity_Mode;
 
 /**
+ * Defines the type modes of indicator that can be shown
+ * If the indicator can support several type of indicator,
+ * you can use this enum value to deal with different type of indicator
+ */
+
+typedef enum
+{
+   ELM_WIN_INDICATOR_TYPE_UNKNOWN, /**< Unknown indicator type mode */
+   ELM_WIN_INDICATOR_TYPE_1, /**< Type 0 the the indicator */
+   ELM_WIN_INDICATOR_TYPE_2, /**< Type 1 the indicator */
+} Elm_Win_Indicator_Type_Mode;
+
+/**
  * Available commands that can be sent to the Illume manager.
  *
  * When running under an Illume session, a window may send commands to the
@@ -1389,6 +1402,26 @@ EAPI void                  elm_win_indicator_opacity_set(Evas_Object *obj, Elm_W
  * @ingroup Win
  */
 EAPI Elm_Win_Indicator_Opacity_Mode elm_win_indicator_opacity_get(const Evas_Object *obj);
+
+/**
+ * Sets the indicator type mode of the window.
+ *
+ * @param obj The window object
+ * @param mode The mode to set, one of #Elm_Win_Indicator_Type_Mode
+ *
+ * @ingroup Win
+ */
+EAPI void                  elm_win_indicator_type_set(Evas_Object *obj, Elm_Win_Indicator_Type_Mode mode);
+
+/**
+ * Gets the indicator type mode of the window.
+ *
+ * @param obj The window object
+ * @return The mode, one of #Elm_Win_Indicator_Type_Mode
+ *
+ * @ingroup Win
+ */
+EAPI Elm_Win_Indicator_Type_Mode elm_win_indicator_type_get(const Evas_Object *obj);
 
 /**
  * Get the screen position of a window.

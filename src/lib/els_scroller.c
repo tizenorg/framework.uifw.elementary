@@ -9,152 +9,6 @@
 typedef struct _Smart_Data Smart_Data;
 
 #define EVTIME 1
-//#define SCROLLDBG 1
-
-/* smoothness debug calls - for debugging how much smooth your app is */
-#define SMOOTHDBG 1
-
-#ifdef SMOOTHDBG
-#define SMOOTH_DEBUG_COUNT 100
-#define FPS 1/60
-typedef struct _smooth_debug_info smooth_debug_info;
-struct _smooth_debug_info
-{
-   double t;
-   double dt;
-   Evas_Coord pos;
-   Evas_Coord dpos;
-   double vpos;
-};
-
-static smooth_debug_info smooth_x_history[SMOOTH_DEBUG_COUNT];
-static smooth_debug_info smooth_y_history[SMOOTH_DEBUG_COUNT];
-static int smooth_info_x_count = 0;
-static int smooth_info_y_count = 0;
-static double start_time = 0;
-static int _els_scroller_smooth_debug = 0;
-
-void
-_els_scroller_smooth_debug_init(void)
-{
-   start_time = ecore_time_get();
-   smooth_info_x_count = 0;
-   smooth_info_y_count = 0;
-
-   memset(&(smooth_x_history[0]), 0, sizeof(smooth_x_history[0]) * SMOOTH_DEBUG_COUNT);
-   memset(&(smooth_y_history[0]), 0, sizeof(smooth_y_history[0]) * SMOOTH_DEBUG_COUNT);
-
-   return;
-}
-
-void
-_els_scroller_smooth_debug_shutdown(void)
-{
-   int i = 0;
-   int info_x_count = 0;
-   int info_y_count = 0;
-   double x_ave = 0, y_ave = 0;
-   double x_sum = 0, y_sum = 0;
-   double x_dev = 0, y_dev = 0;
-   double x_dev_sum = 0, y_dev_sum = 0;
-
-   if (smooth_info_x_count >= SMOOTH_DEBUG_COUNT)
-     info_x_count = SMOOTH_DEBUG_COUNT;
-   else
-     info_x_count = smooth_info_x_count;
-
-   if (smooth_info_y_count >= SMOOTH_DEBUG_COUNT)
-     info_y_count = SMOOTH_DEBUG_COUNT;
-   else
-     info_y_count = smooth_info_y_count;
-
-   printf("\n\n<<< X-axis Smoothness >>>\n");
-   printf("| Num  | t(time)  | dt       | x    | dx   |vx(dx/1fps) |\n");
-
-   for (i = info_x_count -1; i >= 0; i--)
-     {
-        printf("| %4d | %1.6f | %1.6f | %4d | %4d | %9.3f |\n",info_x_count - i,
-               smooth_x_history[i].t,
-               smooth_x_history[i].dt,
-               smooth_x_history[i].pos,
-               smooth_x_history[i].dpos,
-               smooth_x_history[i].vpos);
-        if (i == info_x_count -1) continue;
-        x_sum += smooth_x_history[i].vpos;
-     }
-   x_ave = x_sum / (info_x_count - 1);
-   for (i = 0; i < info_x_count -1; i++)
-     {
-        x_dev_sum += (smooth_x_history[i].vpos - x_ave) * (smooth_x_history[i].vpos - x_ave);
-     }
-   x_dev = x_dev_sum / (info_x_count -1);
-   printf(" Standard deviation of X-axis velocity: %9.3f\n", sqrt(x_dev));
-
-   printf("\n\n<<< Y-axis Smoothness >>>\n");
-   printf("| Num  | t(time)  | dt       | y    |  dy  |vy(dy/1fps) |\n");
-   for (i = info_y_count -1; i >= 0; i--)
-     {
-        printf("| %4d | %1.6f | %1.6f | %4d | %4d | %9.3f |\n", info_y_count - i,
-               smooth_y_history[i].t,
-               smooth_y_history[i].dt,
-               smooth_y_history[i].pos,
-               smooth_y_history[i].dpos,
-               smooth_y_history[i].vpos);
-        if (i == info_y_count -1) continue;
-        y_sum += smooth_y_history[i].vpos;
-     }
-   y_ave = y_sum / (info_y_count - 1);
-   for (i = 0; i < info_y_count -1; i++)
-     {
-        y_dev_sum += (smooth_y_history[i].vpos - y_ave) * (smooth_y_history[i].vpos - y_ave);
-     }
-   y_dev = y_dev_sum / (info_y_count -1);
-   printf(" Standard deviation of Y-axis velocity: %9.3f\n", sqrt(y_dev));
-}
-
-void
-_els_scroller_smooth_debug_movetime_add(int x, int y)
-{
-   double tim = 0;
-   static int bx = 0;
-   static int by = 0;
-
-   tim = ecore_time_get();
-
-   if (bx != x)
-     {
-        smooth_info_x_count++;
-        memmove(&(smooth_x_history[1]), &(smooth_x_history[0]), sizeof(smooth_x_history[0]) * (SMOOTH_DEBUG_COUNT - 1));
-        smooth_x_history[0].t = tim - start_time;
-        smooth_x_history[0].dt = smooth_x_history[0].t - smooth_x_history[1].t;
-        smooth_x_history[0].pos = x;
-        smooth_x_history[0].dpos = smooth_x_history[0].pos - smooth_x_history[1].pos;
-
-        if (smooth_x_history[0].dpos >= 0)
-          smooth_x_history[0].vpos = (double)(smooth_x_history[0].dpos) / smooth_x_history[0].dt * FPS;
-        else
-          smooth_x_history[0].vpos = -((double)(smooth_x_history[0].dpos) / smooth_x_history[0].dt * FPS);
-     }
-
-   if (by != y)
-     {
-        smooth_info_y_count++;
-        memmove(&(smooth_y_history[1]), &(smooth_y_history[0]), sizeof(smooth_y_history[0]) * (SMOOTH_DEBUG_COUNT - 1));
-        smooth_y_history[0].t = tim - start_time;
-        smooth_y_history[0].dt = smooth_y_history[0].t - smooth_y_history[1].t;
-        smooth_y_history[0].pos = y;
-        smooth_y_history[0].dpos = smooth_y_history[0].pos - smooth_y_history[1].pos;
-
-        if (smooth_y_history[0].dpos >= 0)
-          smooth_y_history[0].vpos = (double)(smooth_y_history[0].dpos) / smooth_y_history[0].dt * FPS;
-        else
-          smooth_y_history[0].vpos = -((double)(smooth_y_history[0].dpos) / smooth_y_history[0].dt * FPS);
-     }
-
-   bx = x;
-   by = y;
-}
-#endif
 
 struct _Smart_Data
 {
@@ -1923,11 +1777,6 @@ _smart_event_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSE
    sd = data;
    ev = event_info;
 
-#ifdef SMOOTHDBG
-   if (getenv("ELS_SCROLLER_SMOOTH_DEBUG")) _els_scroller_smooth_debug = 1;
-   if (_els_scroller_smooth_debug) _els_scroller_smooth_debug_init();
-#endif
-
    //   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return ;
    if (_elm_config->thumbscroll_enable)
      {
@@ -2084,11 +1933,6 @@ _smart_hold_animator(void *data)
           oy = fy;
      }
 
-#ifdef SMOOTHDBG
-   if (_els_scroller_smooth_debug)
-     _els_scroller_smooth_debug_movetime_add(ox, oy);
-#endif
-
    elm_smart_scroller_child_pos_set(sd->smart_obj, ox, oy);
    return ECORE_CALLBACK_RENEW;
 }
@@ -2114,10 +1958,6 @@ _smart_event_mouse_up(void *data, Evas *e, Evas_Object *obj __UNUSED__, void *ev
    Evas_Event_Mouse_Down *ev;
    Smart_Data *sd;
    Evas_Coord x = 0, y = 0, ox = 0, oy = 0;
-
-#ifdef SMOOTHDBG
-   if (_els_scroller_smooth_debug) _els_scroller_smooth_debug_shutdown();
-#endif
 
    sd = data;
    ev = event_info;

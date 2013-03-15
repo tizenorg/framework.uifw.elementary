@@ -670,6 +670,8 @@ _state_update(Elm_Flip_Smart_Data *sd)
           {
              Vertex3 vo[4];
 
+             memset(vo, 0, sizeof (vo));
+
              if (b > 0) nn = num + sd->slices_h - row - 1;
              else nn = num + row;
 
@@ -876,10 +878,7 @@ _flip_show_hide(Evas_Object *obj)
           }
         else
           {
-             if (sd->front.content)
-               evas_object_show(sd->front.clip);
-             else
-               evas_object_hide(sd->front.clip);
+             evas_object_hide(sd->front.clip);
              if (sd->back.content)
                evas_object_show(sd->back.clip);
              else

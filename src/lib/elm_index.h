@@ -41,6 +41,7 @@
  *      level to the second level
  * - @c "level,down" - when the user moves a finger from the second
  *      level to the first level
+ * - @c "language,changed" - the program's language changed
  *
  * The @c "delay,changed" event is so that it'll wait a small time
  * before actually reporting those events and, moreover, just the
@@ -297,10 +298,16 @@ EAPI Elm_Object_Item      *elm_index_item_find(Evas_Object *obj, const void *dat
 EAPI void                  elm_index_item_clear(Evas_Object *obj);
 
 /**
- * Go to a given items level on a index widget
+ * Flush the changes made to the index items so they work correctly
+ *
+ * This flushes any changes made to items indicating the object is ready to
+ * go. You should call this before any changes you expect to work. This
+ * is similar to elm_list_go().
  *
  * @param obj The index object
- * @param level The index level (one of @c 0 or @c 1)
+ * @param level The index level (one of @c 0 or @c 1) where changes were made
+ *
+ * @warning If not called, it won't display the index properly.
  *
  * @ingroup Index
  */
@@ -374,6 +381,56 @@ EAPI void                      elm_index_horizontal_set(Evas_Object *obj, Eina_B
  * @ingroup Index
  */
 EAPI Eina_Bool                 elm_index_horizontal_get(const Evas_Object *obj);
+
+/**
+ * Set a delay change time for index object.
+ *
+ * @param obj The index object.
+ * @param delay_change_time The delay change time to set.
+ *
+ * @note delay time is 0.2 sec by default.
+ *
+ * @see elm_index_delay_change_time_get
+ *
+ * @ingroup Index
+ */
+EAPI void                      elm_index_delay_change_time_set(Evas_Object *obj, double delay_change_time);
+
+/**
+ * Get a delay change time for index object.
+ *
+ * @param obj The index object.
+ * @return delay change time in seconds
+ *
+ * @see elm_index_delay_change_time_set
+ *
+ * @ingroup Index
+ */
+EAPI double                    elm_index_delay_change_time_get(const Evas_Object *obj);
+
+/**
+ * Enable or disable omit feature for a given index widget.
+ *
+ * @param obj The index object
+ * @param enabled @c EINA_TRUE to enable omit feature, @c EINA_FALSE to disable
+ *
+ * @see elm_index_omit_enabled_get()
+ *
+ * @ingroup Index
+ */
+EAPI void                      elm_index_omit_enabled_set(Evas_Object *obj, Eina_Bool enabled);
+
+/**
+ * Get whether omit feature is enabled or not for a given index widget.
+ *
+ * @param obj The index object
+ * @return @c EINA_TRUE, if omit feature is enabled, @c EINA_FALSE otherwise
+ *
+ * @see elm_index_omit_enabled_set() for more details
+ *
+ * @ingroup Index
+ */
+EAPI Eina_Bool                 elm_index_omit_enabled_get(const Evas_Object *obj);
 
 /**
  * @}

@@ -328,6 +328,7 @@ _desc_init(void)
    ELM_CONFIG_VAL(D, T, vsync, T_UCHAR);
    ELM_CONFIG_VAL(D, T, thumbscroll_enable, T_UCHAR);
    ELM_CONFIG_VAL(D, T, thumbscroll_threshold, T_INT);
+   ELM_CONFIG_VAL(D, T, thumbscroll_hold_threshold, T_INT);
    ELM_CONFIG_VAL(D, T, thumbscroll_momentum_threshold, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, thumbscroll_friction, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, thumbscroll_bounce_friction, T_DOUBLE);
@@ -554,6 +555,8 @@ void _elm_config_access_set(Eina_Bool is_access)
    if (_elm_config->access_mode == is_access) return;
    _elm_config->access_mode = is_access;
    _elm_win_access(is_access);
+
+   if (!is_access) _elm_access_shutdown();
 }
 
 Eina_Bool _elm_config_selection_unfocused_clear_get(void)
@@ -1022,6 +1025,7 @@ _config_load(void)
    _elm_config->vsync = 0;
    _elm_config->thumbscroll_enable = EINA_TRUE;
    _elm_config->thumbscroll_threshold = 24;
+   _elm_config->thumbscroll_hold_threshold = 24;
    _elm_config->thumbscroll_momentum_threshold = 100.0;
    _elm_config->thumbscroll_friction = 1.0;
    _elm_config->thumbscroll_bounce_friction = 0.5;
@@ -1410,6 +1414,8 @@ _env_get(void)
    if (s) _elm_config->thumbscroll_enable = !!atoi(s);
    s = getenv("ELM_THUMBSCROLL_THRESHOLD");
    if (s) _elm_config->thumbscroll_threshold = atoi(s);
+   s = getenv("ELM_THUMBSCROLL_HOLD_THRESHOLD");
+   if (s) _elm_config->thumbscroll_hold_threshold = atoi(s);
    // FIXME: floatformat locale issues here 1.0 vs 1,0 - should just be 1.0
    s = getenv("ELM_THUMBSCROLL_MOMENTUM_THRESHOLD");
    if (s) _elm_config->thumbscroll_momentum_threshold = _elm_atof(s);
@@ -2072,6 +2078,18 @@ EAPI void
 elm_config_scroll_thumbscroll_threshold_set(unsigned int threshold)
 {
    _elm_config->thumbscroll_threshold = threshold;
+}
+
+EAPI unsigned int
+elm_config_scroll_thumbscroll_hold_threshold_get(void)
+{
+   return _elm_config->thumbscroll_hold_threshold;
+}
+
+EAPI void
+elm_config_scroll_thumbscroll_hold_threshold_set(unsigned int threshold)
+{
+   _elm_config->thumbscroll_hold_threshold = threshold;
 }
 
 EAPI double

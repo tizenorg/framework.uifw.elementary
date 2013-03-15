@@ -13,6 +13,7 @@
 
 #define PRELOAD             1
 #define REORDER_EFFECT_TIME 0.5
+#define FX_MOVE_TIME 0.5
 
 EAPI const char ELM_GENGRID_SMART_NAME[] = "elm_gengrid";
 EAPI const char ELM_GENGRID_PAN_SMART_NAME[] = "elm_gengrid_pan";
@@ -90,6 +91,11 @@ ELM_INTERNAL_SMART_SUBCLASS_NEW
   (ELM_GENGRID_PAN_SMART_NAME, _elm_gengrid_pan, Elm_Gengrid_Pan_Smart_Class,
   Elm_Pan_Smart_Class, elm_pan_smart_class_get, NULL);
 
+#if GENGRID_FX_SUPPORT
+static Eina_Bool      _elm_gengrid_fx_capture(Evas_Object *obj, int level);
+static void           _elm_gengrid_fx_play(Evas_Object *obj);
+#endif
+
 static void
 _elm_gengrid_pan_smart_pos_max_get(const Evas_Object *obj,
                                    Evas_Coord *x,
@@ -104,7 +110,8 @@ _item_show_region(void *data)
 {
    Elm_Gengrid_Smart_Data *sd = data;
    Evas_Coord cvw, cvh, it_xpos = 0, it_ypos = 0, col = 0, row = 0, minx = 0, miny = 0;
-   Elm_Gen_Item *it, *group_item = NULL;
+   Evas_Coord vw = 0, vh = 0;
+   Elm_Gen_Item *it;
 
    evas_object_geometry_get(sd->pan_obj, NULL, NULL, &cvw, &cvh);
 
@@ -151,18 +158,18 @@ _item_show_region(void *data)
                it->y = y;
             }
 
+          sd->s_iface->content_viewport_size_get(WIDGET(it), &vw, &vh);
+
           if (sd->show_region)
             {
                sd->s_iface->content_region_show(WIDGET(it),
-                                           it_xpos, it_ypos, sd->item_width,
-                                           sd->item_height);
+                                           it_xpos, it_ypos, vw, vh);
                sd->show_region = EINA_FALSE;
             }
           if (sd->bring_in)
             {
                sd->s_iface->region_bring_in(WIDGET(it),
-                                           it_xpos, it_ypos, sd->item_width,
-                                           sd->item_height);
+                                           it_xpos, it_ypos, vw, vh);
                sd->bring_in = EINA_FALSE;
             }
        }
@@ -172,7 +179,7 @@ static void
 _calc_job(void *data)
 {
    Elm_Gengrid_Smart_Data *sd = data;
-   Evas_Coord minw = 0, minh = 0, nmax = 0, cvw, cvh, it_xpos = 0, it_ypos = 0, col = 0, row = 0, minx = 0, miny = 0;
+   Evas_Coord minw = 0, minh = 0, nmax = 0, cvw, cvh;
    Elm_Gen_Item *it, *group_item = NULL;
    int count_group = 0;
    long count = 0;
@@ -520,7 +527,15 @@ _elm_gengrid_item_unrealize(Elm_Gen_Item *it,
 
    if (!it->realized) return;
    if (GG_IT(it)->wsd->reorder_it == it) return;
-
+#if GENGRID_FX_SUPPORT
+   if ((GG_IT(it)->has_proxy_it) && (!GG_IT(it)->wsd->gengrid_clearing))
+     {
+        if (!eina_list_data_find(GG_IT(it)->wsd->pending_unrealized_items, it))
+          GG_IT(it)->wsd->pending_unrealized_items =
+             eina_list_append(GG_IT(it)->wsd->pending_unrealized_items, it);
+        return;
+     }
+#endif
    evas_event_freeze(evas_object_evas_get(WIDGET(it)));
    if (!calc)
      evas_object_smart_callback_call(WIDGET(it), SIG_UNREALIZED, it);
@@ -761,6 +776,9 @@ _item_realize(Elm_Gen_Item *it)
    evas_object_size_hint_min_set(it->spacer, 2 * elm_config_scale_get(), 1);
    edje_object_part_swallow(VIEW(it), "elm.swallow.pad", it->spacer);
 
+   /* access */
+   if (_elm_config->access_mode) _access_widget_item_register(it);
+
    if (it->itc->func.text_get)
      {
         const Eina_List *l;
@@ -878,10 +896,6 @@ _item_realize(Elm_Gen_Item *it)
 
    it->realized = EINA_TRUE;
    it->want_unrealize = EINA_FALSE;
-
-   // ACCESS
-   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
-     _access_widget_item_register(it);
 }
 
 static Eina_Bool
@@ -1258,6 +1272,13 @@ _item_place(Elm_Gen_Item *it,
           }
         if (!it->group)
           {
+
+#if GENGRID_FX_SUPPORT
+             GG_IT(it)->scrl_x = x;
+             GG_IT(it)->scrl_y = y;
+             GG_IT(it)->w = iw;
+             GG_IT(it)->h = ih;
+#endif
              evas_object_move(VIEW(it), x, y);
              evas_object_resize(VIEW(it), iw, ih);
           }
@@ -1318,6 +1339,10 @@ _elm_gengrid_pan_smart_calculate(Evas_Object *obj)
    Elm_Gen_Item *it;
 
    ELM_GENGRID_PAN_DATA_GET(obj, psd);
+
+#if GENGRID_FX_SUPPORT
+   if (psd->wsd->fx_playing) return;
+#endif
 
    if (!psd->wsd->nmax) return;
 
@@ -1388,6 +1413,15 @@ _elm_gengrid_pan_smart_calculate(Evas_Object *obj)
      (ELM_WIDGET_DATA(psd->wsd)->obj, SIG_CHANGED, NULL);
    if ((psd->wsd->show_region || psd->wsd->bring_in))
      _item_show_region(psd->wsd);
+
+#if GENGRID_FX_SUPPORT
+   psd->wsd->rendered = EINA_TRUE;
+   if (psd->wsd->fx_mode)
+     {
+        if (_elm_gengrid_fx_capture(ELM_WIDGET_DATA(psd->wsd)->obj, 1))
+          _elm_gengrid_fx_play(ELM_WIDGET_DATA(psd->wsd)->obj);
+     }
+#endif
 }
 
 static void
@@ -1878,7 +1912,7 @@ _elm_gengrid_smart_event(Evas_Object *obj,
    else return EINA_FALSE;
 
    ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-   sd->s_iface->content_pos_set(obj, x, y);
+   sd->s_iface->content_pos_set(obj, x, y, EINA_TRUE);
    return EINA_TRUE;
 }
 
@@ -1981,11 +2015,13 @@ _elm_gengrid_item_del_not_serious(Elm_Gen_Item *it)
 }
 
 static void
-_elm_gengrid_item_del_serious(Elm_Gen_Item *it)
+_elm_gengrid_item_del_common(Elm_Gen_Item *it)
 {
    _elm_gengrid_item_del_not_serious(it);
+
    GG_IT(it)->wsd->items = eina_inlist_remove
-       (GG_IT(it)->wsd->items, EINA_INLIST_GET(it));
+      (GG_IT(it)->wsd->items, EINA_INLIST_GET(it));
+
    if (it->tooltip.del_cb)
      it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
    GG_IT(it)->wsd->walking -= it->walking;
@@ -1996,7 +2032,7 @@ _elm_gengrid_item_del_serious(Elm_Gen_Item *it)
      }
    if (it->group)
      GG_IT(it)->wsd->group_items =
-       eina_list_remove(GG_IT(it)->wsd->group_items, it);
+        eina_list_remove(GG_IT(it)->wsd->group_items, it);
 
    if (GG_IT(it)->wsd->state)
      {
@@ -2005,12 +2041,22 @@ _elm_gengrid_item_del_serious(Elm_Gen_Item *it)
      }
    if (GG_IT(it)->wsd->calc_job) ecore_job_del(GG_IT(it)->wsd->calc_job);
    GG_IT(it)->wsd->calc_job =
-     ecore_job_add(GG_IT(it)->wsd->calc_cb, GG_IT(it)->wsd);
+      ecore_job_add(GG_IT(it)->wsd->calc_cb, GG_IT(it)->wsd);
 
    if (GG_IT(it)->wsd->last_selected_item == (Elm_Object_Item *)it)
      GG_IT(it)->wsd->last_selected_item = NULL;
    GG_IT(it)->wsd->item_count--;
+}
 
+static void
+_elm_gengrid_item_del_serious(Elm_Gen_Item *it)
+{
+#if GENGRID_FX_SUPPORT
+   if ((!GG_IT(it)->wsd->fx_mode) || (GG_IT(it)->wsd->gengrid_clearing))
+#endif
+     {
+        _elm_gengrid_item_del_common(it);
+     }
    free(it->item);
    it->item = NULL;
 }
@@ -2021,6 +2067,9 @@ _item_del(Elm_Gen_Item *it)
    Evas_Object *obj = WIDGET(it);
 
    evas_event_freeze(evas_object_evas_get(obj));
+#if GENGRID_FX_SUPPORT
+   GG_IT(it)->has_proxy_it = EINA_FALSE;
+#endif
    GG_IT(it)->wsd->selected = eina_list_remove(GG_IT(it)->wsd->selected, it);
    if (it->realized) _elm_gengrid_item_unrealize(it, EINA_FALSE);
    _elm_gengrid_item_del_serious(it);
@@ -2129,18 +2178,46 @@ _item_disable_hook(Elm_Object_Item *item)
      }
 }
 
+#if GENGRID_FX_SUPPORT
 static void
+_item_del_pre_fx_process(Elm_Gen_Item *it)
+{
+   Evas_Object *obj = WIDGET(it);
+
+   _elm_gengrid_fx_capture(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj, 0);
+   if (!eina_list_data_find(GG_IT(it)->wsd->pending_del_items, it))
+     GG_IT(it)->wsd->pending_del_items = eina_list_append(GG_IT(it)->wsd->pending_del_items, it);
+
+   evas_event_freeze(evas_object_evas_get(obj));
+   GG_IT(it)->wsd->selected = eina_list_remove(GG_IT(it)->wsd->selected, it);
+
+   _elm_gengrid_item_del_common(it);
+   evas_event_thaw(evas_object_evas_get(obj));
+   evas_event_thaw_eval(evas_object_evas_get(obj));
+}
+#endif
+
+//static void
+static Eina_Bool
 _item_del_pre_hook(Elm_Object_Item *item)
 {
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
 
+#if GENGRID_FX_SUPPORT
+   if ((GG_IT(it)->wsd->fx_mode) && (!GG_IT(it)->wsd->gengrid_clearing))
+     {
+        _item_del_pre_fx_process(it);
+        return EINA_FALSE;
+     }
+#endif
    if ((it->relcount > 0) || (it->walking > 0))
      {
         _elm_gengrid_item_del_not_serious(it);
-        return;
+        return EINA_TRUE;
      }
 
    _item_del(it);
+   return EINA_TRUE;
 }
 
 static Evas_Object *
@@ -2188,11 +2265,46 @@ _elm_gengrid_clear(Evas_Object *obj,
         return;
      }
    evas_event_freeze(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
+
+#if GENGRID_FX_SUPPORT
+   Elm_Gen_FX_Item *fi;
+   Proxy_Item *pi;
+   Elm_Gen_Item *it;
+
+   EINA_LIST_FREE(sd->capture_before_items, pi)
+     {
+        if (pi->proxy) evas_object_del(pi->proxy);
+        free(pi);
+     }
+   EINA_LIST_FREE(sd->capture_after_items, pi)
+     {
+        if (pi->proxy) evas_object_del(pi->proxy);
+        free(pi);
+     }
+   EINA_LIST_FREE(sd->fx_items, fi)
+     {
+        if (fi->trans) elm_transit_del(fi->trans);
+        free(fi);
+     }
+   EINA_LIST_FREE (sd->pending_unrealized_items, it)
+      _elm_gengrid_item_unrealize(it, EINA_FALSE);
+   EINA_LIST_FREE (sd->pending_del_items, it)
+     {
+        _item_del(it);
+        _elm_widget_item_free((Elm_Widget_Item *)it);
+     }
+   sd->gengrid_clearing = EINA_TRUE;
+   sd->fx_playing = EINA_FALSE;
+   sd->fx_first_captured = EINA_FALSE;
+   sd->rendered = EINA_FALSE;
+   if (sd->alpha_bg) evas_object_del(sd->alpha_bg);
+#endif
+
    for (l = sd->items, next = l ? l->next : NULL;
         l;
         l = next, next = next ? next->next : NULL)
      {
-        Elm_Gen_Item *it = ELM_GEN_ITEM_FROM_INLIST(l);
+        it = ELM_GEN_ITEM_FROM_INLIST(l);
 
         if (it->generation < sd->generation)
           {
@@ -2225,6 +2337,10 @@ _elm_gengrid_clear(Evas_Object *obj,
         evas_object_smart_callback_call(sd->pan_obj, "changed", NULL);
      }
    sd->s_iface->content_region_show(obj, 0, 0, 0, 0);
+
+#if GENGRID_FX_SUPPORT
+   sd->gengrid_clearing = EINA_FALSE;
+#endif
    evas_event_thaw(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
    evas_event_thaw_eval(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
 }
@@ -2321,6 +2437,12 @@ _elm_gengrid_item_new(Elm_Gengrid_Smart_Data *sd,
    it->unsel_cb = (Ecore_Cb)_item_unselect;
    it->unrealize_cb = (Ecore_Cb)_item_unrealize_cb;
 
+#if GENGRID_FX_SUPPORT
+   it->item->num = sd->item_count;
+   if (sd->fx_mode)
+     _elm_gengrid_fx_capture(ELM_WIDGET_DATA(sd)->obj, 0);
+#endif
+
    return it;
 }
 
@@ -2382,6 +2504,14 @@ _elm_gengrid_smart_add(Evas_Object *obj)
    priv->align_x = 0.5;
    priv->align_y = 0.5;
    priv->highlight = EINA_TRUE;
+
+#if GENGRID_FX_SUPPORT
+   priv->fx_mode = EINA_FALSE;
+   priv->rendered = EINA_FALSE;
+   priv->fx_first_captured = EINA_FALSE;
+   priv->fx_playing = EINA_FALSE;
+   priv->gengrid_clearing = EINA_FALSE;
+#endif
 
    priv->pan_obj = evas_object_smart_add
        (evas_object_evas_get(obj), _elm_gengrid_pan_smart_class_new());
@@ -3385,11 +3515,10 @@ elm_gengrid_item_prev_get(const Elm_Object_Item *item)
 
 EAPI void
 elm_gengrid_item_show(Elm_Object_Item *item,
-                      Elm_Gengrid_Item_Scrollto_Type type)
+                      Elm_Gengrid_Item_Scrollto_Type type __UNUSED__)
 {
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
    Elm_Gengrid_Smart_Data *sd;
-   Evas_Coord minx = 0, miny = 0, x = 0, y = 0;
 
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
    sd = GG_IT(it)->wsd;
@@ -3405,10 +3534,9 @@ elm_gengrid_item_show(Elm_Object_Item *item,
 
 EAPI void
 elm_gengrid_item_bring_in(Elm_Object_Item *item,
-                          Elm_Gengrid_Item_Scrollto_Type type)
+                          Elm_Gengrid_Item_Scrollto_Type type __UNUSED__)
 {
    Elm_Gengrid_Smart_Data *sd;
-   Evas_Coord minx = 0, miny = 0, x = 0, y = 0;
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
 
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
@@ -3583,3 +3711,362 @@ elm_gengrid_item_select_mode_get(const Elm_Object_Item *item)
 
    return it->select_mode;
 }
+
+#if GENGRID_FX_SUPPORT
+EAPI void
+elm_gengrid_fx_mode_set(Evas_Object *obj, Eina_Bool mode)
+{
+   ELM_GENGRID_CHECK(obj);
+   ELM_GENGRID_DATA_GET(obj, sd);
+
+   sd->fx_mode = mode;
+}
+
+EAPI Eina_Bool
+elm_gengrid_fx_mode_get(const Evas_Object *obj)
+{
+   ELM_GENGRID_CHECK(obj) EINA_FALSE;
+   ELM_GENGRID_DATA_GET(obj, sd);
+
+   return sd->fx_mode;
+}
+
+static Proxy_Item *
+_elm_gengrid_proxy_item_new(const Elm_Object_Item *item)
+{
+   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
+   if ((!it) || (!it->item)) return EINA_FALSE;
+   int w, h;
+
+   Proxy_Item *pi = NULL;
+   pi = calloc(1, sizeof(Proxy_Item));
+   if (!pi) return NULL;
+
+   pi->proxy = evas_object_image_filled_add
+      (evas_object_evas_get(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj));
+   if (!pi->proxy) return EINA_FALSE;
+   evas_object_clip_set(pi->proxy, evas_object_clip_get(GG_IT(it)->wsd->pan_obj));
+
+   evas_object_image_source_set(pi->proxy, VIEW(it));
+
+   GG_IT(it)->has_proxy_it = EINA_TRUE;
+   pi->it = it;
+   pi->num = it->item->num;
+   pi->x = it->item->scrl_x;
+   pi->y = it->item->scrl_y;
+   pi->w = it->item->w;
+   pi->h = it->item->h;
+
+   evas_object_geometry_get(VIEW(it), NULL, NULL, &w, &h);
+
+   if (w <= 0 || h <= 0)
+     {
+        evas_object_size_hint_min_get(VIEW(it), &w, &h);
+        evas_object_size_hint_min_set(pi->proxy, w, h);
+     }
+   else evas_object_resize(pi->proxy, w, h);
+
+   return pi;
+}
+
+static Eina_Bool
+_elm_gengrid_fx_capture(Evas_Object *obj, int level)
+{
+   ELM_GENGRID_DATA_GET(obj, sd);
+
+   Elm_Gen_Item *it;
+   Proxy_Item *pi;
+   Evas_Coord ox, oy, ow, oh;
+
+   if ((!sd->rendered) || (sd->fx_playing)) return EINA_FALSE;
+   if ((!level) && (sd->fx_first_captured)) return EINA_FALSE;
+   if ((level) && (!sd->fx_first_captured)) return EINA_FALSE;
+
+   evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
+
+   if (!level)
+     {
+        sd->fx_first_captured = EINA_TRUE;
+        EINA_LIST_FREE(sd->capture_before_items, pi)
+          {
+             if (pi->proxy) evas_object_del(pi->proxy);
+             free(pi);
+          }
+     }
+   else
+     {
+        EINA_LIST_FREE(sd->capture_after_items, pi)
+          {
+             if (pi->proxy) evas_object_del(pi->proxy);
+             free(pi);
+          }
+     }
+   EINA_INLIST_FOREACH(sd->items, it)
+     {
+        if (it->realized)
+          {
+             pi = _elm_gengrid_proxy_item_new((Elm_Object_Item *)it);
+             if (!pi) continue;
+             if (!level)
+               sd->capture_before_items = eina_list_append(sd->capture_before_items, pi);
+             else
+               sd->capture_after_items = eina_list_append(sd->capture_after_items, pi);
+          }
+     }
+   return EINA_TRUE;
+}
+
+static Elm_Gen_FX_Item *
+_elm_gengrid_fx_item_find(const Elm_Object_Item *item)
+{
+   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
+   if (!it) return EINA_FALSE;
+
+   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
+   if (!sd) return NULL;
+
+   Elm_Gen_FX_Item *fi = NULL;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(sd->fx_items, l, fi)
+     {
+        if (fi->it == it) return fi;
+     }
+   return NULL;
+}
+
+static Elm_Gen_FX_Item *
+_elm_gengrid_fx_item_new(const Proxy_Item *pi)
+{
+   if ((!pi) || (!pi->it)) return NULL;
+
+   Elm_Gen_FX_Item *fi = NULL;
+   fi = calloc(1, sizeof(Elm_Gen_FX_Item));
+   if (!fi) return NULL;
+
+   fi->it = pi->it;
+   GG_IT(fi->it)->fi = fi;
+   fi->proxy = pi->proxy;
+   fi->num = pi->num;
+   fi->from.x = fi->to.x = pi->x;
+   fi->from.y = fi->to.y = pi->y;
+   fi->from.w = fi->to.w = pi->w;
+   fi->from.h = fi->to.h = pi->h;
+   fi->update = EINA_FALSE;
+
+   return fi;
+}
+
+EAPI void
+_elm_gengrid_fx_items_make(Evas_Object *obj)
+{
+   ELM_GENGRID_CHECK(obj);
+   ELM_GENGRID_DATA_GET(obj, sd);
+
+   Elm_Gen_FX_Item *fi;
+   Proxy_Item *pi;
+   Eina_List *l;
+   Evas_Coord ox, oy, ow, oh;
+
+   evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
+
+   EINA_LIST_FOREACH(sd->capture_before_items, l, pi)
+     {
+        fi = _elm_gengrid_fx_item_new(pi);
+        if (fi) sd->fx_items = eina_list_append(sd->fx_items, fi);
+     }
+
+   EINA_LIST_FOREACH(sd->capture_after_items, l, pi)
+     {
+        fi = _elm_gengrid_fx_item_find((Elm_Object_Item *)pi->it);
+
+        if (fi)
+          {
+             fi->type = ELM_GEN_ITEM_FX_TYPE_SAME;
+             fi->update = EINA_TRUE;
+             fi->to.x = pi->x;
+             fi->to.y = pi->y;
+             fi->to.w = pi->w;
+             fi->to.h = pi->h;
+          }
+        else
+          {
+             fi = _elm_gengrid_fx_item_new(pi);
+             if (fi)
+               {
+                  fi->type = ELM_GEN_ITEM_FX_TYPE_ADD;
+                  fi->update = EINA_TRUE;
+                  sd->fx_items = eina_list_append(sd->fx_items, fi);
+               }
+          }
+     }
+
+   EINA_LIST_FOREACH(sd->fx_items, l, fi)
+     {
+        if (!fi->update)
+          {
+             fi->type = ELM_GEN_ITEM_FX_TYPE_DEL;
+             fi->update = EINA_TRUE;
+          }
+     }
+}
+
+static void
+_item_fx_op(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__, double progress __UNUSED__)
+{
+   Elm_Gen_FX_Item *fi = data;
+   Elm_Gengrid_Smart_Data *sd = GG_IT(fi->it)->wsd;
+   if (fi->from.y == fi->to.y) evas_object_raise(fi->proxy);
+   evas_object_raise(sd->alpha_bg);
+   return;
+}
+
+
+static void
+_item_fx_done(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__)
+{
+   Elm_Gen_FX_Item *fx_done_it = data;
+   Elm_Gengrid_Smart_Data *sd = GG_IT(fx_done_it->it)->wsd;
+
+   if ((!fx_done_it) || (!fx_done_it->it) || (!sd)) return;
+
+   evas_object_image_source_visible_set(fx_done_it->proxy, EINA_TRUE);
+   evas_object_lower(fx_done_it->proxy);
+
+   evas_object_move(VIEW(fx_done_it->it), fx_done_it->to.x, fx_done_it->to.y);
+   GG_IT(fx_done_it->it)->has_proxy_it = EINA_FALSE;
+
+   evas_object_clip_unset(fx_done_it->proxy);
+}
+
+static void
+_item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
+{
+   Elm_Gen_FX_Item *fx_done_it = data;
+   Elm_Gen_Item *it = NULL;
+   Elm_Gengrid_Smart_Data *sd = GG_IT(fx_done_it->it)->wsd;
+
+   if ((!fx_done_it) || (!fx_done_it->it) || (!sd)) return;
+
+   sd->fx_items = eina_list_remove(sd->fx_items, fx_done_it);
+   free(fx_done_it);
+
+   if (!eina_list_count(sd->fx_items))
+     {
+        EINA_LIST_FREE (sd->pending_unrealized_items, it)
+          {
+             GG_IT(it)->has_proxy_it = EINA_FALSE;
+             _elm_gengrid_item_unrealize(it, EINA_FALSE);
+          }
+
+        EINA_LIST_FREE (sd->pending_del_items, it)
+          {
+             _item_del(it);
+             _elm_widget_item_free((Elm_Widget_Item *)it);
+          }
+
+        sd->fx_playing = EINA_FALSE;
+        sd->fx_first_captured = EINA_FALSE;
+        evas_object_hide(sd->alpha_bg);
+
+        sd->pan_changed = EINA_TRUE;
+        evas_object_smart_changed(sd->pan_obj);
+     }
+}
+
+static Evas_Object *
+_tray_alpha_bg_create(const Evas_Object *obj)
+{
+   Evas_Object *bg = NULL;
+   Evas_Coord ox, oy, ow, oh;
+
+   ELM_GENGRID_CHECK(obj) NULL;
+   ELM_GENGRID_DATA_GET(obj, sd);
+
+   evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
+   bg = evas_object_rectangle_add
+      (evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
+   evas_object_color_set(bg, 0, 0, 0, 0);
+   evas_object_resize(bg, ow, oh);
+   evas_object_move(bg, ox, oy);
+
+   return bg;
+}
+
+static void
+_elm_gengrid_fx_play(Evas_Object *obj)
+{
+   ELM_GENGRID_CHECK(obj);
+   ELM_GENGRID_DATA_GET(obj, sd);
+
+   Evas_Coord ox, oy, ow, oh, cvx, cvy, cvw, cvh;
+   Elm_Gen_FX_Item *fi;
+   Eina_List *l;
+
+   if (!sd->fx_mode) return;
+
+   EINA_LIST_FREE(sd->fx_items, fi)
+     {
+        if (fi->trans) elm_transit_del(fi->trans);
+        free(fi);
+     }
+
+   _elm_gengrid_fx_items_make(obj);
+   if (!eina_list_count(sd->fx_items)) return;
+   sd->fx_playing = EINA_TRUE;
+
+   if (!sd->alpha_bg) sd->alpha_bg = _tray_alpha_bg_create(obj);
+   evas_object_show(sd->alpha_bg);
+
+   evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
+   evas_output_viewport_get(evas_object_evas_get(obj), &cvx, &cvy, &cvw, &cvh);
+
+   EINA_LIST_FOREACH(sd->fx_items, l, fi)
+     {
+        if (!fi->proxy) continue;
+
+        if ((fi->from.y <= oy) || (fi->from.y + fi->from.h >= oy + oh))
+          {
+             evas_object_move(VIEW(fi->it), fi->to.x, fi->to.y);
+          }
+        else if ((fi->to.y <= oy) || (fi->to.y + fi->to.h >= oy + oh))
+          {
+             evas_object_move(VIEW(fi->it), fi->from.x, fi->from.y);
+          }
+
+        evas_object_resize(fi->proxy, fi->to.w, fi->to.h);
+        evas_object_show(fi->proxy);
+
+        fi->trans = elm_transit_add();
+        elm_transit_object_add(fi->trans, fi->proxy);
+
+        evas_object_image_source_visible_set(fi->proxy, EINA_FALSE);
+        elm_transit_tween_mode_set(fi->trans, ELM_TRANSIT_TWEEN_MODE_DECELERATE);
+
+        if (fi->type == ELM_GEN_ITEM_FX_TYPE_SAME)
+          {
+             evas_object_raise(fi->proxy);
+             elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
+          }
+
+        else if (fi->type == ELM_GEN_ITEM_FX_TYPE_ADD)
+          {
+             elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
+             elm_transit_effect_color_add(fi->trans, 0, 0, 0, 0, 255, 255, 255, 255);
+             elm_transit_effect_zoom_add(fi->trans, 0.5, 1.0);
+          }
+        else if (fi->type == ELM_GEN_ITEM_FX_TYPE_DEL)
+          {
+             elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
+             elm_transit_effect_color_add(fi->trans, 255, 255, 255, 255, 0, 0, 0, 0);
+             elm_transit_effect_zoom_add(fi->trans, 1.0, 0.5);
+          }
+        elm_transit_effect_add(fi->trans, _item_fx_op, fi, _item_fx_done);
+        elm_transit_del_cb_set(fi->trans, _item_fx_del_cb, fi);
+
+        elm_transit_duration_set(fi->trans, FX_MOVE_TIME);
+        elm_transit_objects_final_state_keep_set(fi->trans, EINA_FALSE);
+        elm_transit_go(fi->trans);
+     }
+}
+#endif

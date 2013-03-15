@@ -68,4 +68,49 @@ struct Elm_Gen_Item
    Eina_Bool                 flipped : 1; /**< a flag that shows the flip status of the item. */
 };
 
+typedef enum
+{
+   ELM_GEN_ITEM_FX_TYPE_SAME,
+   ELM_GEN_ITEM_FX_TYPE_ADD,
+   ELM_GEN_ITEM_FX_TYPE_DEL,
+} Elm_Gen_Item_Fx_Type;
+
+typedef struct _Proxy_Item Proxy_Item;
+struct _Proxy_Item
+{
+   int                      num;
+   Elm_Gen_Item             *it;
+   Evas_Object              *proxy;
+   Evas_Coord                x, y, w, h;
+};
+
+typedef struct _Elm_Gen_FX_Item Elm_Gen_FX_Item;
+struct _Elm_Gen_FX_Item
+{
+   int                       num;
+   Elm_Gen_Item             *it;
+   Evas_Object              *proxy;
+   Elm_Gen_Item_Fx_Type      type;
+   Elm_Transit              *trans;
+
+   struct
+   {
+      Evas_Coord x, y, w, h;
+   } from;
+
+   struct
+   {
+      Evas_Coord x, y, w, h;
+   } to;
+
+   Eina_Bool update : 1;
+};
+
+typedef enum
+{
+   ELM_GEN_PINCH_ZOOM_NONE = 0,
+   ELM_GEN_PINCH_ZOOM_CONTRACT = 1,
+   ELM_GEN_PINCH_ZOOM_EXPAND = 2
+} Elm_Gen_Pinch_Zoom_Mode;
+
 #endif

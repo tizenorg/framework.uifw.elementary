@@ -323,7 +323,14 @@ _elm_label_smart_text_set(Evas_Object *obj,
    if (!label) label = "";
    _label_format_set(ELM_WIDGET_DATA(sd)->resize_obj, sd->format);
 
-   return _elm_label_parent_sc->text_set(obj, item, label);
+   if (_elm_label_parent_sc->text_set(obj, item, label))
+     {
+        sd->lastw = 0;
+        _elm_label_smart_sizing_eval(obj);
+        return EINA_TRUE;
+     }
+
+   return EINA_FALSE;
 }
 
 static Eina_Bool
@@ -339,7 +346,7 @@ _access_info_cb(void *data __UNUSED__, Evas_Object *obj)
 {
    const char *txt = elm_widget_access_info_get(obj);
 
-   if (!txt) txt = elm_layout_text_get(obj, NULL);
+   if (!txt) txt = _elm_util_mkup_to_text(elm_layout_text_get(obj, NULL));
    if (txt) return strdup(txt);
 
    return NULL;
@@ -377,11 +384,8 @@ _elm_label_smart_add(Evas_Object *obj)
    edje_object_signal_callback_add(ELM_WIDGET_DATA(priv)->resize_obj,
                                    "elm,state,slide,end", "", _on_slide_end,
                                    obj);
-
-   elm_widget_can_focus_set(obj, EINA_FALSE);
-
-   elm_layout_theme_set(obj, "label", "base", elm_widget_style_get(obj));
-   elm_layout_text_set(obj, NULL, "<br>");
+   /* access */
+   elm_widget_can_focus_set(obj, _elm_config->access_mode);
 
    _elm_access_object_register(obj, ELM_WIDGET_DATA(priv)->resize_obj);
    _elm_access_text_set
@@ -389,6 +393,8 @@ _elm_label_smart_add(Evas_Object *obj)
    _elm_access_callback_set
      (_elm_access_object_get(obj), ELM_ACCESS_INFO, _access_info_cb, NULL);
 
+   elm_layout_theme_set(obj, "label", "base", elm_widget_style_get(obj));
+   elm_layout_text_set(obj, NULL, "<br>");
    elm_layout_sizing_eval(obj);
 }
 

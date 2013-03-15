@@ -30,10 +30,18 @@ struct _DiskItem_Data
    unsigned int sel_field_value;
 };
 
+static Eina_Bool
+_diskitem_data_del_idler(void *data)
+{
+   if (data) free(data);
+   return ECORE_CALLBACK_CANCEL;
+}
+
 static void
 _diskselector_item_free_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
-   if (data) free(data);
+   if (data)
+     ecore_idler_add(_diskitem_data_del_idler, data);
 }
 
 static Eina_Bool
@@ -249,6 +257,9 @@ _field_clicked_cb(void *data, Evas_Object *obj)
      }
    if (ctx_mod->sel_field)
      elm_object_signal_emit(ctx_mod->sel_field, "elm,state,select", "elm");
+
+   /* Raise the Ctxpopup to show it at the top of its layer */
+   evas_object_raise(ctx_mod->ctxpopup);
    evas_object_show(ctx_mod->ctxpopup);
 }
 

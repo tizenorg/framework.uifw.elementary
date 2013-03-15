@@ -1001,7 +1001,7 @@ _elm_photocam_smart_event(Evas_Object *obj,
    else return EINA_FALSE;
 
    ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-   sd->s_iface->content_pos_set(obj, x, y);
+   sd->s_iface->content_pos_set(obj, x, y, EINA_TRUE);
 
    return EINA_TRUE;
 }

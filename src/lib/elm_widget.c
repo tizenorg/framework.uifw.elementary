@@ -13,6 +13,9 @@ static const char ELM_WIDGET_SMART_NAME[] = "elm_widget";
   if (!sd)                                                      \
     return
 
+#define ELM_WIDGET_FOCUS_GET(obj)                                    \
+  ((_elm_access_read_mode_get()) ? (elm_widget_highlight_get(obj)) : \
+                                  (elm_widget_focus_get(obj)))
 typedef struct _Elm_Event_Cb_Data         Elm_Event_Cb_Data;
 typedef struct _Elm_Translate_String_Data Elm_Translate_String_Data;
 
@@ -244,6 +247,7 @@ _elm_widget_sub_object_add_func(Evas_Object *obj,
                return EINA_FALSE;
           }
         sdc->parent_obj = obj;
+        sdc->orient_mode = sd->orient_mode;
         _elm_widget_top_win_focused_set(sobj, sd->top_win_focused);
 
         /* update child focusable-ness on self and parents, now that a
@@ -1831,7 +1835,15 @@ elm_widget_focus_cycle(Evas_Object *obj,
      return;
    elm_widget_focus_next_get(obj, dir, &target);
    if (target)
-     elm_widget_focus_steal(target);
+     {
+        /* access */
+        if (_elm_config->access_mode && _elm_access_read_mode_get())
+          {
+             _elm_access_highlight_set(target);
+             _elm_widget_focus_region_show(target);
+          }
+        else elm_widget_focus_steal(target);
+     }
 }
 
 /**
@@ -2359,9 +2371,15 @@ elm_widget_focus_next_get(const Evas_Object *obj,
    if (!elm_widget_can_focus_get(obj))
      return EINA_FALSE;
 
+   /* focusable object but does not have access info */
+   if (_elm_config->access_mode)
+     {
+        if (!_elm_access_object_get(obj)) return EINA_FALSE;
+     }
+
    /* Return */
    *next = (Evas_Object *)obj;
-   return !elm_widget_focus_get(obj);
+   return !ELM_WIDGET_FOCUS_GET(obj);
 }
 
 /**
@@ -2416,12 +2434,12 @@ elm_widget_focus_list_next_get(const Evas_Object *obj,
    const Eina_List *l = items;
 
    /* Recovery last focused sub item */
-   if (elm_widget_focus_get(obj))
+   if (ELM_WIDGET_FOCUS_GET(obj))
      {
         for (; l; l = list_next(l))
           {
              Evas_Object *cur = list_data_get(l);
-             if (elm_widget_focus_get(cur)) break;
+             if (ELM_WIDGET_FOCUS_GET(cur)) break;
           }
 
          /* Focused object, but no focused sub item */
@@ -2473,6 +2491,28 @@ elm_widget_focus_list_next_get(const Evas_Object *obj,
 
    *next = to_focus;
    return EINA_FALSE;
+}
+
+EAPI Eina_Bool
+elm_widget_highlight_get(const Evas_Object *obj)
+{
+   API_ENTRY return EINA_FALSE;
+   return sd->highlighted;
+}
+
+EAPI void
+elm_widget_parent_highlight_set(Evas_Object *obj,
+                                Eina_Bool highlighted)
+{
+   API_ENTRY return;
+
+   highlighted = !!highlighted;
+
+   Evas_Object *o = elm_widget_parent_get(obj);
+
+   if (o) elm_widget_parent_highlight_set(o, highlighted);
+
+   sd->highlighted = highlighted;
 }
 
 EAPI void
@@ -2616,6 +2656,10 @@ elm_widget_focused_object_clear(Evas_Object *obj)
    if (!sd->api) return;
 
    if (!sd->focused) return;
+
+   // FIXME: evas_object_ref/unref is temporary code to fix logical issue.
+   // After Eo is applied to elementary, remove these.
+   evas_object_ref(obj);
    if (sd->resize_obj && elm_widget_focus_get(sd->resize_obj))
      elm_widget_focused_object_clear(sd->resize_obj);
    else
@@ -2633,6 +2677,7 @@ elm_widget_focused_object_clear(Evas_Object *obj)
      }
    sd->focused = EINA_FALSE;
    sd->api->on_focus(obj);
+   evas_object_unref(obj);
 }
 
 EAPI void
@@ -3353,7 +3398,20 @@ elm_widget_theme_object_set(Evas_Object *obj,
                             const char *wstyle)
 {
    API_ENTRY return EINA_FALSE;
-   return _elm_theme_object_set(obj, edj, wname, welement, wstyle);
+   char buf[128];
+   int ret;
+
+   if (!_elm_theme_object_set(obj, edj, wname, welement, wstyle))
+     return EINA_FALSE;
+
+   if (sd->orient_mode != -1)
+     {
+
+        snprintf(buf, sizeof(buf), "elm,state,orient,%d", ret);
+        elm_widget_signal_emit(obj, buf, "elm");
+
+     }
+   return EINA_TRUE;
 }
 
 EAPI Eina_Bool
@@ -3456,6 +3514,62 @@ elm_widget_name_find(const Evas_Object *obj,
    API_ENTRY return NULL;
    if (!name) return NULL;
    return _widget_name_find(obj, name, recurse);
+}
+
+EAPI void
+elm_widget_orientation_mode_disabled_set(Evas_Object *obj, Eina_Bool disabled)
+{
+   int orient_mode = -1;
+
+   API_ENTRY return;
+
+   if (disabled && (sd->orient_mode == -1)) return;
+   if (!disabled && (sd->orient_mode != -1)) return;
+
+   if (!disabled)
+     {
+        //Get current orient mode from it's parent otherwise, 0.
+        sd->orient_mode = 0;
+        ELM_WIDGET_DATA_GET(sd->parent_obj, sd_parent);
+        if (!sd_parent) orient_mode = 0;
+        else orient_mode = sd_parent->orient_mode;
+     }
+   elm_widget_orientation_set(obj, orient_mode);
+}
+
+EAPI Eina_Bool
+elm_widget_orientation_mode_disabled_get(const Evas_Object *obj)
+{
+   Eina_Bool ret;
+
+   API_ENTRY return EINA_FALSE;
+
+   if (sd->orient_mode == -1) ret = EINA_TRUE;
+   else ret = EINA_FALSE;
+   return ret;
+}
+
+EAPI void
+elm_widget_orientation_set(Evas_Object *obj, int rotation)
+{
+   Evas_Object *child;
+   Eina_List *l;
+
+   API_ENTRY return;
+
+   if ((sd->orient_mode == rotation) || (sd->orient_mode == -1)) return;
+
+   sd->orient_mode = rotation;
+
+   EINA_LIST_FOREACH (sd->subobjs, l, child)
+     elm_widget_orientation_set(child, rotation);
+
+   if (rotation != -1)
+     {
+        char buf[128];
+        snprintf(buf, sizeof(buf), "elm,state,orient,%d", sd->orient_mode);
+        elm_widget_signal_emit(obj, buf, "elm");
+     }
 }
 
 /**

@@ -500,6 +500,7 @@ typedef struct _Elm_Widget_Smart_Data
                                                  Evas_Object *obj);
 
    int                           frozen;
+   int                           orient_mode; /* -1 is disabled */
 
    Eina_Bool                     drag_x_locked : 1;
    Eina_Bool                     drag_y_locked : 1;
@@ -518,6 +519,8 @@ typedef struct _Elm_Widget_Smart_Data
                                                           * default */
    Eina_Bool                     still_in : 1;
    Eina_Bool                     can_access : 1;
+   Eina_Bool                     highlighted : 1;
+   Eina_Bool                     highlight_root : 1;
 } Elm_Widget_Smart_Data;
 
 /**
@@ -554,7 +557,7 @@ struct _Elm_Access_Item
 {
    int                   type;
    const void           *data;
-   Elm_Access_Content_Cb func;
+   Elm_Access_Info_Cb    func;
 };
 
 struct _Elm_Access_Info
@@ -575,11 +578,22 @@ struct _Elm_Access_Info
    Evas_Object               *part_object;
 };
 
+void                  _elm_access_shutdown();
+void                  _elm_access_mouse_event_enabled_set(Eina_Bool enabled);
+/* elm_widget_focus_list_next_get();, elm_widget_focus_next_get();
+   and elm_widget_focus_cycle(); use _elm_access_read_mode to use
+   focus chain */
+void                  _elm_access_read_mode_set(Eina_Bool enabled);
+Eina_Bool             _elm_access_read_mode_get();
+void                  _elm_access_widget_item_access_order_set(Elm_Widget_Item *item, Eina_List *objs);
+const Eina_List      *_elm_access_widget_item_access_order_get(const Elm_Widget_Item *item);
+void                  _elm_access_widget_item_access_order_unset(Elm_Widget_Item *item);
+
 EAPI void             _elm_access_clear(Elm_Access_Info *ac);
 EAPI void             _elm_access_text_set(Elm_Access_Info *ac, int type, const char *text);
-EAPI void             _elm_access_callback_set(Elm_Access_Info *ac, int type, Elm_Access_Content_Cb func, const void *data);
-EAPI char            *_elm_access_text_get(const Elm_Access_Info *ac, int type, Evas_Object *obj); /* this is ok it actually returns a strduped string - it's meant to! */
-EAPI void             _elm_access_read(Elm_Access_Info *ac, int type, Evas_Object *obj);
+EAPI void             _elm_access_callback_set(Elm_Access_Info *ac, int type, Elm_Access_Info_Cb func, const void *data);
+EAPI char            *_elm_access_text_get(const Elm_Access_Info *ac, int type, const Evas_Object *obj); /* this is ok it actually returns a strduped string - it's meant to! */
+EAPI void             _elm_access_read(Elm_Access_Info *ac, int type, const Evas_Object *obj);
 EAPI void             _elm_access_say(const char *txt);
 EAPI Elm_Access_Info *_elm_access_object_get(const Evas_Object *obj);
 EAPI void             _elm_access_object_hilight(Evas_Object *obj);
@@ -629,6 +643,7 @@ struct _Elm_Widget_Item
    Elm_Widget_Disable_Cb          disable_func;
    Evas_Object                   *access_obj;
    const char                    *access_info;
+   Eina_List                     *access_order;
 
    Eina_Bool                      disabled : 1;
    Eina_Bool                      on_deletion : 1;
@@ -703,6 +718,8 @@ EAPI Evas_Display_Mode elm_widget_display_mode_get(const Evas_Object *obj);
 EAPI void             elm_widget_display_mode_set(Evas_Object *obj, Evas_Display_Mode dispmode);
 EAPI const Elm_Widget_Smart_Class *elm_widget_smart_class_get(void);
 
+EAPI Eina_Bool        elm_widget_highlight_get(const Evas_Object *obj);
+EAPI void             elm_widget_parent_highlight_set(Evas_Object *obj, Eina_Bool highlighted);
 /**
  * @internal
  *
@@ -771,6 +788,9 @@ EAPI Evas_Object     *elm_widget_content_part_get(const Evas_Object *obj, const 
 EAPI Evas_Object     *elm_widget_content_part_unset(Evas_Object *obj, const char *part);
 EAPI void             elm_widget_access_info_set(Evas_Object *obj, const char *txt);
 EAPI const char      *elm_widget_access_info_get(const Evas_Object *obj);
+EAPI void             elm_widget_orientation_set(Evas_Object *obj, int rotation);
+EAPI void             elm_widget_orientation_mode_disabled_set(Evas_Object *obj, Eina_Bool disabled);
+EAPI Eina_Bool        elm_widget_orientation_mode_disabled_get(const Evas_Object *obj);
 EAPI Elm_Widget_Item *_elm_widget_item_new(Evas_Object *parent, size_t alloc_size);
 EAPI void             _elm_widget_item_free(Elm_Widget_Item *item);
 EAPI Evas_Object     *_elm_widget_item_widget_get(const Elm_Widget_Item *item);

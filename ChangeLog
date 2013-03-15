@@ -675,6 +675,10 @@
         * Add elm_toolbar_item_show/bring_in.
           It show or bring a specific item, when the toolbar can be scrolled.
 
+2012-11-21  Michael Bouchaud (yoz)
+
+        * update the min size hint on elm_label after a text set
+
 2012-11-22  ChunEon Park (Hermet)
 
         * Lets remove contents regardless of the preseve_on_set if naviframe is
@@ -687,6 +691,10 @@
 2012-11-22  Thiep Ha 
 
         * Fixed entry to enable have_selection only when a text is actually selected.
+
+2012-11-22  Michael Bouchaud (yoz)
+
+        * fix elm_flip to show only one face at a time
 
 2012-11-23  ChunEon Park (Hermet)
 
@@ -704,6 +712,19 @@
 2012-11-30  ChunEon Park (Hermet)
 
         * emit the signals for content_set/unset text_set/unset one time!
+
+2012-12-04  Cedric Bail
+
+	* Fix uninitialized data path in elm_flip.
+	* Fix uninitialized data path in elm_gesture_layer.
+
+2012-12-06  Cedric Bail
+
+	* Fix possible segv in elm_quicklaunch infrastructure.
+
+2012-12-10  Cedric Bail
+
+	* Make sure private data is not NULL in elm_interface_scrollable.
 
 2012-12-12  ChunEon Park (Hermet)
 
@@ -729,6 +750,14 @@
 
 	* Let image update right now if the image preloading is disabled.
 
+2012-12-21  Stefan Schmidt
+
+	* Fix small memory leak in elm_map error path.
+
+2012-12-29  Mike Blumenkrantz
+
+        * Tooltips now correctly set NETWM tooltip window type
+
 2013-01-13  Daniel Juyung Seo (SeoZ)
 
         * Added "highlighted" and "unhighlighted" signals to list, genlist, and gengrid.
@@ -740,3 +769,45 @@
 2013-01-26  ChanWook Jung (jchanwook@gmail.com)
 
         * Expand elm_transit tween_mode and add twee_mode_factor_set(),get() APIs
+
+2013-01-29  ChunEon Park (Hermet)
+
+        * Fix a elm_transit crash issue when user delete all target objects in the effect end callback.
+
+2013-01-29  Jaehwan Kim
+
+        * Fix the scroll position is calculated by the size of pan object, not the size of scroller.
+
+2013-02-05  ChunEon Park (Hermet)
+
+        * Index supports "language,changed" smart callback.
+
+2013-03-04  WooHyun Jung
+
+        * Focus highlight should not be showed on (0, 0).
+
+2013-03-04  Junki Cho
+
+        * Improved gengrid item append performance.
+
+2013-03-05 Jiyoun Park
+
+        * Fix elm_conform didn't set size hint when keypad on.
+
+2013-03-05  Jaehwan Kim
+
+        * Add edje_object_message_signal_process before edje_object_size_min_restricted_calc.
+        If the min size is changed by edje signal in edc, the the function should be called before the calculation.
+
+2013-03-05 Jiyoun Park
+
+        * Fix elm_conform didn't change indicator mode when create.
+
+2013-03-06  ChunEon Park (Hermet)
+
+        * Add elm_object_item_signal_callback_add(), elm_object_item_signal_callback_del().
+
+2013-03-07  Jaehwan Kim
+
+        * Add the config ELM_THUMBSCROLL_HOLD_THRESHOLD.
+        This is the number of pixels the range which can be scrolled, while the scroller is holed.

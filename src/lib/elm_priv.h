@@ -159,6 +159,7 @@ struct _Elm_Config
    unsigned char vsync;
    unsigned char thumbscroll_enable;
    int           thumbscroll_threshold;
+   int           thumbscroll_hold_threshold;
    double        thumbscroll_momentum_threshold;
    double        thumbscroll_friction;
    double        thumbscroll_bounce_friction;
@@ -291,7 +292,7 @@ Eina_Bool            _elm_theme_object_set(Evas_Object *parent,
 Eina_Bool            _elm_theme_object_icon_set(Evas_Object *o,
                                                 const char *group,
                                                 const char *style);
-Eina_Bool            _elm_theme_set(Elm_Theme *th,
+Eina_Bool             _elm_theme_set(Elm_Theme *th,
                                     Evas_Object *o,
                                     const char *clas,
                                     const char *group,

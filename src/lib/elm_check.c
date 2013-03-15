@@ -2,6 +2,8 @@
 #include "elm_priv.h"
 #include "elm_widget_check.h"
 
+#define _TIZEN_
+
 EAPI const char ELM_CHECK_SMART_NAME[] = "elm_check";
 
 static const Elm_Layout_Part_Alias_Description _content_aliases[] =
@@ -259,6 +261,28 @@ _on_check_toggle(void *data,
    _activate(data);
 }
 
+#ifdef _TIZEN_
+static void _check_drag_start(void *data,
+                              Evas_Object *o __UNUSED__,
+                              const char *emission __UNUSED__,
+                              const char *source __UNUSED__)
+{
+   Evas_Object *obj = data;
+
+   elm_widget_scroll_freeze_push(obj);
+}
+
+static void _check_drag_stop(void *data,
+                             Evas_Object *o __UNUSED__,
+                             const char *emission __UNUSED__,
+                             const char *source __UNUSED__)
+{
+   Evas_Object *obj = data;
+
+   elm_widget_scroll_freeze_pop(obj);
+}
+#endif
+
 static void
 _elm_check_smart_add(Evas_Object *obj)
 {
@@ -276,6 +300,15 @@ _elm_check_smart_add(Evas_Object *obj)
      (ELM_WIDGET_DATA(priv)->resize_obj, "elm,action,check,toggle", "",
      _on_check_toggle, obj);
 
+   #ifdef _TIZEN_
+   edje_object_signal_callback_add
+     (ELM_WIDGET_DATA(priv)->resize_obj, "elm,action,check,drag,start", "",
+     _check_drag_start, obj);
+   edje_object_signal_callback_add
+     (ELM_WIDGET_DATA(priv)->resize_obj, "elm,action,check,drag,stop", "",
+     _check_drag_stop, obj);
+   #endif
+
    _elm_access_object_register(obj, ELM_WIDGET_DATA(priv)->resize_obj);
    _elm_access_text_set
      (_elm_access_object_get(obj), ELM_ACCESS_TYPE, E_("Check"));
@@ -290,10 +323,26 @@ _elm_check_smart_add(Evas_Object *obj)
    elm_layout_sizing_eval(obj);
 }
 
+#ifdef _TIZEN_
+static void
+_elm_check_smart_del(Evas_Object *obj)
+{
+
+   if (0 != elm_widget_scroll_freeze_get(obj))
+     elm_widget_scroll_freeze_pop(obj);
+
+   ELM_WIDGET_CLASS(_elm_check_parent_sc)->base.del(obj);
+}
+#endif
+
 static void
 _elm_check_smart_set_user(Elm_Check_Smart_Class *sc)
 {
    ELM_WIDGET_CLASS(sc)->base.add = _elm_check_smart_add;
+
+   #ifdef _TIZEN_
+   ELM_WIDGET_CLASS(sc)->base.del = _elm_check_smart_del;
+   #endif
 
    ELM_WIDGET_CLASS(sc)->theme = _elm_check_smart_theme;
    ELM_WIDGET_CLASS(sc)->event = _elm_check_smart_event;
@@ -397,3 +446,5 @@ elm_check_state_pointer_set(Evas_Object *obj,
    else
      sd->statep = NULL;
 }
+
+#undef _TIZEN_

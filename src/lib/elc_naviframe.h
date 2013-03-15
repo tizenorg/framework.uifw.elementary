@@ -25,7 +25,7 @@
  * This widget inherits from the @ref Layout one, so that all the
  * functions acting on it also work for naviframe objects.
  *
- * Becase this widget is a layout, one places content on those areas
+ * Because this widget is a layout, one places content on those areas
  * by using elm_layout_content_set() on the right swallow part names
  * expected for each, which are:
  * @li @c "default" - The main content of the current page
@@ -50,7 +50,7 @@
  * - @c "basic"   - views are switched sliding horizontally, one after
  *                  the other
  * - @c "overlap" - like the previous one, but the previous view stays
- *                  at its place and is ovelapped by the new
+ *                  at its place and is overlapped by the new
  *
  *
  * This widget emits the following signals, besides the ones sent from
@@ -72,6 +72,18 @@
  * widget's target layout, when accessed directly. Items lying below
  * the top one can be interacted with this way.
  */
+
+/**
+ * @typedef Elm_Naviframe_Item_Pop_Cb
+ *
+ * Pop callback called when @c it is going to be popped. @c data is user
+ * specific data.
+ *
+ * @see elm_naviframe_item_pop_cb_set()
+ *
+ * @since 1.8
+ */
+typedef void (*Elm_Naviframe_Item_Pop_Cb)(void *data, Elm_Object_Item *it);
 
 /**
  * @addtogroup Naviframe
@@ -195,6 +207,7 @@ EAPI Elm_Object_Item *elm_naviframe_item_insert_after(Evas_Object *obj, Elm_Obje
  * stack will become visible.
  *
  * @see also elm_naviframe_content_preserve_on_pop_get()
+ * @see also elm_naviframe_item_pop_cb_set()
  *
  * @ingroup Naviframe
  */
@@ -320,6 +333,22 @@ EAPI void             elm_naviframe_item_title_visible_set(Elm_Object_Item *it, 
  * @ingroup Naviframe
  */
 EAPI Eina_Bool        elm_naviframe_item_title_visible_get(const Elm_Object_Item *it);
+
+/**
+ * @brief Set a function to be called when @c it of the naviframe is going to be
+ * popped.
+ *
+ * @param it The item to set the callback on
+ * @param func the callback function.
+ *
+ * @warning Don't set "clicked" callback to the prev button additionally if the
+ * function does a exact same logic with this @c func. When hardware back key is
+ * pressed then both callbacks will be called.
+ *
+ * @since 1.8
+ * @ingroup Naviframe
+ */
+EAPI void             elm_naviframe_item_pop_cb_set(Elm_Object_Item *it, Elm_Naviframe_Item_Pop_Cb func, void *data);
 
 /**
  * @brief Set creating prev button automatically or not

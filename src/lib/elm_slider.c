@@ -49,6 +49,9 @@ _val_fetch(Evas_Object *obj)
 {
    Eina_Bool rtl;
    double posx = 0.0, posy = 0.0, pos = 0.0, val;
+   char text[1024] = {0,};
+   Eina_Strbuf *buf = NULL;
+   char *str = NULL;
 
    ELM_SLIDER_DATA_GET(obj, sd);
 
@@ -70,6 +73,32 @@ _val_fetch(Evas_Object *obj)
         evas_object_smart_callback_call(obj, SIG_CHANGED, NULL);
         if (sd->delay) ecore_timer_del(sd->delay);
         sd->delay = ecore_timer_add(0.2, _delay_change, obj);
+
+        if (_elm_config->access_mode != ELM_ACCESS_MODE_OFF)
+          {
+             buf = eina_strbuf_new();
+             if (sd->indicator_format_func)
+               {
+                  str = sd->indicator_format_func(sd->val);
+                  eina_strbuf_append(buf, str);
+                  if (sd->indicator_format_free) sd->indicator_format_free(str);
+                  eina_strbuf_append(buf, E_(" of "));
+                  str = sd->indicator_format_func(sd->val_max);
+                  eina_strbuf_append(buf, str);
+                  if (sd->indicator_format_free) sd->indicator_format_free(str);
+               }
+             else if (sd->indicator)
+               {
+                  snprintf(text, sizeof(text), sd->indicator, sd->val);
+                  eina_strbuf_append(buf, text);
+                  eina_strbuf_append(buf, E_(" of "));
+                  snprintf(text, sizeof(text), sd->indicator, sd->val_max);
+                  eina_strbuf_append(buf, text);
+               }
+
+             _elm_access_say(eina_strbuf_string_get(buf));
+             eina_strbuf_free(buf);
+          }
      }
 }
 

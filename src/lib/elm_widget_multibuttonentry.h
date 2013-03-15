@@ -141,7 +141,7 @@ typedef struct _Elm_Multibuttonentry_Smart_Data
    Evas_Object                        *entry;
    Evas_Object                        *label;
    Evas_Object                        *guide;
-   Evas_Object                        *number;
+   Evas_Object                        *end;
 
    Evas_Coord                          boxh;
    Evas_Coord                          boxw;
@@ -154,6 +154,9 @@ typedef struct _Elm_Multibuttonentry_Smart_Data
    Eina_Bool                           editable : 1;
    Eina_Bool                           expanded : 1;
    Eina_Bool                           expanded_state : 1;
+   Eina_Bool                           long_pressed : 1;
+
+   Ecore_Timer                         *longpress_timer;
 } Elm_Multibuttonentry_Smart_Data;
 
 /**

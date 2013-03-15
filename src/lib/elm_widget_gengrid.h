@@ -5,6 +5,8 @@
 #include "elm_interface_scrollable.h"
 #include "elm_widget_layout.h"
 
+#define GENGRID_FX_SUPPORT 1
+
 /**
  * @addtogroup Widget
  * @{
@@ -176,6 +178,14 @@ struct _Elm_Gengrid_Smart_Data
    long                                  items_lost;
    double                                align_x, align_y;
 
+#if GENGRID_FX_SUPPORT
+   Evas_Object                          *alpha_bg;
+   Eina_List                            *fx_items;
+   Eina_List                            *capture_before_items, *capture_after_items;
+   Eina_List                            *pending_del_items, *pending_unrealized_items;
+   Elm_Gen_Item                         *realized_top_item;
+#endif
+
    Eina_Bool                             reorder_item_changed : 1;
    Eina_Bool                             move_effect_enabled : 1;
 
@@ -210,6 +220,15 @@ struct _Elm_Gengrid_Smart_Data
                                                      * selection */
    Eina_Bool                             show_region : 1;
    Eina_Bool                             bring_in : 1;
+
+#if GENGRID_FX_SUPPORT
+   Eina_Bool                             fx_mode : 1;
+   Eina_Bool                             fx_first_captured : 1;
+   Eina_Bool                             fx_playing : 1;
+   Eina_Bool                             rendered : 1;
+   Eina_Bool                             fx_items_deleted : 1;
+   Eina_Bool                             gengrid_clearing : 1;
+#endif
 };
 
 struct Elm_Gen_Item_Type
@@ -222,7 +241,12 @@ struct Elm_Gen_Item_Type
    Evas_Coord              gx, gy, ox, oy, tx, ty, rx, ry;
    unsigned int            moving_effect_start_time;
    int                     prev_group;
-
+#if GENGRID_FX_SUPPORT
+   Evas_Coord              scrl_x, scrl_y, w, h;
+   Elm_Gen_FX_Item         *fi;
+   int                     num;
+   Eina_Bool               has_proxy_it : 1;
+#endif
    Eina_Bool               group_realized : 1;
    Eina_Bool               moving : 1;
 };

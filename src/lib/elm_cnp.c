@@ -162,7 +162,7 @@ static Eina_Bool      _x11_text_converter           (char *target, void *data, i
 static Eina_Bool      _x11_general_converter        (char *target, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype, int *typesize);
 static Eina_Bool      _x11_image_converter          (char *target, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype, int *typesize);
 static Eina_Bool      _x11_vcard_send               (char *target, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype, int *typesize);
-static Eina_Bool      _x11_is_uri_type_data         (X11_Cnp_Selection *sel __UNUSED__, Ecore_X_Event_Selection_Notify *notify);
+//TIZEN ONLY : static Eina_Bool      _x11_is_uri_type_data         (X11_Cnp_Selection *sel __UNUSED__, Ecore_X_Event_Selection_Notify *notify);
 static int            _x11_response_handler_targets (X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *);
 static int            _x11_notify_handler_targets   (X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *notify);
 static int            _x11_notify_handler_text      (X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *notify);

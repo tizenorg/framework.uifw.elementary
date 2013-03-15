@@ -493,7 +493,7 @@ _elm_datetime_smart_theme(Evas_Object *obj)
              elm_layout_signal_emit(obj, buf, "elm");
 
              snprintf
-               (buf, sizeof(buf), EDC_PART_SEPARATOR_STR, field->location);
+               (buf, sizeof(buf), EDC_PART_SEPARATOR_STR, (field->location + 1));
              elm_layout_text_set(obj, buf, field->separator);
 
              dt_mod->field_value_display(sd->mod_data, field->item_obj);

@@ -1365,7 +1365,10 @@ _overlay_default_show(Overlay_Default *ovl)
    if (!strcmp(ovl->wsd->engine->name, INTERNAL_ENGINE_NAME))
      _obj_place(disp, x - (w / 2), y - (h / 2), w, h);
    else
-     _obj_place(disp, ovl->x - (w / 2), ovl->y - (h / 2), w, h);
+     {
+        evas_object_geometry_get(ovl->wsd->layout, &x, &y, NULL, NULL);
+        _obj_place(disp, (x + ovl->x) - (w / 2), (y + ovl->y) - (h / 2), w, h);
+     }
 }
 
 static void
@@ -2744,18 +2747,18 @@ _kml_parse(Elm_Map_Route *r)
         sz = ftell(f);
         if (sz > 0)
           {
-             char *buf;
-
-             fseek(f, 0, SEEK_SET);
-             buf = malloc(sz);
+             char *buf = malloc(sz + 1);
              if (buf)
                {
+                  memset(buf, 0, sz + 1);
+                  rewind(f);
                   if (fread(buf, 1, sz, f))
                     {
                        eina_simple_xml_parse
                          (buf, sz, EINA_TRUE, _xml_route_dump_cb, &dump);
                     }
-                  free(buf);
+                  else
+                    free(buf);
                }
           }
         fclose(f);
@@ -2835,12 +2838,11 @@ _name_parse(Elm_Map_Name *n)
         sz = ftell(f);
         if (sz > 0)
           {
-             char *buf;
-
-             fseek(f, 0, SEEK_SET);
-             buf = malloc(sz);
+             char *buf = malloc(sz + 1);
              if (buf)
                {
+                  memset(buf, 0, sz + 1);
+                  rewind(f);
                   if (fread(buf, 1, sz, f))
                     {
                        eina_simple_xml_parse
@@ -2877,12 +2879,11 @@ _name_list_parse(Elm_Map_Name_List *nl)
         sz = ftell(f);
         if (sz > 0)
           {
-             char *buf;
-
-             fseek(f, 0, SEEK_SET);
-             buf = malloc(sz);
+             char *buf = malloc(sz + 1);
              if (buf)
                {
+                  memset(buf, 0, sz + 1);
+                  rewind(f);
                   if (fread(buf, 1, sz, f))
                     {
                        eina_simple_xml_parse
@@ -3213,7 +3214,6 @@ _pinch_rotate_end_cb(void *data,
    return EVAS_EVENT_FLAG_NONE;
 }
 
-
 static Evas_Event_Flags
 _pinch_momentum_start_cb(void *data,
                          void *ei)
@@ -3230,6 +3230,13 @@ _pinch_momentum_start_cb(void *data,
         sd->pinch_pan.y = mi->y1;
         _overlay_place(sd);
      }
+   // FIXME: Because n line move has some bouncing bug,
+   // perpect is calculated here
+   if (sd->pinch_pan.perspect >= 90)
+     sd->pinch_pan.perspect = 90;
+   else if (sd->pinch_pan.perspect <= 0)
+     sd->pinch_pan.perspect = 0;
+   sd->pinch_pan.perspect_y = mi->y1;
 
    return EVAS_EVENT_FLAG_NONE;
 }
@@ -3251,6 +3258,10 @@ _pinch_momentum_move_cb(void *data,
         sd->pinch_pan.y = mi->y2;
         _overlay_place(sd);
      }
+   // FIXME: Because n line move has some bouncing bug,
+   // perpect is calculated here
+   sd->pinch_pan.perspect += (mi->y2 - sd->pinch_pan.perspect_y);
+   sd->pinch_pan.perspect_y = mi->y2;
 
    return EVAS_EVENT_FLAG_NONE;
 }
@@ -3276,6 +3287,43 @@ _pinch_momentum_end_cb(void *data,
    return EVAS_EVENT_FLAG_NONE;
 }
 
+static Evas_Event_Flags
+_pinch_n_lines_move_cb(void *data,
+                       void *ei)
+{
+   Elm_Map_Smart_Data *sd = data;
+   EINA_SAFETY_ON_NULL_RETURN_VAL(sd, EVAS_EVENT_FLAG_NONE);
+   Elm_Gesture_Line_Info *li = ei;
+
+   if (strcmp(sd->engine->name, INTERNAL_ENGINE_NAME) &&
+       (li->momentum.n == 2) &&
+       (((170 <= li->angle) && (li->angle <=190)) ||
+        (350 <= li->angle) || (li->angle <=10)))
+     {
+        sd->engine->perpective(ELM_WIDGET_DATA(sd)->obj, sd->pinch_pan.perspect, 0);
+     }
+
+   return EVAS_EVENT_FLAG_NONE;
+}
+
+static Evas_Event_Flags
+_pinch_n_lines_end_cb(void *data,
+                      void *ei)
+{
+   Elm_Map_Smart_Data *sd = data;
+   EINA_SAFETY_ON_NULL_RETURN_VAL(sd, EVAS_EVENT_FLAG_NONE);
+   Elm_Gesture_Line_Info *li = ei;
+
+   if (strcmp(sd->engine->name, INTERNAL_ENGINE_NAME) &&
+       (li->momentum.n == 2) &&
+       (((170 <= li->angle) && (li->angle <=190)) ||
+        (350 <= li->angle) || (li->angle <=10)))
+     {
+        sd->engine->perpective(ELM_WIDGET_DATA(sd)->obj, sd->pinch_pan.perspect, 0);
+     }
+
+   return EVAS_EVENT_FLAG_NONE;
+}
 static void
 _elm_map_pan_smart_pos_set(Evas_Object *obj,
                            Evas_Coord x,
@@ -3466,8 +3514,8 @@ _map_pan_del(Evas_Object *obj)
 
    if (sd->scr_timer)
      {
-        sd->scr_timer = NULL;
         ecore_timer_del(sd->scr_timer);
+        sd->scr_timer = NULL;
      }
    if (sd->zoom_animator)
      {
@@ -3974,7 +4022,7 @@ _elm_map_smart_event(Evas_Object *obj,
    else return EINA_FALSE;
 
    ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-   sd->s_iface->content_pos_set(obj, x, y);
+   sd->s_iface->content_pos_set(obj, x, y, EINA_TRUE);
 
    return EINA_TRUE;
 }
@@ -4404,6 +4452,12 @@ _elm_map_smart_add(Evas_Object *obj)
    elm_gesture_layer_cb_set
      (priv->g_layer, ELM_GESTURE_MOMENTUM, ELM_GESTURE_STATE_END,
      _pinch_momentum_end_cb, priv);
+   elm_gesture_layer_cb_set
+     (priv->g_layer, ELM_GESTURE_N_LINES, ELM_GESTURE_STATE_MOVE,
+     _pinch_n_lines_move_cb, priv);
+   elm_gesture_layer_cb_set
+     (priv->g_layer, ELM_GESTURE_N_LINES, ELM_GESTURE_STATE_END,
+     _pinch_n_lines_end_cb, priv);
 
    priv->mode = ELM_MAP_ZOOM_MODE_MANUAL;
    priv->zoom_min = priv->engine->zoom_min;

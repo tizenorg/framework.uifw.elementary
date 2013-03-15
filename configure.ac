@@ -754,6 +754,14 @@ extern char **environ;
   AC_DEFINE(HAVE_ENVIRON, 1, [extern environ exists])
 ])
 
+AC_TRY_LINK([
+#include <stdlib.h>
+], [
+clearenv();
+], [
+  AC_DEFINE(HAVE_CLEARENV, 1, [extern environ exists])
+])
+
 AC_OUTPUT([
 Makefile
 elementary.spec

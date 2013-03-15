@@ -5,17 +5,22 @@
 
 EAPI const char ELM_INDEX_SMART_NAME[] = "elm_index";
 
+#define INDEX_DELAY_CHANGE_TIME 0.2
+
 static const char SIG_CHANGED[] = "changed";
 static const char SIG_DELAY_CHANGED[] = "delay,changed";
 static const char SIG_SELECTED[] = "selected";
 static const char SIG_LEVEL_UP[] = "level,up";
 static const char SIG_LEVEL_DOWN[] = "level,down";
+static const char SIG_LANG_CHANGED[] = "language,changed";
+
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CHANGED, ""},
    {SIG_DELAY_CHANGED, ""},
    {SIG_SELECTED, ""},
    {SIG_LEVEL_UP, ""},
    {SIG_LEVEL_DOWN, ""},
+   {SIG_LANG_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -23,17 +28,25 @@ EVAS_SMART_SUBCLASS_NEW
   (ELM_INDEX_SMART_NAME, _elm_index, Elm_Index_Smart_Class,
   Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks);
 
+static Eina_Bool
+_elm_index_smart_translate(Evas_Object *obj)
+{
+   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+   return EINA_TRUE;
+}
+
 static void
 _item_free(Elm_Index_Item *it)
 {
    ELM_INDEX_DATA_GET(WIDGET(it), sd);
 
    sd->items = eina_list_remove(sd->items, it);
-   if (it->letter) 
-     {
-        eina_stringshare_del(it->letter);
-        it->letter = NULL;
-     }
+
+   if (it->omitted)
+     it->omitted = eina_list_free(it->omitted);
+
+   if (it->letter)
+     eina_stringshare_del(it->letter);
 }
 
 static void
@@ -86,6 +99,14 @@ _access_info_cb(void *data, Evas_Object *obj __UNUSED__)
 }
 
 static void
+_access_widget_item_activate_cb(void *data __UNUSED__,
+                                Evas_Object *part_obj __UNUSED__,
+                                Elm_Object_Item *it)
+{
+   evas_object_smart_callback_call(WIDGET(it), SIG_SELECTED, it);
+}
+
+static void
 _access_widget_item_register(Elm_Index_Item *it)
 {
    Elm_Access_Info *ai;
@@ -96,19 +117,21 @@ _access_widget_item_register(Elm_Index_Item *it)
 
    _elm_access_text_set(ai, ELM_ACCESS_TYPE, E_("Index Item"));
    _elm_access_callback_set(ai, ELM_ACCESS_INFO, _access_info_cb, it);
+   _elm_access_activate_callback_set
+     (ai, _access_widget_item_activate_cb, NULL);
 }
 
 static void
 _omit_calc(void *data, int num_of_items, int max_num_of_items)
 {
    Elm_Index_Smart_Data *sd = data;
-   int max_group_num, num_of_extra_items, i, g, size, sum;
+   int max_group_num, num_of_extra_items, i, g, size, sum, *group_pos, *omit_info;
    Elm_Index_Omit *o;
-   Elm_Index_Item *it, *it2;
+   Elm_Index_Item *it;
    Eina_List *l;
 
    EINA_LIST_FREE(sd->omit, o)
-      free(o);
+     free(o);
 
    EINA_LIST_FOREACH(sd->items, l, it)
      {
@@ -117,13 +140,13 @@ _omit_calc(void *data, int num_of_items, int max_num_of_items)
         if (it->head) it->head = NULL;
      }
 
-   if (max_num_of_items < 3 || num_of_items <= max_num_of_items) return;
+   if ((max_num_of_items < 3) || (num_of_items <= max_num_of_items)) return;
 
    max_group_num = (max_num_of_items - 1) / 2;
    num_of_extra_items = num_of_items - max_num_of_items;
 
-   int group_pos[max_group_num];
-   int omit_info[max_num_of_items];
+   group_pos = (int *)malloc(sizeof(int) * max_group_num);
+   omit_info = (int *)malloc(sizeof(int) * max_num_of_items);
 
    if (num_of_extra_items >= max_group_num)
      {
@@ -149,7 +172,6 @@ _omit_calc(void *data, int num_of_items, int max_num_of_items)
    for (i = 0; i < num_of_extra_items; i++)
      omit_info[group_pos[i % max_group_num]]++;
 
-   g = 0;
    sum = 0;
    for (i = 0; i < max_num_of_items; i++)
      {
@@ -159,10 +181,12 @@ _omit_calc(void *data, int num_of_items, int max_num_of_items)
              o->offset = sum;
              o->count = omit_info[i];
              sd->omit = eina_list_append(sd->omit, o);
-             g++;
           }
         sum += omit_info[i];
      }
+
+   free(group_pos);
+   free(omit_info);
 }
 
 // FIXME: always have index filled
@@ -174,10 +198,10 @@ _index_box_auto_fill(Evas_Object *obj,
    int i = 0, max_num_of_items = 0, num_of_items = 0, g = 0, skip = 0;
    Eina_List *l;
    Eina_Bool rtl;
-   Elm_Index_Item *it, *head;
-   Evas_Coord mw, mh, ih, vh;
+   Elm_Index_Item *it, *head = NULL;
+   Evas_Coord mw, mh, ih;
+   Evas_Object *o;
    Elm_Index_Omit *om;
-   Evas_Object *o_odd, *o_even;
 
    ELM_INDEX_DATA_GET(obj, sd);
 
@@ -187,26 +211,17 @@ _index_box_auto_fill(Evas_Object *obj,
 
    rtl = elm_widget_mirrored_get(obj);
 
-   o_odd = edje_object_add(evas_object_evas_get(obj));
-   o_even = edje_object_add(evas_object_evas_get(obj));
-
-   if (!sd->horizontal)
+   if (sd->omit_enabled)
      {
+        o = edje_object_add(evas_object_evas_get(obj));
         elm_widget_theme_object_set
-           (obj, o_odd, "index", "item_odd/vertical",
-            elm_widget_style_get(obj));
-        elm_widget_theme_object_set
-           (obj, o_even, "index", "item/vertical",
+           (obj, o, "index", "item/vertical",
             elm_widget_style_get(obj));
 
-        edje_object_size_min_restricted_calc(o_odd, NULL, &mh, 0, 0);
-        edje_object_size_min_restricted_calc(o_even, NULL, &vh, 0, 0);
-        if (vh > mh) mh = vh;
+        edje_object_size_min_restricted_calc(o, NULL, &mh, 0, 0);
 
         EINA_LIST_FOREACH(sd->items, l, it)
-          {
-             if (it->level == level) num_of_items++;
-          }
+           if (it->level == level) num_of_items++;
 
         if (mh != 0)
           max_num_of_items = ih / mh;
@@ -217,12 +232,11 @@ _index_box_auto_fill(Evas_Object *obj,
    om = eina_list_nth(sd->omit, g);
    EINA_LIST_FOREACH(sd->items, l, it)
      {
-        Evas_Object *o;
         const char *stacking;
 
         if (it->level != level) continue;
 
-        if (om && i == om->offset)
+        if ((om) && (i == om->offset))
           {
              skip = om->count;
              skip--;
@@ -294,10 +308,14 @@ _index_box_auto_fill(Evas_Object *obj,
         i++;
 
         // ACCESS
-        if ((it->level == 0) &&
-            (_elm_config->access_mode == ELM_ACCESS_MODE_ON))
+        if ((it->level == 0) && (_elm_config->access_mode))
           _access_widget_item_register(it);
      }
+
+   // TIZEN ONLY adjust the last item's theme according to winset gui
+   it = eina_list_nth(sd->items, i - 1);
+   edje_object_signal_emit(VIEW(it), "elm,last,item", "elm");
+   // TIZEN ONLY
 
    evas_object_smart_calculate(box);
    sd->level_active[level] = 1;
@@ -316,7 +334,6 @@ static Eina_Bool
 _elm_index_smart_theme(Evas_Object *obj)
 {
    Evas_Coord minw = 0, minh = 0;
-   Eina_List *l;
    Elm_Index_Item *it;
 
    ELM_INDEX_DATA_GET(obj, sd);
@@ -384,10 +401,13 @@ _elm_index_smart_theme(Evas_Object *obj)
      }
    else elm_layout_signal_emit(obj, "elm,state,inactive", "elm");
 
-   EINA_LIST_FOREACH(sd->items, l, it)
+   it = (Elm_Index_Item *)elm_index_selected_item_get(obj, sd->level);
+   if (it)
      {
-        if (it->selected)
-         edje_object_signal_emit(VIEW(it), "elm,state,active", "elm");
+        if (it->head)
+          edje_object_signal_emit(VIEW(it->head), "elm,state,active", "elm");
+        else
+          edje_object_signal_emit(VIEW(it), "elm,state,active", "elm");
      }
 
    return EINA_TRUE;
@@ -454,7 +474,7 @@ _item_find(Evas_Object *obj,
 }
 
 static Eina_Bool
-_delay_change(void *data)
+_delay_change_cb(void *data)
 {
    Elm_Object_Item *item;
 
@@ -538,7 +558,7 @@ _sel_eval(Evas_Object *obj,
              dist = 0x7fffffff;
              dh = h / size;
              if (dh == 0)
-               printf("too many index items to omit\n"); // omit mode not possible
+               printf("too many index items to omit\n"); //FIXME
              else
                {
                   for (j = 0; j < size; j++)
@@ -591,39 +611,23 @@ _sel_eval(Evas_Object *obj,
 
                   it = it_closest;
 
-                  if (!(it_last && it_last->head && it_last->head == it_closest))
+                  if (!((it_last) && (it_last->head) && (it_last->head == it_closest)))
                     {
                        edje_object_signal_emit(VIEW(it), "elm,state,active", "elm");
                        selectraise = edje_object_data_get(VIEW(it), "selectraise");
                        if ((selectraise) && (!strcmp(selectraise, "on")))
                          evas_object_raise(VIEW(it));
                     }
-                  // ACCESS
-                  if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
-                    {
-                       char *ret;
-                       Eina_Strbuf *buf;
-                       buf = eina_strbuf_new();
-
-                       if (om_closest)
-                         eina_strbuf_append_printf(buf, "index item %s clicked", om_closest->letter);
-                       else
-                         eina_strbuf_append_printf(buf, "index item %s clicked", it->letter);
-                       ret = eina_strbuf_string_steal(buf);
-                       eina_strbuf_free(buf);
-
-                       _elm_access_highlight_set(it->base.access_obj);
-                       _elm_access_say(ret);
-                    }
 
                   if (om_closest)
                     evas_object_smart_callback_call
-                       (obj, SIG_CHANGED, (void *)om_closest);
+                       (obj, SIG_CHANGED, om_closest);
                   else
                     evas_object_smart_callback_call
-                       (obj, SIG_CHANGED, (void *)it);
+                       (obj, SIG_CHANGED, it);
                   if (sd->delay) ecore_timer_del(sd->delay);
-                  sd->delay = ecore_timer_add(0.2, _delay_change, obj);
+                  sd->delay = ecore_timer_add(sd->delay_change_time,
+                                              _delay_change_cb, obj);
                }
           }
         if (it_closest)
@@ -686,7 +690,6 @@ _on_mouse_down(void *data,
    if (!sd->autohide_disabled)
      {
         _index_box_clear(data, sd->bx[1], 1);
-        _index_box_auto_fill(data, sd->bx[0], 0);
         elm_layout_signal_emit(data, "elm,state,active", "elm");
      }
    _sel_eval(data, ev->canvas.x, ev->canvas.y);
@@ -778,102 +781,56 @@ _on_mouse_move(void *data,
 }
 
 static void
-_on_mouse_in_access(void *data,
-                    Evas *e __UNUSED__,
-                    Evas_Object *o __UNUSED__,
-                    void *event_info __UNUSED__)
+_access_activate_cb(void *data,
+                    Evas_Object *part_obj __UNUSED__,
+                    Elm_Object_Item *item __UNUSED__)
 {
+   Elm_Index_Item *it;
    ELM_INDEX_DATA_GET(data, sd);
 
-   if (sd->down) return;
-
-   if (!sd->autohide_disabled)
-     {
-        _index_box_clear(data, sd->bx[1], 1);
-        _index_box_auto_fill(data, sd->bx[0], 0);
-        elm_layout_signal_emit(data, "elm,state,active", "elm");
-     }
-}
-
-static void
-_on_mouse_move_access(void *data,
-                      Evas *e __UNUSED__,
-                      Evas_Object *o __UNUSED__,
-                      void *event_info)
-{
-
-   Evas_Event_Mouse_Down *ev = event_info;
-   Elm_Index_Item *it, *it_closest;
-   Eina_List *l;
-   Evas_Coord dist = 0;
-   Evas_Coord x, y, w, h, xx, yy;
-
-   ELM_INDEX_DATA_GET(data, sd);
-
-   it_closest = NULL;
-   dist = 0x7fffffff;
-
-   EINA_LIST_FOREACH(sd->items, l, it)
-     {
-        evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
-        xx = x + (w / 2);
-        yy = y + (h / 2);
-        x = ev->canvas.x - xx;
-        y = ev->canvas.y - yy;
-        x = (x * x) + (y * y);
-        if ((x < dist) || (!it_closest))
-          {
-             it_closest = it;
-             dist = x;
-          }
-     }
-
-   if (it_closest)
-     _elm_access_highlight_set(it_closest->base.access_obj);
-}
-
-static void
-_on_mouse_out_access(void *data,
-                      Evas *e __UNUSED__,
-                      Evas_Object *o __UNUSED__,
-                      void *event_info __UNUSED__)
-{
-   ELM_INDEX_DATA_GET(data, sd);
-
-   if (!sd->autohide_disabled)
-     elm_layout_signal_emit(data, "elm,state,inactive", "elm");
+   it = eina_list_nth(sd->items, 0);
+   _elm_access_highlight_set(it->base.access_obj);
+   sd->index_focus = EINA_TRUE;
 }
 
 static void
 _access_index_register(Evas_Object *obj)
 {
    Evas_Object *ao;
+   Elm_Access_Info *ai;
    elm_widget_can_focus_set(obj, EINA_TRUE);
+
    ao = _elm_access_edje_object_part_object_register
               (obj, elm_layout_edje_get(obj), "access");
+   ai = _elm_access_object_get(ao);
+
    _elm_access_text_set
-     (_elm_access_object_get(ao), ELM_ACCESS_TYPE, E_("Index"));
+     (ai, ELM_ACCESS_TYPE, E_("Index"));
+   _elm_access_activate_callback_set
+     (ai, _access_activate_cb, obj);
 }
 
 static void
-_index_resize_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_index_resize_cb(void *data,
+                 Evas *e __UNUSED__,
+                 Evas_Object *obj __UNUSED__,
+                 void *event_info __UNUSED__)
 {
    ELM_INDEX_DATA_GET_OR_RETURN(data, sd);
 
-   if (sd->horizontal) return;
+   if (!sd->omit_enabled) return;
 
-   Eina_List *l;
    Elm_Index_Item *it;
 
    _index_box_clear(data, sd->bx[0], 0);
    _index_box_auto_fill(data, sd->bx[0], 0);
 
-   if (sd->autohide_disabled)
-     elm_layout_signal_emit(data, "elm,state,active", "elm");
-
-   EINA_LIST_FOREACH(sd->items, l, it)
+   it = (Elm_Index_Item *)elm_index_selected_item_get(obj, sd->level);
+   if (it)
      {
-        if (it->selected)
+        if (it->head)
+          edje_object_signal_emit(VIEW(it->head), "elm,state,active", "elm");
+        else
           edje_object_signal_emit(VIEW(it), "elm,state,active", "elm");
      }
 }
@@ -887,10 +844,6 @@ _elm_index_smart_add(Evas_Object *obj)
    EVAS_SMART_DATA_ALLOC(obj, Elm_Index_Smart_Data);
 
    ELM_WIDGET_CLASS(_elm_index_parent_sc)->base.add(obj);
-
-   priv->indicator_disabled = EINA_FALSE;
-   priv->horizontal = EINA_FALSE;
-   priv->autohide_disabled = EINA_FALSE;
 
    elm_layout_theme_set
      (obj, "index", "base/vertical", elm_widget_style_get(obj));
@@ -915,18 +868,6 @@ _elm_index_smart_add(Evas_Object *obj)
    evas_object_event_callback_add
      (o, EVAS_CALLBACK_MOUSE_MOVE, _on_mouse_move, obj);
 
-
-   // ACCESS
-   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
-     {
-        evas_object_event_callback_add
-          (o, EVAS_CALLBACK_MOUSE_IN, _on_mouse_in_access, obj);
-        evas_object_event_callback_add
-          (o, EVAS_CALLBACK_MOUSE_MOVE, _on_mouse_move_access, obj);
-        evas_object_event_callback_add
-          (o, EVAS_CALLBACK_MOUSE_OUT, _on_mouse_out_access, obj);
-    }
-
    if (edje_object_part_exists
          (ELM_WIDGET_DATA(priv)->resize_obj, "elm.swallow.event.1"))
      {
@@ -944,6 +885,9 @@ _elm_index_smart_add(Evas_Object *obj)
    elm_layout_content_set(obj, "elm.swallow.index.0", priv->bx[0]);
    evas_object_show(priv->bx[0]);
 
+   priv->delay_change_time = INDEX_DELAY_CHANGE_TIME;
+   priv->omit_enabled = 1;
+
    if (edje_object_part_exists
          (ELM_WIDGET_DATA(priv)->resize_obj, "elm.swallow.index.1"))
      {
@@ -957,11 +901,15 @@ _elm_index_smart_add(Evas_Object *obj)
 
    _mirrored_set(obj, elm_widget_mirrored_get(obj));
    elm_layout_sizing_eval(obj);
-   elm_widget_can_focus_set(obj, EINA_FALSE);  // check!!
+   elm_widget_can_focus_set(obj, EINA_FALSE);
 
    // ACCESS
-   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
-     _access_index_register(obj);
+   if (_elm_config->access_mode)
+     {
+        elm_index_autohide_disabled_set(obj, EINA_TRUE);
+        elm_layout_signal_emit(obj, "elm,access,state,active", "elm");
+        _access_index_register(obj);
+     }
 }
 
 static void
@@ -980,7 +928,7 @@ _elm_index_smart_del(Evas_Object *obj)
      }
 
    EINA_LIST_FREE(sd->omit, o)
-      free(o);
+     free(o);
 
    if (sd->delay) ecore_timer_del(sd->delay);
 
@@ -997,6 +945,7 @@ _elm_index_smart_focus_next(const Evas_Object *obj,
    Elm_Index_Item *it;
    Evas_Object *ao;
    Evas_Object *po;
+   Eina_Bool ret;
 
    ELM_INDEX_CHECK(obj) EINA_FALSE;
    ELM_INDEX_DATA_GET(obj, sd);
@@ -1009,19 +958,34 @@ _elm_index_smart_focus_next(const Evas_Object *obj,
    ao = evas_object_data_get(po, "_part_access_obj");
    items = eina_list_append(items, ao);
 
-   EINA_LIST_FOREACH(sd->items, l, it)
+   if (sd->index_focus)
      {
-        if (it->level != 0) continue;
-        items = eina_list_append(items, it->base.access_obj);
+      EINA_LIST_FOREACH(sd->items, l, it)
+        {
+           if (it->level != 0) continue;
+           items = eina_list_append(items, it->base.access_obj);
+        }
      }
 
-   Eina_Bool ret;
    ret = elm_widget_focus_list_next_get
             (obj, items, eina_list_data_get, dir, next);
 
-   // to hide index item, if there is nothing to focus on autohide disalbe mode
-   if ((!sd->autohide_disabled) && (!ret))
-     elm_layout_signal_emit((Evas_Object *)obj, "elm,state,inactive", "elm");
+   if (!ret)
+     {
+        sd->index_focus = EINA_FALSE;
+
+        Evas_Object *it_access_obj = eina_list_nth(items, eina_list_count(items) - 1);
+
+        items = eina_list_free(items);
+        items = eina_list_append(items, it_access_obj);
+        items = eina_list_append(items, ao);
+
+        ret = elm_widget_focus_list_next_get(obj, items, eina_list_data_get, dir, next);
+
+        // to hide index item, if there is nothing to focus on autohide disalbe mode
+        if (!sd->autohide_disabled)
+          elm_layout_signal_emit((Evas_Object *)obj, "elm,state,inactive", "elm");
+     }
 
    return ret;
 }
@@ -1043,28 +1007,18 @@ _access_obj_process(Evas_Object *obj, Eina_Bool is_access)
 
    if (is_access)
      {
+        elm_index_autohide_disabled_set(obj, EINA_TRUE);
+        elm_layout_signal_emit(obj, "elm,access,state,active", "elm");
         _access_index_register(obj);
-
-        evas_object_event_callback_add
-          (sd->event[0], EVAS_CALLBACK_MOUSE_IN, _on_mouse_in_access, obj);
-        evas_object_event_callback_add
-          (sd->event[0], EVAS_CALLBACK_MOUSE_MOVE, _on_mouse_move_access, obj);
-        evas_object_event_callback_add
-          (sd->event[0], EVAS_CALLBACK_MOUSE_OUT, _on_mouse_out_access, obj);
      }
    else
      {
         // opposition of  _access_index_register();
+        elm_index_autohide_disabled_set(obj, EINA_FALSE);
+        elm_layout_signal_emit(obj, "elm,access,state,inactive", "elm");
         elm_widget_can_focus_set(obj, EINA_FALSE);
         _elm_access_edje_object_part_object_unregister
              (obj, elm_layout_edje_get(obj), "access");
-
-        evas_object_event_callback_del_full
-          (sd->event[0], EVAS_CALLBACK_MOUSE_IN, _on_mouse_in_access, obj);
-        evas_object_event_callback_del_full
-          (sd->event[0], EVAS_CALLBACK_MOUSE_MOVE, _on_mouse_move_access, obj);
-        evas_object_event_callback_del_full
-          (sd->event[0], EVAS_CALLBACK_MOUSE_OUT, _on_mouse_out_access, obj);
      }
 }
 
@@ -1089,6 +1043,7 @@ _elm_index_smart_set_user(Elm_Index_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->base.del = _elm_index_smart_del;
 
    ELM_WIDGET_CLASS(sc)->theme = _elm_index_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_index_smart_translate;
 
    /* not a 'focus chain manager' */
    ELM_WIDGET_CLASS(sc)->focus_next = NULL;
@@ -1096,7 +1051,7 @@ _elm_index_smart_set_user(Elm_Index_Smart_Class *sc)
 
    ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_index_smart_sizing_eval;
 
-   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
+   if (_elm_config->access_mode)
      ELM_WIDGET_CLASS(sc)->focus_next = _elm_index_smart_focus_next;
 
    ELM_WIDGET_CLASS(sc)->access = _access_hook;
@@ -1150,7 +1105,6 @@ elm_index_autohide_disabled_set(Evas_Object *obj,
    if (sd->autohide_disabled)
      {
         _index_box_clear(obj, sd->bx[1], 1);
-        _index_box_auto_fill(obj, sd->bx[0], 0);
         elm_layout_signal_emit(obj, "elm,state,active", "elm");
      }
    else
@@ -1188,24 +1142,55 @@ elm_index_item_level_get(const Evas_Object *obj)
    return sd->level;
 }
 
+//FIXME: Should update indicator based on the autohidden status & indicator visiblility
 EAPI void
 elm_index_item_selected_set(Elm_Object_Item *it,
                             Eina_Bool selected)
 {
-   Evas_Coord x, y, w, h;
+   Elm_Index_Item *it_sel, *it_last;
+   Evas_Object *obj = WIDGET(it);
 
    ELM_INDEX_ITEM_CHECK_OR_RETURN(it);
+   ELM_INDEX_DATA_GET(obj, sd);
 
-   //FIXME: Should be update indicator based on the autohidden status
-   //& indicator visiblility
+   selected = !!selected;
+   it_sel = (Elm_Index_Item *)it;
+   if (it_sel->selected == selected) return;
 
    if (selected)
      {
-        evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
-        _sel_eval(WIDGET(it), x + (w / 2), y + (h / 2));
-        edje_object_signal_emit(VIEW(it), "elm,state,active", "elm");
+        it_last = (Elm_Index_Item *)elm_index_selected_item_get(obj, sd->level);
+
+        if (it_last)
+          {
+             it_last->selected = 0;
+             if (it_last->head)
+               edje_object_signal_emit(VIEW(it_last->head), "elm,state,inactive", "elm");
+             else
+               edje_object_signal_emit(VIEW(it_last), "elm,state,inactive", "elm");
+          }
+        it_sel->selected = 1;
+        if (it_sel->head)
+          edje_object_signal_emit(VIEW(it_sel->head), "elm,state,active", "elm");
+        else
+          edje_object_signal_emit(VIEW(it_sel), "elm,state,active", "elm");
+
+        evas_object_smart_callback_call
+           (obj, SIG_CHANGED, it);
+        evas_object_smart_callback_call
+           (obj, SIG_SELECTED, it);
+        if (sd->delay) ecore_timer_del(sd->delay);
+        sd->delay = ecore_timer_add(sd->delay_change_time,
+                                    _delay_change_cb, obj);
      }
-   else _sel_eval(WIDGET(it), -99999, -9999);
+   else
+     {
+        it_sel->selected = 0;
+        if (it_sel->head)
+          edje_object_signal_emit(VIEW(it_sel->head), "elm,state,inactive", "elm");
+        else
+          edje_object_signal_emit(VIEW(it_sel), "elm,state,inactive", "elm");
+     }
 }
 
 EAPI Elm_Object_Item *
@@ -1407,8 +1392,13 @@ elm_index_level_go(Evas_Object *obj,
    ELM_INDEX_CHECK(obj);
    ELM_INDEX_DATA_GET(obj, sd);
 
+   _index_box_clear(obj, sd->bx[0], 0);
    _index_box_auto_fill(obj, sd->bx[0], 0);
-   if (sd->level == 1) _index_box_auto_fill(obj, sd->bx[1], 1);
+   if (sd->level == 1)
+     {
+        _index_box_clear(obj, sd->bx[1], 1);
+        _index_box_auto_fill(obj, sd->bx[1], 1);
+     }
 }
 
 EAPI void
@@ -1456,6 +1446,8 @@ elm_index_horizontal_set(Evas_Object *obj,
    if (horizontal == sd->horizontal) return;
 
    sd->horizontal = horizontal;
+   if (horizontal)
+     sd->omit_enabled = EINA_FALSE;
    _elm_index_smart_theme(obj);
 }
 
@@ -1466,4 +1458,53 @@ elm_index_horizontal_get(const Evas_Object *obj)
    ELM_INDEX_DATA_GET(obj, sd);
 
    return sd->horizontal;
+}
+
+EAPI void
+elm_index_delay_change_time_set(Evas_Object *obj, double delay_change_time)
+{
+   ELM_INDEX_CHECK(obj);
+   ELM_INDEX_DATA_GET(obj, sd);
+
+   sd->delay_change_time = delay_change_time;
+}
+
+EAPI double
+elm_index_delay_change_time_get(const Evas_Object *obj)
+{
+   ELM_INDEX_CHECK(obj) 0.0;
+   ELM_INDEX_DATA_GET(obj, sd);
+
+   return sd->delay_change_time;
+}
+
+EAPI void
+elm_index_omit_enabled_set(Evas_Object *obj,
+                           Eina_Bool enabled)
+{
+   ELM_INDEX_CHECK(obj);
+   ELM_INDEX_DATA_GET(obj, sd);
+
+   if (sd->horizontal) return;
+
+   enabled = !!enabled;
+   if (sd->omit_enabled == enabled) return;
+   sd->omit_enabled = enabled;
+
+   _index_box_clear(obj, sd->bx[0], 0);
+   _index_box_auto_fill(obj, sd->bx[0], 0);
+   if (sd->level == 1)
+     {
+        _index_box_clear(obj, sd->bx[1], 1);
+        _index_box_auto_fill(obj, sd->bx[1], 1);
+     }
+}
+
+EAPI Eina_Bool
+elm_index_omit_enabled_get(const Evas_Object *obj)
+{
+   ELM_INDEX_CHECK(obj) EINA_FALSE;
+   ELM_INDEX_DATA_GET(obj, sd);
+
+   return sd->omit_enabled;
 }
