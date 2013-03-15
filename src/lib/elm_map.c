@@ -5847,7 +5847,9 @@ elm_map_overlay_region_set(Elm_Map_Overlay *overlay,
      }
    else ERR("Not supported overlay type: %d", overlay->type);
 
-   evas_object_smart_changed(overlay->wsd->pan_obj);
+   if (!strcmp(overlay->wsd->engine->name, INTERNAL_ENGINE_NAME))
+     evas_object_smart_changed(overlay->wsd->pan_obj);
+   else _overlay_place(overlay->wsd);
 #else
    (void)overlay;
    (void)lon;
