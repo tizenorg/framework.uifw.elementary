@@ -1696,6 +1696,12 @@ _elm_list_smart_access(Evas_Object *obj, Eina_Bool is_access)
 
    ELM_LIST_DATA_GET(obj, sd);
 
+   if (is_access)
+     ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next =
+        _elm_list_smart_focus_next;
+   else
+     ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next = NULL;
+
    EINA_LIST_FOREACH(sd->items, elist, it)
      _access_widget_item_register(it, is_access);
 }
@@ -1711,7 +1717,7 @@ _elm_list_smart_set_user(Elm_List_Smart_Class *sc)
 
    ELM_WIDGET_CLASS(sc)->sub_object_del = _elm_list_smart_sub_object_del;
    ELM_WIDGET_CLASS(sc)->on_focus = _elm_list_smart_on_focus;
-   ELM_WIDGET_CLASS(sc)->focus_next = _elm_list_smart_focus_next;
+   ELM_WIDGET_CLASS(sc)->focus_next = NULL;
    ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
    ELM_WIDGET_CLASS(sc)->theme = _elm_list_smart_theme;
    ELM_WIDGET_CLASS(sc)->disable = _elm_list_smart_disable;
@@ -1720,6 +1726,9 @@ _elm_list_smart_set_user(Elm_List_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->access = _elm_list_smart_access;
 
    ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_list_smart_sizing_eval;
+
+   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
+     ELM_WIDGET_CLASS(sc)->focus_next = _elm_list_smart_focus_next;
 }
 
 EAPI const Elm_List_Smart_Class *
