@@ -4512,7 +4512,11 @@ _elm_map_smart_resize(Evas_Object *obj,
 
    if (!strcmp(sd->engine->name, INTERNAL_ENGINE_NAME))
       evas_object_resize(sd->hit_rect, w, h);
-   else sd->engine->resize(obj, w, h);
+   else
+     {
+        sd->engine->resize(obj, w, h);
+        _overlay_place(sd);
+     }
 }
 
 static void
