@@ -1819,6 +1819,7 @@ _elm_multibuttonentry_smart_add(Evas_Object *obj)
 
    priv->entry = elm_entry_add(obj);
    elm_entry_single_line_set(priv->entry, EINA_TRUE);
+   elm_entry_scrollable_set(priv->entry, EINA_TRUE);
    elm_entry_cnp_mode_set(priv->entry, ELM_CNP_MODE_PLAINTEXT);
    evas_object_size_hint_weight_set
       (priv->entry, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
