@@ -185,6 +185,10 @@ _item_cache_push(Elm_Gen_Item *it)
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
    Item_Cache *ic = NULL;
 
+#if GENLIST_FX_SUPPORT
+   if (sd->pending_del_items) return;
+#endif
+
    if (sd->item_cache_count >= sd->item_cache_max)
     {
         ic = EINA_INLIST_CONTAINER_GET(sd->item_cache->last, Item_Cache);
@@ -7255,7 +7259,8 @@ _elm_genlist_fx_item_prev_get(const Elm_Object_Item *item)
 {
    Elm_Gen_Item *it;
    it = (Elm_Gen_Item *)item;
-   if ((!it) || (IS_ROOT_PARENT_IT(it))) return NULL;
+   if (!it) return NULL;
+   if (GL_IT(it)->wsd->pinch_zoom_mode) return NULL;
 
    while (it)
      {
@@ -7352,7 +7357,7 @@ _elm_genlist_fx_items_make(Evas_Object *obj)
 
    EINA_LIST_FOREACH(sd->fx_items, l, fi)
      {
-        if (IS_ROOT_PARENT_IT(fi->it))
+        if ((GL_IT(fi->it)->items) && (GL_IT(fi->it)->expanded_depth == 0))
           {
 #if GENLIST_PINCH_ZOOM_SUPPORT
              if (sd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT)
@@ -7364,7 +7369,6 @@ _elm_genlist_fx_items_make(Evas_Object *obj)
                {
                   if (sd->realized_top_item)
                     {
-
                        if (fi->num <= sd->realized_top_item->item->num)
                          fi->to.y = oy - fi->from.h;
                        else

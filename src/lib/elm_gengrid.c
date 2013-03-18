@@ -113,6 +113,9 @@ _item_show_region(void *data)
    Evas_Coord vw = 0, vh = 0;
    Elm_Gen_Item *it;
 
+#if GENGRID_FX_SUPPORT
+   if (sd->fx_first_captured) return;
+#endif
    evas_object_geometry_get(sd->pan_obj, NULL, NULL, &cvw, &cvh);
 
    if ((cvw != 0) && (cvh != 0))
@@ -2055,8 +2058,12 @@ _elm_gengrid_item_del_serious(Elm_Gen_Item *it)
    if ((!GG_IT(it)->wsd->fx_mode) || (GG_IT(it)->wsd->gengrid_clearing))
 #endif
      {
-        _elm_gengrid_item_del_common(it);
+        GG_IT(it)->wsd->items = eina_inlist_remove
+           (GG_IT(it)->wsd->items, EINA_INLIST_GET(it));
+
      }
+
+   _elm_gengrid_item_del_common(it);
    free(it->item);
    it->item = NULL;
 }
@@ -2188,12 +2195,19 @@ _item_del_pre_fx_process(Elm_Gen_Item *it)
    if (!eina_list_data_find(GG_IT(it)->wsd->pending_del_items, it))
      GG_IT(it)->wsd->pending_del_items = eina_list_append(GG_IT(it)->wsd->pending_del_items, it);
 
-   evas_event_freeze(evas_object_evas_get(obj));
-   GG_IT(it)->wsd->selected = eina_list_remove(GG_IT(it)->wsd->selected, it);
+   evas_object_event_callback_del_full
+      (VIEW(it), EVAS_CALLBACK_MOUSE_DOWN, _item_mouse_down_cb, it);
+   evas_object_event_callback_del_full
+      (VIEW(it), EVAS_CALLBACK_MOUSE_UP, _item_mouse_up_cb, it);
+   evas_object_event_callback_del_full
+      (VIEW(it), EVAS_CALLBACK_MOUSE_MOVE, _item_mouse_move_cb, it);
 
-   _elm_gengrid_item_del_common(it);
-   evas_event_thaw(evas_object_evas_get(obj));
-   evas_event_thaw_eval(evas_object_evas_get(obj));
+   GG_IT(it)->wsd->items = eina_inlist_remove
+      (GG_IT(it)->wsd->items, EINA_INLIST_GET(it));
+
+   if (GG_IT(it)->wsd->calc_job) ecore_job_del(GG_IT(it)->wsd->calc_job);
+   GG_IT(it)->wsd->calc_job =
+      ecore_job_add(GG_IT(it)->wsd->calc_cb, GG_IT(it)->wsd);
 }
 #endif
 
@@ -2273,11 +2287,13 @@ _elm_gengrid_clear(Evas_Object *obj,
 
    EINA_LIST_FREE(sd->capture_before_items, pi)
      {
+        if (pi->proxy) evas_object_smart_member_del(pi->proxy);
         if (pi->proxy) evas_object_del(pi->proxy);
         free(pi);
      }
    EINA_LIST_FREE(sd->capture_after_items, pi)
      {
+        if (pi->proxy) evas_object_smart_member_del(pi->proxy);
         if (pi->proxy) evas_object_del(pi->proxy);
         free(pi);
      }
@@ -2287,7 +2303,10 @@ _elm_gengrid_clear(Evas_Object *obj,
         free(fi);
      }
    EINA_LIST_FREE (sd->pending_unrealized_items, it)
-      _elm_gengrid_item_unrealize(it, EINA_FALSE);
+     {
+        if ((it) && (GG_IT(it))) GG_IT(it)->has_proxy_it = EINA_FALSE;
+        _elm_gengrid_item_unrealize(it, EINA_FALSE);
+     }
    EINA_LIST_FREE (sd->pending_del_items, it)
      {
         _item_del(it);
@@ -3746,7 +3765,8 @@ _elm_gengrid_proxy_item_new(const Elm_Object_Item *item)
       (evas_object_evas_get(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj));
    if (!pi->proxy) return EINA_FALSE;
    evas_object_clip_set(pi->proxy, evas_object_clip_get(GG_IT(it)->wsd->pan_obj));
-
+   evas_object_smart_member_add(pi->proxy, GG_IT(it)->wsd->pan_obj);
+   evas_object_hide(pi->proxy);
    evas_object_image_source_set(pi->proxy, VIEW(it));
 
    GG_IT(it)->has_proxy_it = EINA_TRUE;
@@ -3789,6 +3809,7 @@ _elm_gengrid_fx_capture(Evas_Object *obj, int level)
         sd->fx_first_captured = EINA_TRUE;
         EINA_LIST_FREE(sd->capture_before_items, pi)
           {
+             if (pi->proxy) evas_object_smart_member_del(pi->proxy);
              if (pi->proxy) evas_object_del(pi->proxy);
              free(pi);
           }
@@ -3797,6 +3818,7 @@ _elm_gengrid_fx_capture(Evas_Object *obj, int level)
      {
         EINA_LIST_FREE(sd->capture_after_items, pi)
           {
+             if (pi->proxy) evas_object_smart_member_del(pi->proxy);
              if (pi->proxy) evas_object_del(pi->proxy);
              free(pi);
           }
@@ -3944,6 +3966,8 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
 {
    Elm_Gen_FX_Item *fx_done_it = data;
    Elm_Gen_Item *it = NULL;
+   Proxy_Item *pi = NULL;
+   Eina_List *l;
    Elm_Gengrid_Smart_Data *sd = GG_IT(fx_done_it->it)->wsd;
 
    if ((!fx_done_it) || (!fx_done_it->it) || (!sd)) return;
@@ -3964,6 +3988,10 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
              _item_del(it);
              _elm_widget_item_free((Elm_Widget_Item *)it);
           }
+        EINA_LIST_FOREACH(sd->capture_before_items, l, pi)
+           evas_object_hide(pi->proxy);
+        EINA_LIST_FOREACH(sd->capture_after_items, l, pi)
+           evas_object_hide(pi->proxy);
 
         sd->fx_playing = EINA_FALSE;
         sd->fx_first_captured = EINA_FALSE;

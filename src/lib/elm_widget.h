@@ -778,6 +778,7 @@ EAPI void             elm_widget_focus_mouse_up_handle(Evas_Object *obj);
 EAPI void             elm_widget_focus_tree_unfocusable_handle(Evas_Object *obj);
 EAPI void             elm_widget_focus_disabled_handle(Evas_Object *obj);
 EAPI unsigned int     elm_widget_focus_order_get(const Evas_Object *obj);
+EAPI Evas_Object     *elm_widget_newest_focus_order_get(const Evas_Object *obj, unsigned int *newest_focus_order, Eina_Bool can_focus_only);
 EAPI void             elm_widget_activate(Evas_Object *obj, Elm_Activate act);
 EAPI void             elm_widget_text_part_set(Evas_Object *obj, const char *part, const char *label);
 EAPI const char      *elm_widget_text_part_get(const Evas_Object *obj, const char *part);

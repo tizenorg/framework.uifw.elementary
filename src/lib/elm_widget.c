@@ -419,41 +419,6 @@ _smart_add(Evas_Object *obj)
      }
 }
 
-static Evas_Object *
-_newest_focus_order_get(Evas_Object *obj,
-                        unsigned int *newest_focus_order,
-                        Eina_Bool can_focus_only)
-{
-   const Eina_List *l;
-   Evas_Object *child, *ret, *best;
-
-   API_ENTRY return NULL;
-
-   if (!evas_object_visible_get(obj)
-       || (elm_widget_disabled_get(obj))
-       || (elm_widget_tree_unfocusable_get(obj)))
-     return NULL;
-
-   best = NULL;
-   if (*newest_focus_order < sd->focus_order)
-     {
-        *newest_focus_order = sd->focus_order;
-        best = obj;
-     }
-   EINA_LIST_FOREACH(sd->subobjs, l, child)
-     {
-        ret = _newest_focus_order_get
-            (child, newest_focus_order, can_focus_only);
-        if (!ret) continue;
-        best = ret;
-     }
-   if (can_focus_only)
-     {
-        if ((!best) || (!elm_widget_can_focus_get(best)))
-          return NULL;
-     }
-   return best;
-}
 
 static void
 _if_focused_revert(Evas_Object *obj,
@@ -471,8 +436,8 @@ _if_focused_revert(Evas_Object *obj,
    top = elm_widget_top_get(sd->parent_obj);
    if (top)
      {
-        newest = _newest_focus_order_get
-            (top, &newest_focus_order, can_focus_only);
+        newest = elm_widget_newest_focus_order_get
+           (top, &newest_focus_order, can_focus_only);
         if (newest)
           {
              elm_object_focus_set(newest, EINA_FALSE);
@@ -2740,7 +2705,7 @@ elm_widget_focus_restore(Evas_Object *obj)
    unsigned int newest_focus_order = 0;
    API_ENTRY return;
 
-   newest = _newest_focus_order_get(obj, &newest_focus_order, EINA_TRUE);
+   newest = elm_widget_newest_focus_order_get(obj, &newest_focus_order, EINA_TRUE);
    if (newest)
      {
         elm_object_focus_set(newest, EINA_FALSE);
@@ -3665,6 +3630,42 @@ elm_widget_focus_order_get(const Evas_Object *obj)
 {
    API_ENTRY return 0;
    return sd->focus_order;
+}
+
+EAPI Evas_Object *
+elm_widget_newest_focus_order_get(const Evas_Object *obj,
+                                  unsigned int *newest_focus_order,
+                                  Eina_Bool can_focus_only)
+{
+   const Eina_List *l;
+   Evas_Object *child, *ret, *best;
+
+   API_ENTRY return NULL;
+
+   if (!evas_object_visible_get(obj)
+       || (elm_widget_disabled_get(obj))
+       || (elm_widget_tree_unfocusable_get(obj)))
+     return NULL;
+
+   best = NULL;
+   if (*newest_focus_order < sd->focus_order)
+     {
+        *newest_focus_order = sd->focus_order;
+        best = (Evas_Object *)obj;
+     }
+   EINA_LIST_FOREACH(sd->subobjs, l, child)
+     {
+        ret = elm_widget_newest_focus_order_get
+           (child, newest_focus_order, can_focus_only);
+        if (!ret) continue;
+        best = ret;
+     }
+   if (can_focus_only)
+     {
+        if ((!best) || (!elm_widget_can_focus_get(best)))
+          return NULL;
+     }
+   return best;
 }
 
 EAPI void

@@ -336,9 +336,17 @@ _item_clicked(void *data, Evas_Object *obj, void *event_info)
 }
 
 static void
-_ctxpopup_dismissed_cb(void *data, Evas_Object *o __UNUSED__, void *event_info __UNUSED__)
+_ctxpopup_dismissed_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 {
+   Elm_Ctxpopup_Direction dir;
    if (!ext_mod) return;
+
+   dir = elm_ctxpopup_direction_get(obj);
+   //clear selection if ctxpopup is dismissed by clicking (not parent resizing)
+   if (dir != ELM_CTXPOPUP_DIRECTION_UNKNOWN)
+     {
+        elm_entry_select_none(data);
+     }
 
    //elm_object_scroll_freeze_pop(ext_mod->popup);
 }
@@ -410,7 +418,7 @@ obj_longpress(Evas_Object *obj)
           {
              ext_mod->popup = elm_ctxpopup_add(top);
              elm_object_tree_focus_allow_set(ext_mod->popup, EINA_FALSE);
-             evas_object_smart_callback_add(ext_mod->popup, "dismissed", _ctxpopup_dismissed_cb, NULL);
+             evas_object_smart_callback_add(ext_mod->popup, "dismissed", _ctxpopup_dismissed_cb, obj);
              evas_object_event_callback_add(obj, EVAS_CALLBACK_DEL, _entry_del_cb, ext_mod->popup);
              evas_object_event_callback_add(obj, EVAS_CALLBACK_HIDE, _entry_hide_cb, ext_mod->popup);
           }

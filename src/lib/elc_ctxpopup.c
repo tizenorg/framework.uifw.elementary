@@ -28,17 +28,18 @@ _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
    if (!sd)
      return EINA_FALSE;
 
-   if (!elm_widget_focus_next_get(sd->box, dir, next))
+   if (eina_list_count(sd->items))
      {
-        elm_widget_focused_object_clear(sd->box);
-        elm_widget_focus_next_get(sd->box, dir, next);
+        EINA_LIST_FOREACH(sd->items, elist, it)
+          items = eina_list_append(items, it->base.access_obj);
+
+        return elm_widget_focus_list_next_get
+                 (obj, items, eina_list_data_get, dir, next);
      }
-
-   EINA_LIST_FOREACH(sd->items, elist, it)
-     items = eina_list_append(items, it->base.access_obj);
-
-   return elm_widget_focus_list_next_get
-            (obj, items, eina_list_data_get, dir, next);
+   else
+     {
+        return elm_widget_focus_next_get(sd->box, dir, next);
+     }
 }
 
 static Eina_Bool

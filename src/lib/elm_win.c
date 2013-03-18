@@ -92,7 +92,6 @@ struct _Elm_Win_Smart_Data
    } shot;
    int                            resize_location;
    int                           *autodel_clear, rot;
-   int                            show_count;
    struct
    {
       int x, y;
@@ -829,16 +828,17 @@ _elm_win_focus_in(Ecore_Evas *ee)
 {
    Elm_Win_Smart_Data *sd = _elm_win_associate_get(ee);
    Evas_Object *obj;
+   unsigned int order = 0;
 
    EINA_SAFETY_ON_NULL_RETURN(sd);
 
    obj = ELM_WIDGET_DATA(sd)->obj;
 
    _elm_widget_top_win_focused_set(obj, EINA_TRUE);
-   if (!elm_widget_focus_order_get(obj))
+   if (!elm_widget_focus_order_get(obj)
+       || (obj == elm_widget_newest_focus_order_get(obj, &order, EINA_TRUE)))
      {
         elm_widget_focus_steal(obj);
-        sd->show_count++;
      }
    else
      elm_widget_focus_restore(obj);
@@ -1197,7 +1197,6 @@ _elm_win_smart_show(Evas_Object *obj)
 
    TRAP(sd, show);
 
-   if (!sd->show_count) sd->show_count++;
    if (sd->shot.info) _shot_handle(sd);
 }
 
