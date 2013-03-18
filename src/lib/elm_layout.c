@@ -384,14 +384,14 @@ _elm_layout_smart_focus_next(const Evas_Object *obj,
 
    ELM_LAYOUT_DATA_GET(obj, sd);
 
-   if (!sd->subs) return EINA_FALSE;
-
    if ((items = elm_widget_focus_custom_chain_get(obj)))
      list_data_get = eina_list_data_get;
    else
      {
         items = sd->subs;
         list_data_get = _elm_layout_list_data_get;
+
+        if (!items) return EINA_FALSE;
      }
 
    return elm_widget_focus_list_next_get
