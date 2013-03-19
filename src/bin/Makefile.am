@@ -123,6 +123,7 @@ test_win_inline.c \
 test_win_socket.c \
 test_win_plug.c \
 test_win_state.c \
+test_win_wm_rotation.c \
 test.h
 
 if HAVE_EIO

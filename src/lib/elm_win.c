@@ -128,6 +128,14 @@ struct _Elm_Win_Smart_Data
       Ecore_Timer *timer;
       Eina_List   *names;
    } profile;
+   struct
+   {
+      int          preferred_rot; // specified by app
+      int         *rots;          // available rotations
+      unsigned int count;         // number of elements in available rotations
+      Eina_Bool    wm_supported : 1;
+      Eina_Bool    use : 1;
+   } wm_rot;
 
    Evas_Object *icon;
    const char  *title;
@@ -172,6 +180,7 @@ static const char SIG_IOERR[] = "ioerr";
 static const char SIG_INDICATOR_PROP_CHANGED[] = "indicator,prop,changed";
 static const char SIG_ROTATION_CHANGED[] = "rotation,changed";
 static const char SIG_PROFILE_CHANGED[] = "profile,changed";
+static const char SIG_WM_ROTATION_CHANGED[] = "wm,rotation,changed";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_DELETE_REQUEST, ""},
@@ -191,6 +200,7 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_INDICATOR_PROP_CHANGED, ""},
    {SIG_ROTATION_CHANGED, ""},
    {SIG_PROFILE_CHANGED, ""},
+   {SIG_WM_ROTATION_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -206,6 +216,8 @@ static int _elm_win_count = 0;
 static Eina_Bool _elm_win_auto_throttled = EINA_FALSE;
 
 static Ecore_Job *_elm_win_state_eval_job = NULL;
+
+static void _elm_win_resize_objects_eval(Evas_Object *obj);
 
 static void
 _elm_win_obj_intercept_show(void *data, Evas_Object *obj)
@@ -946,6 +958,7 @@ _elm_win_state_change(Ecore_Evas *ee)
    Eina_Bool ch_fullscreen = EINA_FALSE;
    Eina_Bool ch_maximized = EINA_FALSE;
    Eina_Bool ch_profile = EINA_FALSE;
+   Eina_Bool ch_wm_rotation = EINA_FALSE;
    const char *profile;
 
    EINA_SAFETY_ON_NULL_RETURN(sd);
@@ -995,6 +1008,14 @@ _elm_win_state_change(Ecore_Evas *ee)
              ch_profile = EINA_TRUE;
           }
      }
+   if (sd->wm_rot.use)
+     {
+        if (sd->rot != ecore_evas_rotation_get(sd->ee))
+          {
+             sd->rot = ecore_evas_rotation_get(sd->ee);
+             ch_wm_rotation = EINA_TRUE;
+          }
+     }
 
    _elm_win_state_eval_queue();
 
@@ -1031,6 +1052,15 @@ _elm_win_state_change(Ecore_Evas *ee)
    if (ch_profile)
      {
         _elm_win_profile_update(ee);
+     }
+   if (ch_wm_rotation)
+     {
+        evas_object_size_hint_min_set(obj, -1, -1);
+        evas_object_size_hint_max_set(obj, -1, -1);
+        _elm_win_resize_objects_eval(obj);
+        elm_widget_orientation_set(obj, sd->rot);
+
+        evas_object_smart_callback_call(obj, SIG_WM_ROTATION_CHANGED, NULL);
      }
 }
 
@@ -1548,6 +1578,9 @@ _elm_win_smart_del(Evas_Object *obj)
    EINA_LIST_FREE(sd->profile.names, str) eina_stringshare_del(str);
    if (sd->profile.name) eina_stringshare_del(sd->profile.name);
    if (sd->profile.timer) ecore_timer_del(sd->profile.timer);
+
+   if (sd->wm_rot.rots) free(sd->wm_rot.rots);
+   sd->wm_rot.rots = NULL;
 
    /* Don't let callback in the air that point to sd */
    ecore_evas_callback_delete_request_set(sd->ee, NULL);
@@ -2920,6 +2953,9 @@ elm_win_add(Evas_Object *parent,
         // do nothing
      }
 
+   sd->wm_rot.wm_supported = ecore_evas_wm_rotation_supported_get(sd->ee);
+   sd->wm_rot.preferred_rot = -1; // it means that elm_win doesn't use preferred rotation.
+
    return obj;
 }
 
@@ -3721,6 +3757,114 @@ elm_win_rotation_get(const Evas_Object *obj)
    ELM_WIN_DATA_GET_OR_RETURN_VAL(obj, sd, -1);
 
    return sd->rot;
+}
+
+EAPI Eina_Bool
+elm_win_wm_rotation_supported_get(const Evas_Object *obj)
+{
+   ELM_WIN_CHECK(obj) EINA_FALSE;
+   ELM_WIN_DATA_GET_OR_RETURN_VAL(obj, sd, EINA_FALSE);
+   return sd->wm_rot.wm_supported;
+}
+
+/* This will unset a preferred rotation, if given preferred rotation is '-1'.
+ */
+EAPI void
+elm_win_wm_rotation_preferred_rotation_set(Evas_Object *obj,
+                                           const int rotation)
+{
+   int rot;
+
+   ELM_WIN_CHECK(obj);
+   ELM_WIN_DATA_GET_OR_RETURN(obj, sd);
+
+   if (!sd->wm_rot.use)
+     sd->wm_rot.use = EINA_TRUE;
+
+   // '-1' means that elm_win doesn't use preferred rotation.
+   if (rotation == -1)
+     rot = -1;
+   else
+     rot = _win_rotation_degree_check(rotation);
+
+   if (sd->wm_rot.preferred_rot == rot) return;
+   sd->wm_rot.preferred_rot = rot;
+
+   ecore_evas_wm_rotation_preferred_rotation_set(sd->ee, rot);
+}
+
+EAPI int
+elm_win_wm_rotation_preferred_rotation_get(const Evas_Object *obj)
+{
+   ELM_WIN_CHECK(obj) -1;
+   ELM_WIN_DATA_GET_OR_RETURN_VAL(obj, sd, -1);
+   if (!sd->wm_rot.use) return -1;
+   return sd->wm_rot.preferred_rot;
+}
+
+EAPI void
+elm_win_wm_rotation_available_rotations_set(Evas_Object *obj,
+                                            const int   *rotations,
+                                            unsigned int count)
+{
+   unsigned int i;
+   int r;
+
+   ELM_WIN_CHECK(obj);
+   ELM_WIN_DATA_GET_OR_RETURN(obj, sd);
+
+   if (!sd->wm_rot.use)
+     sd->wm_rot.use = EINA_TRUE;
+
+   if (sd->wm_rot.rots) free(sd->wm_rot.rots);
+
+   sd->wm_rot.rots = NULL;
+   sd->wm_rot.count = 0;
+
+   if (count > 0)
+     {
+        sd->wm_rot.rots = calloc(count, sizeof(int));
+        if (!sd->wm_rot.rots) return;
+        for (i = 0; i < count; i++)
+          {
+             r = _win_rotation_degree_check(rotations[i]);
+             sd->wm_rot.rots[i] = r;
+          }
+     }
+
+   sd->wm_rot.count = count;
+
+   ecore_evas_wm_rotation_available_rotations_set(sd->ee,
+                                                  sd->wm_rot.rots,
+                                                  sd->wm_rot.count);
+}
+
+EAPI Eina_Bool
+elm_win_wm_rotation_available_rotations_get(const Evas_Object *obj,
+                                            int              **rotations,
+                                            unsigned int      *count)
+{
+   ELM_WIN_CHECK(obj) EINA_FALSE;
+   ELM_WIN_DATA_GET_OR_RETURN_VAL(obj, sd, EINA_FALSE);
+   if (!sd->wm_rot.use) return EINA_FALSE;
+
+   if (sd->wm_rot.count > 0)
+     {
+        if ((rotations) && (*rotations))
+          {
+             *rotations = calloc(sd->wm_rot.count, sizeof(int));
+             if (*rotations)
+               {
+                  memcpy(*rotations,
+                         sd->wm_rot.rots,
+                         sizeof(int) * sd->wm_rot.count);
+               }
+          }
+     }
+
+   if (count) *count = sd->wm_rot.count;
+
+   return EINA_TRUE;
 }
 
 EAPI void
