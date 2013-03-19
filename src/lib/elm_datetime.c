@@ -26,6 +26,8 @@ EAPI const char ELM_DATETIME_SMART_NAME[] = "elm_datetime";
 #define EDC_PART_SEPARATOR_STR         "separator%d"
 #define EDC_PART_FIELD_ENABLE_SIG_STR  "field%d,enable"
 #define EDC_PART_FIELD_DISABLE_SIG_STR "field%d,disable"
+#define EDC_PART_FIELD_SEPARATOR_ENABLE_SIG_STR  "field%d,separator,enable"
+#define EDC_PART_FIELD_SEPARATOR_DISABLE_SIG_STR "field%d,separator,disable"
 
 /* struct tm does not define the fields in the order year, month,
  * date, hour, minute. values are reassigned to an array for easy
@@ -50,7 +52,7 @@ static Format_Map mapping[ELM_DATETIME_TYPE_COUNT] = {
 };
 
 static const char *multifield_formats = "cxXrRTDF";
-static const char *ignore_separators = "()";
+static const char *ignore_separators = "() ";
 static Datetime_Mod_Api *dt_mod = NULL;
 
 static const char SIG_CHANGED[] = "changed";
@@ -341,16 +343,31 @@ _reload_format(Evas_Object *obj)
              snprintf(buf, sizeof(buf), EDC_PART_FIELD_ENABLE_SIG_STR,
                       field->location);
              elm_layout_signal_emit(obj, buf, "elm");
+
+             if (field->separator && strcmp(field->separator, ""))
+               {
+                  snprintf(buf, sizeof(buf), EDC_PART_FIELD_SEPARATOR_ENABLE_SIG_STR,
+                           field->location);
+                  elm_layout_signal_emit(obj, buf, "elm");
+                  snprintf(buf, sizeof(buf), EDC_PART_SEPARATOR_STR, field->location);
+                  elm_layout_text_set(obj, buf, field->separator);
+               }
+             else
+               {
+                  snprintf(buf, sizeof(buf), EDC_PART_FIELD_SEPARATOR_DISABLE_SIG_STR,
+                           field->location);
+                  elm_layout_signal_emit(obj, buf, "elm");
+               }
           }
         else
           {
              snprintf(buf, sizeof(buf), EDC_PART_FIELD_DISABLE_SIG_STR,
                       field->location);
              elm_layout_signal_emit(obj, buf, "elm");
+             snprintf(buf, sizeof(buf), EDC_PART_FIELD_SEPARATOR_DISABLE_SIG_STR,
+                                        field->location);
+             elm_layout_signal_emit(obj, buf, "elm");
           }
-        snprintf
-          (buf, sizeof(buf), EDC_PART_SEPARATOR_STR, (field->location + 1));
-        elm_layout_text_set(obj, buf, field->separator);
      }
 
    edje_object_message_signal_process(ELM_WIDGET_DATA(sd)->resize_obj);
@@ -492,15 +509,29 @@ _elm_datetime_smart_theme(Evas_Object *obj)
                       field->location);
              elm_layout_signal_emit(obj, buf, "elm");
 
-             snprintf
-               (buf, sizeof(buf), EDC_PART_SEPARATOR_STR, (field->location + 1));
-             elm_layout_text_set(obj, buf, field->separator);
-
              dt_mod->field_value_display(sd->mod_data, field->item_obj);
+
+             if (field->separator && strcmp(field->separator, ""))
+               {
+                  snprintf(buf, sizeof(buf), EDC_PART_FIELD_SEPARATOR_ENABLE_SIG_STR,
+                           field->location);
+                  elm_layout_signal_emit(obj, buf, "elm");
+                  snprintf(buf, sizeof(buf), EDC_PART_SEPARATOR_STR, field->location);
+                  elm_layout_text_set(obj, buf, field->separator);
+               }
+             else
+               {
+                  snprintf(buf, sizeof(buf), EDC_PART_FIELD_SEPARATOR_DISABLE_SIG_STR,
+                           field->location);
+                  elm_layout_signal_emit(obj, buf, "elm");
+               }
           }
         else
           {
              snprintf(buf, sizeof(buf), EDC_PART_FIELD_DISABLE_SIG_STR,
+                      field->location);
+             elm_layout_signal_emit(obj, buf, "elm");
+             snprintf(buf, sizeof(buf), EDC_PART_FIELD_SEPARATOR_DISABLE_SIG_STR,
                       field->location);
              elm_layout_signal_emit(obj, buf, "elm");
           }

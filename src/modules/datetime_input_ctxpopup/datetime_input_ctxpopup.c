@@ -9,6 +9,9 @@
 #define DISKSELECTOR_MIN_ITEMS  4
 #define BUFF_SIZE               1024
 
+static const char *field_styles[] = {
+                         "year", "month", "date", "hour", "minute", "ampm" };
+
 typedef struct _Ctxpopup_Module_Data Ctxpopup_Module_Data;
 typedef struct _DiskItem_Data DiskItem_Data;
 static void _field_clicked_cb(void *data, Evas_Object *obj);
@@ -184,7 +187,7 @@ _field_clicked_cb(void *data, Evas_Object *obj)
    const char *fmt;
    int idx, min, max, val;
    unsigned int display_item_num, text_len = 0;
-   Evas_Coord x = 0, y = 0, w = 0, h = 0, width;
+   Evas_Coord x = 0, y = 0, w = 0, h = 0, width, w_item;
 
    ctx_mod = (Ctxpopup_Module_Data *)data;
    if (!ctx_mod || !ctx_mod->ctxpopup) return;
@@ -234,9 +237,14 @@ _field_clicked_cb(void *data, Evas_Object *obj)
    elm_diskselector_side_text_max_length_set(diskselector, text_len);
 
    evas_object_geometry_get(obj, &x, &y, &w, &h);
+   if (edje_object_part_exists(elm_layout_edje_get(obj), "elm.text"))
+     edje_object_part_geometry_get(elm_layout_edje_get(obj), "elm.text", NULL, NULL, &w_item, NULL);
+   else
+     w_item = w;
+
    evas_object_geometry_get(elm_widget_top_get(ctx_mod->mod_data.base), NULL, NULL, &width, NULL);
    evas_object_size_hint_min_set(ctx_mod->ctxpopup, width, -1);
-   display_item_num = width / (w + elm_config_finger_size_get());
+   display_item_num = width / (w_item + elm_config_finger_size_get());
    // always display even number of items to avoid autoselection
    if (display_item_num % 2) display_item_num -= 1;
    if (display_item_num < DISKSELECTOR_MIN_ITEMS)
@@ -438,6 +446,7 @@ field_create(Elm_Datetime_Module_Data *module_data, Elm_Datetime_Field_Type  fie
 {
    Ctxpopup_Module_Data *ctx_mod;
    Evas_Object *field_obj;
+   char buf[BUFF_SIZE];
 
    ctx_mod = (Ctxpopup_Module_Data *)module_data;
    if (!ctx_mod) return NULL;
@@ -445,7 +454,6 @@ field_create(Elm_Datetime_Module_Data *module_data, Elm_Datetime_Field_Type  fie
    if (field_type == ELM_DATETIME_AMPM)
      {
         field_obj = elm_button_add(ctx_mod->mod_data.base);
-        elm_object_style_set(field_obj, "datetime_ampm/default");
         evas_object_smart_callback_add(field_obj, "clicked", _ampm_clicked_cb, ctx_mod);
      }
    else
@@ -454,8 +462,9 @@ field_create(Elm_Datetime_Module_Data *module_data, Elm_Datetime_Field_Type  fie
         evas_object_event_callback_add(field_obj, EVAS_CALLBACK_MOUSE_DOWN, _field_mouse_down_cb, ctx_mod);
         evas_object_event_callback_add(field_obj, EVAS_CALLBACK_MOUSE_MOVE, _field_mouse_move_cb, ctx_mod);
         evas_object_event_callback_add(field_obj, EVAS_CALLBACK_MOUSE_UP, _field_mouse_up_cb, ctx_mod);
-        elm_object_style_set(field_obj,"datetime");
      }
+   snprintf(buf, sizeof(buf), "datetime/%s/default", field_styles[field_type]);
+   elm_object_style_set(field_obj, buf);
    evas_object_data_set(field_obj, "_field_type", (void *)field_type);
 
    // ACCESS
