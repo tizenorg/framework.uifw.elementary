@@ -511,10 +511,18 @@ _coord_to_canvas_no_rotation(Elm_Map_Smart_Data *sd,
 {
    Evas_Coord vx, vy, sx, sy;
 
-   _viewport_coord_get(sd, &vx, &vy, NULL, NULL);
-   evas_object_geometry_get(sd->pan_obj, &sx, &sy, NULL, NULL);
-   if (xx) *xx = x - vx + sx;
-   if (yy) *yy = y - vy + sy;
+   if (!strcmp(sd->engine->name, INTERNAL_ENGINE_NAME))
+     {
+        _viewport_coord_get(sd, &vx, &vy, NULL, NULL);
+        evas_object_geometry_get(sd->pan_obj, &sx, &sy, NULL, NULL);
+        if (xx) *xx = x - vx + sx;
+        if (yy) *yy = y - vy + sy;
+   }
+   else
+     {
+        if (xx) *xx = x;
+        if (yy) *yy = y;
+     }
 }
 
 // Map coordinates to canvas geometry
@@ -526,7 +534,10 @@ _coord_to_canvas(Elm_Map_Smart_Data *sd,
                  Evas_Coord *yy)
 {
    _coord_to_canvas_no_rotation(sd, x, y, &x, &y);
-   _rotate_do(x, y, sd->pan_rotate.cx, sd->pan_rotate.cy, sd->pan_rotate.d, &x, &y);
+   if (!strcmp(sd->engine->name, INTERNAL_ENGINE_NAME))
+     {
+        _rotate_do(x, y, sd->pan_rotate.cx, sd->pan_rotate.cy, sd->pan_rotate.d, &x, &y);
+     }
    if (xx) *xx = x;
    if (yy) *yy = y;
 }
@@ -1361,14 +1372,7 @@ _overlay_default_show(Overlay_Default *ovl)
         h = ovl->h;
      }
    _coord_to_canvas(ovl->wsd, ovl->x, ovl->y, &x, &y);
-
-   if (!strcmp(ovl->wsd->engine->name, INTERNAL_ENGINE_NAME))
-     _obj_place(disp, x - (w / 2), y - (h / 2), w, h);
-   else
-     {
-        evas_object_geometry_get(ovl->wsd->layout, &x, &y, NULL, NULL);
-        _obj_place(disp, (x + ovl->x) - (w / 2), (y + ovl->y) - (h / 2), w, h);
-     }
+   _obj_place(disp, x - (w / 2), y - (h / 2), w, h);
 }
 
 static void
@@ -3196,6 +3200,7 @@ _pinch_rotate_cb(void *data,
         x = x + ((double)w * 0.5);
         y = y + ((double)h * 0.5);
         sd->engine->rotate(ELM_WIDGET_DATA(sd)->obj, angle, x, y, 0);
+        _overlay_place(sd);
      }
 
    return EVAS_EVENT_FLAG_NONE;
@@ -4498,7 +4503,11 @@ _elm_map_smart_move(Evas_Object *obj,
 
    if (!strcmp(sd->engine->name, INTERNAL_ENGINE_NAME))
       evas_object_move(sd->hit_rect, x, y);
-   else sd->engine->move(obj, x, y);
+   else
+     {
+        sd->engine->move(obj, x, y);
+        _overlay_place(sd);
+     }
 }
 
 static void
