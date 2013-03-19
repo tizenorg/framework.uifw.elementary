@@ -76,6 +76,7 @@ Fixes :
    * Fix a elm_transit crash issue when user delete all target objects in the effect end callback.
    * Fix small memory leak in elm_map error path
    * Focus highlight should not be shown on (0, 0).
+   * Fix the elm_shutdown bug in _elm_shutdown_config.
 
 Removals:
 
