@@ -1671,7 +1671,8 @@ _item_realize(Elm_Gen_Item *it,
 #endif
    treesize = edje_object_data_get(VIEW(it), "treesize");
    if (treesize) tsize = atoi(treesize);
-   if (!it->spacer && treesize)
+   if (it->parent && GL_IT(it->parent)->type == ELM_GENLIST_ITEM_TREE &&
+       !it->spacer && treesize)
      {
         it->spacer =
           evas_object_rectangle_add(evas_object_evas_get(WIDGET(it)));
