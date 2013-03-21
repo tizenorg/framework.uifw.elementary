@@ -5662,6 +5662,7 @@ elm_genlist_clear(Evas_Object *obj)
    while (sd->items)
      {
         it = EINA_INLIST_CONTAINER_GET(sd->items->last, Elm_Gen_Item);
+        it->item->nocache_once = EINA_TRUE;
         elm_widget_item_del(it);
      }
    sd->items = NULL;
