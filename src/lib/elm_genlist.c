@@ -185,10 +185,6 @@ _item_cache_push(Elm_Gen_Item *it)
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
    Item_Cache *ic = NULL;
 
-#if GENLIST_FX_SUPPORT
-   if (sd->pending_del_items) return;
-#endif
-
    if (sd->item_cache_count >= sd->item_cache_max)
     {
         ic = EINA_INLIST_CONTAINER_GET(sd->item_cache->last, Item_Cache);
@@ -218,7 +214,11 @@ _item_cache_push(Elm_Gen_Item *it)
                                         _contract_signal_cb, it);
    _item_mouse_callbacks_del(it, VIEW(it));
 
+#if GENLIST_FX_SUPPORT
+   if ((it->item->nocache_once) || (it->item->nocache) || (sd->pending_del_items))
+#else
    if ((it->item->nocache_once) || (it->item->nocache))
+#endif
      {
         if (VIEW(it)) evas_object_del(VIEW(it));
         if (it->spacer) evas_object_del(it->spacer);
