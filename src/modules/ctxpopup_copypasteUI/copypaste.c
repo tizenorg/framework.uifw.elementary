@@ -353,12 +353,11 @@ _clipboard_menu(void *data, Evas_Object *obj, void *event_info)
    // start for cbhm
 #ifdef HAVE_ELEMENTARY_X
    ecore_x_selection_secondary_set(elm_win_xwindow_get(obj), "",1);
-   ext_mod->cnpinit(data, NULL, NULL);
 #endif
    if (ext_mod->cnp_mode != ELM_CNP_MODE_MARKUP)
-     _cbhm_msg_send(obj, "show0");
+     _cbhm_msg_send(data, "show0");
    else
-     _cbhm_msg_send(obj, "show1");
+     _cbhm_msg_send(data, "show1");
    _ctxpopup_hide(obj);
    // end for cbhm
 }

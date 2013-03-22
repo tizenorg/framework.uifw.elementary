@@ -102,9 +102,6 @@ EVAS_SMART_SUBCLASS_IFACE_NEW
   _smart_interfaces);
 
 static Eina_List *entries = NULL;
-// TIZEN ONLY
-static Evas_Object *cnpwidgetdata = NULL;
-//
 
 struct _Mod_Api
 {
@@ -155,12 +152,6 @@ _select_word(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED_
    edje_object_signal_emit(sd->entry_edje, "elm,state,select,on", "elm");
    edje_object_part_text_select_word(sd->entry_edje, "elm.text");
    elm_object_scroll_freeze_pop(data);
-}
-
-static void
-_cnpinit(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
-{
-   cnpwidgetdata = data;
 }
 
 #ifdef HAVE_ELEMENTARY_X
@@ -224,7 +215,6 @@ _xclient_msg_cb(void *data, int type __UNUSED__, void *event)
      {
         if (elm_object_focus_get(obj) == EINA_TRUE)
           {
-             _cnpinit(obj, NULL, NULL);
              ecore_x_selection_secondary_set(elm_win_xwindow_get(data), "", 1);
 
              if (sd->cnp_mode != ELM_CNP_MODE_MARKUP)
@@ -232,11 +222,6 @@ _xclient_msg_cb(void *data, int type __UNUSED__, void *event)
              else
                _cbhm_msg_send(data, "show1");
           }
-     }
-   else if (!strcmp("INIT_CNPDATA", ev->data.b))
-     {
-        if (cnpwidgetdata == data)
-          _cnpinit(NULL, NULL, NULL);
      }
 #endif
    return ECORE_CALLBACK_PASS_ON;
@@ -673,7 +658,6 @@ void elm_entry_extension_module_data_get(Evas_Object *obj, Elm_Entry_Extension_d
    ext_mod->have_selection = sd->have_selection;
    ext_mod->password = sd->password;
    ext_mod->selmode = sd->sel_mode;
-   ext_mod->cnpinit = _cnpinit;
    ext_mod->context_menu = sd->context_menu;
    ext_mod->cnp_mode = sd->cnp_mode;
    ext_mod->viewport_rect = _viewport_region_get(obj);
@@ -1443,6 +1427,7 @@ _elm_entry_smart_on_focus(Evas_Object *obj)
    else
      {
         printf("[Elm_entry::Unfocused] obj : %p\n", obj); // TIZEN ONLY
+        _cbhm_msg_send(obj, "cbhm_hide"); // TIZEN ONLY : Hide clipboard
         edje_object_signal_emit(sd->entry_edje, "elm,action,unfocus", "elm");
         evas_object_focus_set(sd->entry_edje, EINA_FALSE);
         // TIZEN ONLY
@@ -1712,8 +1697,8 @@ _elm_entry_entry_paste(Evas_Object *obj,
 
    // TIZEN ONLY
 #ifdef HAVE_ELEMENTARY_X
-   if (cnpwidgetdata == obj)
-      ecore_x_selection_secondary_set(elm_win_xwindow_get(obj), "",1);
+   if (elm_widget_focus_get(obj))
+     ecore_x_selection_secondary_set(elm_win_xwindow_get(obj), "",1);
 #endif
    //
 }
@@ -2898,7 +2883,7 @@ _event_selection_clear(void *data __UNUSED__,
         return ECORE_CALLBACK_PASS_ON;
      }
 
-   if (cnpwidgetdata == data)
+   if (elm_widget_focus_get(data))
      {
         ELM_ENTRY_DATA_GET(data, sd);
         Elm_Sel_Format formats = ELM_SEL_FORMAT_MARKUP;
@@ -4283,7 +4268,7 @@ elm_entry_entry_insert(Evas_Object *obj,
    edje_object_part_text_insert(sd->entry_edje, "elm.text", entry);
    // TIZEN ONLY
 #ifdef HAVE_ELEMENTARY_X
-   if (cnpwidgetdata == obj)
+   if (elm_widget_focus_get(obj))
       ecore_x_selection_secondary_set(elm_win_xwindow_get(obj), "",1);
 #endif
    ///////////
