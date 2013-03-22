@@ -1674,7 +1674,10 @@ elm_naviframe_item_pop(Evas_Object *obj)
    it = (Elm_Naviframe_Item *)elm_naviframe_top_item_get(obj);
    if (!it) return NULL;
 
-   if (it->pop_cb) it->pop_cb(it->pop_data, (Elm_Object_Item *)it);
+   if (it->pop_cb)
+     {
+        if (!it->pop_cb(it->pop_data, (Elm_Object_Item *)it)) return NULL;
+     }
 
    if (sd->preserve)
      content = it->content;
