@@ -1355,7 +1355,7 @@ _elm_naviframe_smart_event(Evas_Object *obj,
 
    if (elm_widget_disabled_get(obj)) return EINA_FALSE;
    if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-   if (strcmp(ev->keyname, "BackSpace")) return EINA_FALSE;
+   if (strcmp(ev->keyname, "Escape")) return EINA_FALSE;
 
    it = elm_naviframe_top_item_get(obj);
    if (!it) return EINA_FALSE;
