@@ -3938,7 +3938,7 @@ elm_widget_display_mode_set(Evas_Object *obj, Evas_Display_Mode dispmode)
 
 }
 
-// temporary code. should be removed after eo is applied.
+// TIZEN ONLY: temporary code. should be removed after eo is applied.
 EAPI void
 _elm_widget_orient_signal_emit(Evas_Object *obj)
 {
