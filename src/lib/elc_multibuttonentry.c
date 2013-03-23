@@ -1226,7 +1226,7 @@ static void
 _mouse_up_cb(Elm_Multibuttonentry_Item *it,
              Evas *evas __UNUSED__,
              Evas_Object *obj __UNUSED__,
-             Evas_Event_Mouse_Down *ev)
+             Evas_Event_Mouse_Down *ev __UNUSED__)
 {
    ELM_MULTIBUTTONENTRY_DATA_GET(WIDGET(it), sd);
 
@@ -1326,7 +1326,7 @@ _access_info_cb(void *data, Evas_Object *obj __UNUSED__)
 
    if (!it) return NULL;
 
-   if (!txt)txt = elm_object_item_text_get(it);
+   if (!txt)txt = elm_object_item_text_get((Elm_Object_Item *)it);
    if (txt)
      {
         buf = eina_strbuf_new();
@@ -2311,7 +2311,7 @@ elm_multibuttonentry_items_get(const Evas_Object *obj)
 EAPI Evas_Object *
 elm_multibuttonentry_item_object_get(const Elm_Object_Item *it)
 {
-   ELM_MULTIBUTTONENTRY_ITEM_CHECK_OR_RETURN(it);
+   ELM_MULTIBUTTONENTRY_ITEM_CHECK_OR_RETURN(it, NULL);
 
    return VIEW(it);
 }
