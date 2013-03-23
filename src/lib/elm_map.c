@@ -4493,6 +4493,15 @@ _elm_map_smart_del(Evas_Object *obj)
 }
 
 static void
+_elm_map_smart_calculate(Evas_Object *obj)
+{
+   ELM_MAP_DATA_GET(obj, sd);
+
+   if (strcmp(sd->engine->name, INTERNAL_ENGINE_NAME))
+     _overlay_place(sd);
+}
+
+static void
 _elm_map_smart_move(Evas_Object *obj,
                     Evas_Coord x,
                     Evas_Coord y)
@@ -4545,6 +4554,8 @@ _elm_map_smart_set_user(Elm_Map_Smart_Class *sc)
 {
    ELM_WIDGET_CLASS(sc)->base.add = _elm_map_smart_add;
    ELM_WIDGET_CLASS(sc)->base.del = _elm_map_smart_del;
+   ELM_WIDGET_CLASS(sc)->base.calculate = _elm_map_smart_calculate;
+
    ELM_WIDGET_CLASS(sc)->base.move = _elm_map_smart_move;
    ELM_WIDGET_CLASS(sc)->base.resize = _elm_map_smart_resize;
    ELM_WIDGET_CLASS(sc)->base.member_add = _elm_map_smart_member_add;
