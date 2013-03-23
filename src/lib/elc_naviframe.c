@@ -1355,6 +1355,8 @@ _elm_naviframe_smart_event(Evas_Object *obj,
 
    if (elm_widget_disabled_get(obj)) return EINA_FALSE;
    if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
+//Disable this temporary. Something trigger the "Escape" key event unnecessary. Need to check it.
+/*
    if (strcmp(ev->keyname, "Escape")) return EINA_FALSE;
 
    it = elm_naviframe_top_item_get(obj);
@@ -1364,7 +1366,7 @@ _elm_naviframe_smart_event(Evas_Object *obj,
      evas_object_smart_callback_call(it->title_prev_btn, SIG_CLICKED, NULL);
 
    ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-
+*/
    return EINA_TRUE;
 }
 
