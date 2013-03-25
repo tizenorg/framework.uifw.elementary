@@ -27,6 +27,58 @@ typedef enum _Elm_Access_Info_Type Elm_Access_Info_Type;
 typedef char *(*Elm_Access_Info_Cb)(void *data, Evas_Object *obj);
 typedef void (*Elm_Access_Activate_Cb)(void *data, Evas_Object *part_obj, Elm_Object_Item *item);
 
+struct _Elm_Access_Action_Info
+{
+   Evas_Coord   x1;
+   Evas_Coord   y1;
+   Evas_Coord   x2;
+   Evas_Coord   y2;
+
+   unsigned int tx;
+   unsigned int ty;
+
+
+   Eina_Bool    highlight_cycle : 1;
+};
+
+typedef struct _Elm_Access_Action_Info Elm_Access_Action_Info;
+
+/**
+ * @typedef Elm_Access_Action_Cb
+ * User callback to make access object do specific action
+ * @param data user data
+ * @param action_info information to classify the action
+ * Returns EINA_TRUE on success, EINA FALSE otherwise
+ *
+ */
+typedef Eina_Bool (*Elm_Access_Action_Cb)(void *data, Evas_Object *obj, void *action_info);
+
+/**
+ * @enum _Elm_Access_Action_Type
+ * Enum of supported access action types.
+ */
+enum _Elm_Access_Action_Type
+{
+   ELM_ACCESS_ACTION_FIRST = -1,
+
+   ELM_ACCESS_ACTION_HIGHLIGHT, /* highlight a object */
+   ELM_ACCESS_ACTION_HIGHLIGHT_NEXT, /* set highlight to next object */
+   ELM_ACCESS_ACTION_HIGHLIGHT_PREV, /* set highlight to previous object */
+   ELM_ACCESS_ACTION_ACTIVATE, /* activate a highlight object */
+   ELM_ACCESS_ACTION_VALUE_CHANGE, /* change value of highlight object */
+   ELM_ACCESS_ACTION_SCROLL, /* scroll if one of highlight object parents
+                              * is scrollable */
+   ELM_ACCESS_ACTION_BACK, /* go back to a previous view
+                              ex: pop naviframe item */
+
+   ELM_ACCESS_ACTION_LAST
+};
+
+/**
+ * @typedef Elm_Access_Action_Type
+ */
+typedef enum _Elm_Access_Action_Type Elm_Access_Action_Type;
+
 /**
  * @brief Register evas object as an accessible object.
  * @since 1.8
@@ -143,6 +195,9 @@ EAPI void elm_access_say(const char *text);
  */
 EAPI void elm_access_highlight_set(Evas_Object* obj);
 
+EAPI Eina_Bool elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *action_info);
+
+EAPI void elm_access_action_cb_set(Evas_Object *obj, const Elm_Access_Action_Type type, const Elm_Access_Action_Cb cb, const void *data);
 //TODO: remvoe below - use elm_access_text_set(); or elm_access_cb_set();
 EINA_DEPRECATED EAPI void elm_access_external_info_set(Evas_Object *obj, const char *text);
 EINA_DEPRECATED EAPI char *elm_access_external_info_get(const Evas_Object *obj);
