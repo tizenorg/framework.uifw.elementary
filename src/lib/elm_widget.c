@@ -3531,7 +3531,6 @@ elm_widget_theme_object_set(Evas_Object *obj,
 {
    API_ENTRY return EINA_FALSE;
    char buf[128];
-   int ret;
 
    if (!_elm_theme_object_set(obj, edj, wname, welement, wstyle))
      return EINA_FALSE;
@@ -3539,7 +3538,7 @@ elm_widget_theme_object_set(Evas_Object *obj,
    if (sd->orient_mode != -1)
      {
 
-        snprintf(buf, sizeof(buf), "elm,state,orient,%d", ret);
+        snprintf(buf, sizeof(buf), "elm,state,orient,%d", sd->orient_mode);
         elm_widget_signal_emit(obj, buf, "elm");
 
      }
