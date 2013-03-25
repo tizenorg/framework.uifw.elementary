@@ -2331,7 +2331,34 @@ elm_widget_focus_next_get(const Evas_Object *obj,
 
    /* Try use hook */
    if (_elm_widget_focus_chain_manager_is(obj))
-     return sd->api->focus_next(obj, dir, next);
+     {
+        Eina_Bool ret;
+        ret = sd->api->focus_next(obj, dir, next);
+        if (!ret && elm_widget_focus_get(obj))
+          {
+             Evas_Object *o = NULL;
+             if (dir == ELM_FOCUS_PREVIOUS)
+               o = sd->focus_previous;
+             else if (dir == ELM_FOCUS_NEXT)
+               o = sd->focus_next;
+             else if (dir == ELM_FOCUS_UP)
+               o = sd->focus_up;
+             else if (dir == ELM_FOCUS_DOWN)
+               o = sd->focus_down;
+             else if (dir == ELM_FOCUS_RIGHT)
+               o = sd->focus_right;
+             else if (dir == ELM_FOCUS_LEFT)
+               o = sd->focus_left;
+
+             if (o)
+               {
+                  *next = o;
+                  return EINA_TRUE;
+               }
+          }
+        else
+          return ret;
+     }
 
    if (!elm_widget_can_focus_get(obj))
      return EINA_FALSE;
@@ -2342,6 +2369,24 @@ elm_widget_focus_next_get(const Evas_Object *obj,
         if (!_elm_access_object_get(obj)) return EINA_FALSE;
      }
 
+   if (elm_widget_focus_get(obj))
+     {
+        if (dir == ELM_FOCUS_PREVIOUS)
+          *next = sd->focus_previous;
+        else if (dir == ELM_FOCUS_NEXT)
+          *next = sd->focus_next;
+        else if (dir == ELM_FOCUS_UP)
+          *next = sd->focus_up;
+        else if (dir == ELM_FOCUS_DOWN)
+          *next = sd->focus_down;
+        else if (dir == ELM_FOCUS_RIGHT)
+          *next = sd->focus_right;
+        else if (dir == ELM_FOCUS_LEFT)
+          *next = sd->focus_left;
+
+        if (*next)
+          return EINA_TRUE;
+     }
    /* Return */
    *next = (Evas_Object *)obj;
    return !ELM_WIDGET_FOCUS_GET(obj);
@@ -2374,6 +2419,7 @@ elm_widget_focus_list_next_get(const Evas_Object *obj,
                                Evas_Object **next)
 {
    Eina_List *(*list_next)(const Eina_List *list) = NULL;
+   Evas_Object *focused_object = NULL;
 
    if (!next)
      return EINA_FALSE;
@@ -2385,13 +2431,51 @@ elm_widget_focus_list_next_get(const Evas_Object *obj,
    if (!items)
      return EINA_FALSE;
 
+   /* When Up, Down, Right, or Left, try direction_get first. */
+   focused_object = elm_widget_focused_object_get(obj);
+   if (focused_object)
+     {
+        if((dir == ELM_FOCUS_UP)
+           || (dir == ELM_FOCUS_DOWN)
+           || (dir == ELM_FOCUS_RIGHT)
+           || (dir == ELM_FOCUS_LEFT))
+          {
+             *next = elm_widget_focus_next_object_get(focused_object, dir);
+             if (*next)
+               return EINA_TRUE;
+             else
+               {
+                  Evas_Object *n;
+                  double degree;
+                  double weight;
+
+                  if (dir == ELM_FOCUS_UP) degree = 0.0;
+                  else if (dir == ELM_FOCUS_DOWN) degree = 180.0;
+                  else if (dir == ELM_FOCUS_RIGHT) degree = 90.0;
+                  else if (dir == ELM_FOCUS_LEFT) degree = 270.0;
+
+                  if (elm_widget_focus_list_direction_get(obj, focused_object,
+                                                          items, list_data_get,
+                                                          degree, &n, &weight))
+                    {
+                       *next = n;
+                       return EINA_TRUE;
+                    }
+               }
+          }
+     }
+
    /* Direction */
    if (dir == ELM_FOCUS_PREVIOUS)
      {
         items = eina_list_last(items);
         list_next = eina_list_prev;
      }
-   else if (dir == ELM_FOCUS_NEXT)
+   else if ((dir == ELM_FOCUS_NEXT)
+            || (dir == ELM_FOCUS_UP)
+            || (dir == ELM_FOCUS_DOWN)
+            || (dir == ELM_FOCUS_RIGHT)
+            || (dir == ELM_FOCUS_LEFT))
      list_next = eina_list_next;
    else
      return EINA_FALSE;
@@ -2430,6 +2514,17 @@ elm_widget_focus_list_next_get(const Evas_Object *obj,
              *next = tmp;
              return EINA_TRUE;
           }
+        else if ((dir == ELM_FOCUS_UP)
+                 || (dir == ELM_FOCUS_DOWN)
+                 || (dir == ELM_FOCUS_RIGHT)
+                 || (dir == ELM_FOCUS_LEFT))
+          {
+             if (tmp && elm_widget_focus_get(cur))
+               {
+                  *next = tmp;
+                  return EINA_FALSE;
+               }
+          }
         else if ((tmp) && (!to_focus))
           to_focus = tmp;
      }
@@ -2457,6 +2552,78 @@ elm_widget_focus_list_next_get(const Evas_Object *obj,
    *next = to_focus;
    return EINA_FALSE;
 }
+
+
+/**
+ * @internal
+ *
+ * Get next object which was set with specific focus direction.
+ *
+ * Get next object which was set by elm_widget_focus_next_object_set
+ * with specific focus directioin.
+ *
+ * @param obj The widget
+ * @param dir Direction of focus
+ * @return Widget which was registered with sepecific focus direction.
+ *
+ * @ingroup Widget
+ */
+EAPI Evas_Object *
+elm_widget_focus_next_object_get(const Evas_Object *obj, Elm_Focus_Direction dir)
+{
+   API_ENTRY return NULL;
+
+   if (dir == ELM_FOCUS_PREVIOUS)
+     return sd->focus_previous;
+   else if (dir == ELM_FOCUS_NEXT)
+     return sd->focus_next;
+   else if (dir == ELM_FOCUS_UP)
+     return sd->focus_up;
+   else if (dir == ELM_FOCUS_DOWN)
+     return sd->focus_down;
+   else if (dir == ELM_FOCUS_RIGHT)
+     return sd->focus_right;
+   else if (dir == ELM_FOCUS_LEFT)
+     return sd->focus_left;
+
+   return NULL;
+}
+
+/**
+ * @internal
+ *
+ * Set next object with specific focus direction.
+ *
+ * When a widget is set with specific focus direction, this widget will be
+ * the first candidate when finding the next focus object.
+ * Focus next object can be registered with six directions that are previous,
+ * next, up, down, right, and left.
+ *
+ * @param obj The widget
+ * @param next Next focus object
+ * @param dir Direction of focus
+ *
+ * @ingroup Widget
+ */
+EAPI void
+elm_widget_focus_next_object_set(Evas_Object *obj, Evas_Object *next, Elm_Focus_Direction dir)
+{
+   API_ENTRY return;
+
+   if (dir == ELM_FOCUS_PREVIOUS)
+     sd->focus_previous = next;
+   else if (dir == ELM_FOCUS_NEXT)
+     sd->focus_next = next;
+   else if (dir == ELM_FOCUS_UP)
+     sd->focus_up = next;
+   else if (dir == ELM_FOCUS_DOWN)
+     sd->focus_down = next;
+   else if (dir == ELM_FOCUS_RIGHT)
+     sd->focus_right = next;
+   else if (dir == ELM_FOCUS_LEFT)
+     sd->focus_left = next;
+}
+
 
 EAPI Eina_Bool
 elm_widget_highlight_get(const Evas_Object *obj)
