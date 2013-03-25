@@ -406,8 +406,12 @@ _plug_msg_handle(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int siz
      {
         if (msg_id == MSG_ID_INDICATOR_REPEAT_EVENT)
           {
-             int *repeat = data;
-             DBG("Receive repeat event change message:(%d)", *repeat);
+              int *repeat = data;
+              DBG("Receive repeat event change message:(%d)", *repeat);
+              if (1 == *repeat)
+                evas_object_repeat_events_set(sd->landscape_indicator, EINA_TRUE);
+              else
+                evas_object_repeat_events_set(sd->landscape_indicator, EINA_FALSE);
           }
         if (msg_id == MSG_ID_INDICATOR_TYPE)
           {
@@ -416,7 +420,7 @@ _plug_msg_handle(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int siz
              DBG("Receive indicator type change message:(%d)", *indi_t_mode);
              elm_win_indicator_type_set(win, *indi_t_mode);
           }
-	 }
+     }
 }
 
 static Evas_Object *
