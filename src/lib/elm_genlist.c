@@ -6491,14 +6491,18 @@ elm_genlist_item_cursor_engine_only_get(const Elm_Object_Item *it)
 EAPI int
 elm_genlist_item_index_get(const Elm_Object_Item *item)
 {
+   int cnt = 0;
+   Elm_Gen_Item *tmp;
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
 
    ELM_GENLIST_ITEM_CHECK_OR_RETURN(item, -1);
 
-   if (it->item->block)
-     return it->position + (it->item->block->position *
-                            GL_IT(it)->wsd->max_items_per_block);
-   return -1;
+   EINA_INLIST_FOREACH(GL_IT(it)->wsd->items, tmp)
+     {
+        if (tmp == it) break;
+        cnt++;
+     }
+   return cnt;
 }
 
 EAPI void
