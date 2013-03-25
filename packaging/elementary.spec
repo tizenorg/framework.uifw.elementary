@@ -71,9 +71,9 @@ cp %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/usr/share/license/%{name}
 
 %files
 %defattr(-,root,root,-)
-/usr/lib/libelementary*
-/usr/lib/elementary/modules/*/*/*.so
-/usr/lib/edje/modules/elm/*/module.so
+%{_libdir}/libelementary*
+%{_libdir}/elementary/modules/*/*/*.so
+%{_libdir}/edje/modules/elm/*/module.so
 /usr/share/elementary/*
 /usr/share/icons/*
 /usr/share/locale/*
@@ -85,11 +85,11 @@ cp %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/usr/share/license/%{name}
 %files devel
 %defattr(-,root,root,-)
 /usr/include/*
-/usr/lib/libelementary.so
-/usr/lib/pkgconfig/elementary.pc
+%{_libdir}/libelementary.so
+%{_libdir}/pkgconfig/elementary.pc
 
 %files tools
 %defattr(-,root,root,-)
 /usr/bin/elementary_*
-/usr/lib/elementary_testql.so
+%{_libdir}/elementary_testql.so
 
