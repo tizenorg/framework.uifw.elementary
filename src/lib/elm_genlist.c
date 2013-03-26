@@ -915,10 +915,13 @@ _item_position(Elm_Gen_Item *it,
 }
 
 static void
-_item_subitems_clear(Elm_Gen_Item *it)
+_item_sub_items_clear(Elm_Gen_Item *it)
 {
    Eina_List *l, *ll;
    Elm_Object_Item *it2;
+
+   // FIXME: this can be removed after tree effect is remove in the upstream
+   ELM_GENLIST_ITEM_CHECK_OR_RETURN(it);
 
    EINA_LIST_FOREACH_SAFE(it->item->items, l, ll, it2)
      elm_widget_item_del(it2);
@@ -1630,8 +1633,10 @@ _item_realize(Elm_Gen_Item *it,
           (WIDGET(it), VIEW(it), "genlist", buf,
           elm_widget_style_get(WIDGET(it)));
 
+#if 1 // FIXME: difference from upstream
         if (it->item->expanded_depth > 0)
           edje_object_signal_emit(VIEW(it), "bg_color_change", "elm");
+#endif
 
         stacking_even = edje_object_data_get(VIEW(it), "stacking_even");
         if (!stacking_even) stacking_even = "above";
@@ -3116,7 +3121,7 @@ _item_free_common(Elm_Gen_Item *it)
         Elm_Gen_Item *tmp;
         EINA_LIST_FREE(it->item->rel_revs, tmp) tmp->item->rel = NULL;
      }
-   _item_subitems_clear(it);
+   _item_sub_items_clear(it);
 
 #if GENLIST_ENTRY_SUPPORT
    it->item->unrealize_disabled = EINA_FALSE;
@@ -3148,43 +3153,6 @@ _item_free_common(Elm_Gen_Item *it)
    sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(it));
    sd->item_count--;
 }
-
-static void
-_item_free(Elm_Gen_Item *it)
-{
-   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
-
-#if GENLIST_FX_SUPPORT
-   if (sd->fx_mode) GL_IT(it)->has_proxy_it = EINA_FALSE;
-   _elm_genlist_proxy_item_del((Elm_Object_Item *)it);
-   if ((!sd->fx_mode) || (sd->genlist_clearing))
-#endif
-     {
-        _item_free_common(it);
-     }
-   _item_unrealize(it, EINA_FALSE);
-   elm_genlist_item_class_unref((Elm_Genlist_Item_Class *)it->itc);
-   free(it->item);
-
-   if (sd->calc_job) ecore_job_del(sd->calc_job);
-   sd->calc_job = ecore_job_add(_calc_job, sd);
-}
-
-#if GENLIST_FX_SUPPORT
-static void
-_item_del_pre_fx_process(Elm_Gen_Item *it)
-{
-   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
-
-   sd->fx_items_deleted = EINA_TRUE;
-   _elm_genlist_fx_capture(ELM_WIDGET_DATA(sd)->obj, 0);
-   if (!eina_list_data_find(sd->pending_del_items, it))
-     sd->pending_del_items = eina_list_append(sd->pending_del_items, it);
-
-   _item_free_common(it);
-
-}
-#endif
 
 static void
 _item_mouse_move_cb(void *data,
@@ -3876,19 +3844,7 @@ newblock:
    it->item->block = itb;
    if (itb->sd->calc_job) ecore_job_del(itb->sd->calc_job);
    itb->sd->calc_job = ecore_job_add(_calc_job, itb->sd);
-/*
-   if (it->item->rel)
-     {
-        it->item->rel->relcount--;
-        // FIXME: relcount should be removed.
-        if (((Elm_Widget_Item *)it->item->rel)->on_deletion &&
-            (!it->item->rel->relcount))
-          {
-             elm_widget_item_del(it->item->rel);
-          }
-        it->item->rel = NULL;
-     }
-*/
+
    if (itb->count > itb->sd->max_items_per_block)
      {
         int newc;
@@ -5173,6 +5129,43 @@ _item_disable_hook(Elm_Object_Item *item)
      }
 }
 
+static void
+_item_free(Elm_Gen_Item *it)
+{
+   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
+
+#if GENLIST_FX_SUPPORT
+   if (sd->fx_mode) GL_IT(it)->has_proxy_it = EINA_FALSE;
+   _elm_genlist_proxy_item_del((Elm_Object_Item *)it);
+   if ((!sd->fx_mode) || (sd->genlist_clearing))
+#endif
+     {
+        _item_free_common(it);
+     }
+   _item_unrealize(it, EINA_FALSE);
+   elm_genlist_item_class_unref((Elm_Genlist_Item_Class *)it->itc);
+   free(it->item);
+
+   if (sd->calc_job) ecore_job_del(sd->calc_job);
+   sd->calc_job = ecore_job_add(_calc_job, sd);
+}
+
+#if GENLIST_FX_SUPPORT
+static void
+_item_del_pre_fx_process(Elm_Gen_Item *it)
+{
+   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
+
+   sd->fx_items_deleted = EINA_TRUE;
+   _elm_genlist_fx_capture(ELM_WIDGET_DATA(sd)->obj, 0);
+   if (!eina_list_data_find(sd->pending_del_items, it))
+     sd->pending_del_items = eina_list_append(sd->pending_del_items, it);
+
+   _item_free_common(it);
+
+}
+#endif
+
 static Eina_Bool
 _item_del_pre_hook(Elm_Object_Item *item)
 {
@@ -5931,7 +5924,7 @@ elm_genlist_item_subitems_clear(Elm_Object_Item *item)
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
 
    ELM_GENLIST_ITEM_CHECK_OR_RETURN(item);
-   _item_subitems_clear(it);
+   _item_sub_items_clear(it);
 }
 
 EAPI void

@@ -4027,8 +4027,12 @@ _elm_widget_item_del(Elm_Widget_Item *item)
 
    //Widget item delete callback
    if (item->del_pre_func)
-      if (item->del_pre_func((Elm_Object_Item *)item))
-         _elm_widget_item_free(item);
+     {
+        if (item->del_pre_func((Elm_Object_Item *)item))
+          _elm_widget_item_free(item);
+     }
+   else
+     _elm_widget_item_free(item);
  }
 
 /**
