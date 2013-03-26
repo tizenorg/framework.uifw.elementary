@@ -2750,11 +2750,6 @@ _entry_mouse_clicked_signal_cb(void *data,
                                const char *emission __UNUSED__,
                                const char *source __UNUSED__)
 {
-   // TIZEN ONLY
-   ELM_ENTRY_DATA_GET(data, sd);
-   if (!_elm_config->desktop_entry && !sd->double_clicked)
-     _hover_cancel_cb(data, NULL, NULL);
-   /////
    evas_object_smart_callback_call(data, SIG_CLICKED, NULL);
 }
 
