@@ -1097,6 +1097,8 @@ _elm_entry_smart_theme(Evas_Object *obj)
 
    edje_object_part_text_input_panel_layout_set
      (sd->entry_edje, "elm.text", sd->input_panel_layout);
+   edje_object_part_text_input_panel_layout_variation_set
+     (sd->entry_edje, "elm.text", sd->input_panel_layout_variation);
    edje_object_part_text_autocapital_type_set
      (sd->entry_edje, "elm.text", sd->autocapital_type);
    edje_object_part_text_prediction_allow_set
@@ -5202,6 +5204,28 @@ elm_entry_input_panel_layout_get(const Evas_Object *obj)
    ELM_ENTRY_DATA_GET(obj, sd);
 
    return sd->input_panel_layout;
+}
+
+EAPI void
+elm_entry_input_panel_layout_variation_set(Evas_Object *obj,
+                                           int variation)
+{
+   ELM_ENTRY_CHECK(obj);
+   ELM_ENTRY_DATA_GET(obj, sd);
+
+   sd->input_panel_layout_variation = variation;
+
+   edje_object_part_text_input_panel_layout_variation_set
+      (sd->entry_edje, "elm.text", variation);
+}
+
+EAPI int
+elm_entry_input_panel_layout_variation_get(const Evas_Object *obj)
+{
+   ELM_ENTRY_CHECK(obj) 0;
+   ELM_ENTRY_DATA_GET(obj, sd);
+
+   return sd->input_panel_layout_variation;
 }
 
 EAPI void

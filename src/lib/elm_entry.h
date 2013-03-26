@@ -320,6 +320,14 @@ typedef enum
    ELM_INPUT_PANEL_LAYOUT_PASSWORD     /**< Like normal, but no auto-correct, no auto-capitalization etc. */
 } Elm_Input_Panel_Layout; /**< Type of input panel (virtual keyboard) to use - this is a hint and may not provide exactly what is desired. */
 
+enum
+{
+   ELM_INPUT_PANEL_LAYOUT_NUMBERONLY_VARIATION_NORMAL,
+   ELM_INPUT_PANEL_LAYOUT_NUMBERONLY_VARIATION_SIGNED,
+   ELM_INPUT_PANEL_LAYOUT_NUMBERONLY_VARIATION_DECIMAL,
+   ELM_INPUT_PANEL_LAYOUT_NUMBERONLY_VARIATION_SIGNED_AND_DECIMAL
+};
+
 /**
  * @typedef Elm_Input_Panel_Lang
  *
@@ -1411,6 +1419,31 @@ EAPI void                   elm_entry_input_panel_layout_set(Evas_Object *obj, E
  * @ingroup Entry
  */
 EAPI Elm_Input_Panel_Layout elm_entry_input_panel_layout_get(const Evas_Object *obj);
+
+/**
+ * Set the input panel layout variation of the entry
+ *
+ * @param obj The entry object
+ * @param variation layout variation type
+ *
+ * @ingroup Entry
+ * @since 1.8
+ */
+EAPI void                   elm_entry_input_panel_layout_variation_set(Evas_Object *obj, int variation);
+
+/**
+ * Get the input panel layout variation of the entry
+ *
+ * @param obj The entry object
+ * @return layout variation type
+ *
+ * @see elm_entry_input_panel_layout_variation_set
+ *
+ * @ingroup Entry
+ * @since 1.8
+ */
+EAPI int                    elm_entry_input_panel_layout_variation_get(const Evas_Object *obj);
+
 
 /**
  * Set the autocapitalization type on the immodule.
