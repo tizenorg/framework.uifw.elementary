@@ -383,53 +383,6 @@ _port_indicator_disconnected(void *data,
    sd->port_indi_timer = ecore_timer_add(1, _port_indicator_connect_cb, sd);
 }
 
-static void
-_access_activate_cb(void *data,
-                    Evas_Object *part_obj,
-                    Elm_Object_Item *item __UNUSED__)
-{
-   Evas_Coord x, y, w, h;
-
-#ifdef HAVE_ELEMENTARY_X
-   Evas_Object *top = elm_widget_top_get(data);
-   Ecore_X_Window xwin = elm_win_xwindow_get(top);
-
-   evas_object_geometry_get(part_obj, &x, &y, &w, &h);
-
-   ecore_x_mouse_down_send(xwin, (x + (w / 2)), (y + (h / 2)), 1);
-   ecore_x_mouse_up_send(xwin, (x + (w / 2)), (y + (h / 2)), 1);
-#endif
-}
-
-static void
-_access_obj_process(Evas_Object *obj, Eina_Bool is_access)
-{
-   Evas_Object *ao;
-
-   ELM_CONFORMANT_DATA_GET(obj, sd);
-
-   if (is_access)
-     {
-        ao = _elm_access_edje_object_part_object_register
-               (obj, ELM_WIDGET_DATA(sd)->resize_obj, "access");
-
-        _elm_access_text_set(_elm_access_object_get(ao),
-          ELM_ACCESS_TYPE, "Indicator, Double Tap To Open");
-        _elm_access_activate_callback_set
-          (_elm_access_object_get(ao), _access_activate_cb, obj);
-
-        edje_object_signal_emit(ELM_WIDGET_DATA(sd)->resize_obj,
-          "elm,state,access,on", "elm");
-     }
-   else
-     {
-        _elm_access_edje_object_part_object_unregister
-          (obj, ELM_WIDGET_DATA(sd)->resize_obj, "access");
-
-        edje_object_signal_emit(ELM_WIDGET_DATA(sd)->resize_obj,
-          "elm,state,access,off", "elm");
-     }
-}
 
 static const char PLUG_KEY[] = "__Plug_Ecore_Evas";
 // procotol version - change this as needed
@@ -510,9 +463,6 @@ _create_portrait_indicator(Evas_Object *obj)
    evas_object_size_hint_min_set(port_indicator, -1, 0);
    evas_object_size_hint_max_set(port_indicator, -1, 0);
 
-   /* access */
-   if (_elm_config->access_mode) _access_obj_process(obj, EINA_TRUE);
-
    return port_indicator;
 }
 
@@ -558,10 +508,6 @@ _create_landscape_indicator(Evas_Object *obj)
 
    evas_object_size_hint_min_set(land_indicator, -1, 0);
    evas_object_size_hint_max_set(land_indicator, -1, 0);
-
-   /* access */
-   if (_elm_config->access_mode) _access_obj_process(obj, EINA_TRUE);
-
    return land_indicator;
 }
 
@@ -1098,14 +1044,6 @@ _elm_conformant_smart_parent_set(Evas_Object *obj,
 }
 
 static void
-_elm_conformant_smart_access(Evas_Object *obj, Eina_Bool is_access)
-{
-   ELM_CONFORMANT_CHECK(obj);
-
-   _access_obj_process(obj, is_access);
-}
-
-static void
 _elm_conformant_smart_set_user(Elm_Conformant_Smart_Class *sc)
 {
    ELM_WIDGET_CLASS(sc)->base.add = _elm_conformant_smart_add;
@@ -1113,7 +1051,6 @@ _elm_conformant_smart_set_user(Elm_Conformant_Smart_Class *sc)
 
    ELM_WIDGET_CLASS(sc)->parent_set = _elm_conformant_smart_parent_set;
    ELM_WIDGET_CLASS(sc)->theme = _elm_conformant_smart_theme;
-   ELM_WIDGET_CLASS(sc)->access = _elm_conformant_smart_access;
 
    ELM_LAYOUT_CLASS(sc)->content_aliases = _content_aliases;
 }
