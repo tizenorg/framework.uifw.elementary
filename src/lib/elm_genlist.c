@@ -920,9 +920,6 @@ _item_sub_items_clear(Elm_Gen_Item *it)
    Eina_List *l, *ll;
    Elm_Object_Item *it2;
 
-   // FIXME: this can be removed after tree effect is remove in the upstream
-   ELM_GENLIST_ITEM_CHECK_OR_RETURN(it);
-
    EINA_LIST_FOREACH_SAFE(it->item->items, l, ll, it2)
      elm_widget_item_del(it2);
 }
