@@ -219,6 +219,10 @@ static Ecore_Job *_elm_win_state_eval_job = NULL;
 
 static void _elm_win_resize_objects_eval(Evas_Object *obj);
 
+#ifdef HAVE_ELEMENTARY_X
+static void _elm_win_xwin_update(Elm_Win_Smart_Data *sd);
+#endif
+
 static void
 _elm_win_obj_intercept_show(void *data, Evas_Object *obj)
 {
@@ -1058,8 +1062,11 @@ _elm_win_state_change(Ecore_Evas *ee)
         evas_object_size_hint_min_set(obj, -1, -1);
         evas_object_size_hint_max_set(obj, -1, -1);
         _elm_win_resize_objects_eval(obj);
+#ifdef HAVE_ELEMENTARY_X
+        _elm_win_xwin_update(sd);
+#endif
         elm_widget_orientation_set(obj, sd->rot);
-
+        evas_object_smart_callback_call(obj, SIG_ROTATION_CHANGED, NULL);
         evas_object_smart_callback_call(obj, SIG_WM_ROTATION_CHANGED, NULL);
      }
 }
