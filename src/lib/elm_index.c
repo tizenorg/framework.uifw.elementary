@@ -926,7 +926,6 @@ _elm_index_smart_del(Evas_Object *obj)
    while (sd->items)
      {
         it = sd->items->data;
-        _item_free(it);
         elm_widget_item_del(it);
      }
 
@@ -1346,7 +1345,6 @@ elm_index_item_sorted_insert(Evas_Object *obj,
              Elm_Index_Item *p_it = eina_list_data_get(lnear);
              if (cmp_data_func(p_it->base.data, it->base.data) >= 0)
                p_it->base.data = it->base.data;
-             _item_free(it);
              elm_widget_item_del(it);
              it = NULL;
           }
@@ -1382,10 +1380,7 @@ elm_index_item_clear(Evas_Object *obj)
         clear = eina_list_append(clear, it);
      }
    EINA_LIST_FREE (clear, it)
-     {
-        _item_free(it);
-        elm_widget_item_del(it);
-     }
+     elm_widget_item_del(it);
 }
 
 EAPI void
