@@ -195,6 +195,7 @@ struct _Elm_Entry_Smart_Data
    Eina_Bool mouse_upped : 1;
    Eina_Bool sel_allow : 1;
    Eina_Bool cursor_handler_disabled : 1;
+   Eina_Bool scroll_holding : 1;
    //
    Eina_Bool                             input_panel_return_key_disabled : 1;
    Eina_Bool                             drag_selection_asked : 1;

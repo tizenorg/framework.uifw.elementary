@@ -132,7 +132,6 @@ _select_all(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__
    edje_object_part_text_select_none(sd->entry_edje, "elm.text");
    edje_object_signal_emit(sd->entry_edje, "elm,state,select,on", "elm");
    edje_object_part_text_select_all(sd->entry_edje, "elm.text");
-   elm_object_scroll_freeze_pop(data);
 }
 
 static void
@@ -151,7 +150,6 @@ _select_word(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED_
      }
    edje_object_signal_emit(sd->entry_edje, "elm,state,select,on", "elm");
    edje_object_part_text_select_word(sd->entry_edje, "elm.text");
-   elm_object_scroll_freeze_pop(data);
 }
 
 #ifdef HAVE_ELEMENTARY_X
@@ -419,7 +417,6 @@ _signal_long_pressed(void *data, Evas_Object *obj __UNUSED__, const char *emissi
         _magnifier_create(data);
         _magnifier_move(data);
         _magnifier_show(data);
-        elm_object_scroll_freeze_push(data);
      }
 }
 
@@ -1622,8 +1619,10 @@ _hover_selected_cb(void *data,
    edje_object_signal_emit(sd->entry_edje, "elm,state,select,on", "elm");
 
    if (!_elm_config->desktop_entry)
-     elm_object_scroll_freeze_pop(data);  // TIZEN ONLY
-   //elm_widget_scroll_hold_push(data);   // TIZEN ONLY
+     {
+        elm_widget_scroll_hold_push(data);
+        sd->scroll_holding = EINA_TRUE;
+     }
 }
 
 static char *
@@ -1774,8 +1773,11 @@ _cut_cb(void *data,
        (sd->entry_edje, "elm.text", EINA_FALSE);
    edje_object_signal_emit(sd->entry_edje, "elm,state,select,off", "elm");
 
-   if (!_elm_config->desktop_entry)
-     elm_widget_scroll_hold_pop(data);
+   if ((!_elm_config->desktop_entry) && (sd->scroll_holding))
+     {
+        elm_widget_scroll_hold_pop(data);
+        sd->scroll_holding = EINA_FALSE;
+     }
 
    _selection_store(ELM_SEL_TYPE_CLIPBOARD, data);
    edje_object_part_text_user_insert(sd->entry_edje, "elm.text", "");
@@ -1799,7 +1801,11 @@ _copy_cb(void *data,
         //edje_object_part_text_select_allow_set      // TIZEN ONLY
         //  (sd->entry_edje, "elm.text", EINA_FALSE);
         edje_object_signal_emit(sd->entry_edje, "elm,state,select,off", "elm");
-        elm_widget_scroll_hold_pop(data);
+        if (sd->scroll_holding)
+          {
+             elm_widget_scroll_hold_pop(data);
+             sd->scroll_holding = EINA_FALSE;
+          }
      }
    _selection_store(ELM_SEL_TYPE_CLIPBOARD, data);
 }
@@ -1816,8 +1822,11 @@ _hover_cancel_cb(void *data,
      edje_object_part_text_select_allow_set
        (sd->entry_edje, "elm.text", EINA_FALSE);
    edje_object_signal_emit(sd->entry_edje, "elm,state,select,off", "elm");
-   if (!_elm_config->desktop_entry)
-     elm_widget_scroll_hold_pop(data);
+   if ((!_elm_config->desktop_entry) && (sd->scroll_holding))
+     {
+        elm_widget_scroll_hold_pop(data);
+        sd->scroll_holding = EINA_FALSE;
+     }
    edje_object_part_text_select_none(sd->entry_edje, "elm.text");
 }
 
@@ -2033,7 +2042,6 @@ _mouse_up_cb(void *data,
         if (sd->magnifier_enabled)
           {
              _magnifier_hide(data);
-             elm_object_scroll_freeze_pop(data);
              if (sd->long_pressed) _menu_call(data);
           }
         if (sd->click_timer)
@@ -3621,6 +3629,7 @@ _elm_entry_smart_add(Evas_Object *obj)
    priv->mouse_upped = EINA_FALSE;
    priv->sel_allow = EINA_TRUE;
    priv->cursor_handler_disabled = EINA_FALSE;
+   priv->scroll_holding = EINA_FALSE;
    //
 
    elm_layout_theme_set(obj, "entry", "base", elm_widget_style_get(obj));
