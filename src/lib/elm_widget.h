@@ -657,6 +657,7 @@ struct _Elm_Widget_Item
    Evas_Object                   *access_obj;
    const char                    *access_info;
    Eina_List                     *access_order;
+   Eina_List                     *translate_strings;
    Eina_List                     *signals;
 
    Eina_Bool                      disabled : 1;
@@ -798,8 +799,8 @@ EAPI Evas_Object     *elm_widget_newest_focus_order_get(const Evas_Object *obj, 
 EAPI void             elm_widget_activate(Evas_Object *obj, Elm_Activate act);
 EAPI void             elm_widget_text_part_set(Evas_Object *obj, const char *part, const char *label);
 EAPI const char      *elm_widget_text_part_get(const Evas_Object *obj, const char *part);
-EAPI void             elm_widget_domain_translatable_text_part_set(Evas_Object *obj, const char *part, const char *domain, const char *text);
-EAPI const char      *elm_widget_translatable_text_part_get(const Evas_Object *obj, const char *part);
+EAPI void             elm_widget_domain_translatable_part_text_set(Evas_Object *obj, const char *part, const char *domain, const char *text);
+EAPI const char      *elm_widget_translatable_part_text_get(const Evas_Object *obj, const char *part);
 EAPI void             elm_widget_content_part_set(Evas_Object *obj, const char *part, Evas_Object *content);
 EAPI Evas_Object     *elm_widget_content_part_get(const Evas_Object *obj, const char *part);
 EAPI Evas_Object     *elm_widget_content_part_unset(Evas_Object *obj, const char *part);
@@ -851,6 +852,9 @@ EAPI void             _elm_widget_item_disabled_set(Elm_Widget_Item *item, Eina_
 EAPI Eina_Bool        _elm_widget_item_disabled_get(const Elm_Widget_Item *item);
 EAPI void             _elm_widget_item_disable_hook_set(Elm_Widget_Item *item, Elm_Widget_Disable_Cb func);
 EAPI void             _elm_widget_item_del_pre_hook_set(Elm_Widget_Item *item, Elm_Widget_Del_Pre_Cb func);
+EAPI void             _elm_widget_item_domain_translatable_part_text_set(Elm_Widget_Item *item, const char *part, const char *domain, const char *label);
+EAPI const char *     _elm_widget_item_translatable_part_text_get(const Elm_Widget_Item *item, const char *part);
+EAPI void             _elm_widget_item_translate(Elm_Widget_Item *item);
 
 /**
  * Function to operate on a given widget's scrollabe children when necessary.

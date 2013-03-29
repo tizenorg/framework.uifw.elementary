@@ -3247,35 +3247,32 @@ elm_widget_text_part_get(const Evas_Object *obj,
    return NULL;
 }
 
-EAPI void
-elm_widget_domain_translatable_text_part_set(Evas_Object *obj,
-                                             const char *part,
-                                             const char *domain,
-                                             const char *label)
+static Eina_Bool
+_translatable_part_text_set(Eina_List **translate_strings, const char *part, const char *domain, const char *label)
 {
    const char *str;
-   Eina_List *l;
+   Eina_List *t, *l;
    Elm_Translate_String_Data *ts = NULL;
-   API_ENTRY return;
 
+   t = *translate_strings;
    str = eina_stringshare_add(part);
-   EINA_LIST_FOREACH(sd->translate_strings, l, ts)
-     if (ts->id == str)
-       break;
-     else
-       ts = NULL;
+   EINA_LIST_FOREACH(t, l, ts)
+     {
+        if (ts->id == str) break;
+        else ts = NULL;
+     }
 
    if (!ts && !label)
      eina_stringshare_del(str);
    else if (!ts)
      {
         ts = malloc(sizeof(Elm_Translate_String_Data));
-        if (!ts) return;
+        if (!ts) return EINA_FALSE;
 
         ts->id = str;
         ts->domain = eina_stringshare_add(domain);
         ts->string = eina_stringshare_add(label);
-        sd->translate_strings = eina_list_append(sd->translate_strings, ts);
+        t = eina_list_append(t, ts);
      }
    else
      {
@@ -3286,8 +3283,7 @@ elm_widget_domain_translatable_text_part_set(Evas_Object *obj,
           }
         else
           {
-             sd->translate_strings = eina_list_remove_list(
-                 sd->translate_strings, l);
+             t = eina_list_remove_list(t, l);
              eina_stringshare_del(ts->id);
              eina_stringshare_del(ts->domain);
              eina_stringshare_del(ts->string);
@@ -3296,6 +3292,20 @@ elm_widget_domain_translatable_text_part_set(Evas_Object *obj,
         eina_stringshare_del(str);
      }
 
+   *translate_strings = t;
+   return EINA_TRUE;
+}
+
+EAPI void
+elm_widget_domain_translatable_part_text_set(Evas_Object *obj,
+                                             const char *part,
+                                             const char *domain,
+                                             const char *label)
+{
+   API_ENTRY return;
+
+   if (!_translatable_part_text_set(&sd->translate_strings, part, domain,
+                                    label)) return;
 #ifdef HAVE_GETTEXT
    if (label && label[0])
      label = dgettext(domain, label);
@@ -3303,24 +3313,31 @@ elm_widget_domain_translatable_text_part_set(Evas_Object *obj,
    elm_widget_text_part_set(obj, part, label);
 }
 
-EAPI const char *
-elm_widget_translatable_text_part_get(const Evas_Object *obj,
-                                      const char *part)
+static const char *
+_translatable_part_text_get(Eina_List *translate_strings, const char *part)
 {
-   const char *str, *ret = NULL;
-   Eina_List *l;
    Elm_Translate_String_Data *ts;
-   API_ENTRY return NULL;
+   const char*ret = NULL, *str;
+   Eina_List *l;
 
    str = eina_stringshare_add(part);
-   EINA_LIST_FOREACH(sd->translate_strings, l, ts)
+   EINA_LIST_FOREACH(translate_strings, l, ts)
      if (ts->id == str)
        {
           ret = ts->string;
           break;
        }
    eina_stringshare_del(str);
+
    return ret;
+}
+
+EAPI const char *
+elm_widget_translatable_part_text_get(const Evas_Object *obj,
+                                      const char *part)
+{
+   API_ENTRY return NULL;
+   return _translatable_part_text_get(sd->translate_strings, part);
 }
 
 EAPI void
@@ -3976,6 +3993,7 @@ _elm_widget_item_new(Evas_Object *widget,
 EAPI void
 _elm_widget_item_free(Elm_Widget_Item *item)
 {
+   Elm_Translate_String_Data *ts;
    Elm_Widget_Item_Signal_Data *wisd;
 
    ELM_WIDGET_ITEM_CHECK_OR_RETURN(item);
@@ -3994,6 +4012,14 @@ _elm_widget_item_free(Elm_Widget_Item *item)
         eina_stringshare_del(wisd->emission);
         eina_stringshare_del(wisd->source);
         free(wisd);
+     }
+
+   EINA_LIST_FREE(item->translate_strings, ts)
+     {
+        eina_stringshare_del(ts->id);
+        eina_stringshare_del(ts->domain);
+        eina_stringshare_del(ts->string);
+        free(ts);
      }
 
    EINA_MAGIC_SET(item, EINA_MAGIC_NONE);
@@ -4192,6 +4218,31 @@ _elm_widget_item_disable_hook_set(Elm_Widget_Item *item,
    ELM_WIDGET_ITEM_RETURN_IF_ONDEL(item);
 
    item->disable_func = func;
+}
+
+EAPI void
+_elm_widget_item_domain_translatable_part_text_set(Elm_Widget_Item *item,
+                                                   const char *part,
+                                                   const char *domain,
+                                                   const char *label)
+{
+   ELM_WIDGET_ITEM_CHECK_OR_RETURN(item);
+
+   if (!_translatable_part_text_set(&item->translate_strings, part, domain,
+                                    label)) return;
+#ifdef HAVE_GETTEXT
+   if (label && label[0])
+     label = dgettext(domain, label);
+#endif
+   _elm_widget_item_part_text_set(item, part, label);
+}
+
+EAPI const char *
+_elm_widget_item_translatable_part_text_get(const Elm_Widget_Item *item,
+                                            const char *part)
+{
+   ELM_WIDGET_ITEM_CHECK_OR_RETURN(item, NULL);
+   return _translatable_part_text_get(item->translate_strings, part);
 }
 
 typedef struct _Elm_Widget_Item_Tooltip Elm_Widget_Item_Tooltip;
