@@ -52,6 +52,8 @@ static const char SIG_MOVED[] = "moved";
 static const char SIG_INDEX_UPDATE[] = "index,update";
 static const char SIG_HIGHLIGHTED[] = "highlighted";
 static const char SIG_UNHIGHLIGHTED[] = "unhighlighted";
+static const char SIG_LANG_CHANGED[] = "language,changed";
+
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_ACTIVATED, ""},
    {SIG_CLICKED_DOUBLE, ""},
@@ -79,6 +81,7 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_MOVED, ""},
    {SIG_HIGHLIGHTED, ""},
    {SIG_UNHIGHLIGHTED, ""},
+   {SIG_LANG_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -104,6 +107,14 @@ static void
 _elm_gengrid_pan_smart_pos_min_get(const Evas_Object *obj,
                                    Evas_Coord *x,
                                    Evas_Coord *y);
+
+static Eina_Bool
+_elm_gengrid_smart_translate(Evas_Object *obj)
+{
+   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+
+   return EINA_TRUE;
+}
 
 static void
 _item_show_region(void *data)
@@ -1508,6 +1519,7 @@ _elm_gengrid_pan_smart_set_user(Elm_Gengrid_Pan_Smart_Class *sc)
    ELM_PAN_CLASS(sc)->pos_min_get = _elm_gengrid_pan_smart_pos_min_get;
    ELM_PAN_CLASS(sc)->content_size_get =
      _elm_gengrid_pan_smart_content_size_get;
+
 }
 
 static Eina_Bool
@@ -2636,6 +2648,7 @@ _elm_gengrid_smart_set_user(Elm_Gengrid_Smart_Class *sc)
    /* not a 'focus chain manager' */
    ELM_WIDGET_CLASS(sc)->focus_next = NULL;
    ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_gengrid_smart_translate;
 
    ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_gengrid_smart_sizing_eval;
 
