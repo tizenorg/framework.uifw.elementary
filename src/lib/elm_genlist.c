@@ -148,6 +148,7 @@ static void _elm_genlist_item_state_update(Elm_Gen_Item *it, Item_Cache *ic);
 static void _decorate_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_all_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_item_set(Elm_Gen_Item *it);
+static void _changed_job(Elm_Genlist_Smart_Data *sd);
 
 #if GENLIST_FX_SUPPORT
 static Eina_Bool      _elm_genlist_fx_capture(Evas_Object *obj, int level);
@@ -455,42 +456,28 @@ _elm_genlist_pan_smart_move(Evas_Object *obj,
 }
 
 static void
-_elm_genlist_pan_smart_resize_job(void *data)
-{
-   Elm_Genlist_Pan_Smart_Data *psd = data;
-
-   elm_layout_sizing_eval(ELM_WIDGET_DATA(psd->wsd)->obj);
-   psd->resize_job = NULL;
-}
-
-static void
 _elm_genlist_pan_smart_resize(Evas_Object *obj,
                               Evas_Coord w,
                               Evas_Coord h)
 {
-   Evas_Coord ow, oh;
+   Evas_Coord ow = 0, oh = 0, vw = 0;
 
    ELM_GENLIST_PAN_DATA_GET(obj, psd);
 
    evas_object_geometry_get(obj, NULL, NULL, &ow, &oh);
    if ((ow == w) && (oh == h)) return;
-   if ((psd->wsd->mode == ELM_LIST_COMPRESS) && (ow != w))
-     {
-        /* fix me later */
-        if (psd->resize_job) ecore_job_del(psd->resize_job);
-        psd->resize_job =
-          ecore_job_add(_elm_genlist_pan_smart_resize_job, psd);
-     }
+
+   psd->wsd->s_iface->content_viewport_size_get
+      (ELM_WIDGET_DATA(psd->wsd)->obj, &vw, NULL);
+   if (vw != 0) psd->wsd->prev_viewport_w = vw;
+
+
+   if (psd->wsd->mode == ELM_LIST_COMPRESS)
+     psd->wsd->size_changed = EINA_TRUE;
+
    psd->wsd->pan_changed = EINA_TRUE;
-   evas_object_smart_changed(obj);
    if (psd->wsd->calc_job) ecore_job_del(psd->wsd->calc_job);
-   // if the widht changed we may have to resize content if scrollbar went
-   // away or appesared to queue a job to deal with it. it should settle in
-   // the end to a steady-state
-   if (ow != w)
-     psd->wsd->calc_job = ecore_job_add(_calc_job, psd->wsd);
-   else
-     psd->wsd->calc_job = NULL;
+   psd->wsd->calc_job = ecore_job_add(_calc_job, psd->wsd);
 }
 
 static void
@@ -698,13 +685,9 @@ _calc_job(void *data)
    Elm_Genlist_Smart_Data *sd = data;
    Eina_Bool minw_change = EINA_FALSE;
    Eina_Bool did_must_recalc = EINA_FALSE;
-   Evas_Coord minw = -1, minh = 0, y = 0, ow, dy = 0, vw = 0;
+   Evas_Coord minw = -1, minh = 0, y = 0, dy = 0, vw = 0;
 
-   evas_object_geometry_get(sd->pan_obj, NULL, NULL, &ow, &sd->h);
-   if (sd->mode == ELM_LIST_COMPRESS)
-     sd->s_iface->content_viewport_size_get(ELM_WIDGET_DATA(sd)->obj, &vw, NULL);
-
-   if (sd->w != ow) sd->w = ow;
+   sd->s_iface->content_viewport_size_get(ELM_WIDGET_DATA(sd)->obj, &sd->w, &sd->h);
 
    //evas_event_freeze(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
    EINA_INLIST_FOREACH(sd->blocks, itb)
@@ -846,51 +829,25 @@ _calc_job(void *data)
 static void
 _elm_genlist_smart_sizing_eval(Evas_Object *obj)
 {
-   Evas_Coord minw = -1, minh = -1, maxw = -1, maxh = -1;
-   Evas_Coord vmw = 0, vmh = 0;
+   Evas_Coord minw = 0, minh = 0, maxw = -1, maxh = -1, vw = 0;
 
    ELM_GENLIST_DATA_GET(obj, sd);
 
    /* parent class' early call */
    if (!sd->s_iface) return;
-
    if (sd->on_sub_del) return;;
 
    evas_object_size_hint_min_get(obj, &minw, NULL);
    evas_object_size_hint_max_get(obj, &maxw, &maxh);
+   edje_object_size_min_calc(ELM_WIDGET_DATA(sd)->resize_obj, &minw, &minh);
 
-   edje_object_size_min_calc(ELM_WIDGET_DATA(sd)->resize_obj, &vmw, &vmh);
+   sd->s_iface->content_viewport_size_get(obj, &vw, NULL);
+   if (vw != 0) sd->prev_viewport_w = vw;
 
-   if (sd->mode == ELM_LIST_COMPRESS)
-     {
-        Evas_Coord vw, vh;
-
-        sd->s_iface->content_viewport_size_get(obj, &vw, &vh);
-        if ((vw != 0) && (vw != sd->prev_viewport_w))
-          {
-             Item_Block *itb;
-
-             sd->prev_viewport_w = vw;
-
-             EINA_INLIST_FOREACH(sd->blocks, itb)
-               {
-                  itb->must_recalc = EINA_TRUE;
-               }
-             if (sd->calc_job) ecore_job_del(sd->calc_job);
-             sd->calc_job = ecore_job_add(_calc_job, sd);
-          }
-        minw = vmw;
-        minh = vmh;
-     }
-   else if (sd->mode == ELM_LIST_LIMIT)
+   if (sd->mode == ELM_LIST_LIMIT)
      {
         maxw = -1;
-        minw = vmw + sd->realminw;
-     }
-   else
-     {
-        minw = vmw;
-        minh = vmh;
+        minw = minw + sd->realminw;
      }
 
    evas_object_size_hint_min_set(obj, minw, minh);
@@ -1408,8 +1365,6 @@ _changed_size_hints(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__,
    Elm_Gen_Item *it = data;
    if (!it) return;
    if (it->want_unrealize) return;
-   it->item->mincalcd = EINA_FALSE;
-   it->item->block->changeme = EINA_TRUE;
    GL_IT(it)->wsd->size_changed = EINA_TRUE;
    evas_object_smart_changed(GL_IT(it)->wsd->pan_obj);
 }
@@ -1751,11 +1706,12 @@ _item_realize(Elm_Gen_Item *it,
         if (!it->item->mincalcd)
 #endif
           {
-             Evas_Coord mw = -1, mh = -1;
+             Evas_Coord mw = 0, mh = 0;
 
              if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
                elm_coords_finger_size_adjust(1, &mw, 1, &mh);
-             if (GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS)
+             if (GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS &&
+                 GL_IT(it)->wsd->prev_viewport_w != 0)
                mw = GL_IT(it)->wsd->prev_viewport_w;
              edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
 
@@ -2128,7 +2084,6 @@ _item_block_realize(Item_Block *itb)
    itb->want_unrealize = EINA_FALSE;
 }
 
-#if GENLIST_ENTRY_SUPPORT
 static void
 _changed_job(Elm_Genlist_Smart_Data *sd)
 {
@@ -2139,35 +2094,25 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
    Eina_Bool anything_changed = EINA_FALSE;
    Eina_Bool width_changed = EINA_FALSE;
    Eina_Bool height_changed = EINA_FALSE;
-   sd->size_changed = EINA_FALSE;
 
    EINA_INLIST_FOREACH(sd->blocks, itb)
      {
         Elm_Gen_Item *it;
 
-        if (!itb->changeme)
-          {
-             num += itb->count;
-             if (anything_changed)
-               _item_block_position(itb, num);
-             continue;
-          }
         num0 = num;
         width_changed = height_changed = EINA_FALSE;
         EINA_LIST_FOREACH(itb->items, l2, it)
           {
-             if ((!it->item->mincalcd) && (it->realized))
+             if (it->realized)
                {
-                  Evas_Coord fw = -1, fh = -1;
-                  Evas_Coord mw = -1, mh = -1;
+                  Evas_Coord mw = 0, mh = 0;
 
                   if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
-                     elm_coords_finger_size_adjust(1, &fw, 1, &fh);
-
-                  // FIXME: why compressmode do this?
-                  if (sd->mode == ELM_LIST_COMPRESS) mw = sd->prev_viewport_w;
-
-                  edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, fw, fh);
+                     elm_coords_finger_size_adjust(1, &mw, 1, &mh);
+                  if (GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS &&
+                      GL_IT(it)->wsd->prev_viewport_w != 0)
+                     mw = sd->prev_viewport_w;
+                  edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
 
                   if (it->item->w != mw)
                     {
@@ -2184,8 +2129,6 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
                        itb->w = mw;
                     }
 
-                  it->item->mincalcd = EINA_TRUE;
-
                   if ((!sd->group_item_width) && (it->group))
                     {
                        sd->group_item_width = mw;
@@ -2199,7 +2142,6 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
                }
              num++;
           }
-        itb->changeme = EINA_FALSE;
         if (height_changed)
           {
              anything_changed = EINA_TRUE;
@@ -2218,7 +2160,6 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
         sd->calc_job = ecore_job_add(_calc_job, sd);
      }
 }
-#endif
 
 static void
 _elm_genlist_pan_smart_calculate(Evas_Object *obj)
@@ -2311,9 +2252,11 @@ _elm_genlist_pan_smart_calculate(Evas_Object *obj)
      psd->wsd->s_iface->content_region_show(ELM_WIDGET_DATA(psd->wsd)->obj,
                                             vx, vy + 10, vw, vh);
 
-#if GENLIST_ENTRY_SUPPORT
-   if (psd->wsd->size_changed) _changed_job(psd->wsd);
-#endif
+   if (psd->wsd->size_changed)
+     {
+        _changed_job(psd->wsd);
+        psd->wsd->size_changed = EINA_FALSE;
+     }
 
 #if GENLIST_FX_SUPPORT
    psd->wsd->rendered = EINA_TRUE;
@@ -4056,38 +3999,26 @@ _item_queue(Elm_Genlist_Smart_Data *sd,
             Eina_Compare_Cb cb)
 {
    if (it->item->queued) return;
+
    it->item->queued = EINA_TRUE;
    if (cb && !sd->requeued)
      sd->queue = eina_list_sorted_insert(sd->queue, cb, it);
    else
      sd->queue = eina_list_append(sd->queue, it);
-// FIXME: why does a freeze then thaw here cause some genlist
-// elm_genlist_item_append() to be much much slower?
-//   evas_event_freeze(evas_object_evas_get(sd->obj));
-   while ((sd->queue) && ((!sd->blocks) || (!sd->blocks->next)))
-     {
-        if (sd->queue_idle_enterer)
-          {
-             ecore_idle_enterer_del(sd->queue_idle_enterer);
-             sd->queue_idle_enterer = NULL;
-          }
-        _queue_process(sd);
-     }
-   while ((sd->queue) && (sd->blocks) &&
-          (sd->homogeneous) && (sd->mode == ELM_LIST_COMPRESS))
-     {
-        if (sd->queue_idle_enterer)
-          {
-             ecore_idle_enterer_del(sd->queue_idle_enterer);
-             sd->queue_idle_enterer = NULL;
-          }
-        _queue_process(sd);
-     }
 
-//   evas_event_thaw(evas_object_evas_get(sd->obj));
-//   evas_event_thaw_eval(evas_object_evas_get(sd->obj));
-   if (!sd->queue_idle_enterer)
-     sd->queue_idle_enterer = ecore_idle_enterer_add(_item_idle_enterer, sd);
+   if (sd->queue_idle_enterer)
+      ecore_idle_enterer_del(sd->queue_idle_enterer);
+   sd->queue_idle_enterer = ecore_idle_enterer_add(_item_idle_enterer, sd);
+
+   if (sd->prev_viewport_w != 0)
+     {
+        while ((sd->queue) && ((!sd->blocks) || (!sd->blocks->next)))
+          _queue_process(sd);
+
+        while ((sd->queue) && (sd->blocks) &&
+               (sd->homogeneous) && (sd->mode == ELM_LIST_COMPRESS))
+          _queue_process(sd);
+     }
 }
 
 /* If the application wants to know the relative item, use

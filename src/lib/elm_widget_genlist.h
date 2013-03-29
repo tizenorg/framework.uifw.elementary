@@ -375,9 +375,6 @@ struct _Item_Block
    Eina_Bool               updateme : 1;
    Eina_Bool               changed : 1;
    Eina_Bool               show_me : 1;
-#if GENLIST_ENTRY_SUPPORT
-   Eina_Bool               changeme: 1;
-#endif
 };
 
 struct _Item_Cache
