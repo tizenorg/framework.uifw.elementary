@@ -10,6 +10,10 @@
  * has to deal with registering a few callback functions for rendering
  * to a surface using OpenGL APIs.
  *
+ * This widget emits the following signals, besides the ones sent from
+ * @ref GLView:
+ * - @c "language,changed" - the program's language changed
+ *
  * Below is an illustrative example of how to use GLView and and OpenGL
  * to render in elementary environment.
  * @ref glview_example_01_page

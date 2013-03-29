@@ -6,17 +6,26 @@ EAPI const char ELM_GLVIEW_SMART_NAME[] = "elm_glview";
 
 static const char SIG_FOCUSED[] = "focused";
 static const char SIG_UNFOCUSED[] = "unfocused";
+static const char SIG_LANG_CHANGED[] = "language,changed";
 
 /* smart callbacks coming from elm glview objects: */
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_FOCUSED, ""},
    {SIG_UNFOCUSED, ""},
+   {SIG_LANG_CHANGED, ""},
    {NULL, NULL}
 };
 
 EVAS_SMART_SUBCLASS_NEW
   (ELM_GLVIEW_SMART_NAME, _elm_glview, Elm_Glview_Smart_Class,
   Elm_Widget_Smart_Class, elm_widget_smart_class_get, _smart_callbacks);
+
+static Eina_Bool
+_elm_glview_smart_translate(Evas_Object *obj)
+{
+   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+   return EINA_TRUE;
+}
 
 static Eina_Bool
 _elm_glview_smart_on_focus(Evas_Object *obj)
@@ -274,6 +283,7 @@ _elm_glview_smart_set_user(Elm_Glview_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->base.resize = _elm_glview_smart_resize;
 
    ELM_WIDGET_CLASS(sc)->on_focus = _elm_glview_smart_on_focus;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_glview_smart_translate;
 }
 
 EAPI const Elm_Glview_Smart_Class *
