@@ -295,6 +295,8 @@ static const char SIG_NAME_LOADED[] = "name,loaded";
 static const char SIG_NAME_LOADED_FAIL[] = "name,loaded,fail";
 static const char SIG_OVERLAY_CLICKED[] = "overlay,clicked";
 static const char SIG_OVERLAY_DEL[] = "overlay,del";
+static const char SIG_LANG_CHANGED[] = "language,changed";
+
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CLICKED, ""},
    {SIG_CLICKED_DOUBLE, ""},
@@ -320,6 +322,7 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_NAME_LOADED_FAIL, ""},
    {SIG_OVERLAY_CLICKED, ""},
    {SIG_OVERLAY_DEL, ""},
+   {SIG_LANG_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -336,6 +339,13 @@ EVAS_SMART_SUBCLASS_IFACE_NEW
 ELM_INTERNAL_SMART_SUBCLASS_NEW
   (ELM_MAP_PAN_SMART_NAME, _elm_map_pan, Elm_Map_Pan_Smart_Class,
   Elm_Pan_Smart_Class, elm_pan_smart_class_get, NULL);
+
+static Eina_Bool
+_elm_map_smart_translate(Evas_Object *obj)
+{
+   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+   return EINA_TRUE;
+}
 
 static void
 _edj_overlay_size_get(Elm_Map_Smart_Data *sd,
@@ -4563,6 +4573,7 @@ _elm_map_smart_set_user(Elm_Map_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->on_focus = _elm_map_smart_on_focus;
    ELM_WIDGET_CLASS(sc)->theme = _elm_map_smart_theme;
    ELM_WIDGET_CLASS(sc)->event = _elm_map_smart_event;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_map_smart_translate;
 }
 #endif
 
