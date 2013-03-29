@@ -1960,6 +1960,7 @@ _elm_win_client_message(void *data,
                         int type __UNUSED__,
                         void *event)
 {
+   Ecore_X_Atom atom_scroll;
    Elm_Win_Smart_Data *sd = data;
    Ecore_X_Event_Client_Message *e = event;
 
@@ -1997,6 +1998,8 @@ _elm_win_client_message(void *data,
      {
         if ((unsigned int)e->data.l[0] == sd->x.xwin)
           {
+             atom_scroll = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_SCROLL_");
+
              if ((unsigned int)e->data.l[1] ==
                  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_NEXT)
                {
@@ -2050,6 +2053,11 @@ _elm_win_client_message(void *data,
                {
                   _elm_access_highlight_object_activate
                     (ELM_WIDGET_DATA(sd)->obj, ELM_ACTIVATE_DOWN);
+               }
+             else if ((unsigned int)e->data.l[1] == atom_scroll)
+               {
+                  _elm_access_highlight_object_scroll(ELM_WIDGET_DATA(sd)->obj,
+                    e->data.l[2], e->data.l[3], e->data.l[4]);
                }
           }
      }

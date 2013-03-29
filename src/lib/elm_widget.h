@@ -592,6 +592,7 @@ Eina_Bool             _elm_access_read_mode_get();
 void                  _elm_access_widget_item_access_order_set(Elm_Widget_Item *item, Eina_List *objs);
 const Eina_List      *_elm_access_widget_item_access_order_get(const Elm_Widget_Item *item);
 void                  _elm_access_widget_item_access_order_unset(Elm_Widget_Item *item);
+void                  _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y);
 
 EAPI void             _elm_access_clear(Elm_Access_Info *ac);
 EAPI void             _elm_access_text_set(Elm_Access_Info *ac, int type, const char *text);

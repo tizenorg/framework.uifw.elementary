@@ -1,5 +1,6 @@
 #include <Elementary.h>
 #include "elm_priv.h"
+#include "elm_interface_scrollable.h"
 
 static const char ACCESS_SMART_NAME[] = "elm_access";
 
@@ -25,6 +26,8 @@ typedef struct _Action_Info Action_Info;
 
 static Eina_Bool mouse_event_enable = EINA_TRUE;
 static Eina_Bool read_mode = EINA_FALSE;
+static Evas_Coord_Point offset;
+static Evas_Object *s_parent; /* scrollable parent */
 
 static Evas_Object * _elm_access_add(Evas_Object *parent);
 
@@ -446,6 +449,69 @@ _elm_access_widget_item_access_order_unset(Elm_Widget_Item *item)
         evas_object_event_callback_del_full
           (o, EVAS_CALLBACK_DEL, _access_order_del_cb, item);
         item->access_order = eina_list_remove_list(item->access_order, l);
+     }
+}
+
+void
+_elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
+{
+   Evas *evas;
+   Evas_Object *ho;
+   Evas_Coord_Rectangle ho_area;
+
+   if (!obj) return;
+
+   evas = evas_object_evas_get(obj);
+   if (!evas) return;
+
+   switch (type)
+     {
+      case 0:
+         ho = _access_highlight_object_get(obj);
+         if (!ho)
+           {
+              s_parent = NULL;
+              return;
+           }
+         else
+           {
+              /* find scrollable parent */
+              s_parent = elm_widget_parent_get(ho);
+              while (s_parent)
+                {
+                   if(!!evas_object_smart_interface_get(s_parent, ELM_SCROLLABLE_IFACE_NAME))
+                     break;
+                   s_parent = elm_widget_parent_get(s_parent);
+                }
+
+               if (!s_parent) return;
+               //TODO: new interface to disable repeat event
+
+              evas_object_geometry_get
+                (ho, &ho_area.x, &ho_area.y, &ho_area.w, &ho_area.h);
+
+              offset.x = x - (ho_area.x + (ho_area.w / 2));
+              offset.y = y - (ho_area.y + (ho_area.h / 2));
+           }
+
+          evas_event_feed_mouse_in(evas, 0, NULL);
+          evas_event_feed_mouse_move(evas, x - offset.x, y - offset.y, 0, NULL);
+          evas_event_feed_mouse_down(evas, 1, EVAS_BUTTON_NONE, 0, NULL);
+        break;
+
+      case 1:
+          if (!s_parent) return;
+          evas_event_feed_mouse_move(evas, x - offset.x, y - offset.y, 0, NULL);
+        break;
+
+      case 2:
+          if (!s_parent) return;
+          evas_event_feed_mouse_up(evas, 1, EVAS_BUTTON_NONE, 0, NULL);
+          //TODO: new interface to enable repeat event
+        break;
+
+      default:
+        break;
      }
 }
 
