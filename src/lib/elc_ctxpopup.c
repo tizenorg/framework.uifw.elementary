@@ -5,14 +5,23 @@
 EAPI const char ELM_CTXPOPUP_SMART_NAME[] = "elm_ctxpopup";
 
 static const char SIG_DISMISSED[] = "dismissed";
+static const char SIG_LANG_CHANGED[] = "language,changed";
+
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_DISMISSED, ""},
+   {SIG_LANG_CHANGED, ""},
    {NULL, NULL}
 };
 
 EVAS_SMART_SUBCLASS_NEW
   (ELM_CTXPOPUP_SMART_NAME, _elm_ctxpopup, Elm_Ctxpopup_Smart_Class,
    Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks);
+
+static Eina_Bool
+_elm_ctxpopup_smart_translate(Evas_Object *obj)
+{
+   evas_object_hide(obj);
+}
 
 static Eina_Bool
 _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
@@ -1537,6 +1546,7 @@ _elm_ctxpopup_smart_set_user(Elm_Ctxpopup_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->sub_object_add = _elm_ctxpopup_smart_sub_object_add;
    ELM_WIDGET_CLASS(sc)->focus_next = _elm_ctxpopup_smart_focus_next;
    ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_ctxpopup_smart_translate;
 
    ELM_CONTAINER_CLASS(sc)->content_get = _elm_ctxpopup_smart_content_get;
    ELM_CONTAINER_CLASS(sc)->content_set = _elm_ctxpopup_smart_content_set;
