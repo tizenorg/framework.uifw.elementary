@@ -1960,6 +1960,7 @@ _elm_win_client_message(void *data,
                         int type __UNUSED__,
                         void *event)
 {
+   Elm_Access_Action_Info *a;
    Ecore_X_Atom atom_scroll;
    Elm_Win_Smart_Data *sd = data;
    Ecore_X_Event_Client_Message *e = event;
@@ -2024,13 +2025,11 @@ _elm_win_client_message(void *data,
                   evas = evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj);
                   if (!evas) return ECORE_CALLBACK_PASS_ON;
 
-                  _elm_access_mouse_event_enabled_set(EINA_TRUE);
-
-                  evas_event_feed_mouse_in(evas, 0, NULL);
-                  evas_event_feed_mouse_move
-                    (evas, e->data.l[2], e->data.l[3], 0, NULL);
-
-                  _elm_access_mouse_event_enabled_set(EINA_FALSE);
+                  a = calloc(1, sizeof(Elm_Access_Action_Info));
+                  a->x = e->data.l[2];
+                  a->y = e->data.l[3];
+                  elm_access_action(ELM_WIDGET_DATA(sd)->obj, ELM_ACCESS_ACTION_HIGHLIGHT, a);
+                  free(a);
                }
              else if ((unsigned int)e->data.l[1] ==
                       ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_READ_NEXT)

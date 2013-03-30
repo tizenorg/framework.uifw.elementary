@@ -28,6 +28,7 @@ static Eina_Bool mouse_event_enable = EINA_TRUE;
 static Eina_Bool read_mode = EINA_FALSE;
 static Evas_Coord_Point offset;
 static Evas_Object *s_parent; /* scrollable parent */
+static Elm_Access_Action_Type action_type = ELM_ACCESS_ACTION_FIRST;
 
 static Evas_Object * _elm_access_add(Evas_Object *parent);
 
@@ -467,47 +468,51 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
    switch (type)
      {
       case 0:
-         ho = _access_highlight_object_get(obj);
-         if (!ho)
-           {
-              s_parent = NULL;
-              return;
-           }
-         else
-           {
-              /* find scrollable parent */
-              s_parent = elm_widget_parent_get(ho);
-              while (s_parent)
-                {
-                   if(!!evas_object_smart_interface_get(s_parent, ELM_SCROLLABLE_IFACE_NAME))
-                     break;
-                   s_parent = elm_widget_parent_get(s_parent);
-                }
+        ho = _access_highlight_object_get(obj);
+        if (!ho)
+          {
+             s_parent = NULL;
+             return;
+          }
+        else
+          {
+             /* find scrollable parent */
+             s_parent = elm_widget_parent_get(ho);
+             while (s_parent)
+               {
+                  if(!!evas_object_smart_interface_get(s_parent, ELM_SCROLLABLE_IFACE_NAME))
+                    break;
+                  s_parent = elm_widget_parent_get(s_parent);
+               }
 
-               if (!s_parent) return;
-               //TODO: new interface to disable repeat event
+              if (!s_parent) return;
+
+              ELM_SCROLLABLE_IFACE_GET(s_parent, s_iface);
+              s_iface->repeat_events_set(s_parent, EINA_FALSE);
 
               evas_object_geometry_get
                 (ho, &ho_area.x, &ho_area.y, &ho_area.w, &ho_area.h);
 
               offset.x = x - (ho_area.x + (ho_area.w / 2));
               offset.y = y - (ho_area.y + (ho_area.h / 2));
-           }
+          }
 
-          evas_event_feed_mouse_in(evas, 0, NULL);
-          evas_event_feed_mouse_move(evas, x - offset.x, y - offset.y, 0, NULL);
-          evas_event_feed_mouse_down(evas, 1, EVAS_BUTTON_NONE, 0, NULL);
+        evas_event_feed_mouse_in(evas, 0, NULL);
+        evas_event_feed_mouse_move(evas, x - offset.x, y - offset.y, 0, NULL);
+        evas_event_feed_mouse_down(evas, 1, EVAS_BUTTON_NONE, 0, NULL);
         break;
 
       case 1:
-          if (!s_parent) return;
-          evas_event_feed_mouse_move(evas, x - offset.x, y - offset.y, 0, NULL);
+        if (!s_parent) return;
+        evas_event_feed_mouse_move(evas, x - offset.x, y - offset.y, 0, NULL);
         break;
 
       case 2:
-          if (!s_parent) return;
-          evas_event_feed_mouse_up(evas, 1, EVAS_BUTTON_NONE, 0, NULL);
-          //TODO: new interface to enable repeat event
+        if (!s_parent) return;
+        evas_event_feed_mouse_up(evas, 1, EVAS_BUTTON_NONE, 0, NULL);
+
+        ELM_SCROLLABLE_IFACE_GET(s_parent, s_iface);
+        s_iface->repeat_events_set(s_parent, EINA_TRUE);
         break;
 
       default:
@@ -575,8 +580,13 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir)
 
         if (!_access_action_callback_call(ho, type, NULL))
           {
+             /* change highlight object */
+             action_type = type;
+
              _elm_access_highlight_set(target);
              ret = EINA_FALSE;
+
+             action_type = ELM_ACCESS_ACTION_FIRST;
           }
      }
 
@@ -584,6 +594,7 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir)
 
    return ret;
 }
+
 //-------------------------------------------------------------------------//
 EAPI void
 _elm_access_highlight_set(Evas_Object* obj)
@@ -709,8 +720,12 @@ _elm_access_highlight_cycle(Evas_Object *obj, Elm_Focus_Direction dir)
    else
      type = ELM_ACCESS_ACTION_HIGHLIGHT_PREV;
 
+   action_type = type;
+
    if (!_access_action_callback_call(ho, type, NULL))
      elm_widget_focus_cycle(obj, dir);
+
+   action_type = ELM_ACCESS_ACTION_FIRST;
 
    _elm_access_read_mode_set(EINA_FALSE);
 }
@@ -795,6 +810,7 @@ _elm_access_object_hilight(Evas_Object *obj)
 {
    Evas_Object *o;
    Evas_Coord x, y, w, h;
+   Elm_Access_Action_Info *a;
 
    o = evas_object_name_find(evas_object_evas_get(obj), "_elm_access_disp");
    if (!o)
@@ -819,6 +835,7 @@ _elm_access_object_hilight(Evas_Object *obj)
                                                  _access_obj_hilight_move_cb, NULL);
              evas_object_event_callback_del_full(ptarget, EVAS_CALLBACK_RESIZE,
                                                  _access_obj_hilight_resize_cb, NULL);
+             _access_action_callback_call(ptarget, ELM_ACCESS_ACTION_UNHIGHLIGHT, NULL);
           }
      }
    evas_object_data_set(o, "_elm_access_target", obj);
@@ -841,10 +858,13 @@ _elm_access_object_hilight(Evas_Object *obj)
 
    /* use callback, should an access object do below every time when
 	* a window gets a client message ECORE_X_ATOM_E_ILLMUE_ACTION_READ? */
-   if (!_access_action_callback_call(obj, ELM_ACCESS_ACTION_HIGHLIGHT, NULL))
+   a = calloc(1, sizeof(Elm_Access_Action_Info));
+   a->action_type = action_type;
+   if (!_access_action_callback_call(obj, ELM_ACCESS_ACTION_HIGHLIGHT, a))
      evas_object_show(o);
    else
      evas_object_hide(o);
+   free(a);
 }
 
 EAPI void
@@ -867,6 +887,7 @@ _elm_access_object_unhilight(Evas_Object *obj)
                                             _access_obj_hilight_resize_cb, NULL);
         evas_object_del(o);
         elm_widget_parent_highlight_set(ptarget, EINA_FALSE);
+        _access_action_callback_call(ptarget, ELM_ACCESS_ACTION_UNHIGHLIGHT, NULL);
      }
 }
 
@@ -1231,12 +1252,14 @@ EAPI Eina_Bool
 elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *action_info)
 {
    Evas *evas;
+   Evas_Object *ho;
    Elm_Access_Action_Info *a;
 
    a = (Elm_Access_Action_Info *) action_info;
 
    switch (type)
      {
+      case ELM_ACCESS_ACTION_READ:
       case ELM_ACCESS_ACTION_HIGHLIGHT:
         evas = evas_object_evas_get(obj);
         if (!evas) return EINA_FALSE;
@@ -1244,9 +1267,15 @@ elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *act
         _elm_access_mouse_event_enabled_set(EINA_TRUE);
 
         evas_event_feed_mouse_in(evas, 0, NULL);
-        evas_event_feed_mouse_move(evas, a->x1, a->y1, 0, NULL);
-
+        evas_event_feed_mouse_move(evas, a->x, a->y, 0, NULL);
         _elm_access_mouse_event_enabled_set(EINA_FALSE);
+
+        ho = _access_highlight_object_get(obj);
+        if (ho)
+          _access_action_callback_call(ho, ELM_ACCESS_ACTION_READ, a);
+        break;
+
+      case ELM_ACCESS_ACTION_UNHIGHLIGHT:
         break;
 
       case ELM_ACCESS_ACTION_HIGHLIGHT_NEXT:

@@ -27,22 +27,6 @@ typedef enum _Elm_Access_Info_Type Elm_Access_Info_Type;
 typedef char *(*Elm_Access_Info_Cb)(void *data, Evas_Object *obj);
 typedef void (*Elm_Access_Activate_Cb)(void *data, Evas_Object *part_obj, Elm_Object_Item *item);
 
-struct _Elm_Access_Action_Info
-{
-   Evas_Coord   x1;
-   Evas_Coord   y1;
-   Evas_Coord   x2;
-   Evas_Coord   y2;
-
-   unsigned int tx;
-   unsigned int ty;
-
-
-   Eina_Bool    highlight_cycle : 1;
-};
-
-typedef struct _Elm_Access_Action_Info Elm_Access_Action_Info;
-
 /**
  * @typedef Elm_Access_Action_Cb
  * User callback to make access object do specific action
@@ -61,7 +45,8 @@ enum _Elm_Access_Action_Type
 {
    ELM_ACCESS_ACTION_FIRST = -1,
 
-   ELM_ACCESS_ACTION_HIGHLIGHT, /* highlight a object */
+   ELM_ACCESS_ACTION_HIGHLIGHT, /* highlight an object */
+   ELM_ACCESS_ACTION_UNHIGHLIGHT, /* unhighlight an object */
    ELM_ACCESS_ACTION_HIGHLIGHT_NEXT, /* set highlight to next object */
    ELM_ACCESS_ACTION_HIGHLIGHT_PREV, /* set highlight to previous object */
    ELM_ACCESS_ACTION_ACTIVATE, /* activate a highlight object */
@@ -70,6 +55,7 @@ enum _Elm_Access_Action_Type
                               * is scrollable */
    ELM_ACCESS_ACTION_BACK, /* go back to a previous view
                               ex: pop naviframe item */
+   ELM_ACCESS_ACTION_READ, /* highlight an object */
 
    ELM_ACCESS_ACTION_LAST
 };
@@ -78,6 +64,17 @@ enum _Elm_Access_Action_Type
  * @typedef Elm_Access_Action_Type
  */
 typedef enum _Elm_Access_Action_Type Elm_Access_Action_Type;
+
+struct _Elm_Access_Action_Info
+{
+   Evas_Coord   x;
+   Evas_Coord   y;
+
+   Elm_Access_Action_Type action_type;
+   Eina_Bool              highlight_cycle : 1;
+};
+
+typedef struct _Elm_Access_Action_Info Elm_Access_Action_Info;
 
 /**
  * @brief Register evas object as an accessible object.
