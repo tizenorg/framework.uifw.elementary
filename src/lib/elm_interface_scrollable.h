@@ -465,6 +465,10 @@ struct _Elm_Scrollable_Smart_Interface
                                       Eina_Bool single_dir);
    Eina_Bool  (*single_direction_get)(const Evas_Object *obj);
 
+   void       (*repeat_events_set)(Evas_Object *obj,
+                                      Eina_Bool repeat_events);
+   Eina_Bool  (*repeat_events_get)(const Evas_Object *obj);
+
    void       (*mirrored_set)(Evas_Object *obj,
                               Eina_Bool mirrored);
 

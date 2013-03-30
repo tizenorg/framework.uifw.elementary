@@ -3718,6 +3718,23 @@ _elm_scroll_single_direction_get(const Evas_Object *obj)
 }
 
 static void
+_elm_scroll_repeat_events_set(Evas_Object *obj,
+                                 Eina_Bool repeat_events)
+{
+   ELM_SCROLL_IFACE_DATA_GET_OR_RETURN(obj, sid);
+
+   evas_object_repeat_events_set(sid->event_rect, repeat_events);
+}
+
+static Eina_Bool
+_elm_scroll_repeat_events_get(Evas_Object *obj)
+{
+   ELM_SCROLL_IFACE_DATA_GET_OR_RETURN(obj, sid);
+
+   return evas_object_repeat_events_get(sid->event_rect);
+}
+
+static void
 _elm_scroll_hold_set(Evas_Object *obj,
                      Eina_Bool hold)
 {
@@ -4045,6 +4062,8 @@ EAPI const Elm_Scrollable_Smart_Interface ELM_SCROLLABLE_IFACE =
    _elm_scroll_policy_get,
    _elm_scroll_single_direction_set,
    _elm_scroll_single_direction_get,
+   _elm_scroll_repeat_events_set,
+   _elm_scroll_repeat_events_get,
    _elm_scroll_mirrored_set,
    _elm_scroll_hold_set,
    _elm_scroll_freeze_set,
