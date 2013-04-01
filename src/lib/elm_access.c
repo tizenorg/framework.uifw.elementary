@@ -599,8 +599,10 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir)
 EAPI void
 _elm_access_highlight_set(Evas_Object* obj)
 {
+   Evas *evas;
    Elm_Access_Info *ac;
    Evas_Object *ho;
+   Evas_Coord_Point ho_point = { 0, 0 };
 
    if (!obj) return;
 
@@ -611,6 +613,15 @@ _elm_access_highlight_set(Evas_Object* obj)
    if (!ac) return;
 
    _access_highlight_read(ac, obj);
+
+   /* move mouse position to inside of highlight object. if an object has a
+      highlight by highlight_cycle();, the mouse still positions at previous
+      position which would be made by MOUSE_IN event. */
+   evas = evas_object_evas_get(obj);
+   if (!evas) return;
+
+   evas_object_geometry_get(obj, &ho_point.x, &ho_point.y, 0, 0);
+   evas_event_feed_mouse_move(evas, ho_point.x, ho_point.y, 0, NULL);
 }
 
 EAPI void
