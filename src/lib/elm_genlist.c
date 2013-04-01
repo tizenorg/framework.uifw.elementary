@@ -619,6 +619,12 @@ _item_unrealize(Elm_Gen_Item *it,
    _decorate_item_unrealize(it);
    _decorate_all_item_unrealize(it);
 
+   edje_object_signal_emit
+     (VIEW(it), "elm,state,decorate,disabled", "elm");
+   edje_object_signal_emit
+     (VIEW(it), "elm,state,reorder,mode_unset", "elm");
+   edje_object_message_signal_process(VIEW(it));
+
    it->realized = EINA_FALSE;
    _item_cache_push(it);
 
@@ -1267,12 +1273,11 @@ _decorate_all_item_realize(Elm_Gen_Item *it,
 
 #if 1 // FIXME: difference from upstream
    if (GL_IT(it)->wsd->reorder_mode)
-     {
-        edje_object_signal_emit
-          (VIEW(it), "elm,state,reorder,mode_unset", "elm");
-        edje_object_signal_emit
-          (it->deco_all_view, "elm,state,reorder,mode_set", "elm");
-     }
+     edje_object_signal_emit
+       (it->deco_all_view, "elm,state,reorder,mode_set", "elm");
+   else
+     edje_object_signal_emit
+       (it->deco_all_view, "elm,state,reorder,mode_unset", "elm");
 #endif
    if (effect_on)
      {
@@ -1616,7 +1621,7 @@ _item_realize(Elm_Gen_Item *it,
 
    _item_order_update(EINA_INLIST_GET(it), in);
 #if 1 // FIXME: difference from upstream
-   if (!(it->deco_all_view) && (it->item->type != ELM_GENLIST_ITEM_GROUP))
+   if (it->item->type != ELM_GENLIST_ITEM_GROUP)
      {
         if (GL_IT(it)->wsd->reorder_mode)
           edje_object_signal_emit
@@ -3008,14 +3013,8 @@ _decorate_all_item_unrealize(Elm_Gen_Item *it)
      (it->deco_all_view, "elm,state,decorate,disabled", "elm");
    edje_object_signal_emit
      (VIEW(it), "elm,state,decorate,disabled", "elm");
-   if (it->item->wsd->reorder_mode)
-     {
-        edje_object_signal_emit
-          (VIEW(it), "elm,state,reorder,mode_set", "elm");
-        edje_object_signal_emit
-          (it->deco_all_view, "elm,state,reorder,mode_unset", "elm");
-     }
-
+   edje_object_signal_emit
+     (it->deco_all_view, "elm,state,reorder,mode_unset", "elm");
    edje_object_message_signal_process(VIEW(it));
    edje_object_message_signal_process(it->deco_all_view);
 
@@ -6700,16 +6699,21 @@ elm_genlist_reorder_mode_set(Evas_Object *obj,
      {
         if (it->item->type != ELM_GENLIST_ITEM_GROUP)
           {
-             Evas_Object *view;
-             if (it->deco_all_view) view = it->deco_all_view;
-             else view = VIEW(it);
-
              if (sd->reorder_mode)
                edje_object_signal_emit
-                 (view, "elm,state,reorder,mode_set", "elm");
+                 (VIEW(it), "elm,state,reorder,mode_set", "elm");
              else
                edje_object_signal_emit
-                 (view, "elm,state,reorder,mode_unset", "elm");
+                 (VIEW(it), "elm,state,reorder,mode_unset", "elm");
+          }
+        if (sd->decorate_all_mode)
+          {
+             if (sd->reorder_mode)
+               edje_object_signal_emit
+                  (it->deco_all_view, "elm,state,reorder,mode_set", "elm");
+             else
+               edje_object_signal_emit
+                  (it->deco_all_view, "elm,state,reorder,mode_unset", "elm");
           }
      }
    eina_list_free(list);
