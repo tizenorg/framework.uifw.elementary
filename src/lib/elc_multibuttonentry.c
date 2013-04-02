@@ -3,6 +3,7 @@
 #include "elm_widget_multibuttonentry.h"
 
 //#define _VI_EFFECT 0
+//#define _BOX_VI
 
 #ifdef _VI_EFFECT
 #define TRANSIT_DURATION 0.167
@@ -307,6 +308,37 @@ _on_item_expanding_transit_del(void *data,
    evas_object_smart_callback_call(WIDGET(it), SIG_ITEM_ADDED, it);
 }
 
+static void
+_after_rect_expand(Evas_Object *rect,
+                  Elm_Multibuttonentry_Item *it)
+{
+   Eina_List *children;
+   Elm_Multibuttonentry_Item *last_item;
+
+   ELM_MULTIBUTTONENTRY_DATA_GET(WIDGET(it), sd);
+
+   evas_object_del(rect);
+   evas_object_data_set(VIEW(it), "effect_rect", NULL);
+
+   // if last item is unpacked, add it
+   children = elm_box_children_get(sd->box);
+   last_item = eina_list_data_get(eina_list_last(sd->items));
+   if (VIEW(last_item) != eina_list_data_get(eina_list_last(children)))
+     {
+        elm_box_pack_end(sd->box, VIEW(last_item));
+        evas_object_show(VIEW(last_item));
+     }
+   eina_list_free(children);
+
+   if (sd->editable)
+     {
+        elm_box_pack_end(sd->box, sd->entry);
+        evas_object_show(sd->entry);
+        if (elm_object_focus_get(WIDGET(it)))
+          elm_object_focus_set(sd->entry, EINA_TRUE);
+     }
+}
+
 static Eina_Bool
 _rect_expanding_animate(void *data)
 {
@@ -324,30 +356,7 @@ _rect_expanding_animate(void *data)
 
    if (h >= eh)
      {
-        Eina_List *children;
-        Elm_Multibuttonentry_Item *last_it;
-
-        evas_object_del(rect);
-        evas_object_data_set(VIEW(it), "effect_rect", NULL);
-
-        // if last item is unpacked, add it
-        children = elm_box_children_get(sd->box);
-        last_it = eina_list_data_get(eina_list_last(sd->items));
-        if (VIEW(last_it) != eina_list_data_get(eina_list_last(children)))
-          {
-             elm_box_pack_end(sd->box, VIEW(last_it));
-             evas_object_show(VIEW(last_it));
-          }
-        eina_list_free(children);
-
-        if (sd->editable)
-          {
-             elm_box_pack_end(sd->box, sd->entry);
-             evas_object_show(sd->entry);
-             if (elm_object_focus_get(WIDGET(it)))
-               elm_object_focus_set(sd->entry, EINA_TRUE);
-          }
-
+        _after_rect_expand(rect, it);
         return ECORE_CALLBACK_CANCEL;
      }
    else
@@ -414,6 +423,7 @@ _item_adding_effect_add(Evas_Object *obj,
 
         rect = evas_object_rectangle_add(evas_object_evas_get(obj));
         evas_object_color_set(rect, 0, 0, 0, 0);
+#ifdef _BOX_VI
         evas_object_size_hint_min_set(rect, bw, 0);
         evas_object_data_set(VIEW(it), "effect_rect", rect);
         elm_box_pack_end(sd->box, rect);
@@ -421,6 +431,18 @@ _item_adding_effect_add(Evas_Object *obj,
 
         anim = ecore_animator_add(_rect_expanding_animate, it);
         evas_object_data_set(rect, "animator", anim);
+#else
+        Evas_Coord eh;
+        evas_object_geometry_get(sd->entry, NULL, NULL, NULL, &eh);
+
+        evas_object_size_hint_min_set(rect, bw, eh);
+        evas_object_data_set(VIEW(it), "effect_rect", rect);
+        elm_box_pack_end(sd->box, rect);
+        evas_object_show(rect);
+
+        _after_rect_expand(rect, it);
+
+#endif
      }
 
    if (!floating)
@@ -478,6 +500,37 @@ _on_item_contracting_transit_del(void *data,
    elm_object_item_del((Elm_Object_Item *)it);
 }
 
+static void
+_after_rect_contract(Evas_Object *rect,
+                          Elm_Multibuttonentry_Item *it)
+{
+   Elm_Multibuttonentry_Item *last_item;
+
+   ELM_MULTIBUTTONENTRY_DATA_GET(WIDGET(it), sd);
+
+   evas_object_del(rect);
+   evas_object_data_set(VIEW(it), "effect_rect", NULL);
+
+   // if last item is unpacked, add it
+   last_item = eina_list_data_get(eina_list_last(sd->items));
+   if (it != last_item)
+     {
+        if (!evas_object_visible_get(VIEW(last_item)))
+          {
+             elm_box_pack_end(sd->box, VIEW(last_item));
+             evas_object_show(VIEW(last_item));
+          }
+     }
+
+   if (sd->editable)
+     {
+        elm_box_pack_end(sd->box, sd->entry);
+        evas_object_show(sd->entry);
+        if (elm_object_focus_get(WIDGET(it)))
+          elm_object_focus_set(sd->entry, EINA_TRUE);
+     }
+}
+
 static Eina_Bool
 _rect_contracting_animate(void *data)
 {
@@ -496,29 +549,7 @@ _rect_contracting_animate(void *data)
    if (h <= 0)
      {
         Elm_Transit *trans;
-        Elm_Multibuttonentry_Item *last_it;
-
-        evas_object_del(rect);
-        evas_object_data_set(VIEW(it), "effect_rect", NULL);
-
-        // if last item is unpacked, add it
-        last_it = eina_list_data_get(eina_list_last(sd->items));
-        if (it != last_it)
-          {
-             if (!evas_object_visible_get(VIEW(last_it)))
-               {
-                  elm_box_pack_end(sd->box, VIEW(last_it));
-                  evas_object_show(VIEW(last_it));
-               }
-          }
-
-        if (sd->editable)
-          {
-             elm_box_pack_end(sd->box, sd->entry);
-             evas_object_show(sd->entry);
-             if (elm_object_focus_get(WIDGET(it)))
-               elm_object_focus_set(sd->entry, EINA_TRUE);
-          }
+        _after_rect_contract(rect, it);
 
         // delete the button
         trans = (Elm_Transit *)evas_object_data_get(VIEW(it), "transit");
@@ -579,6 +610,7 @@ _item_deleting_effect_add(Evas_Object *obj,
 
         rect = evas_object_rectangle_add(evas_object_evas_get(obj));
         evas_object_color_set(rect, 0, 0, 0, 0);
+#ifdef _BOX_VI
         evas_object_geometry_get(sd->entry, NULL, NULL, NULL, &eh);
         evas_object_size_hint_min_set(rect, bw, eh);
         evas_object_data_set(VIEW(it), "effect_rect", rect);
@@ -587,6 +619,14 @@ _item_deleting_effect_add(Evas_Object *obj,
 
         anim = ecore_animator_add(_rect_contracting_animate, it);
         evas_object_data_set(rect, "animator", anim);
+#else
+        evas_object_size_hint_min_set(rect, bw, 0);
+        evas_object_data_set(VIEW(it), "effect_rect", rect);
+        elm_box_pack_end(sd->box, rect);
+        evas_object_show(rect);
+
+        _after_rect_contract(rect, it);
+#endif
      }
 
    trans = elm_transit_add();
@@ -871,7 +911,7 @@ _layout_shrink(Evas_Object *obj,
                {
                   evas_object_size_hint_min_get(sd->entry, &mnw, NULL);
                   linew += mnw;
-                  if (linew > w)
+                  if (linew > (w * (2 / 3)))
                     {
                        elm_box_unpack(sd->box, sd->entry);
                        evas_object_hide(sd->entry);
@@ -944,12 +984,15 @@ _layout_shrink(Evas_Object *obj,
 static Eina_Bool
 _box_min_size_calculate(Evas_Object *box,
                         Evas_Object_Box_Data *priv,
-                        int *line_height)
+                        int *line_height,
+                        void *data)
 {
    Evas_Coord mnw, mnh, w, minw, minh = 0, linew = 0, lineh = 0;
    int line_num;
    Eina_List *l;
    Evas_Object_Box_Option *opt;
+
+   ELM_MULTIBUTTONENTRY_DATA_GET(data, sd);
 
    evas_object_geometry_get(box, NULL, NULL, &w, NULL);
    evas_object_size_hint_min_get(box, &minw, NULL);
@@ -973,6 +1016,16 @@ _box_min_size_calculate(Evas_Object *box,
           {
              linew = mnw;
              line_num++;
+          }
+        else if (linew > w * 2 / 3)
+          {
+             // if linew is larger than 2/3 of boxw, box should be larger.
+             linew = 0;
+             line_num++;
+             // whether there is "+%d" at the end of the box or entry is invisible,
+             // box doesn't have to be larger.
+             if (sd->end || !evas_object_visible_get(sd->entry))
+               line_num--;
           }
 
         if (l != eina_list_last(priv->children))
@@ -1002,14 +1055,17 @@ _box_layout(Evas_Object *o,
             Evas_Object_Box_Data *priv,
             void *data)
 {
-   Evas_Coord x, y, w, h, xx, yy, minw, minh, linew = 0, lineh = 0;
+   Evas_Coord x, y, w, h, xx, yy, xxx, yyy;
+   Evas_Coord minw, minh, linew = 0, lineh = 0, lineww = 0;
    double ax, ay;
    Eina_Bool rtl;
    Eina_List *l;
    Evas_Object *obj;
    Evas_Object_Box_Option *opt;
 
-   if (!_box_min_size_calculate(o, priv, &lineh)) return;
+   ELM_MULTIBUTTONENTRY_DATA_GET(data, sd);
+
+   if (!_box_min_size_calculate(o, priv, &lineh, data)) return;
 
    evas_object_geometry_get(o, &x, &y, &w, &h);
    evas_object_size_hint_min_get(o, &minw, &minh);
@@ -1081,6 +1137,27 @@ _box_layout(Evas_Object *o,
 
         xx += ww;
         xx += priv->pad.h;
+        xxx = xx;
+        yyy = yy;
+        lineww = linew;
+
+        // if linew is bigger than 2/3 of boxw, entry goes to next line.
+        if (linew > w * 2 / 3)
+          {
+             xx = x;
+             yy += hh;
+             yy += priv->pad.v;
+             linew = 0;
+          }
+
+        // whether there is "+%d" at the end of the box or entry is invisible,
+        // box doesn't have to be larger.
+        if (sd->end || !evas_object_visible_get(sd->entry))
+          {
+             xx = xxx;
+             yy = yyy;
+             linew = lineww;
+          }
      }
 }
 
@@ -1434,6 +1511,8 @@ _item_new(Evas_Object *obj,
    if (minw > maxw)
      {
         elm_layout_signal_emit(VIEW(it), "elm,state,text,ellipsis", "");
+        edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
+        evas_object_size_hint_min_set(VIEW(it), maxw, minh);
         elm_layout_sizing_eval(VIEW(it));
      }
 
@@ -1812,7 +1891,7 @@ _elm_multibuttonentry_smart_add(Evas_Object *obj)
       (priv->box,
        hpad * elm_widget_scale_get(obj) * elm_config_scale_get(),
        vpad * elm_widget_scale_get(obj) * elm_config_scale_get());
-   elm_box_layout_set(priv->box, _box_layout, NULL, NULL);
+   elm_box_layout_set(priv->box, _box_layout, obj, NULL);
    elm_layout_content_set(obj, "box.swallow", priv->box);
    evas_object_event_callback_add
       (priv->box, EVAS_CALLBACK_RESIZE, _on_box_resize, obj);
