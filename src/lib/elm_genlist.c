@@ -1715,10 +1715,16 @@ _item_realize(Elm_Gen_Item *it,
 
              if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
                elm_coords_finger_size_adjust(1, &mw, 1, &mh);
-             if (GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS &&
-                 GL_IT(it)->wsd->prev_viewport_w != 0)
-               mw = GL_IT(it)->wsd->prev_viewport_w;
+             if ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) &&
+                 (GL_IT(it)->wsd->prev_viewport_w != 0) &&
+                 (mw < GL_IT(it)->wsd->prev_viewport_w))
+                mw = GL_IT(it)->wsd->prev_viewport_w;
              edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
+             if ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) &&
+                 (GL_IT(it)->wsd->prev_viewport_w != 0) &&
+                 (mw > GL_IT(it)->wsd->prev_viewport_w))
+                mw = GL_IT(it)->wsd->prev_viewport_w;
+
 
              it->item->w = it->item->minw = mw;
              it->item->h = it->item->minh = mh;
@@ -2114,17 +2120,22 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
 
                   if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
                      elm_coords_finger_size_adjust(1, &mw, 1, &mh);
-                  if (GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS &&
-                      GL_IT(it)->wsd->prev_viewport_w != 0)
-                     mw = sd->prev_viewport_w;
+                  if ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) &&
+                      (GL_IT(it)->wsd->prev_viewport_w != 0) &&
+                      (mw < GL_IT(it)->wsd->prev_viewport_w))
+                     mw = GL_IT(it)->wsd->prev_viewport_w;
                   edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
+                  if ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) &&
+                      (GL_IT(it)->wsd->prev_viewport_w != 0) &&
+                      (mw > GL_IT(it)->wsd->prev_viewport_w))
+                     mw = GL_IT(it)->wsd->prev_viewport_w;
 
-                  if (it->item->w != mw)
+                  if (it->item->minw != mw)
                     {
                        it->item->w = it->item->minw = mw;
                        width_changed = EINA_TRUE;
                     }
-                  if (it->item->h != mh)
+                  if (it->item->minh != mh)
                     {
                        it->item->h = it->item->minh = mh;
                        height_changed = EINA_TRUE;
