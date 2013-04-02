@@ -1012,6 +1012,9 @@ _elm_conformant_smart_del(Evas_Object *obj)
 #ifdef HAVE_ELEMENTARY_X
    if (sd->prop_hdl) ecore_event_handler_del(sd->prop_hdl);
 #endif
+   if (sd->scroller)
+     evas_object_event_callback_del
+       (sd->scroller, EVAS_CALLBACK_RESIZE, _on_content_resize);
 
    if (sd->show_region_job) ecore_job_del(sd->show_region_job);
    if (sd->port_indi_timer) ecore_timer_del(sd->port_indi_timer);
