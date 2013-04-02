@@ -460,7 +460,7 @@ _elm_genlist_pan_smart_resize(Evas_Object *obj,
                               Evas_Coord w,
                               Evas_Coord h)
 {
-   Evas_Coord ow = 0, oh = 0, vw = 0;
+   Evas_Coord ow = 0, oh = 0, vw = 0, vh = 0;
 
    ELM_GENLIST_PAN_DATA_GET(obj, psd);
 
@@ -468,9 +468,9 @@ _elm_genlist_pan_smart_resize(Evas_Object *obj,
    if ((ow == w) && (oh == h)) return;
 
    psd->wsd->s_iface->content_viewport_size_get
-      (ELM_WIDGET_DATA(psd->wsd)->obj, &vw, NULL);
-   if (vw != 0) psd->wsd->prev_viewport_w = vw;
-
+     (ELM_WIDGET_DATA(psd->wsd)->obj, &vw, NULL);
+   if (vw == 0 || vh == 0) return;
+   psd->wsd->prev_viewport_w = vw;
 
    if (psd->wsd->mode == ELM_LIST_COMPRESS)
      psd->wsd->size_changed = EINA_TRUE;
@@ -3973,6 +3973,7 @@ _idle_process(void *data,
 {
    Elm_Genlist_Smart_Data *sd = data;
 
+   if (sd->prev_viewport_w == 0) return ECORE_CALLBACK_RENEW;
    if (_queue_process(sd) > 0) *wakeup = EINA_TRUE;
    if (!sd->queue)
      {
