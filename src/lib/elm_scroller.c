@@ -268,7 +268,8 @@ _elm_scroller_smart_activate(Evas_Object *obj, Elm_Activate act)
    ELM_SCROLLER_DATA_GET(obj, sd);
 
    if ((elm_widget_disabled_get(obj)) ||
-       (act == ELM_ACTIVATE_DEFAULT)) return EINA_FALSE;
+       (act == ELM_ACTIVATE_DEFAULT) ||
+       (act == ELM_ACTIVATE_BACK)) return EINA_FALSE;
 
    sd->s_iface->content_pos_get(obj, &x, &y);
    sd->s_iface->page_size_get(obj, &page_x, &page_y);

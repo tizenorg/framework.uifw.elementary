@@ -69,6 +69,9 @@ struct _Elm_Access_Action_Info
 {
    Evas_Coord   x;
    Evas_Coord   y;
+   unsigned int mouse_type; /* 0: mouse down
+                               1: mouse move
+                               2: mouse up   */
 
    Elm_Access_Action_Type action_type;
    Eina_Bool              highlight_cycle : 1;

@@ -77,6 +77,10 @@ _elm_access_smart_activate(Evas_Object *obj, Elm_Activate act)
       case ELM_ACTIVATE_LEFT:
         break;
 
+      case ELM_ACTIVATE_BACK:
+        type = ELM_ACCESS_ACTION_BACK;
+        break;
+
       default:
         break;
      }
@@ -686,17 +690,32 @@ _elm_access_activate_callback_set(Elm_Access_Info           *ac,
 EAPI void
 _elm_access_highlight_object_activate(Evas_Object *obj, Elm_Activate act)
 {
-   Evas_Object *highlight;
+   Evas_Object *ho;
 
-   highlight = _access_highlight_object_get(obj);
-   if (!highlight) return;
+   ho = _access_highlight_object_get(obj);
+   if (!ho) return;
 
-   _elm_access_read_mode_set(EINA_FALSE);
+   switch (act)
+     {
+      case ELM_ACTIVATE_DEFAULT:
+      case ELM_ACTIVATE_UP:
+      case ELM_ACTIVATE_DOWN:
+        _elm_access_read_mode_set(EINA_FALSE);
 
-   if (!elm_object_focus_get(highlight))
-     elm_object_focus_set(highlight, EINA_TRUE);
+        if (!elm_object_focus_get(ho))
+        elm_object_focus_set(ho, EINA_TRUE);
 
-   elm_widget_activate(highlight, act);
+        elm_widget_activate(ho, act);
+        break;
+
+      case ELM_ACTIVATE_BACK:
+        elm_widget_activate(ho, act);
+        break;
+
+      default:
+        break;
+     }
+
    return;
 }
 
@@ -1313,6 +1332,7 @@ elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *act
         break;
 
       case ELM_ACCESS_ACTION_SCROLL:
+        _elm_access_highlight_object_scroll(obj, a->mouse_type, a->x, a->y);
         break;
 
       case ELM_ACCESS_ACTION_BACK:

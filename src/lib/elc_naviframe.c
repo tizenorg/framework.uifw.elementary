@@ -1371,6 +1371,23 @@ _elm_naviframe_smart_event(Evas_Object *obj,
    return EINA_TRUE;
 }
 
+static Eina_Bool
+_elm_naviframe_smart_activate(Evas_Object *obj, Elm_Activate act)
+{
+   Elm_Naviframe_Item *it;
+
+   if (act != ELM_ACTIVATE_BACK) return EINA_FALSE;
+   if (elm_widget_disabled_get(obj)) return EINA_FALSE;
+
+   it = (Elm_Naviframe_Item *)elm_naviframe_top_item_get(obj);
+   if (!it) return EINA_FALSE;
+
+   if (it->title_prev_btn)
+     evas_object_smart_callback_call(it->title_prev_btn, SIG_CLICKED, NULL);
+
+   return EINA_TRUE;
+}
+
 static void
 _elm_naviframe_smart_set_user(Elm_Naviframe_Smart_Class *sc)
 {
@@ -1382,6 +1399,7 @@ _elm_naviframe_smart_set_user(Elm_Naviframe_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->focus_direction = _elm_naviframe_smart_focus_direction;
    ELM_WIDGET_CLASS(sc)->access = _elm_naviframe_smart_access;
    ELM_WIDGET_CLASS(sc)->event = _elm_naviframe_smart_event;
+   ELM_WIDGET_CLASS(sc)->activate = _elm_naviframe_smart_activate;
 
    ELM_CONTAINER_CLASS(sc)->content_set = _elm_naviframe_smart_content_set;
    ELM_CONTAINER_CLASS(sc)->content_get = _elm_naviframe_smart_content_get;
