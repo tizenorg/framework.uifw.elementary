@@ -2079,6 +2079,13 @@ _elm_win_property_change(void *data,
              evas_object_smart_callback_call(ELM_WIDGET_DATA(sd)->obj, SIG_INDICATOR_PROP_CHANGED, NULL);
           }
      }
+   if (e->atom == ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_STATE)
+     {
+        if (e->win == sd->x.xwin)
+          {
+             sd->kbdmode = ecore_x_e_virtual_keyboard_state_get(e->win);
+          }
+     }
    return ECORE_CALLBACK_PASS_ON;
 }
 #endif
