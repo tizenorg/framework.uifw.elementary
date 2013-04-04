@@ -221,6 +221,7 @@ static void _elm_win_resize_objects_eval(Evas_Object *obj);
 
 #ifdef HAVE_ELEMENTARY_X
 static void _elm_win_xwin_update(Elm_Win_Smart_Data *sd);
+static void _elm_win_xwin_type_set(Elm_Win_Smart_Data *sd);
 #endif
 
 static void
@@ -1827,6 +1828,22 @@ _elm_win_xwin_update(Elm_Win_Smart_Data *sd)
           }
      }
 
+   ecore_x_e_virtual_keyboard_state_set
+     (sd->x.xwin, (Ecore_X_Virtual_Keyboard_State)sd->kbdmode);
+   if (sd->indmode == ELM_WIN_INDICATOR_SHOW)
+     ecore_x_e_illume_indicator_state_set
+       (sd->x.xwin, ECORE_X_ILLUME_INDICATOR_STATE_ON);
+   else if (sd->indmode == ELM_WIN_INDICATOR_HIDE)
+     ecore_x_e_illume_indicator_state_set
+       (sd->x.xwin, ECORE_X_ILLUME_INDICATOR_STATE_OFF);
+}
+
+static void
+__elm_win_xwin_type_set(Elm_Win_Smart_Data *sd)
+{
+   _elm_win_xwindow_get(sd);
+   if (!sd->x.xwin) return;  /* nothing more to do */
+
    switch (sd->type)
      {
       case ELM_WIN_BASIC:
@@ -1891,16 +1908,9 @@ _elm_win_xwin_update(Elm_Win_Smart_Data *sd)
       default:
         break;
      }
-   ecore_x_e_virtual_keyboard_state_set
-     (sd->x.xwin, (Ecore_X_Virtual_Keyboard_State)sd->kbdmode);
-   if (sd->indmode == ELM_WIN_INDICATOR_SHOW)
-     ecore_x_e_illume_indicator_state_set
-       (sd->x.xwin, ECORE_X_ILLUME_INDICATOR_STATE_ON);
-   else if (sd->indmode == ELM_WIN_INDICATOR_HIDE)
-     ecore_x_e_illume_indicator_state_set
-       (sd->x.xwin, ECORE_X_ILLUME_INDICATOR_STATE_OFF);
-}
 
+   return;
+}
 #endif
 
 
@@ -2930,6 +2940,7 @@ elm_win_add(Evas_Object *parent,
      evas_font_hinting_set(sd->evas, EVAS_FONT_HINTING_BYTECODE);
 
 #ifdef HAVE_ELEMENTARY_X
+   _elm_win_xwin_type_set(sd);
    _elm_win_xwin_update(sd);
 #endif
 
