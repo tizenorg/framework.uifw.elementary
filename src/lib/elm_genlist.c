@@ -144,7 +144,7 @@ static void _item_select(Elm_Gen_Item *it);
 static void     _expand_toggle_signal_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__);
 static void     _expand_signal_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__);
 static void     _contract_signal_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__);
-static void _elm_genlist_item_state_update(Elm_Gen_Item *it, Item_Cache *ic);
+static void _elm_genlist_item_state_update(Elm_Gen_Item *it);
 static void _decorate_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_all_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_item_set(Elm_Gen_Item *it);
@@ -959,65 +959,30 @@ _item_order_update(const Eina_Inlist *l,
 }
 
 static void
-_elm_genlist_item_state_update(Elm_Gen_Item *it,
-                               Item_Cache *itc)
+_elm_genlist_item_state_update(Elm_Gen_Item *it)
 {
-   if (itc)
+   if (it->selected)
      {
-        if (it->selected != itc->selected)
-          {
-             if (it->selected)
-               {
-                  if (it->deco_all_view)
-                    edje_object_signal_emit
-                      (it->deco_all_view, "elm,state,selected", "elm,nosound");
-                  edje_object_signal_emit
-                    (VIEW(it), "elm,state,selected", "elm,nosound");
-                  evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
-               }
-          }
-        if (elm_widget_item_disabled_get(it) != itc->disabled)
-          {
-             if (elm_widget_item_disabled_get(it))
-               edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
-             if (it->deco_all_view)
-               edje_object_signal_emit
-                 (it->deco_all_view, "elm,state,disabled", "elm");
-          }
-        if (it->item->expanded != itc->expanded)
-          {
-             if (it->item->expanded)
-               edje_object_signal_emit(VIEW(it), "elm,state,expanded", "elm");
-             if (it->deco_all_view)
-               edje_object_signal_emit
-                 (it->deco_all_view, "elm,state,expanded", "elm");
-          }
+        if (it->deco_all_view)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,selected", "elm");
+        edje_object_signal_emit
+           (VIEW(it), "elm,state,selected", "elm");
+        evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
      }
-   else
+   if (elm_widget_item_disabled_get(it))
      {
-        if (it->selected)
-          {
-             if (it->deco_all_view)
-               edje_object_signal_emit
-                 (it->deco_all_view, "elm,state,selected", "elm,nosound");
-             edje_object_signal_emit
-               (VIEW(it), "elm,state,selected", "elm,nosound");
-             evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
-          }
-        if (elm_widget_item_disabled_get(it))
-          {
-             edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
-             if (it->deco_all_view)
-               edje_object_signal_emit
-                 (it->deco_all_view, "elm,state,disabled", "elm");
-          }
-        if (it->item->expanded)
-          {
-             edje_object_signal_emit(VIEW(it), "elm,state,expanded", "elm");
-             if (it->deco_all_view)
-               edje_object_signal_emit
-                 (it->deco_all_view, "elm,state,expanded", "elm");
-          }
+        edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
+        if (it->deco_all_view)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,disabled", "elm");
+     }
+   if (it->item->expanded)
+     {
+        edje_object_signal_emit(VIEW(it), "elm,state,expanded", "elm");
+        if (it->deco_all_view)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,expanded", "elm");
      }
 }
 
@@ -1266,7 +1231,7 @@ _decorate_all_item_realize(Elm_Gen_Item *it,
      (it->deco_all_view, elm_widget_mirrored_get(WIDGET(it)));
 
    _elm_genlist_item_odd_even_update(it);
-   _elm_genlist_item_state_update(it, NULL);
+   _elm_genlist_item_state_update(it);
 
 #if 1 // FIXME: difference from upstream
    if (GL_IT(it)->wsd->reorder_mode)
@@ -1541,7 +1506,6 @@ _item_realize(Elm_Gen_Item *it,
               int in,
               Eina_Bool calc)
 {
-   Item_Cache *itc = NULL;
    const char *treesize;
    char buf[1024];
    int tsize = 20;
@@ -1551,7 +1515,7 @@ _item_realize(Elm_Gen_Item *it,
         if (it->item->order_num_in != in)
           {
              _item_order_update(EINA_INLIST_GET(it), in);
-             _elm_genlist_item_state_update(it, NULL);
+             _elm_genlist_item_state_update(it);
              _elm_genlist_item_index_update(it);
           }
         return;
@@ -1651,7 +1615,7 @@ _item_realize(Elm_Gen_Item *it,
             (it->itc->decorate_all_item_style))
           _decorate_all_item_realize(it, EINA_FALSE);
 
-        _elm_genlist_item_state_update(it, itc);
+        _elm_genlist_item_state_update(it);
         _elm_genlist_item_index_update(it);
      }
 
@@ -3015,7 +2979,7 @@ _decorate_all_item_unrealize(Elm_Gen_Item *it)
    evas_object_smart_member_add(VIEW(it), GL_IT(it)->wsd->pan_obj);
    elm_widget_sub_object_add(WIDGET(it), VIEW(it));
    _elm_genlist_item_odd_even_update(it);
-   _elm_genlist_item_state_update(it, NULL);
+   _elm_genlist_item_state_update(it);
 
    edje_object_signal_emit
      (it->deco_all_view, "elm,state,decorate,disabled", "elm");
