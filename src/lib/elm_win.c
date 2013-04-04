@@ -1839,7 +1839,7 @@ _elm_win_xwin_update(Elm_Win_Smart_Data *sd)
 }
 
 static void
-__elm_win_xwin_type_set(Elm_Win_Smart_Data *sd)
+_elm_win_xwin_type_set(Elm_Win_Smart_Data *sd)
 {
    _elm_win_xwindow_get(sd);
    if (!sd->x.xwin) return;  /* nothing more to do */
