@@ -2445,7 +2445,7 @@ elm_widget_focus_list_next_get(const Evas_Object *obj,
                return EINA_TRUE;
              else
                {
-                  Evas_Object *n;
+                  Evas_Object *n = NULL;
                   double degree;
                   double weight;
 

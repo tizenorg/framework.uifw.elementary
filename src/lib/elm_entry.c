@@ -1075,7 +1075,11 @@ _elm_entry_smart_theme(Evas_Object *obj)
 
    // TIZEN ONLY(130225) : when password mode, elm_object_text_get returns utf8 string.
    if (sd->password)
-     t = eina_stringshare_add(elm_entry_utf8_to_markup(elm_object_text_get(obj)));
+     {
+        char *tmp = elm_entry_utf8_to_markup(elm_object_text_get(obj));
+        t = eina_stringshare_add(tmp);
+        if (tmp) free(tmp);
+     }
    else
      t = eina_stringshare_add(elm_object_text_get(obj));
 

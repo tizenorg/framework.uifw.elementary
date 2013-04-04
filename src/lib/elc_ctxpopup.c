@@ -21,6 +21,8 @@ static Eina_Bool
 _elm_ctxpopup_smart_translate(Evas_Object *obj)
 {
    evas_object_hide(obj);
+
+   return EINA_TRUE;
 }
 
 static Eina_Bool
