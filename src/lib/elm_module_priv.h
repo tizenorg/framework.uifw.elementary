@@ -9,6 +9,7 @@ struct _Elm_Entry_Extension_data
 	Evas_Object *popup;
 	Evas_Object *ent;
 	Evas_Object *caller;
+	Evas_Object *notify; // TEMP: will be done by clipboard
 	Evas_Coord_Rectangle viewport_rect;
 	Eina_List *items;
 	cpfunc select;
