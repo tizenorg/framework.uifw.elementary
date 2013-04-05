@@ -1201,18 +1201,10 @@ _item_dispmode_set(Elm_Naviframe_Item *it, Evas_Display_Mode dispmode)
    switch (dispmode)
      {
       case EVAS_DISPLAY_MODE_COMPRESS:
-         //Tizen Only: Temporary code. block the focus for the back button for
-         //H/W Key event support.
-         if (it->title_prev_btn)
-           elm_object_focus_allow_set(it->title_prev_btn, EINA_FALSE);
-         elm_object_signal_emit(VIEW(it), "display,mode,compress", "");
+         elm_object_signal_emit(VIEW(it), "elm,state,display,compress", "elm");
          break;
       default:
-         //Tizen Only: Temporary code. block the focus for the back button for
-         //H/W Key event support.
-         if (it->title_prev_btn)
-           elm_object_focus_allow_set(it->title_prev_btn, EINA_TRUE);
-         elm_object_signal_emit(VIEW(it), "display,mode,default", "");
+         elm_object_signal_emit(VIEW(it), "elm,state,display,default", "elm");
          break;
      }
    it->dispmode = dispmode;
