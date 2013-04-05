@@ -467,10 +467,7 @@ _elm_genlist_pan_smart_resize(Evas_Object *obj,
    evas_object_geometry_get(obj, NULL, NULL, &ow, &oh);
    if ((ow == w) && (oh == h)) return;
 
-   psd->wsd->s_iface->content_viewport_size_get
-     (ELM_WIDGET_DATA(psd->wsd)->obj, &vw, NULL);
-   if (vw == 0 || vh == 0) return;
-   psd->wsd->prev_viewport_w = vw;
+   if (vw != 0) psd->wsd->prev_viewport_w = vw;
 
    if (psd->wsd->mode == ELM_LIST_COMPRESS)
      psd->wsd->size_changed = EINA_TRUE;
@@ -3968,40 +3965,29 @@ _queue_process(Elm_Genlist_Smart_Data *sd)
 }
 
 static Eina_Bool
-_idle_process(void *data,
-              Eina_Bool *wakeup)
+_item_idle_enterer(void *data)
 {
    Elm_Genlist_Smart_Data *sd = data;
 
    if (sd->prev_viewport_w == 0) return ECORE_CALLBACK_RENEW;
-   if (_queue_process(sd) > 0) *wakeup = EINA_TRUE;
+   if (_queue_process(sd) > 0)
+     {
+        // wake up mainloop
+        // Job always be alive because idle_enterer should be alive
+        if (sd->calc_job) ecore_job_del(sd->calc_job);
+        sd->calc_job = ecore_job_add(_calc_job, sd);
+     }
    if (!sd->queue)
      {
+        sd->queue_idle_enterer = NULL;
         return ECORE_CALLBACK_CANCEL;
      }
+
 #if GENLIST_FX_SUPPORT
    if (sd->fx_first_captured)
      _elm_genlist_fx_clear(ELM_WIDGET_DATA(sd)->obj);
 #endif
    return ECORE_CALLBACK_RENEW;
-}
-
-static Eina_Bool
-_item_idle_enterer(void *data)
-{
-   Eina_Bool wakeup = EINA_FALSE;
-   Elm_Genlist_Smart_Data *sd = data;
-   Eina_Bool ok = _idle_process(data, &wakeup);
-
-   if (wakeup)
-     {
-        // wake up mainloop
-        if (sd->calc_job) ecore_job_del(sd->calc_job);
-        sd->calc_job = ecore_job_add(_calc_job, sd);
-     }
-   if (ok == ECORE_CALLBACK_CANCEL) sd->queue_idle_enterer = NULL;
-
-   return ok;
 }
 
 static void
