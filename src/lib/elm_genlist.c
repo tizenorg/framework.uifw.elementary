@@ -460,17 +460,19 @@ _elm_genlist_pan_smart_resize(Evas_Object *obj,
                               Evas_Coord w,
                               Evas_Coord h)
 {
-   Evas_Coord ow = 0, oh = 0, vw = 0, vh = 0;
+   Evas_Coord ow = 0, oh = 0, vw = 0;
 
    ELM_GENLIST_PAN_DATA_GET(obj, psd);
 
    evas_object_geometry_get(obj, NULL, NULL, &ow, &oh);
    if ((ow == w) && (oh == h)) return;
 
-   if (vw != 0) psd->wsd->prev_viewport_w = vw;
-
-   if (psd->wsd->mode == ELM_LIST_COMPRESS)
+   psd->wsd->s_iface->content_viewport_size_get(ELM_WIDGET_DATA(psd->wsd)->obj,
+                                                &vw, NULL);
+   if (psd->wsd->mode == ELM_LIST_COMPRESS &&
+       vw != psd->wsd->prev_viewport_w)
      psd->wsd->size_changed = EINA_TRUE;
+   if (vw != 0) psd->wsd->prev_viewport_w = vw;
 
    psd->wsd->pan_changed = EINA_TRUE;
    if (psd->wsd->calc_job) ecore_job_del(psd->wsd->calc_job);
@@ -2111,7 +2113,8 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
                        sd->group_item_width = mw;
                        sd->group_item_height = mh;
                     }
-                  else if ((!sd->item_width) && (it->item->type == ELM_GENLIST_ITEM_NONE))
+                  else if ((!sd->item_width) &&
+                           (it->item->type == ELM_GENLIST_ITEM_NONE))
                     {
                        sd->item_width = mw;
                        sd->item_height = mh;
