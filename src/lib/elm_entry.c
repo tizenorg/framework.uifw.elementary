@@ -463,6 +463,7 @@ static void
 _signal_handler_click_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
    _select_word(data, NULL, NULL);
+   elm_widget_scroll_freeze_pop(data);
 }
 
 static Evas_Coord_Rectangle
