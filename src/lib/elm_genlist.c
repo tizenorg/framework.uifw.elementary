@@ -2150,7 +2150,7 @@ _elm_genlist_pan_smart_calculate(Evas_Object *obj)
 #if GROUP_ITEMS_FEATURE
        git->item->want_realize = EINA_FALSE;
 #else
-       _item_unrealize(git, EINA_TRUE);
+       evas_object_hide(VIEW(git));
 #endif
     }
 
