@@ -1894,7 +1894,7 @@ static Evas_Coord
 _elm_scroll_page_x_get(Elm_Scrollable_Smart_Interface_Data *sid,
                        int offset)
 {
-   Evas_Coord x, y, w, h, cw, ch, minx = 0;
+   Evas_Coord x, y, w, h, dx, cw, ch, minx = 0;
 
    if (!sid->pan_obj) return 0;
 
@@ -1905,10 +1905,16 @@ _elm_scroll_page_x_get(Elm_Scrollable_Smart_Interface_Data *sid,
    psd->api->content_size_get(sid->pan_obj, &cw, &ch);
    psd->api->pos_min_get(sid->pan_obj, &minx, NULL);
 
-   x += offset;
-
    if (sid->pagerel_h > 0.0)
      sid->pagesize_h = w * sid->pagerel_h;
+
+   dx = (sid->pagesize_h * ((double)sid->page_limit_h - 0.5));
+
+   if (offset > 0)
+     x += (abs(offset) < dx ? offset : dx);
+   else
+     x += (abs(offset) < dx ? offset : -dx);
+
    if (sid->pagesize_h > 0)
      {
         x = x + (sid->pagesize_h * 0.5);
@@ -1925,7 +1931,7 @@ static Evas_Coord
 _elm_scroll_page_y_get(Elm_Scrollable_Smart_Interface_Data *sid,
                        int offset)
 {
-   Evas_Coord x, y, w, h, cw, ch, miny = 0;
+   Evas_Coord x, y, w, h, dy, cw, ch, miny = 0;
 
    if (!sid->pan_obj) return 0;
 
@@ -1936,10 +1942,16 @@ _elm_scroll_page_y_get(Elm_Scrollable_Smart_Interface_Data *sid,
    psd->api->content_size_get(sid->pan_obj, &cw, &ch);
    psd->api->pos_min_get(sid->pan_obj, NULL, &miny);
 
-   y += offset;
-
    if (sid->pagerel_v > 0.0)
      sid->pagesize_v = h * sid->pagerel_v;
+
+   dy = (sid->pagesize_v * ((double)sid->page_limit_v - 0.5));
+
+   if (offset > 0)
+     y += (abs(offset) < dy ? offset : dy);
+   else
+     y += (abs(offset) < dy ? offset : -dy);
+
    if (sid->pagesize_v > 0)
      {
         y = y + (sid->pagesize_v * 0.5);
@@ -3866,6 +3878,28 @@ _elm_scroll_paging_get(const Evas_Object *obj,
 }
 
 static void
+_elm_scroll_page_scroll_limit_set(const Evas_Object *obj,
+                                  int page_limit_h,
+                                  int page_limit_v)
+{
+   ELM_SCROLL_IFACE_DATA_GET_OR_RETURN(obj, sid);
+
+   sid->page_limit_h = page_limit_h;
+   sid->page_limit_v = page_limit_v;
+}
+
+static void
+_elm_scroll_page_scroll_limit_get(const Evas_Object *obj,
+                                  int *page_limit_h,
+                                  int *page_limit_v)
+{
+   ELM_SCROLL_IFACE_DATA_GET_OR_RETURN(obj, sid);
+
+   if (page_limit_h) *page_limit_h = sid->page_limit_h;
+   if (page_limit_v) *page_limit_v = sid->page_limit_v;
+}
+
+static void
 _elm_scroll_current_page_get(const Evas_Object *obj,
                              int *pagenumber_h,
                              int *pagenumber_v)
@@ -4021,6 +4055,8 @@ _elm_scroll_interface_add(Evas_Object *obj)
    sid->step.y = 32;
    sid->page.x = -50;
    sid->page.y = -50;
+   sid->page_limit_h = 9999;
+   sid->page_limit_v = 9999;
    sid->hbar_flags = ELM_SCROLLER_POLICY_AUTO;
    sid->vbar_flags = ELM_SCROLLER_POLICY_AUTO;
    sid->hbar_visible = EINA_TRUE;
@@ -4118,6 +4154,8 @@ EAPI const Elm_Scrollable_Smart_Interface ELM_SCROLLABLE_IFACE =
    _elm_scroll_bounce_allow_get,
    _elm_scroll_paging_set,
    _elm_scroll_paging_get,
+   _elm_scroll_page_scroll_limit_set,
+   _elm_scroll_page_scroll_limit_get,
    _elm_scroll_current_page_get,
    _elm_scroll_last_page_get,
    _elm_scroll_page_show,

@@ -306,6 +306,7 @@ struct _Elm_Scrollable_Smart_Interface_Data
 
    double     pagerel_h, pagerel_v;
    Evas_Coord pagesize_h, pagesize_v;
+   int        page_limit_h, page_limit_v;
 
    Eina_Bool  momentum_animator_disabled : 1;
    Eina_Bool  bounce_animator_disabled : 1;
@@ -494,6 +495,12 @@ struct _Elm_Scrollable_Smart_Interface
                             double *pagerel_v,
                             Evas_Coord *pagesize_h,
                             Evas_Coord *pagesize_v);
+   void       (*page_scroll_limit_set)(const Evas_Object *obj,
+                                  int page_limit_h,
+                                  int page_limit_v);
+   void       (*page_scroll_limit_get)(const Evas_Object *obj,
+                                  int *page_limit_h,
+                                  int *page_limit_v);
    void       (*current_page_get)(const Evas_Object *obj,
                                   int *pagenumber_h,
                                   int *pagenumber_v);

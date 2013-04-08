@@ -992,6 +992,31 @@ elm_scroller_page_size_get(const Evas_Object *obj,
 }
 
 EAPI void
+elm_scroller_page_scroll_limit_set(Evas_Object *obj,
+                                   int page_limit_h,
+                                   int page_limit_v)
+{
+   ELM_SCROLLABLE_CHECK(obj);
+
+   if (page_limit_h < 1)
+     page_limit_h = 9999;
+   if (page_limit_v < 1)
+     page_limit_v = 9999;
+
+   s_iface->page_scroll_limit_set(obj, page_limit_h, page_limit_v);
+}
+
+EAPI void
+elm_scroller_page_scroll_limit_get(Evas_Object *obj,
+                                   int *page_limit_h,
+                                   int *page_limit_v)
+{
+   ELM_SCROLLABLE_CHECK(obj);
+
+   s_iface->page_scroll_limit_get(obj, page_limit_h, page_limit_v);
+}
+
+EAPI void
 elm_scroller_current_page_get(const Evas_Object *obj,
                               int *h_pagenumber,
                               int *v_pagenumber)

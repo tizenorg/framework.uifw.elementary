@@ -287,6 +287,39 @@ EAPI void                         elm_scroller_page_size_set(Evas_Object *obj, E
 EAPI void                         elm_scroller_page_size_get(const Evas_Object *obj, Evas_Coord *h_pagesize, Evas_Coord *v_pagesize);
 
 /**
+ * @brief Set the maxium of the movable page at a flicking.
+ *
+ * @param obj The scroller object
+ * @param page_limit_h The maxium of the movable horizontal page
+ * @param page_limit_v The maxium of the movable vertical page
+ *
+ * The value of maxium movable page should be more than 1.
+ *
+ * @see elm_scroller_page_scroll_limit_get()
+ *
+ * @since 1.8
+ *
+ * @ingroup Scroller
+ */
+EAPI void                         elm_scroller_page_scroll_limit_set(Evas_Object *obj, int page_limit_h, int page_limit_v);
+
+/**
+ * @brief Get the maxium of the movable page at a flicking.
+ *
+ * @param obj The scroller object
+ * @param page_limit_h The maxium of the movable horizontal page
+ * @param page_limit_v The maxium of the movable vertical page
+ *
+ *
+ * @see elm_scroller_page_scroll_limit_set()
+ *
+ * @since 1.8
+ *
+ * @ingroup Scroller
+ */
+EAPI void                         elm_scroller_page_scroll_limit_get(Evas_Object *obj, int *page_limit_h, int *page_limit_v);
+
+/**
  * @brief Get scroll current page number.
  *
  * @param obj The scroller object
