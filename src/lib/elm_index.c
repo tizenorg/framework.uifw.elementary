@@ -333,6 +333,36 @@ _mirrored_set(Evas_Object *obj, Eina_Bool rtl)
      edje_object_mirrored_set(ELM_WIDGET_DATA(sd)->resize_obj, rtl);
 }
 
+static void
+_access_activate_cb(void *data,
+                    Evas_Object *part_obj __UNUSED__,
+                    Elm_Object_Item *item __UNUSED__)
+{
+   Elm_Index_Item *it;
+   ELM_INDEX_DATA_GET(data, sd);
+
+   it = eina_list_nth(sd->items, 0);
+   _elm_access_highlight_set(it->base.access_obj);
+   sd->index_focus = EINA_TRUE;
+}
+
+static void
+_access_index_register(Evas_Object *obj)
+{
+   Evas_Object *ao;
+   Elm_Access_Info *ai;
+   elm_widget_can_focus_set(obj, EINA_TRUE);
+
+   ao = _elm_access_edje_object_part_object_register
+              (obj, elm_layout_edje_get(obj), "access");
+   ai = _elm_access_object_get(ao);
+
+   _elm_access_text_set
+     (ai, ELM_ACCESS_TYPE, E_("Index"));
+   _elm_access_activate_callback_set
+     (ai, _access_activate_cb, obj);
+}
+
 static Eina_Bool
 _elm_index_smart_theme(Evas_Object *obj)
 {
@@ -411,6 +441,14 @@ _elm_index_smart_theme(Evas_Object *obj)
           edje_object_signal_emit(VIEW(it->head), "elm,state,active", "elm");
         else
           edje_object_signal_emit(VIEW(it), "elm,state,active", "elm");
+     }
+
+   /* access */
+   if (_elm_config->access_mode)
+     {
+        elm_index_autohide_disabled_set(obj, EINA_TRUE);
+        elm_layout_signal_emit(obj, "elm,access,state,active", "elm");
+        _access_index_register(obj);
      }
 
    return EINA_TRUE;
@@ -781,36 +819,6 @@ _on_mouse_move(void *data,
           }
      }
    _sel_eval(data, ev->cur.canvas.x, ev->cur.canvas.y);
-}
-
-static void
-_access_activate_cb(void *data,
-                    Evas_Object *part_obj __UNUSED__,
-                    Elm_Object_Item *item __UNUSED__)
-{
-   Elm_Index_Item *it;
-   ELM_INDEX_DATA_GET(data, sd);
-
-   it = eina_list_nth(sd->items, 0);
-   _elm_access_highlight_set(it->base.access_obj);
-   sd->index_focus = EINA_TRUE;
-}
-
-static void
-_access_index_register(Evas_Object *obj)
-{
-   Evas_Object *ao;
-   Elm_Access_Info *ai;
-   elm_widget_can_focus_set(obj, EINA_TRUE);
-
-   ao = _elm_access_edje_object_part_object_register
-              (obj, elm_layout_edje_get(obj), "access");
-   ai = _elm_access_object_get(ao);
-
-   _elm_access_text_set
-     (ai, ELM_ACCESS_TYPE, E_("Index"));
-   _elm_access_activate_callback_set
-     (ai, _access_activate_cb, obj);
 }
 
 static void
