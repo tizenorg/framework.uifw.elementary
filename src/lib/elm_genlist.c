@@ -1085,28 +1085,8 @@ _item_mode_content_realize(Elm_Gen_Item *it,
                        // 1. Add resize callback for multiline entry.
                        // 2. Do not unrealize it for focus issue
                        // ps. Only for entry because of performnace
-                       if (!strcmp("elm_layout", evas_object_type_get(ic)))
-                         {
-                            // If editfield style, it can have entry.
-                            const char *group;
-                            edje_object_file_get(elm_layout_edje_get(ic), NULL, &group);
-                            if (group && !strncmp("elm/layout/editfield/", group, 20))
-                              {
-                                 Eina_List *ll;
-                                 Evas_Object *subobj;
-                                 Eina_List *subobjs = elm_widget_sub_object_list_get(ic);
-                                 EINA_LIST_FOREACH(subobjs, ll, subobj)
-                                   {
-                                      if (!strcmp("elm_entry", evas_object_type_get(subobj)) &&
-                                          !elm_entry_single_line_get(subobj))
-                                        it->item->unrealize_disabled = EINA_TRUE;
-                                   }
-                              }
-                         }
-                       else if (!strcmp("elm_entry", evas_object_type_get(ic)) &&
-                                !elm_entry_single_line_get(ic))
-                          it->item->unrealize_disabled = EINA_TRUE;
-
+                       if (!strcmp("elm_entry", evas_object_type_get(ic)))
+                         it->item->unrealize_disabled = EINA_TRUE;
                     }
 #endif
 #if 0
@@ -1388,30 +1368,12 @@ _item_content_realize(Elm_Gen_Item *it,
                   // 1. Add resize callback for multiline entry.
                   // 2. Do not unrealize it for focus issue
                   // ps. Only for entry because of performnace
-                  if (!strcmp("elm_layout", evas_object_type_get(ic)))
+                  if (!strcmp("elm_entry", evas_object_type_get(ic)))
                     {
-                       // If editfield style, it can have entry.
-                       const char *group;
-                       edje_object_file_get(elm_layout_edje_get(ic), NULL, &group);
-                       if (group && !strncmp("elm/layout/editfield/", group, 20))
-                         {
-                            Eina_List *ll;
-                            Evas_Object *subobj;
-                            Eina_List *subobjs = elm_widget_sub_object_list_get(ic);
-                            EINA_LIST_FOREACH(subobjs, ll, subobj)
-                              {
-                                 if (!strcmp("elm_entry", evas_object_type_get(subobj)) &&
-                                     !elm_entry_single_line_get(subobj))
-                                    it->item->unrealize_disabled = EINA_TRUE;
-                              }
-                         }
-                    }
-                  else if (!strcmp("elm_entry", evas_object_type_get(ic)) &&
-                           !elm_entry_single_line_get(ic))
-                    {
-                       evas_object_event_callback_add
-                          (ic, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-                           _changed_size_hints, it);
+                       if (!elm_entry_single_line_get(ic))
+                         evas_object_event_callback_add
+                            (ic, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
+                             _changed_size_hints, it);
                        it->item->unrealize_disabled = EINA_TRUE;
                     }
 #endif
