@@ -153,7 +153,7 @@ static void _changed_job(Elm_Genlist_Smart_Data *sd);
 #if GENLIST_FX_SUPPORT
 static Eina_Bool      _elm_genlist_fx_capture(Evas_Object *obj, int level);
 static void           _elm_genlist_fx_play(Evas_Object *obj);
-static void           _elm_genlist_fx_clear(Evas_Object *obj);
+static void           _elm_genlist_fx_clear(Evas_Object *obj, Eina_Bool force);
 static void           _elm_genlist_proxy_item_del(const Elm_Object_Item *item);
 #endif
 
@@ -3930,8 +3930,7 @@ _item_idle_enterer(void *data)
      }
 
 #if GENLIST_FX_SUPPORT
-   if (sd->fx_first_captured)
-     _elm_genlist_fx_clear(ELM_WIDGET_DATA(sd)->obj);
+   _elm_genlist_fx_clear(ELM_WIDGET_DATA(sd)->obj, EINA_FALSE);
 #endif
    return ECORE_CALLBACK_RENEW;
 }
@@ -4414,6 +4413,9 @@ static void
 _scroll_animate_start_cb(Evas_Object *obj,
                          void *data __UNUSED__)
 {
+#if GENLIST_FX_SUPPORT
+   _elm_genlist_fx_clear(obj, EINA_FALSE);
+#endif
    evas_object_smart_callback_call(obj, SIG_SCROLL_ANIM_START, NULL);
 }
 
@@ -4421,6 +4423,9 @@ static void
 _scroll_animate_stop_cb(Evas_Object *obj,
                         void *data __UNUSED__)
 {
+#if GENLIST_FX_SUPPORT
+   _elm_genlist_fx_clear(obj, EINA_FALSE);
+#endif
    evas_object_smart_callback_call(obj, SIG_SCROLL_ANIM_STOP, NULL);
 }
 
@@ -5440,13 +5445,15 @@ elm_genlist_item_sorted_insert(Evas_Object *obj,
 }
 
 static void
-_elm_genlist_fx_clear(Evas_Object *obj)
+_elm_genlist_fx_clear(Evas_Object *obj, Eina_Bool force)
 {
    ELM_GENLIST_DATA_GET(obj, sd);
 
    Elm_Gen_FX_Item *fi;
    Proxy_Item *pi;
    Elm_Gen_Item *it;
+
+   if ((!force) && (!sd->fx_first_captured)) return;
 
    EINA_LIST_FREE(sd->capture_before_items, pi)
      {
@@ -5508,7 +5515,7 @@ elm_genlist_clear(Evas_Object *obj)
 #if GENLIST_FX_SUPPORT
    if (sd->fx_mode)
      {
-        _elm_genlist_fx_clear(obj);
+        _elm_genlist_fx_clear(obj, EINA_TRUE);
         sd->genlist_clearing = EINA_TRUE;
         sd->rendered = EINA_FALSE;
      }
@@ -6044,8 +6051,7 @@ elm_genlist_item_update(Elm_Object_Item *item)
 #endif
 
 #if GENLIST_FX_SUPPORT
-   if (GL_IT(it)->wsd->fx_first_captured)
-     _elm_genlist_fx_clear(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj);
+     _elm_genlist_fx_clear(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj, EINA_FALSE);
 #endif
 
    if (GL_IT(it)->wsd->update_job) ecore_job_del(GL_IT(it)->wsd->update_job);
@@ -6616,9 +6622,7 @@ elm_genlist_decorate_mode_set(Evas_Object *obj,
           }
      }
 #if GENLIST_FX_SUPPORT
-   if (sd->fx_first_captured)
-     _elm_genlist_fx_clear(ELM_WIDGET_DATA(sd)->obj);
-
+     _elm_genlist_fx_clear(ELM_WIDGET_DATA(sd)->obj, EINA_FALSE);
 #endif
    if (sd->calc_job) ecore_job_del(sd->calc_job);
    sd->calc_job = ecore_job_add(_calc_job, sd);
@@ -7469,7 +7473,7 @@ _elm_genlist_fx_play(Evas_Object *obj)
    _elm_genlist_fx_items_make(obj);
    if (!eina_list_count(sd->fx_items) || (sd->queue))
      {
-        _elm_genlist_fx_clear(obj);
+        _elm_genlist_fx_clear(obj, EINA_TRUE);
         return;
      }
 
