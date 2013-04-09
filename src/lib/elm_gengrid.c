@@ -1006,6 +1006,9 @@ _item_place(Elm_Gen_Item *it,
 
    it->x = cx;
    it->y = cy;
+   if (wsd->horizontal) it->position = cx;
+   else it->position = cy;
+
    evas_object_geometry_get(wsd->pan_obj, &ox, &oy, &vw, &vh);
 
    /* Preload rows/columns at each side of the Gengrid */
