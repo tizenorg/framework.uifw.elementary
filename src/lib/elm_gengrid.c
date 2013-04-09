@@ -3779,7 +3779,11 @@ _elm_gengrid_proxy_item_new(const Elm_Object_Item *item)
 
    pi->proxy = evas_object_image_filled_add
       (evas_object_evas_get(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj));
-   if (!pi->proxy) return EINA_FALSE;
+   if (!pi->proxy)
+     {
+        free(pi);
+        return NULL;
+     }
    evas_object_clip_set(pi->proxy, evas_object_clip_get(GG_IT(it)->wsd->pan_obj));
    evas_object_smart_member_add(pi->proxy, GG_IT(it)->wsd->pan_obj);
    evas_object_hide(pi->proxy);

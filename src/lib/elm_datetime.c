@@ -281,7 +281,7 @@ _parse_format(Evas_Object *obj,
           }
         // ignore the set of chars (global, field specific) as field separators
         if (sep_parsing &&
-            (len < MAX_SEPARATOR_LEN - 1) &&
+            (len < MAX_SEPARATOR_LEN - 1) && field &&
             (field->type != ELM_DATETIME_AMPM) &&
             (!strchr(ignore_separators, cur)) &&
             (!strchr(mapping[idx].ignore_sep, cur)))

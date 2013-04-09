@@ -913,7 +913,7 @@ _elm_naviframe_smart_signal_callback_add(Evas_Object *obj,
    _elm_naviframe_parent_sc->callback_add(obj, emission, source, func_cb, data);
 
    it = elm_naviframe_top_item_get(obj);
-   if (!it) return EINA_FALSE;
+   if (!it) return;
 
    elm_object_signal_callback_add(VIEW(it), emission, source, func_cb, data);
 }
