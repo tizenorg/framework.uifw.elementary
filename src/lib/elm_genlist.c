@@ -22,7 +22,8 @@ EAPI const char ELM_GENLIST_PAN_SMART_NAME[] = "elm_genlist_pan";
 #define GL_IT(_it) (_it->item)
 
 #define IS_ROOT_PARENT_IT(_it) \
-   ((_it->group) || (GL_IT(_it)->items && GL_IT(_it)->expanded_depth == 0)) \
+   ((_it->group) || ((GL_IT(_it)->items && GL_IT(_it)->expanded_depth == 0)  \
+                      &&(!(GL_IT(_it)->type & ELM_GENLIST_ITEM_TREE)))) \
 
 static const Evas_Smart_Interface *_smart_interfaces[] =
 {
