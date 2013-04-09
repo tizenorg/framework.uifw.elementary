@@ -1072,9 +1072,10 @@ _elm_access_object_hilight_disable(Evas *e)
                                             _access_obj_hilight_move_cb, NULL);
         evas_object_event_callback_del_full(ptarget, EVAS_CALLBACK_RESIZE,
                                             _access_obj_hilight_resize_cb, NULL);
+        elm_widget_parent_highlight_set(ptarget, EINA_FALSE);
+        _access_action_callback_call(ptarget, ELM_ACCESS_ACTION_UNHIGHLIGHT, NULL);
      }
    evas_object_del(o);
-   elm_widget_parent_highlight_set(ptarget, EINA_FALSE);
 }
 
 EAPI void
@@ -1307,6 +1308,9 @@ elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *act
         break;
 
       case ELM_ACCESS_ACTION_UNHIGHLIGHT:
+        evas = evas_object_evas_get(obj);
+        if (!evas) return EINA_FALSE;
+        _elm_access_object_hilight_disable(evas);
         break;
 
       case ELM_ACCESS_ACTION_HIGHLIGHT_NEXT:
