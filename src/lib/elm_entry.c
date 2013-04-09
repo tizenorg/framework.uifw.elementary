@@ -4648,7 +4648,7 @@ elm_entry_select_allow_set(Evas_Object *obj,
 EAPI Eina_Bool
 elm_entry_select_allow_get(const Evas_Object *obj)
 {
-   ELM_ENTRY_CHECK(obj);
+   ELM_ENTRY_CHECK(obj) EINA_FALSE;
    ELM_ENTRY_DATA_GET(obj, sd);
 
    return sd->sel_allow;
@@ -4671,7 +4671,7 @@ elm_entry_cursor_handler_disabled_set(Evas_Object *obj,
 EAPI Eina_Bool
 elm_entry_cursor_handler_disabled_get(const Evas_Object *obj)
 {
-   ELM_ENTRY_CHECK(obj);
+   ELM_ENTRY_CHECK(obj) EINA_FALSE;
    ELM_ENTRY_DATA_GET(obj, sd);
    return sd->cursor_handler_disabled;
 }
