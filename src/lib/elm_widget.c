@@ -2356,8 +2356,7 @@ elm_widget_focus_next_get(const Evas_Object *obj,
                   return EINA_TRUE;
                }
           }
-        else
-          return ret;
+        return ret;
      }
 
    if (!elm_widget_can_focus_get(obj))
