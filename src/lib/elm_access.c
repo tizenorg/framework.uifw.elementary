@@ -283,23 +283,6 @@ _access_obj_mouse_in_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSE
 }
 
 static void
-_access_obj_mouse_out_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
-{
-   Elm_Access_Info *ac;
-   if (!mouse_event_enable) return;
-
-   ac = evas_object_data_get(data, "_elm_access");
-   if (!ac) return;
-
-   _elm_access_object_unhilight(data);
-   if (ac->delay_timer)
-     {
-        ecore_timer_del(ac->delay_timer);
-        ac->delay_timer = NULL;
-     }
-}
-
-static void
 _access_obj_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
    _elm_access_object_unregister(data, obj);
@@ -1085,8 +1068,6 @@ _elm_access_object_register(Evas_Object *obj, Evas_Object *hoverobj)
 
    evas_object_event_callback_add(hoverobj, EVAS_CALLBACK_MOUSE_IN,
                                   _access_obj_mouse_in_cb, obj);
-   evas_object_event_callback_add(hoverobj, EVAS_CALLBACK_MOUSE_OUT,
-                                  _access_obj_mouse_out_cb, obj);
    evas_object_event_callback_add(hoverobj, EVAS_CALLBACK_DEL,
                                   _access_obj_del_cb, obj);
    ac = calloc(1, sizeof(Elm_Access_Info));
@@ -1102,8 +1083,6 @@ _elm_access_object_unregister(Evas_Object *obj, Evas_Object *hoverobj)
 
    evas_object_event_callback_del_full(hoverobj, EVAS_CALLBACK_MOUSE_IN,
                                        _access_obj_mouse_in_cb, obj);
-   evas_object_event_callback_del_full(hoverobj, EVAS_CALLBACK_MOUSE_OUT,
-                                       _access_obj_mouse_out_cb, obj);
    evas_object_event_callback_del_full(hoverobj, EVAS_CALLBACK_DEL,
                                        _access_obj_del_cb, obj);
 
