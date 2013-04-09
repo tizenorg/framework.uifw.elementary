@@ -1810,7 +1810,7 @@ _reorder_move_animator_cb(void *data)
    Eina_Bool down = EINA_FALSE;
    int y, dy, diff;
 
-   dy = 6 * elm_config_scale_get();
+   dy = 20 * elm_config_scale_get();
    t = ((0.0 > (t = ecore_loop_time_get()
                   - GL_IT(it)->wsd->start_time)) ? 0.0 : t);
 
