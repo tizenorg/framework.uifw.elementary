@@ -7533,11 +7533,16 @@ _elm_genlist_fx_play(Evas_Object *obj)
           {
              elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
              elm_transit_effect_color_add(fi->trans, 0, 0, 0, 0, 255, 255, 255, 255);
+             if ((!sd->pinch_zoom_mode) && (!sd->expanded_item))
+               elm_transit_effect_zoom_add(fi->trans, 0.8, 1.0);
           }
         else if (fi->type == ELM_GEN_ITEM_FX_TYPE_DEL)
           {
+             _item_unhighlight(fi->it);
              elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
              elm_transit_effect_color_add(fi->trans, 255, 255, 255, 255, 0, 0, 0, 0);
+             if ((!sd->pinch_zoom_mode) && (!sd->expanded_item))
+               elm_transit_effect_zoom_add(fi->trans, 1.0, 0.8);
           }
         elm_transit_effect_add(fi->trans, _item_fx_op, fi, _item_fx_done);
         elm_transit_del_cb_set(fi->trans, _item_fx_del_cb, fi);
