@@ -571,7 +571,6 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir)
              action_type = type;
 
              _elm_access_highlight_set(target);
-             ret = EINA_FALSE;
 
              action_type = ELM_ACCESS_ACTION_FIRST;
           }
