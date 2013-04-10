@@ -54,6 +54,32 @@ _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
 }
 
 static Eina_Bool
+_elm_ctxpopup_smart_focus_direction(const Evas_Object *obj,
+                                    const Evas_Object *base,
+                                    double degree,
+                                    Evas_Object **direction,
+                                    double *weight)
+{
+   Eina_Bool ret;
+   Eina_List *l = NULL;
+   void *(*list_data_get)(const Eina_List *list);
+
+   ELM_CTXPOPUP_DATA_GET(obj, sd);
+
+   if (!sd)
+     return EINA_FALSE;
+
+   list_data_get = eina_list_data_get;
+
+   l = eina_list_append(l, sd->box);
+   ret = elm_widget_focus_list_direction_get
+      (obj, base, l, list_data_get, degree, direction, weight);
+   eina_list_free(l);
+
+   return ret;
+}
+
+static Eina_Bool
 _elm_ctxpopup_smart_event(Evas_Object *obj,
                           Evas_Object *src __UNUSED__,
                           Evas_Callback_Type type,
@@ -1547,7 +1573,7 @@ _elm_ctxpopup_smart_set_user(Elm_Ctxpopup_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->theme = _elm_ctxpopup_smart_theme;
    ELM_WIDGET_CLASS(sc)->sub_object_add = _elm_ctxpopup_smart_sub_object_add;
    ELM_WIDGET_CLASS(sc)->focus_next = _elm_ctxpopup_smart_focus_next;
-   ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
+   ELM_WIDGET_CLASS(sc)->focus_direction = _elm_ctxpopup_smart_focus_direction;
    ELM_WIDGET_CLASS(sc)->translate = _elm_ctxpopup_smart_translate;
 
    ELM_CONTAINER_CLASS(sc)->content_get = _elm_ctxpopup_smart_content_get;
