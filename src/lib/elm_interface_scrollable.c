@@ -3796,7 +3796,7 @@ _elm_scroll_repeat_events_set(Evas_Object *obj,
 }
 
 static Eina_Bool
-_elm_scroll_repeat_events_get(Evas_Object *obj)
+_elm_scroll_repeat_events_get(const Evas_Object *obj)
 {
    ELM_SCROLL_IFACE_DATA_GET_OR_RETURN_VAL(obj, sid, EINA_FALSE);
 
