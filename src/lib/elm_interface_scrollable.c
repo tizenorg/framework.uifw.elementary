@@ -52,6 +52,18 @@ elm_pan_smart_class_get(void)
    return class;
 }
 
+static double
+_round(double value, int pos)
+{
+   double temp;
+
+   temp = value * pow( 10, pos );
+   temp = floor( temp + 0.5 );
+   temp *= pow( 10, -pos );
+
+   return temp;
+}
+
 static void
 _elm_pan_update(Elm_Pan_Smart_Data *psd)
 {
@@ -765,8 +777,8 @@ _elm_scroll_scroll_bar_read_and_update(
      (sid->edje_obj, "elm.dragable.hbar", &vx, NULL);
    psd->api->pos_max_get(sid->pan_obj, &mx, &my);
    psd->api->pos_min_get(sid->pan_obj, &minx, &miny);
-   x = vx * (double)mx + minx;
-   y = vy * (double)my + miny;
+   x = _round(vx * (double)mx + minx, 1);
+   y = _round(vy * (double)my + miny, 1);
    psd->api->pos_get(sid->pan_obj, &px, &py);
    psd->api->pos_set(sid->pan_obj, x, y);
    if ((px != x) || (py != y))
