@@ -61,7 +61,7 @@ _box_custom_layout(Evas_Object *o,
 
 static void
 _index_box_clear(Evas_Object *obj,
-                 Evas_Object *box __UNUSED__,
+                 Evas_Object *box,
                  int level)
 {
    Eina_List *l;
@@ -80,6 +80,7 @@ _index_box_clear(Evas_Object *obj,
         VIEW(it) = NULL;
      }
 
+   evas_object_smart_calculate(box);
    sd->level_active[level] = 0;
 }
 
@@ -207,7 +208,7 @@ _index_box_auto_fill(Evas_Object *obj,
 
    if (sd->level_active[level]) return;
 
-   evas_object_geometry_get(ELM_WIDGET_DATA(sd)->resize_obj, NULL, NULL, NULL, &ih);
+   edje_object_part_geometry_get(ELM_WIDGET_DATA(sd)->resize_obj, "elm.swallow.index.0", NULL, NULL, NULL, &ih);
 
    rtl = elm_widget_mirrored_get(obj);
 
