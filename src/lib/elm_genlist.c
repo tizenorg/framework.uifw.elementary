@@ -7565,7 +7565,8 @@ elm_genlist_pinch_zoom_mode_set(Evas_Object *obj, Elm_Gen_Pinch_Zoom_Mode mode)
    Elm_Gen_Item *it;
    Eina_Bool done = EINA_FALSE;
 
-   if ((sd->queue) || (!sd->rendered) || (sd->queue_idle_enterer)) return EINA_FALSE;
+   if ((sd->queue) || (!sd->rendered) 
+       || (sd->queue_idle_enterer) || (!sd->fx_mode)) return EINA_FALSE;
 
    EINA_INLIST_FOREACH(sd->blocks, itb)
      {
