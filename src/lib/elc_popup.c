@@ -43,6 +43,27 @@ _visuals_set(Evas_Object *obj)
      elm_layout_signal_emit(obj, "elm,state,action_area,hidden", "elm");
 }
 
+
+static void
+_item_update(Elm_Popup_Item *item)
+{
+   if (item->label)
+     {
+        edje_object_part_text_escaped_set
+           (VIEW(item), "elm.text", item->label);
+        edje_object_signal_emit
+           (VIEW(item), "elm,state,item,text,visible", "elm");
+     }
+   if (item->icon)
+      edje_object_signal_emit
+         (VIEW(item), "elm,state,item,icon,visible", "elm");
+   if (item->base.disabled)
+      edje_object_signal_emit
+         (VIEW(item), "elm,state,item,disabled", "elm");
+   evas_object_show(VIEW(item));
+   edje_object_message_signal_process(VIEW(item));
+}
+
 static void
 _block_clicked_cb(void *data,
                   Evas_Object *obj __UNUSED__,
@@ -302,6 +323,7 @@ _elm_popup_smart_theme(Evas_Object *obj)
    unsigned int i = 0;
    Eina_List *elist;
    char buf[128];
+   int rotation = -1;
 
    ELM_POPUP_DATA_GET(obj, sd);
 
@@ -336,21 +358,7 @@ _elm_popup_smart_theme(Evas_Object *obj)
           {
              elm_widget_theme_object_set
                (obj, VIEW(item), "popup", "item", elm_widget_style_get(obj));
-             if (item->label)
-               {
-                  edje_object_part_text_escaped_set
-                    (VIEW(item), "elm.text", item->label);
-                  edje_object_signal_emit
-                    (VIEW(item), "elm,state,item,text,visible", "elm");
-               }
-             if (item->icon)
-               edje_object_signal_emit
-                 (VIEW(item), "elm,state,item,icon,visible", "elm");
-             if (item->disabled)
-               edje_object_signal_emit
-                 (VIEW(item), "elm,state,item,disabled", "elm");
-             evas_object_show(VIEW(item));
-             edje_object_message_signal_process(VIEW(item));
+             _item_update(item);
           }
         _scroller_size_calc(obj);
      }
@@ -890,6 +898,8 @@ _access_widget_item_register(Elm_Popup_Item *it)
 static void
 _item_new(Elm_Popup_Item *item)
 {
+   int orientation = -1;
+
    ELM_POPUP_DATA_GET(WIDGET(item), sd);
 
    elm_widget_item_text_set_hook_set(item, _item_text_set_hook);
@@ -902,8 +912,14 @@ _item_new(Elm_Popup_Item *item)
    elm_widget_item_signal_emit_hook_set(item, _item_signal_emit_hook);
    VIEW(item) = edje_object_add
        (evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
-   elm_widget_theme_object_set(WIDGET(item), VIEW(item), "popup", "item",
-                               elm_widget_style_get(WIDGET(item)));
+
+   orientation = sd->orientation;
+   if (orientation == 90 || orientation == 270)
+      elm_widget_theme_object_set
+         (WIDGET(item), VIEW(item), "popup", "item/landscape", elm_widget_style_get(WIDGET(item)));
+   else
+      elm_widget_theme_object_set
+         (WIDGET(item), VIEW(item), "popup", "item", elm_widget_style_get(WIDGET(item)));
    edje_object_mirrored_set(VIEW(item), elm_widget_mirrored_get(WIDGET(item)));
    edje_object_signal_callback_add
      (VIEW(item), "elm,action,click", "", _item_select_cb, item);
@@ -1451,6 +1467,42 @@ _elm_popup_smart_focus_direction(const Evas_Object *obj,
    return EINA_TRUE;
 }
 
+static void _rotation_changed_cb(void *data,
+                               Evas_Object *o __UNUSED__,
+                               const char *emission __UNUSED__,
+                               const char *source __UNUSED__)
+{
+   int rotation = -1;
+   Eina_List *elist;
+   Evas_Object *popup = data;
+   Elm_Popup_Item *item;
+
+   ELM_POPUP_CHECK(popup);
+   ELM_POPUP_DATA_GET(popup, sd);
+
+   rotation = ELM_WIDGET_DATA(sd)->orient_mode;
+
+   if (sd->orientation == rotation) return;
+
+   sd->orientation = rotation;
+
+   if (sd->items)
+     {
+        EINA_LIST_FOREACH(sd->items, elist, item)
+        {
+           if (rotation == 90 || rotation == 270)
+              elm_widget_theme_object_set
+                 (WIDGET(item), VIEW(item), "popup", "item/landscape", elm_widget_style_get(WIDGET(item)));
+           else
+              elm_widget_theme_object_set
+                 (WIDGET(item), VIEW(item), "popup", "item", elm_widget_style_get(WIDGET(item)));
+           _item_update(item);
+        }
+      _scroller_size_calc(popup);
+      elm_layout_sizing_eval(popup);
+   }
+}
+
 static void
 _elm_popup_smart_add(Evas_Object *obj)
 {
@@ -1654,9 +1706,15 @@ elm_popup_add(Evas_Object *parent)
    /* access: parent could be any object such as elm_list which does
       not know elc_popup as its child object in the focus_next();    */
    ELM_WIDGET_DATA_GET(obj, sd);
+   ELM_POPUP_DATA_GET(obj, sd1);
+
    sd->highlight_root = EINA_TRUE;
+   sd1->orientation = sd->orient_mode;
 
    _elm_widget_orient_signal_emit(obj);
+
+   elm_layout_signal_callback_add
+     (obj, "elm,state,orientation,changed", "", _rotation_changed_cb, obj);
 
    return obj;
 }

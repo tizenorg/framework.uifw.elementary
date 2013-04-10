@@ -148,6 +148,7 @@ struct _Elm_Popup_Smart_Data
    Eina_Bool             visible : 1;
    Eina_Bool             no_shift : 1;
    Eina_Bool             scr_size_recalc : 1;
+   int                   orientation;
 };
 
 typedef struct _Elm_Popup_Item Elm_Popup_Item;
