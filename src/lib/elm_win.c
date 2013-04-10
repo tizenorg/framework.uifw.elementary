@@ -3316,6 +3316,7 @@ elm_win_alpha_set(Evas_Object *obj,
                }
              else
                TRAP(sd, alpha_set, alpha);
+             _elm_win_xwin_type_set(sd);
              _elm_win_xwin_update(sd);
           }
         else
