@@ -537,7 +537,7 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir)
    if (!elm_widget_is(obj)) return ret;
 
    ho = _access_highlight_object_get(obj);
-   if (!ho) return ret;
+   if (!ho) ho = obj;
 
    parent = ho;
 
