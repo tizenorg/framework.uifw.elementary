@@ -168,18 +168,19 @@ typedef struct _Elm_Scrollable_Smart_Interface_Data
   Elm_Scrollable_Smart_Interface_Data;
 struct _Elm_Scrollable_Smart_Interface_Data
 {
-   Evas_Coord          x, y, w, h;
-   Evas_Coord          wx, wy, ww, wh; /**< Last "wanted" geometry */
+   Evas_Coord                    x, y, w, h;
+   Evas_Coord                    wx, wy, ww, wh; /**< Last "wanted" geometry */
 
-   Evas_Object        *obj;
-   Evas_Object        *content;
-   Evas_Object        *pan_obj;
-   Evas_Object        *edje_obj;
-   Evas_Object        *event_rect;
+   Evas_Object                  *obj;
+   Evas_Object                  *content;
+   Evas_Object                  *pan_obj;
+   Evas_Object                  *edje_obj;
+   Evas_Object                  *event_rect;
 
-   Evas_Object        *parent_widget;
+   Evas_Object                  *parent_widget;
 
-   Elm_Scroller_Policy hbar_flags, vbar_flags;
+   Elm_Scroller_Policy           hbar_flags, vbar_flags;
+   Elm_Scroller_Single_Direction one_direction_at_a_time;
 
    struct
    {
@@ -310,7 +311,6 @@ struct _Elm_Scrollable_Smart_Interface_Data
 
    Eina_Bool  momentum_animator_disabled : 1;
    Eina_Bool  bounce_animator_disabled : 1;
-   Eina_Bool  one_direction_at_a_time : 1;
    Eina_Bool  wheel_disabled : 1;
    Eina_Bool  hbar_visible : 1;
    Eina_Bool  vbar_visible : 1;
@@ -463,8 +463,8 @@ struct _Elm_Scrollable_Smart_Interface
                             Elm_Scroller_Policy *vbar);
 
    void       (*single_direction_set)(Evas_Object *obj,
-                                      Eina_Bool single_dir);
-   Eina_Bool  (*single_direction_get)(const Evas_Object *obj);
+                                      Elm_Scroller_Single_Direction single_dir);
+   Elm_Scroller_Single_Direction (*single_direction_get)(const Evas_Object *obj);
 
    void       (*repeat_events_set)(Evas_Object *obj,
                                       Eina_Bool repeat_events);

@@ -2709,8 +2709,6 @@ _elm_scroll_mouse_move_event_cb(void *data,
      {
         if (sid->down.now)
           {
-             int dodir = 0;
-
              if ((sid->scrollto.x.animator) && (!sid->hold) && (!sid->freeze))
                {
                   Evas_Coord px;
@@ -2763,31 +2761,49 @@ _elm_scroll_mouse_move_event_cb(void *data,
                   if (x < 0) x = -x;
                   if (y < 0) y = -y;
 
-                  if ((sid->one_direction_at_a_time) &&
-                      (!((sid->down.dir_x) || (sid->down.dir_y))))
+                  if (sid->one_direction_at_a_time)
                     {
-                       if (x > _elm_config->thumbscroll_threshold)
+                       if (!((sid->down.dir_x) || (sid->down.dir_y)) &&
+                           (((x * x) + (y * y)) >
+                            (_elm_config->thumbscroll_threshold *
+                             _elm_config->thumbscroll_threshold)))
                          {
-                            if (x > (y * 2))
+                            if (sid->one_direction_at_a_time ==
+                                ELM_SCROLLER_SINGLE_DIRECTION_SOFT)
                               {
-                                 sid->down.dir_x = EINA_TRUE;
-                                 sid->down.dir_y = EINA_FALSE;
-                                 dodir++;
+                                 int dodir = 0;
+                                 if (x > (y * 2))
+                                   {
+                                      sid->down.dir_x = EINA_TRUE;
+                                      sid->down.dir_y = EINA_FALSE;
+                                      dodir++;
+                                   }
+                                 if (y > (x * 2))
+                                   {
+                                      sid->down.dir_x = EINA_FALSE;
+                                      sid->down.dir_y = EINA_TRUE;
+                                      dodir++;
+                                   }
+                                 if (!dodir)
+                                   {
+                                      sid->down.dir_x = EINA_TRUE;
+                                      sid->down.dir_y = EINA_TRUE;
+                                   }
                               }
-                         }
-                       if (y > _elm_config->thumbscroll_threshold)
-                         {
-                            if (y > (x * 2))
+                            else if (sid->one_direction_at_a_time ==
+                                     ELM_SCROLLER_SINGLE_DIRECTION_HARD)
                               {
-                                 sid->down.dir_x = EINA_FALSE;
-                                 sid->down.dir_y = EINA_TRUE;
-                                 dodir++;
+                                 if (x > y)
+                                   {
+                                      sid->down.dir_x = EINA_TRUE;
+                                      sid->down.dir_y = EINA_FALSE;
+                                   }
+                                 if (y > x)
+                                   {
+                                      sid->down.dir_x = EINA_FALSE;
+                                      sid->down.dir_y = EINA_TRUE;
+                                   }
                               }
-                         }
-                       if (!dodir)
-                         {
-                            sid->down.dir_x = EINA_TRUE;
-                            sid->down.dir_y = EINA_TRUE;
                          }
                     }
                   else
@@ -3771,17 +3787,17 @@ _elm_scroll_policy_get(const Evas_Object *obj,
 
 static void
 _elm_scroll_single_direction_set(Evas_Object *obj,
-                                 Eina_Bool single_dir)
+                                 Elm_Scroller_Single_Direction single_dir)
 {
    ELM_SCROLL_IFACE_DATA_GET_OR_RETURN(obj, sid);
 
    sid->one_direction_at_a_time = single_dir;
 }
 
-static Eina_Bool
+static Elm_Scroller_Single_Direction
 _elm_scroll_single_direction_get(const Evas_Object *obj)
 {
-   ELM_SCROLL_IFACE_DATA_GET_OR_RETURN_VAL(obj, sid, EINA_FALSE);
+   ELM_SCROLL_IFACE_DATA_GET_OR_RETURN_VAL(obj, sid, ELM_SCROLLER_SINGLE_DIRECTION_SOFT);
 
    return sid->one_direction_at_a_time;
 }
@@ -4075,7 +4091,7 @@ _elm_scroll_interface_add(Evas_Object *obj)
    sid->bounce_horiz = EINA_TRUE;
    sid->bounce_vert = EINA_TRUE;
 
-   sid->one_direction_at_a_time = EINA_TRUE;
+   sid->one_direction_at_a_time = ELM_SCROLLER_SINGLE_DIRECTION_SOFT;
    sid->momentum_animator_disabled = EINA_FALSE;
    sid->bounce_animator_disabled = EINA_FALSE;
 

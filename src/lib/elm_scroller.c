@@ -899,6 +899,26 @@ elm_scroller_policy_get(const Evas_Object *obj,
 }
 
 EAPI void
+elm_scroller_single_direction_set(Evas_Object *obj,
+                                  Elm_Scroller_Single_Direction single_dir)
+{
+   ELM_SCROLLABLE_CHECK(obj);
+
+   if (single_dir >= ELM_SCROLLER_SINGLE_DIRECTION_LAST)
+     return;
+
+   s_iface->single_direction_set(obj, single_dir);
+}
+
+EAPI Elm_Scroller_Single_Direction
+elm_scroller_single_direction_get(const Evas_Object *obj)
+{
+   ELM_SCROLLABLE_CHECK(obj, ELM_SCROLLER_SINGLE_DIRECTION_SOFT);
+
+   return s_iface->single_direction_get(obj);
+}
+
+EAPI void
 elm_scroller_region_get(const Evas_Object *obj,
                         Evas_Coord *x,
                         Evas_Coord *y,
