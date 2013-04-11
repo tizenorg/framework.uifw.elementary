@@ -6120,10 +6120,10 @@ elm_genlist_item_item_class_update(Elm_Object_Item *item,
    ELM_GENLIST_ITEM_CHECK_OR_RETURN(item);
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
 
-   if (!it->item->block) return;
    EINA_SAFETY_ON_NULL_RETURN(itc);
    it->itc = itc;
 
+   if (!it->item->block) return;
    it->item->nocache_once = EINA_TRUE;
 
    elm_widget_stringlist_free(it->texts);
