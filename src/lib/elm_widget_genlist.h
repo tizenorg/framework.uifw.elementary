@@ -250,7 +250,6 @@ struct _Elm_Genlist_Smart_Data
     * genlist now or not. */
    Eina_Bool                             check_scroll : 1;
    Eina_Bool                             pan_changed : 1;
-   Eina_Bool                             wasselected : 1;
    Eina_Bool                             homogeneous : 1;
    Eina_Bool                             longpressed : 1;
 

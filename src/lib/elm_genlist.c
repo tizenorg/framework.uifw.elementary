@@ -3400,11 +3400,6 @@ _item_multi_down_cb(void *data,
    GL_IT(it)->wsd->multi_touched = EINA_TRUE;
    GL_IT(it)->wsd->prev_mx = ev->canvas.x;
    GL_IT(it)->wsd->prev_my = ev->canvas.y;
-   /*
-   if (!GL_IT(it)->wsd->wasselected)
-     _item_unselect(it);
-   GL_IT(it)->wsd->wasselected = EINA_FALSE;
-     */
    if (it->long_timer)
      {
         ecore_timer_del(it->long_timer);
@@ -6128,6 +6123,7 @@ elm_genlist_item_item_class_update(Elm_Object_Item *item,
    if (!it->item->block) return;
    EINA_SAFETY_ON_NULL_RETURN(itc);
    it->itc = itc;
+
    it->item->nocache_once = EINA_TRUE;
 
    elm_widget_stringlist_free(it->texts);
