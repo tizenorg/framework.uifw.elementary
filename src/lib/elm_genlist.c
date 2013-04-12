@@ -579,12 +579,15 @@ _item_unrealize(Elm_Gen_Item *it,
         it->item->swipe_timer = NULL;
      }
 
+   /*
+    * This make too may error message when content is not layout based or 
+    * content does not impelement message siganal process.
+    * This reduces scrolling performance :(
+    * Before uncomment this, we should fix above.
    //Forcing the edje signal process for item's content.
    EINA_LIST_FOREACH(it->content_objs, l, content)
-     {
-        if (evas_object_smart_type_check(content, "elm_layout"))
-          edje_object_message_signal_process(elm_layout_edje_get(content));
-     }
+     edje_object_message_signal_process(elm_layout_edje_get(content));
+   */
 
    // Free view item
    EINA_LIST_FOREACH(it->texts, l, part)
