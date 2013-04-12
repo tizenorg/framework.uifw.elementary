@@ -459,7 +459,7 @@ _elm_genlist_pan_smart_move(Evas_Object *obj,
 static void
 _elm_genlist_pan_smart_resize(Evas_Object *obj,
                               Evas_Coord w,
-                              Evas_Coord h)
+                              Evas_Coord h __UNUSED__)
 {
    ELM_GENLIST_PAN_DATA_GET(obj, psd);
 
