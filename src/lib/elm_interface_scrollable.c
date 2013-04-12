@@ -1359,40 +1359,6 @@ _elm_scroll_content_pos_set(Evas_Object *obj,
         if (y - miny > my) y = my + miny;
      }
 
-   if (((!_elm_config->thumbscroll_bounce_enable) ||
-        (!sid->bounce_horiz)) && (sid->scrollto.x.animator) &&
-       ((px != x) && ((x == minx) || (x == (mx + minx)))))
-     {
-        ecore_animator_del(sid->scrollto.x.animator);
-        sid->scrollto.x.animator = NULL;
-     }
-
-   if (((!_elm_config->thumbscroll_bounce_enable) ||
-        (!sid->bounce_vert)) && (sid->scrollto.y.animator) &&
-       ((py != y) && ((y == miny) || (y == (my + miny)))))
-     {
-        ecore_animator_del(sid->scrollto.y.animator);
-        sid->scrollto.y.animator = NULL;
-     }
-
-   if (((!_elm_config->thumbscroll_bounce_enable) ||
-        ((!sid->bounce_horiz) && (!sid->bounce_vert))) &&
-       (sid->down.momentum_animator) &&
-       ((((px != x) && ((x == minx) || (x == (mx + minx)))) && (py == y)) ||
-       (((py != y) && ((y == miny) || (y == (my + miny)))) && (px == x))))
-     {
-        ecore_animator_del(sid->down.momentum_animator);
-        sid->down.momentum_animator = NULL;
-        sid->down.bounce_x_hold = EINA_FALSE;
-        sid->down.bounce_y_hold = EINA_FALSE;
-        sid->down.ax = 0;
-        sid->down.ay = 0;
-        sid->down.pdx = 0;
-        sid->down.pdy = 0;
-        if (sid->content_info.resized)
-          _elm_scroll_wanted_region_set(sid->obj);
-     }
-
    psd->api->pos_set(sid->pan_obj, x, y);
    psd->api->pos_get(sid->pan_obj, &spx, &spy);
 
