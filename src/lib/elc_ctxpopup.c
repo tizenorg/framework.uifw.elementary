@@ -216,13 +216,8 @@ _access_info_cb(void *data, Evas_Object *obj __UNUSED__)
 
    if (!it) return NULL;
 
-   if ((!txt) && (!icon))
-     {
-        txt = it->label;
-        icon = it->icon;
-     }
-   else if (!txt) txt = it->label;
-   else if (!icon) icon = it->icon;
+   txt = it->label;
+   icon = it->icon;
 
    if (txt && icon)
      {

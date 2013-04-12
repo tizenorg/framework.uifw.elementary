@@ -1405,7 +1405,7 @@ static Eina_Bool
 _elm_entry_smart_on_focus(Evas_Object *obj)
 {
    Evas_Object *top;
-   Eina_Bool top_is_win;
+   Eina_Bool top_is_win = EINA_FALSE;
 
    ELM_ENTRY_DATA_GET(obj, sd);
 

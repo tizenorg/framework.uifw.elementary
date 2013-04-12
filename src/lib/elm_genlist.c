@@ -6832,7 +6832,6 @@ elm_genlist_item_select_mode_set(Elm_Object_Item *item,
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
 
    ELM_GENLIST_ITEM_CHECK_OR_RETURN(item);
-   if (!it) return;
    if (mode >= ELM_OBJECT_SELECT_MODE_MAX)
      return;
    if (it->select_mode != mode)
@@ -6870,8 +6869,6 @@ elm_genlist_item_select_mode_get(const Elm_Object_Item *item)
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
 
    ELM_GENLIST_ITEM_CHECK_OR_RETURN(item, ELM_OBJECT_SELECT_MODE_MAX);
-
-   if (!it) return ELM_OBJECT_SELECT_MODE_MAX;
 
    return it->select_mode;
 }
@@ -6962,7 +6959,11 @@ _elm_genlist_proxy_item_new(const Elm_Object_Item *item)
 
    pi->proxy = evas_object_image_filled_add
       (evas_object_evas_get(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj));
-   if (!pi->proxy) return EINA_FALSE;
+   if (!pi->proxy)
+     {
+        free(pi);
+        return NULL;
+     }
    evas_object_clip_set(pi->proxy, evas_object_clip_get(GL_IT(it)->wsd->pan_obj));
    evas_object_smart_member_add(pi->proxy, GL_IT(it)->wsd->pan_obj);
    evas_object_hide(pi->proxy);
@@ -7344,7 +7345,8 @@ _item_fx_done(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__)
    Elm_Gen_FX_Item *fx_done_it = data;
    Elm_Genlist_Smart_Data *sd = GL_IT(fx_done_it->it)->wsd;
 
-   if ((!fx_done_it) || (!fx_done_it->it) || (!sd)) return;
+   if (!fx_done_it) return;
+   if ((!fx_done_it->it) || (!sd)) return;
 
    evas_object_image_source_visible_set(fx_done_it->proxy, EINA_TRUE);
    evas_object_lower(fx_done_it->proxy);
@@ -7367,7 +7369,8 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
    Eina_List *l;
    Elm_Genlist_Smart_Data *sd = GL_IT(fx_done_it->it)->wsd;
 
-   if ((!fx_done_it) || (!fx_done_it->it) || (!sd)) return;
+   if (!fx_done_it) return;
+   if ((!fx_done_it->it) || (!sd)) return;
 
    sd->fx_items = eina_list_remove(sd->fx_items, fx_done_it);
    GL_IT(fx_done_it->it)->fi = NULL;
