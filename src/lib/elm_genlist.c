@@ -467,8 +467,8 @@ _elm_genlist_pan_smart_resize(Evas_Object *obj,
        psd->wsd->prev_viewport_w != w)
      {
         psd->wsd->size_changed = EINA_TRUE;
-        psd->wsd->prev_viewport_w = w;
      }
+   psd->wsd->prev_viewport_w = w;
 
    psd->wsd->pan_changed = EINA_TRUE;
    if (psd->wsd->calc_job) ecore_job_del(psd->wsd->calc_job);
@@ -3950,16 +3950,6 @@ _item_queue(Elm_Genlist_Smart_Data *sd,
    if (sd->queue_idle_enterer)
       ecore_idle_enterer_del(sd->queue_idle_enterer);
    sd->queue_idle_enterer = ecore_idle_enterer_add(_item_idle_enterer, sd);
-
-   if (sd->prev_viewport_w != 0)
-     {
-        while ((sd->queue) && ((!sd->blocks) || (!sd->blocks->next)))
-          _queue_process(sd);
-
-        while ((sd->queue) && (sd->blocks) &&
-               (sd->homogeneous) && (sd->mode == ELM_LIST_COMPRESS))
-          _queue_process(sd);
-     }
 }
 
 /* If the application wants to know the relative item, use
