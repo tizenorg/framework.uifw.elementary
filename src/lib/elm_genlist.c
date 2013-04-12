@@ -579,6 +579,10 @@ _item_unrealize(Elm_Gen_Item *it,
         it->item->swipe_timer = NULL;
      }
 
+   //Forcing the edje signal process for item's content.
+   EINA_LIST_FOREACH(it->content_objs, l, content)
+     edje_object_message_signal_process(elm_layout_edje_get(content));
+
    // Free view item
    EINA_LIST_FOREACH(it->texts, l, part)
      edje_object_part_text_set(VIEW(it), part, NULL);
