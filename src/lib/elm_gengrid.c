@@ -749,6 +749,18 @@ _access_on_highlight_cb(void *data)
 }
 
 static void
+_access_activate_cb(void *data __UNUSED__,
+                    Evas_Object *part_obj __UNUSED__,
+                    Elm_Object_Item *item)
+{
+   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
+   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
+
+   _item_highlight(it);
+   it->sel_cb(it);
+}
+
+static void
 _access_widget_item_register(Elm_Gen_Item *it)
 {
    Elm_Access_Info *ai;
@@ -761,6 +773,7 @@ _access_widget_item_register(Elm_Gen_Item *it)
    _elm_access_callback_set(ai, ELM_ACCESS_INFO, _access_info_cb, it);
    _elm_access_callback_set(ai, ELM_ACCESS_STATE, _access_state_cb, it);
    _elm_access_on_highlight_hook_set(ai, _access_on_highlight_cb, it);
+   _elm_access_activate_callback_set(ai, _access_activate_cb, it);
 }
 
 static void
