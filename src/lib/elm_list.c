@@ -44,6 +44,10 @@ static void _mouse_up_cb(void *, Evas *, Evas_Object *, void *);
 static void _mouse_down_cb(void *, Evas *, Evas_Object *, void *);
 static void _mouse_move_cb(void *, Evas *, Evas_Object *, void *);
 static void _items_fix(Evas_Object *);
+static void _item_select(Elm_List_Item *it);
+static void _item_unselect(Elm_List_Item *it);
+
+
 
 EVAS_SMART_SUBCLASS_IFACE_NEW
   (ELM_LIST_SMART_NAME, _elm_list, Elm_List_Smart_Class,
@@ -192,6 +196,71 @@ _item_single_select_down(Elm_List_Smart_Data *sd)
    return EINA_TRUE;
 }
 
+static void _item_focused(Elm_List_Item *it)
+{
+   if (!it) return;
+   Elm_List_Smart_Data *sd = it->sd;
+   Evas_Coord x, y, w, h, sx, sy, sw, sh;
+
+   evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
+   evas_object_geometry_get(ELM_WIDGET_DATA(sd)->obj, &sx, &sy, &sw, &sh);
+   if ((x < sx) || (y < sy) || ((x + w) > (sx + sw)) || ((y + h) > (sy + sh)))
+     {
+        elm_list_item_bring_in((Elm_Object_Item *)it);
+     }
+
+   edje_object_signal_emit
+      (VIEW(it), "elm,state,focused", "elm");
+
+   sd->focused = (Elm_Object_Item *)it;
+}
+
+static void _item_unfocused(Elm_List_Item *it)
+{
+   if (!it) return;
+   Elm_List_Smart_Data *sd = it->sd;
+   edje_object_signal_emit
+      (VIEW(sd->focused), "elm,state,unfocused", "elm");
+   if (it == (Elm_List_Item *)sd->focused)
+      sd->focused = NULL;
+}
+
+static Elm_List_Item *_item_focused_search(Elm_List_Item *it, int dir)
+{
+   if (!it) return NULL;
+   Eina_List *l = eina_list_data_find_list(it->sd->items, it);
+   Eina_List *tmp = l;
+   if (dir == 1) tmp = eina_list_next(tmp);
+   else tmp = eina_list_prev(tmp);
+   if (!tmp) tmp = l;
+   return (Elm_List_Item *)eina_list_data_get(tmp);
+}
+
+static void _item_focused_next(Elm_List_Smart_Data *sd, int dir)
+{
+   Elm_List_Item *it = NULL;
+
+   if (elm_widget_focus_get(ELM_WIDGET_DATA(sd)->obj))
+      edje_object_signal_emit
+         (ELM_WIDGET_DATA(sd)->resize_obj, "elm,state,unfocused", "elm");
+
+   if (!sd->focused)
+     {
+        if (dir == 1)
+           it = (Elm_List_Item *)eina_list_data_get(sd->items);
+        else
+           it = (Elm_List_Item *)eina_list_data_get(eina_list_last(sd->items));
+     }
+   else
+     {
+        it = (Elm_List_Item *)sd->focused;
+        _item_unfocused((Elm_List_Item *)sd->focused);
+        it = _item_focused_search(it, dir);
+     }
+   _item_focused(it);
+}
+
+
 static Eina_Bool
 _elm_list_smart_event(Evas_Object *obj,
                       Evas_Object *src __UNUSED__,
@@ -254,43 +323,49 @@ _elm_list_smart_event(Evas_Object *obj,
             ((!strcmp(ev->keyname, "KP_Up")) && !ev->string))
      {
         if ((!sd->h_mode) &&
-            (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-              (_item_multi_select_up(sd)))
-             || (_item_single_select_up(sd))))
+            (evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
+            (_item_multi_select_up(sd)))
           {
              ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
              return EINA_TRUE;
           }
         else
-          y -= step_y;
+          {
+             _item_focused_next(sd, -1);
+             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+             return EINA_TRUE;
+          }
      }
    else if ((!strcmp(ev->keyname, "Down")) ||
             ((!strcmp(ev->keyname, "KP_Down")) && !ev->string))
      {
         if ((!sd->h_mode) &&
-            (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-              (_item_multi_select_down(sd)))
-             || (_item_single_select_down(sd))))
+            (evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
+            (_item_multi_select_down(sd)))
           {
              ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
              return EINA_TRUE;
           }
         else
-          y += step_y;
+          {
+             _item_focused_next(sd, 1);
+             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+             return EINA_TRUE;
+          }
      }
    else if ((!strcmp(ev->keyname, "Home")) ||
             ((!strcmp(ev->keyname, "KP_Home")) && !ev->string))
      {
-        it = eina_list_data_get(sd->items);
-        elm_list_item_bring_in((Elm_Object_Item *)it);
+        _item_unfocused((Elm_List_Item *)sd->focused);
+        _item_focused_next(sd, 1);
         ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
         return EINA_TRUE;
      }
    else if ((!strcmp(ev->keyname, "End")) ||
             ((!strcmp(ev->keyname, "KP_End")) && !ev->string))
      {
-        it = eina_list_data_get(eina_list_last(sd->items));
-        elm_list_item_bring_in((Elm_Object_Item *)it);
+        _item_unfocused((Elm_List_Item *)sd->focused);
+        _item_focused_next(sd, -1);
         ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
         return EINA_TRUE;
      }
@@ -332,11 +407,17 @@ _elm_list_smart_event(Evas_Object *obj,
      }
    else if (((!strcmp(ev->keyname, "Return")) ||
              (!strcmp(ev->keyname, "KP_Enter")) ||
-             (!strcmp(ev->keyname, "space")))
-            && (!sd->multi) && (sd->selected))
+             (!strcmp(ev->keyname, "space"))) &&
+            (!sd->multi))
      {
-        it = (Elm_List_Item *)elm_list_selected_item_get(obj);
-        if (it) evas_object_smart_callback_call(WIDGET(it), SIG_ACTIVATED, it);
+        if (sd->focused)
+          {
+             it = (Elm_List_Item *)sd->focused;
+             _item_select(it);
+             evas_object_smart_callback_call(WIDGET(it), SIG_ACTIVATED, it);
+             it->selected = EINA_FALSE;
+             sd->selected = eina_list_remove(sd->selected, it);
+          }
      }
    else if (!strcmp(ev->keyname, "Escape"))
      {
@@ -792,6 +873,26 @@ _elm_list_smart_on_focus(Evas_Object *obj)
    if (elm_widget_focus_get(obj) && sd->selected && !sd->last_selected_item)
      sd->last_selected_item = eina_list_data_get(sd->selected);
 
+   if (elm_widget_focus_get(obj))
+     {
+        if (sd->focused)
+          {
+             edje_object_signal_emit
+                (VIEW(sd->focused), "elm,state,focused", "elm");
+		  }
+        else
+           edje_object_signal_emit(ELM_WIDGET_DATA(sd)->resize_obj, "elm,state,focused", "elm");
+     }
+   else
+     {
+        if (sd->focused)
+          {
+             edje_object_signal_emit
+                (VIEW(sd->focused), "elm,state,unfocused", "elm");
+          }
+        else
+           edje_object_signal_emit(ELM_WIDGET_DATA(sd)->resize_obj, "elm,state,unfocused", "elm");
+     }
    return EINA_TRUE;
 }
 

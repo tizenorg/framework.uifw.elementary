@@ -139,6 +139,7 @@ struct _Elm_Genlist_Smart_Data
    Evas_Object                          *hit_rect;
    Evas_Object                          *pan_obj;
 
+   Elm_Gen_Item                         *focused;
    Eina_List                            *selected; /* a list of
                                                     * selected
                                                     * items */

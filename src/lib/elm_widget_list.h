@@ -131,6 +131,7 @@ struct _Elm_List_Smart_Data
    Evas_Object                          *box, *hit_rect;
    const Elm_Scrollable_Smart_Interface *s_iface;
 
+   Elm_Object_Item                      *focused;
    Eina_List                            *items, *selected, *to_delete;
    Elm_Object_Item                      *last_selected_item;
    Evas_Coord                            minw[2], minh[2];
