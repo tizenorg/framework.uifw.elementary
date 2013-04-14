@@ -283,15 +283,6 @@ _access_obj_mouse_in_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSE
 }
 
 static void
-_access_obj_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
-{
-   _elm_access_object_unregister(data, obj);
-
-   // _elm_access_edje_object_part_object_register(); set below object data
-   evas_object_data_del(obj, "_part_access_obj");
-}
-
-static void
 _access_read_done(void *data __UNUSED__)
 {
    printf("read done\n");
@@ -1058,6 +1049,12 @@ _elm_access_object_hilight_disable(Evas *e)
         _access_action_callback_call(ptarget, ELM_ACCESS_ACTION_UNHIGHLIGHT, NULL);
      }
    evas_object_del(o);
+}
+
+static void
+_access_obj_del_cb(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+{
+   _access_object_unregister(obj);
 }
 
 EAPI void
