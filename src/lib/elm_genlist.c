@@ -7334,10 +7334,12 @@ static void
 _item_fx_done(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__)
 {
    Elm_Gen_FX_Item *fx_done_it = data;
-   Elm_Genlist_Smart_Data *sd = GL_IT(fx_done_it->it)->wsd;
+   Elm_Genlist_Smart_Data *sd;
 
-   if (!fx_done_it) return;
-   if ((!fx_done_it->it) || (!sd)) return;
+   if (!fx_done_it || !fx_done_it->it) return;
+
+   sd = GL_IT(fx_done_it->it)->wsd;
+   if (!sd) return;
 
    evas_object_image_source_visible_set(fx_done_it->proxy, EINA_TRUE);
    evas_object_lower(fx_done_it->proxy);
@@ -7358,10 +7360,12 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
    Elm_Gen_Item *it = NULL;
    Proxy_Item *pi = NULL;
    Eina_List *l;
-   Elm_Genlist_Smart_Data *sd = GL_IT(fx_done_it->it)->wsd;
+   Elm_Genlist_Smart_Data *sd;
 
-   if (!fx_done_it) return;
-   if ((!fx_done_it->it) || (!sd)) return;
+   if (!fx_done_it || !fx_done_it->it) return;
+
+   sd = GL_IT(fx_done_it->it)->wsd;
+   if (!sd) return;
 
    sd->fx_items = eina_list_remove(sd->fx_items, fx_done_it);
    GL_IT(fx_done_it->it)->fi = NULL;
