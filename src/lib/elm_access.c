@@ -1054,7 +1054,13 @@ _elm_access_object_hilight_disable(Evas *e)
 static void
 _access_obj_del_cb(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
-   _access_object_unregister(obj);
+   evas_object_event_callback_del_full(obj, EVAS_CALLBACK_RESIZE,
+                                       _content_resize, data);
+   evas_object_event_callback_del_full(obj, EVAS_CALLBACK_MOVE,
+                                       _content_move, data);
+
+   _elm_access_object_unregister(data, obj);
+   evas_object_data_del(obj, "_part_access_obj");
 }
 
 EAPI void
