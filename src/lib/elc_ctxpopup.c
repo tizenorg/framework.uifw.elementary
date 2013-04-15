@@ -1071,9 +1071,14 @@ _elm_ctxpopup_smart_theme(Evas_Object *obj)
    if (sd->scr)
      {
         if (!strncmp(elm_object_style_get(obj), "default", strlen("default")))
-           elm_object_style_set(sd->scr, "ctxpopup");
+          elm_object_style_set(sd->scr, "ctxpopup");
         else
-           elm_object_style_set(sd->scr, elm_object_style_get(obj));
+          elm_object_style_set(sd->scr, elm_object_style_get(obj));
+
+        if (sd->horizontal)
+          elm_scroller_policy_set(sd->scr, ELM_SCROLLER_POLICY_AUTO, ELM_SCROLLER_POLICY_OFF);
+        else
+          elm_scroller_policy_set(sd->scr, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_AUTO);
      }
 
    sd->dir = ELM_CTXPOPUP_DIRECTION_UNKNOWN;
@@ -1429,6 +1434,12 @@ _list_new(Evas_Object *obj)
    sd->scr = elm_scroller_add(obj);
    elm_object_style_set(sd->scr, "ctxpopup");
    evas_object_size_hint_align_set(sd->scr, EVAS_HINT_FILL, EVAS_HINT_FILL);
+
+   if (sd->horizontal)
+     elm_scroller_policy_set(sd->scr, ELM_SCROLLER_POLICY_AUTO, ELM_SCROLLER_POLICY_OFF);
+   else
+     elm_scroller_policy_set(sd->scr, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_AUTO);
+
    evas_object_event_callback_add(sd->scr, EVAS_CALLBACK_RESIZE,
                                   _scroller_resize, obj);
    edje_object_part_swallow(ELM_WIDGET_DATA(sd)->resize_obj, "elm.swallow.content", sd->scr);
