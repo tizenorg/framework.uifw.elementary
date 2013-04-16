@@ -1,6 +1,9 @@
+#include <Ecore_X.h>               //Tizen Only
 #include <Elementary.h>
 #include "elm_priv.h"
 #include "elm_widget_naviframe.h"
+
+#define KEY_END "XF86Stop"         //Tizen Only
 
 EAPI const char ELM_NAVIFRAME_SMART_NAME[] = "elm_naviframe";
 
@@ -565,15 +568,8 @@ _item_title_prev_btn_set(Elm_Naviframe_Item *it,
    elm_object_signal_emit(VIEW(it), "elm,state,prev_btn,show", "elm");
    evas_object_event_callback_add
      (btn, EVAS_CALLBACK_DEL, _item_title_prev_btn_del_cb, it);
-
-   _hide_button_prop_set(it, btn);
-
-   txt = elm_layout_text_get(btn, NULL);
-   if (txt && (strlen(txt) > 0)) return;
-
-    _elm_access_callback_set
-      (_elm_access_object_get(btn), ELM_ACCESS_INFO,
-       _access_prev_btn_info_cb, it);
+   evas_object_smart_callback_add
+     (btn, SIG_CLICKED, _on_item_back_btn_clicked, WIDGET(it));
 }
 
 static void
@@ -754,7 +750,6 @@ _title_content_set(Elm_Naviframe_Item *it,
                                   EVAS_CALLBACK_DEL,
                                   _title_content_del,
                                   pair);
-
    /* access */
    if (_elm_config->access_mode)
      _access_obj_process(it, EINA_TRUE);
@@ -903,6 +898,8 @@ _elm_naviframe_smart_sizing_eval(Evas_Object *obj)
    evas_object_size_hint_max_set(obj, -1, -1);
 }
 
+//Tizen Only: Original
+#if 0
 static void
 _on_item_back_btn_clicked(void *data,
                           Evas_Object *obj,
@@ -915,6 +912,51 @@ _on_item_back_btn_clicked(void *data,
    evas_object_smart_callback_del(obj, SIG_CLICKED, _on_item_back_btn_clicked);
    elm_naviframe_item_pop(data);
 }
+#else
+//Tizen Only: Customized
+static void
+_on_item_back_btn_clicked(void *data __UNUSED__,
+                          Evas_Object *obj,
+                          void *event_info __UNUSED__)
+{
+   static Ecore_X_Window keygrab_win = NULL;
+
+   Ecore_X_Atom type = ecore_x_atom_get("_HWKEY_EMULATION");
+   char msg_data[20];
+
+   //Get the keygrab window handle.
+   if (!keygrab_win)
+     {
+        Ecore_X_Window *_keygrab_win = NULL;
+        int num;
+        ecore_x_window_prop_property_get(NULL, type, ECORE_X_ATOM_WINDOW, 32,
+                                         (unsigned char **)&_keygrab_win, &num);
+        if (!_keygrab_win)
+          {
+             ERR("Failed to get the key grabber window, naviframe(%p)", obj);
+             return;
+          }
+        keygrab_win = *_keygrab_win;
+        free(_keygrab_win);
+     }
+
+   //Press
+   snprintf(msg_data, sizeof(msg_data), "Px%s", KEY_END);
+   if (!ecore_x_client_message8_send(keygrab_win, type, msg_data,
+                                     sizeof(msg_data)))
+     {
+        ERR("Failed to send message for h/w press, naviframe(%p)", obj);
+     }
+
+   //Release
+   snprintf(msg_data, sizeof(msg_data), "Rx%s", KEY_END);
+   if (!ecore_x_client_message8_send(keygrab_win, type,
+                                     msg_data, sizeof(msg_data)))
+     {
+        ERR("Failed to send message for h/w release, naviframe(%p)", obj);
+     }
+}
+#endif
 
 static Evas_Object *
 _back_btn_new(Evas_Object *obj, const char *title_label)
@@ -925,8 +967,6 @@ _back_btn_new(Evas_Object *obj, const char *title_label)
    btn = elm_button_add(obj);
 
    if (!btn) return NULL;
-   evas_object_smart_callback_add
-     (btn, SIG_CLICKED, _on_item_back_btn_clicked, obj);
    snprintf
      (buf, sizeof(buf), "naviframe/back_btn/%s", elm_widget_style_get(obj));
    elm_object_style_set(btn, buf);
@@ -1161,9 +1201,17 @@ _item_dispmode_set(Elm_Naviframe_Item *it, Evas_Display_Mode dispmode)
    switch (dispmode)
      {
       case EVAS_DISPLAY_MODE_COMPRESS:
+         //Tizen Only: Temporary code. block the focus for the back button for
+         //H/W Key event support.
+         if (it->title_prev_btn)
+           elm_object_focus_allow_set(it->title_prev_btn, EINA_FALSE);
          elm_object_signal_emit(VIEW(it), "display,mode,compress", "");
          break;
       default:
+         //Tizen Only: Temporary code. block the focus for the back button for
+         //H/W Key event support.
+         if (it->title_prev_btn)
+           elm_object_focus_allow_set(it->title_prev_btn, EINA_TRUE);
          elm_object_signal_emit(VIEW(it), "display,mode,default", "");
          break;
      }
@@ -1403,6 +1451,8 @@ _elm_naviframe_smart_access(Evas_Object *obj, Eina_Bool is_access)
      _access_obj_process(it, is_access);
 }
 
+#if 0
+//Tizen Only: Original
 static Eina_Bool
 _elm_naviframe_smart_event(Evas_Object *obj,
                            Evas_Object *src __UNUSED__,
@@ -1416,19 +1466,47 @@ _elm_naviframe_smart_event(Evas_Object *obj,
    if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
 
-//Tizen Only: Need to customize the "Escape" Key
    if (strcmp(ev->keyname, "Escape")) return EINA_FALSE;
 
-   it = elm_naviframe_top_item_get(obj);
+   it = (Elm_Naviframe_Item *) elm_naviframe_top_item_get(obj);
    if (!it) return EINA_FALSE;
 
    if (it->title_prev_btn)
-     evas_object_smart_callback_call(it->title_prev_btn, SIG_CLICKED, NULL);
+    evas_object_smart_callback_call(it->title_prev_btn, SIG_CLICKED, NULL);
 
    ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
 
    return EINA_TRUE;
 }
+#else
+//Tizen Only: Customized
+static Eina_Bool
+_elm_naviframe_smart_event(Evas_Object *obj,
+                           Evas_Object *src __UNUSED__,
+                           Evas_Callback_Type type,
+                           void *event_info)
+{
+   Elm_Naviframe_Item *it;
+   Evas_Event_Key_Down *ev = event_info;
+   ELM_NAVIFRAME_DATA_GET(obj, sd);
+
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
+   if (elm_widget_disabled_get(obj)) return EINA_FALSE;
+   if (strcmp(ev->keyname, KEY_END)) return EINA_FALSE;
+   if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
+
+   it = (Elm_Naviframe_Item *) elm_naviframe_top_item_get(obj);
+
+   //Prevent the event handling if the popping is going on.
+   if (!it || it->animator) return EINA_FALSE;
+
+   elm_naviframe_item_pop(obj);
+
+   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+
+   return EINA_TRUE;
+}
+#endif
 
 static Eina_Bool
 _elm_naviframe_smart_activate(Evas_Object *obj, Elm_Activate act)
