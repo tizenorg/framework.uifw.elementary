@@ -1032,11 +1032,15 @@ _elm_entry_smart_disable(Evas_Object *obj)
    if (elm_object_disabled_get(obj))
      {
         edje_object_signal_emit(sd->entry_edje, "elm,state,disabled", "elm");
+        if (sd->scroll)
+          sd->s_iface->freeze_set(obj, EINA_TRUE);
         sd->disabled = EINA_TRUE;
      }
    else
      {
         edje_object_signal_emit(sd->entry_edje, "elm,state,enabled", "elm");
+        if (sd->scroll)
+          sd->s_iface->freeze_set(obj, EINA_FALSE);
         sd->disabled = EINA_FALSE;
      }
 
