@@ -1771,6 +1771,7 @@ _cut_cb(void *data,
 {
    ELM_ENTRY_DATA_GET(data, sd);
 
+   evas_object_smart_callback_call(data, SIG_SELECTION_CUT, NULL);
    /* Store it */
    sd->sel_mode = EINA_FALSE;
    if (!_elm_config->desktop_entry)
@@ -1795,6 +1796,8 @@ _copy_cb(void *data,
          void *event_info __UNUSED__)
 {
    ELM_ENTRY_DATA_GET(data, sd);
+
+   evas_object_smart_callback_call(data, SIG_SELECTION_COPY, NULL);
 
    // TIZEN ONLY
    //sd->sel_mode = EINA_FALSE;
@@ -2440,7 +2443,6 @@ _entry_copy_notify_signal_cb(void *data,
                              const char *emission __UNUSED__,
                              const char *source __UNUSED__)
 {
-   evas_object_smart_callback_call(data, SIG_SELECTION_COPY, NULL);
    _copy_cb(data, NULL, NULL);
 }
 
@@ -2450,7 +2452,6 @@ _entry_cut_notify_signal_cb(void *data,
                             const char *emission __UNUSED__,
                             const char *source __UNUSED__)
 {
-   evas_object_smart_callback_call(data, SIG_SELECTION_CUT, NULL);
    _cut_cb(data, NULL, NULL);
 }
 
