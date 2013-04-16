@@ -27,6 +27,8 @@ EVAS_SMART_SUBCLASS_NEW
 
 static const char SIG_CLICKED[] = "clicked";
 
+static void _on_item_back_btn_clicked(void *data, Evas_Object *obj, void *event_info __UNUSED__);
+
 static void
 _item_content_del_cb(void *data,
                      Evas *e __UNUSED__,
@@ -635,6 +637,9 @@ _item_title_prev_btn_unset(Elm_Naviframe_Item *it)
 
    evas_object_event_callback_del
      (content, EVAS_CALLBACK_DEL, _item_title_prev_btn_del_cb);
+
+   evas_object_smart_callback_del(content, SIG_CLICKED,
+                                  _on_item_back_btn_clicked);
 
    it->title_prev_btn = NULL;
    return content;
