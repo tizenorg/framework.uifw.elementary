@@ -252,6 +252,13 @@ _parse_format(Evas_Object *obj,
      {
         if (fmt_parsing)
           {
+             /* some locales have format specifiers like %-d for Date.
+              * parse each field format as similar to LIBC snprintf() formatting */
+             if ((cur == ' ' || cur == '-'))
+               {
+                  fmt_ptr++;
+                  continue;
+               }
              fmt_parsing = EINA_FALSE;
              for (idx = 0; idx < ELM_DATETIME_TYPE_COUNT; idx++)
                {
