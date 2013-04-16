@@ -593,7 +593,7 @@ _item_unrealize(Elm_Gen_Item *it,
      }
 
    /*
-    * This make too may error message when content is not layout based or 
+    * This make too may error message when content is not layout based or
     * content does not impelement message siganal process.
     * This reduces scrolling performance :(
     * Before uncomment this, we should fix above.
@@ -1561,7 +1561,7 @@ _item_realize(Elm_Gen_Item *it,
      }
    it->item->order_num_in = in;
 
-   if (it->item->nocache_once | it->item->nocache ||
+   if (it->item->nocache_once || it->item->nocache ||
        it->item->type == ELM_GENLIST_ITEM_TREE || it->parent ||
        !_item_cache_pop(it))
      {
