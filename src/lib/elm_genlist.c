@@ -581,7 +581,10 @@ _item_unrealize(Elm_Gen_Item *it,
 
    //Forcing the edje signal process for item's content.
    EINA_LIST_FOREACH(it->content_objs, l, content)
-     edje_object_message_signal_process(elm_layout_edje_get(content));
+     {
+        if (evas_object_smart_type_check(content, "elm_layout"))
+          edje_object_message_signal_process(elm_layout_edje_get(content));
+     }
 
    // Free view item
    EINA_LIST_FOREACH(it->texts, l, part)
@@ -7563,7 +7566,7 @@ elm_genlist_pinch_zoom_mode_set(Evas_Object *obj, Elm_Gen_Pinch_Zoom_Mode mode)
    Elm_Gen_Item *it;
    Eina_Bool done = EINA_FALSE;
 
-   if ((sd->queue) || (!sd->rendered) 
+   if ((sd->queue) || (!sd->rendered)
        || (sd->queue_idle_enterer) || (!sd->fx_mode)) return EINA_FALSE;
 
    EINA_INLIST_FOREACH(sd->blocks, itb)
