@@ -1024,7 +1024,8 @@ _access_obj_process(Evas_Object *obj, Eina_Bool is_access)
    else
      {
         // opposition of  _access_index_register();
-        elm_index_autohide_disabled_set(obj, EINA_FALSE);
+        if (!sd->autohide_disabled)
+          elm_index_autohide_disabled_set(obj, EINA_FALSE);
         elm_layout_signal_emit(obj, "elm,access,state,inactive", "elm");
         elm_widget_can_focus_set(obj, EINA_FALSE);
         _elm_access_edje_object_part_object_unregister
