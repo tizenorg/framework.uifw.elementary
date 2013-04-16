@@ -6,6 +6,8 @@
  *
  */
 
+#define MSG_DOMAIN_CONTROL_ACCESS (int)ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL
+
 enum _Elm_Access_Info_Type
 {
    ELM_ACCESS_INFO_FIRST = -1,
@@ -50,9 +52,11 @@ enum _Elm_Access_Action_Type
    ELM_ACCESS_ACTION_HIGHLIGHT_NEXT, /* set highlight to next object */
    ELM_ACCESS_ACTION_HIGHLIGHT_PREV, /* set highlight to previous object */
    ELM_ACCESS_ACTION_ACTIVATE, /* activate a highlight object */
-   ELM_ACCESS_ACTION_VALUE_CHANGE, /* change value of highlight object */
+   ELM_ACCESS_ACTION_VALUE_CHANGE, /* TODO: deprecate this */
    ELM_ACCESS_ACTION_SCROLL, /* scroll if one of highlight object parents
                               * is scrollable */
+   ELM_ACCESS_ACTION_UP, /* change value up of highlight object */
+   ELM_ACCESS_ACTION_DOWN, /* change value down of highlight object */
    ELM_ACCESS_ACTION_BACK, /* go back to a previous view
                               ex: pop naviframe item */
    ELM_ACCESS_ACTION_READ, /* highlight an object */
@@ -74,6 +78,7 @@ struct _Elm_Access_Action_Info
                                2: mouse up   */
 
    Elm_Access_Action_Type action_type;
+   Elm_Access_Action_Type action_by;
    Eina_Bool              highlight_cycle : 1;
 };
 

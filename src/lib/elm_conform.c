@@ -393,20 +393,30 @@ static const char PLUG_KEY[] = "__Plug_Ecore_Evas";
 #define MSG_ID_INDICATOR_TYPE 0X1005
 
 static void
-_plug_msg_handle(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int size)
+_plug_msg_handle(void *data, Evas_Object *obj, void *event_info)
 {
-   Evas_Object *conformant;
+   Evas_Object *conformant = data;
+   Elm_Plug_Message *pm = event_info;
+   int msg_domain = 0;
+   int msg_id = 0;
+   void *msg_data = NULL;
+   int msg_data_size = 0;
 
-   if (!data) return;
-   DBG("Receive msg from plug ee=%p msg_domain=%x msg_id=%x size=%d", ee, msg_domain, msg_id, size);
-   //get plug object form ee
-   conformant = (Evas_Object *)ecore_evas_data_get(ee, CONFORMANT_KEY);
+   if (!conformant) return;
+   ELM_CONFORMANT_CHECK(conformant) ;
    ELM_CONFORMANT_DATA_GET(conformant, sd);
+   msg_domain = pm->msg_domain;
+   msg_id = pm->msg_id;
+   msg_data = pm->data;
+   msg_data_size = pm->size;
+
+   DBG("Receive msg from plug msg_domain=%x msg_id=%x size=%d", msg_domain, msg_id, msg_data_size);
+   //get plug object form ee
    if (msg_domain == MSG_DOMAIN_CONTROL_INDICATOR)
      {
         if (msg_id == MSG_ID_INDICATOR_REPEAT_EVENT)
           {
-              int *repeat = data;
+              int *repeat = msg_data;
               DBG("Receive repeat event change message:(%d)", *repeat);
               if (1 == *repeat)
                 evas_object_repeat_events_set(sd->landscape_indicator, EINA_TRUE);
@@ -415,7 +425,7 @@ _plug_msg_handle(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int siz
           }
         if (msg_id == MSG_ID_INDICATOR_TYPE)
           {
-             Elm_Win_Indicator_Type_Mode *indi_t_mode = data;
+             Elm_Win_Indicator_Type_Mode *indi_t_mode = msg_data;
              Evas_Object *win = elm_widget_top_get(conformant);
              DBG("Receive indicator type change message:(%d)", *indi_t_mode);
              elm_win_indicator_type_set(win, *indi_t_mode);
@@ -453,13 +463,10 @@ _create_portrait_indicator(Evas_Object *obj)
      }
 
    //callback to deal with extn socket message
-   indicator_ee = ecore_evas_object_ecore_evas_get(elm_plug_image_object_get(port_indicator));
-   DBG("This is portrait indicator's ee=%p.", indicator_ee);
-   ecore_evas_callback_msg_handle_set(indicator_ee, _plug_msg_handle);
-   ecore_evas_data_set(indicator_ee, CONFORMANT_KEY, obj);
+   evas_object_smart_callback_add(port_indicator, "message.received", _plug_msg_handle, obj);
 
    DBG("The rotation value of portrait indicator was changed:(%d)", sd->rot);
-   ecore_evas_msg_parent_send(indicator_ee, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
+   elm_plug_msg_send(port_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
 
    elm_widget_sub_object_add(obj, port_indicator);
    evas_object_smart_callback_add(port_indicator, "image.deleted", _port_indicator_disconnected, obj);
@@ -500,12 +507,10 @@ _create_landscape_indicator(Evas_Object *obj)
      }
 
    //callback to deal with extn socket message
-   indicator_ee = ecore_evas_object_ecore_evas_get(elm_plug_image_object_get(land_indicator));
-   ecore_evas_data_set(indicator_ee, CONFORMANT_KEY, obj);
-   DBG("This is landscape indicator's ee=%p.", indicator_ee);
-   ecore_evas_callback_msg_handle_set(indicator_ee, _plug_msg_handle);
+   evas_object_smart_callback_add(land_indicator, "message.received", _plug_msg_handle, obj);
    DBG("The rotation value of landscape indicator was changed:(%d)", sd->rot);
-   ecore_evas_msg_parent_send(indicator_ee, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
+
+   elm_plug_msg_send(land_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
 
    elm_widget_sub_object_add(obj, land_indicator);
    evas_object_smart_callback_add(land_indicator, "image.deleted",_land_indicator_disconnected, obj);
@@ -1020,9 +1025,15 @@ _elm_conformant_smart_del(Evas_Object *obj)
    if (sd->port_indi_timer) ecore_timer_del(sd->port_indi_timer);
    if (sd->land_indi_timer) ecore_timer_del(sd->land_indi_timer);
    if (sd->portrait_indicator)
-     evas_object_del(sd->portrait_indicator);
+     {
+        evas_object_smart_callback_del(sd->portrait_indicator, "message.received", _plug_msg_handle);
+        evas_object_del(sd->portrait_indicator);
+     }
    if (sd->landscape_indicator)
-     evas_object_del(sd->landscape_indicator);
+     {
+        evas_object_smart_callback_del(sd->landscape_indicator, "message.received", _plug_msg_handle);
+        evas_object_del(sd->landscape_indicator);
+     }
    top = elm_widget_top_get(obj);
    evas_object_data_set(top, "\377 elm,conformant", NULL);
 

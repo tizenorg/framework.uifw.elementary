@@ -16,6 +16,23 @@
  */
 
 /**
+ * @typedef Elm_Plug_Message
+ *
+ * Structure holding the message
+ * which elm plug received from ecore evas
+ *
+ */
+struct _Elm_Plug_Message
+{
+   int msg_domain;
+   int msg_id;
+   void *data;
+   int size;
+};
+
+typedef struct _Elm_Plug_Message Elm_Plug_Message;
+
+/**
  * Add a new plug image to the parent.
  *
  * @param parent The parent object
@@ -54,6 +71,21 @@ EAPI Eina_Bool       elm_plug_connect(Evas_Object *obj, const char *svcname, int
  * @ingroup Plug
  */
 EAPI Evas_Object    *elm_plug_image_object_get(const Evas_Object *obj);
+
+/**
+ * Send message to plug widget's socket
+ *
+ * @param obj The plug object to send message
+ * @param msg_domain The domain of message
+ * @param msg_id The id of message
+ * @param data The data of message
+ * @param size The size of message data
+ *
+ * @warning Support for this depends on the underlying windowing system.
+ * @since 1.8.0
+ *
+ */
+EAPI Eina_Bool       elm_plug_msg_send(Evas_Object *obj, int msg_domain, int msg_id, void *data, int size); 
 
 /**
  * @}

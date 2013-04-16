@@ -28,7 +28,7 @@ static Eina_Bool mouse_event_enable = EINA_TRUE;
 static Eina_Bool read_mode = EINA_FALSE;
 static Evas_Coord_Point offset;
 static Evas_Object *s_parent; /* scrollable parent */
-static Elm_Access_Action_Type action_type = ELM_ACCESS_ACTION_FIRST;
+static Elm_Access_Action_Type action_by = ELM_ACCESS_ACTION_FIRST;
 
 static Evas_Object * _elm_access_add(Evas_Object *parent);
 
@@ -64,11 +64,11 @@ _elm_access_smart_activate(Evas_Object *obj, Elm_Activate act)
         break;
 
       case ELM_ACTIVATE_UP:
-        type = ELM_ACCESS_ACTION_VALUE_CHANGE;
+        type = ELM_ACCESS_ACTION_UP;
         break;
 
       case ELM_ACTIVATE_DOWN:
-        type = ELM_ACCESS_ACTION_VALUE_CHANGE;
+        type = ELM_ACCESS_ACTION_DOWN;
         break;
 
       case ELM_ACTIVATE_RIGHT:
@@ -501,16 +501,27 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
 static Eina_Bool
 _access_action_callback_call(Evas_Object *obj,
                              Elm_Access_Action_Type type,
-                             void *data)
+                             Elm_Access_Action_Info *action_info)
 {
+   Elm_Access_Action_Info *ai = NULL;
    Action_Info *a;
    Eina_Bool ret;
 
    ret = EINA_FALSE;
    a = evas_object_data_get(obj, "_elm_access_action_info");
 
+   if (!action_info)
+     {
+        ai = calloc(1, sizeof(Elm_Access_Action_Info));
+        action_info = ai;
+     }
+
+   action_info->action_type = type;
+
    if (a && (a->fn[type].cb))
-     ret = a->fn[type].cb(a->fn[type].user_data, obj, data);
+     ret = a->fn[type].cb(a->fn[type].user_data, obj, action_info);
+
+   if (ai) free(ai);
 
    return ret;
 }
@@ -558,12 +569,13 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir)
 
         if (!_access_action_callback_call(ho, type, NULL))
           {
-             /* change highlight object */
-             action_type = type;
+             /* this value is used in _elm_access_object_highlight();
+                to inform the target object of how to get highlight */
+             action_by = type;
 
              _elm_access_highlight_set(target);
 
-             action_type = ELM_ACCESS_ACTION_FIRST;
+             action_by = ELM_ACCESS_ACTION_FIRST;
           }
      }
 
@@ -724,12 +736,12 @@ _elm_access_highlight_cycle(Evas_Object *obj, Elm_Focus_Direction dir)
    else
      type = ELM_ACCESS_ACTION_HIGHLIGHT_PREV;
 
-   action_type = type;
+   action_by = type;
 
    if (!_access_action_callback_call(ho, type, NULL))
      elm_widget_focus_cycle(obj, dir);
 
-   action_type = ELM_ACCESS_ACTION_FIRST;
+   action_by = ELM_ACCESS_ACTION_FIRST;
 
    _elm_access_read_mode_set(EINA_FALSE);
 }
@@ -863,7 +875,7 @@ _elm_access_object_hilight(Evas_Object *obj)
    /* use callback, should an access object do below every time when
 	* a window gets a client message ECORE_X_ATOM_E_ILLMUE_ACTION_READ? */
    a = calloc(1, sizeof(Elm_Access_Action_Info));
-   a->action_type = action_type;
+   a->action_by = action_by;
    if (!_access_action_callback_call(obj, ELM_ACCESS_ACTION_HIGHLIGHT, a))
      evas_object_show(o);
    else
@@ -1312,8 +1324,12 @@ elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *act
         _elm_access_highlight_object_activate(obj, ELM_ACTIVATE_DEFAULT);
         break;
 
-      case ELM_ACCESS_ACTION_VALUE_CHANGE:
+      case ELM_ACCESS_ACTION_UP:
         _elm_access_highlight_object_activate(obj, ELM_ACTIVATE_UP);
+        break;
+
+      case ELM_ACCESS_ACTION_DOWN:
+        _elm_access_highlight_object_activate(obj, ELM_ACTIVATE_DOWN);
         break;
 
       case ELM_ACCESS_ACTION_SCROLL:
