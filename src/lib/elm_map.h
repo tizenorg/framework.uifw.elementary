@@ -1628,6 +1628,8 @@ EAPI Evas_Object          *elm_map_track_add(Evas_Object *obj, void *emap);
  */
 EAPI void                  elm_map_track_remove(Evas_Object *obj, Evas_Object *route);
 
+EAPI void                  elm_map_engine_key_set(Evas_Object *obj, const char *engine_name, const char *key);
+
 /**
  * @}
  */

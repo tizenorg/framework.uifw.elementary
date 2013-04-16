@@ -159,6 +159,8 @@ typedef char *(*Elm_Map_Module_Name_Url_Func)(const Evas_Object *,
                                               double);
 
 typedef Evas_Object *(*Elm_Map_Module_Add_Func)(Evas_Object *parent);
+typedef void (*Elm_Map_Module_Key_Set_Func)(Evas_Object *,
+                                            const char *key);
 typedef void (*Elm_Map_Module_Del_Func)(Evas_Object *parent);
 typedef void (*Elm_Map_Module_Move_Func)(Evas_Object *parent,
                                          int x,
@@ -238,8 +240,10 @@ struct _Source_Engine
    const char                           *name;
    int                                   zoom_min;
    int                                   zoom_max;
+   char                                 *key;
 
    Elm_Map_Module_Add_Func               add;
+   Elm_Map_Module_Key_Set_Func           key_set;
    Elm_Map_Module_Del_Func               del;
    Elm_Map_Module_Move_Func              move;
    Elm_Map_Module_Resize_Func            resize;

@@ -3815,6 +3815,12 @@ _resize_unimplemented(Evas_Object *obj __UNUSED__, int w __UNUSED__, int y __UNU
 }
 
 static void
+_key_set_unimplemented(Evas_Object *obj __UNUSED__, const char *key __UNUSED__)
+{
+   WRN("key set is not implemented");
+}
+
+static void
 _pan_unimplemented(Evas_Object *obj __UNUSED__, int x_1 __UNUSED__, int y_1 __UNUSED__, int x_2 __UNUSED__, int y_2 __UNUSED__)
 {
    WRN("pan is not implemented");
@@ -4147,6 +4153,7 @@ _source_mod_cb(Eina_Module *m,
 
    Elm_Map_Module_Source_Name_Func name_cb;
    Elm_Map_Module_Add_Func add_cb;
+   Elm_Map_Module_Key_Set_Func key_set_cb;
    Elm_Map_Module_Del_Func del_cb;
    Elm_Map_Module_Move_Func move_cb;
    Elm_Map_Module_Resize_Func resize_cb;
@@ -4194,6 +4201,7 @@ _source_mod_cb(Eina_Module *m,
    zoom_min = eina_module_symbol_get(m, "map_module_zoom_min_get");
    zoom_max = eina_module_symbol_get(m, "map_module_zoom_max_get");
    add_cb = eina_module_symbol_get(m, "map_module_add");
+   key_set_cb = eina_module_symbol_get(m, "map_module_key_set");
    del_cb = eina_module_symbol_get(m, "map_module_del");
    move_cb = eina_module_symbol_get(m, "map_module_move");
    resize_cb = eina_module_symbol_get(m, "map_module_resize");
@@ -4215,6 +4223,7 @@ _source_mod_cb(Eina_Module *m,
         s->zoom_min = zoom_min();
         s->zoom_max = zoom_max();
         s->add = add_cb;
+        s->key_set = key_set_cb;
         s->del = del_cb;
         if (move_cb) s->move = move_cb;
         else s->move = _move_unimplemented;
@@ -4350,6 +4359,7 @@ _source_all_load(Elm_Map_Smart_Data *sd)
    engine->zoom_min = src_tiles[0].zoom_min;
    engine->zoom_max = src_tiles[0].zoom_max;
    engine->add = _map_pan_add;
+   engine->key_set = _key_set_unimplemented;
    engine->del = _map_pan_del;
    engine->pan = _pan_unimplemented;
    engine->show = _map_pan_show;
@@ -4486,6 +4496,7 @@ _elm_map_smart_add(Evas_Object *obj)
 static void
 _elm_map_smart_del(Evas_Object *obj)
 {
+   Source_Engine *e;
    ELM_MAP_DATA_GET(obj, sd);
 
    if (sd->zoom_timer) ecore_timer_del(sd->zoom_timer);
@@ -4496,6 +4507,11 @@ _elm_map_smart_del(Evas_Object *obj)
    if (sd->ua) eina_hash_free(sd->ua);
 
    sd->engine->del(obj);
+   EINA_LIST_FREE(sd->engines, e)
+     {
+        if (e->key) free(e->key);
+        free(e);
+     }
    _source_all_unload(sd);
 
    evas_object_del(sd->pan_obj);
@@ -4618,6 +4634,32 @@ elm_map_add(Evas_Object *parent)
    return NULL;
 #endif
 }
+
+EAPI void
+elm_map_engine_key_set(Evas_Object *obj,
+                       const char *engine_name,
+                       const char *key)
+{
+   ELM_MAP_CHECK(obj);
+   ELM_MAP_DATA_GET(obj, sd);
+   EINA_SAFETY_ON_NULL_RETURN(engine_name);
+   EINA_SAFETY_ON_NULL_RETURN(key);
+
+   Eina_List *l;
+   Source_Engine *e;
+
+   EINA_LIST_FOREACH(sd->engines, l, e)
+     {
+        if (!strcmp(e->name, engine_name))
+          {
+             if (e->key) free(e->key);
+             e->key = strdup(key);
+             e->key_set(obj, key);
+             break;
+          }
+     }
+}
+
 
 EAPI void
 elm_map_zoom_set(Evas_Object *obj,
@@ -5112,6 +5154,9 @@ elm_map_engine_set(Evas_Object *obj,
    sd->engine->region_get(obj, &lon, &lat);
    sd->engine->del(obj);
    sd->engine = engine;
+
+   if (sd->engine->key)
+      sd->engine->key_set(obj, sd->engine->key);
 
    if (sd->engine->zoom_max < sd->zoom)
      sd->zoom = sd->engine->zoom_max;
