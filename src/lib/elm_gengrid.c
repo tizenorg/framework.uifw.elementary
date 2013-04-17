@@ -1026,8 +1026,6 @@ _item_place(Elm_Gen_Item *it,
 
    it->x = cx;
    it->y = cy;
-   if (wsd->horizontal) it->position = cx;
-   else it->position = cy;
 
    evas_object_geometry_get(wsd->pan_obj, &ox, &oy, &vw, &vh);
 
@@ -1068,6 +1066,7 @@ _item_place(Elm_Gen_Item *it,
         else
           tch = items_row * wsd->item_height;
         alignh = (vh - tch) * wsd->align_y;
+        it->position = items_row * cx + cy;
      }
    else
      {
@@ -1095,6 +1094,7 @@ _item_place(Elm_Gen_Item *it,
         else
           tcw = items_col * wsd->item_width;
         alignw = (vw - tcw) * wsd->align_x;
+        it->position = cx + items_col * cy;
      }
 
    if (it->group)
