@@ -55,7 +55,7 @@ _elm_plug_smart_theme(Evas_Object *obj)
 static Eina_Bool
 _access_action_release_cb(void *data __UNUSED__,
                           Evas_Object *obj __UNUSED__,
-                          void *action_info __UNUSED__)
+                          Elm_Access_Action_Info *action_info __UNUSED__)
 {
    return EINA_FALSE;
 }
@@ -231,23 +231,23 @@ elm_plug_smart_class_get(void)
 static Eina_Bool
 _access_action_highlight_next_cb(void *data __UNUSED__,
                                  Evas_Object *obj,
-                                 void *action_info)
+                                 Elm_Access_Action_Info *action_info)
 {
    Ecore_Evas *ee = NULL;
-   Elm_Access_Action_Info *ai = action_info;
 
    ee = _elm_plug_ecore_evas_get(obj);
    if (!ee) return EINA_TRUE;
 
    ecore_evas_msg_parent_send(ee, MSG_DOMAIN_CONTROL_ACCESS,
-                              ai->action_type,
-                              ai, sizeof(Elm_Access_Action_Info));
+                              action_info->action_type,
+                              action_info, sizeof(Elm_Access_Action_Info));
    return EINA_TRUE;
 }
 
 static Eina_Bool
 _access_action_highlight_cb(void *data __UNUSED__,
-                            Evas_Object *obj, void *action_info)
+                            Evas_Object *obj,
+                            Elm_Access_Action_Info *action_info)
 {
    Ecore_Evas *ee = NULL;
 

@@ -50,6 +50,34 @@ _elm_access_smart_on_focus(Evas_Object *obj)
 }
 
 static Eina_Bool
+_access_action_callback_call(Evas_Object *obj,
+                             Elm_Access_Action_Type type,
+                             Elm_Access_Action_Info *action_info)
+{
+   Elm_Access_Action_Info *ai = NULL;
+   Action_Info *a;
+   Eina_Bool ret;
+
+   ret = EINA_FALSE;
+   a = evas_object_data_get(obj, "_elm_access_action_info");
+
+   if (!action_info)
+     {
+        ai = calloc(1, sizeof(Elm_Access_Action_Info));
+        action_info = ai;
+     }
+
+   action_info->action_type = type;
+
+   if (a && (a->fn[type].cb))
+     ret = a->fn[type].cb(a->fn[type].user_data, obj, action_info);
+
+   if (ai) free(ai);
+
+   return ret;
+}
+
+static Eina_Bool
 _elm_access_smart_activate(Evas_Object *obj, Elm_Activate act)
 {
    int type = ELM_ACCESS_ACTION_FIRST;
@@ -82,18 +110,21 @@ _elm_access_smart_activate(Evas_Object *obj, Elm_Activate act)
         break;
 
       default:
+        return EINA_FALSE;
         break;
      }
 
+   /* if an access object has a callback, it would have the intention to do
+      something. so, check here and return EINA_TRUE. */
    if ((a) && (type > ELM_ACCESS_ACTION_FIRST) &&
               (type < ELM_ACCESS_ACTION_LAST) &&
               (a->fn[type].cb))
      {
-        a->fn[type].cb(a->fn[type].user_data, obj, NULL);
+        _access_action_callback_call(obj, type, NULL);
         return EINA_TRUE;
      }
 
-   /* TODO: deprecate below? and change above with _access_action_callback_call(); */
+   /* TODO: deprecate below? */
    if (act != ELM_ACTIVATE_DEFAULT) return EINA_FALSE;
 
    Elm_Access_Info *ac = evas_object_data_get(obj, "_elm_access");
@@ -496,34 +527,6 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
       default:
         break;
      }
-}
-
-static Eina_Bool
-_access_action_callback_call(Evas_Object *obj,
-                             Elm_Access_Action_Type type,
-                             Elm_Access_Action_Info *action_info)
-{
-   Elm_Access_Action_Info *ai = NULL;
-   Action_Info *a;
-   Eina_Bool ret;
-
-   ret = EINA_FALSE;
-   a = evas_object_data_get(obj, "_elm_access_action_info");
-
-   if (!action_info)
-     {
-        ai = calloc(1, sizeof(Elm_Access_Action_Info));
-        action_info = ai;
-     }
-
-   action_info->action_type = type;
-
-   if (a && (a->fn[type].cb))
-     ret = a->fn[type].cb(a->fn[type].user_data, obj, action_info);
-
-   if (ai) free(ai);
-
-   return ret;
 }
 
 static Eina_Bool

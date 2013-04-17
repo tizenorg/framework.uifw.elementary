@@ -30,16 +30,6 @@ typedef char *(*Elm_Access_Info_Cb)(void *data, Evas_Object *obj);
 typedef void (*Elm_Access_Activate_Cb)(void *data, Evas_Object *part_obj, Elm_Object_Item *item);
 
 /**
- * @typedef Elm_Access_Action_Cb
- * User callback to make access object do specific action
- * @param data user data
- * @param action_info information to classify the action
- * Returns EINA_TRUE on success, EINA FALSE otherwise
- *
- */
-typedef Eina_Bool (*Elm_Access_Action_Cb)(void *data, Evas_Object *obj, void *action_info);
-
-/**
  * @enum _Elm_Access_Action_Type
  * Enum of supported access action types.
  */
@@ -83,6 +73,16 @@ struct _Elm_Access_Action_Info
 };
 
 typedef struct _Elm_Access_Action_Info Elm_Access_Action_Info;
+
+/**
+ * @typedef Elm_Access_Action_Cb
+ * User callback to make access object do specific action
+ * @param data user data
+ * @param action_info information to classify the action
+ * Returns EINA_TRUE on success, EINA FALSE otherwise
+ *
+ */
+typedef Eina_Bool (*Elm_Access_Action_Cb)(void *data, Evas_Object *obj, Elm_Access_Action_Info *action_info);
 
 /**
  * @brief Register evas object as an accessible object.
