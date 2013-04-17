@@ -3845,7 +3845,7 @@ newblock:
      {
         Eina_List *tmp;
 
-        if (it->item->rel->item->queued)
+        if ((!GL_IT(it)->wsd->sorting) && (it->item->rel->item->queued))
           {
              /* NOTE: for a strange reason eina_list and eina_inlist
                 don't have the same property on sorted insertion
@@ -7749,21 +7749,14 @@ eina_list_sort_merge(Eina_List *a, Eina_List *b, Eina_Compare_Cb func)
 {
    Eina_List *first, *last;
 
-   if (func(a->data, b->data) > 0)
-     {
-        _item_move_after(a->data, b->data);
+   if (func(a->data, b->data) < 0)
         a = (last = first = a)->next;
-
-     }
    else
      b = (last = first = b)->next;
 
    while (a && b)
-     if (func(a->data, b->data) > 0)
-       {
-          _item_move_after(a->data, b->data);
+     if (func(a->data, b->data) < 0)
           a = (last = last->next = a)->next;
-       }
      else
        b = (last = last->next = b)->next;
 
@@ -7777,8 +7770,8 @@ elm_genlist_sort(Evas_Object *obj, Eina_Compare_Cb func)
 {
    ELM_GENLIST_CHECK(obj) NULL;
    ELM_GENLIST_DATA_GET(obj, sd);
-   Eina_List *list = NULL;
-   Elm_Gen_Item  *it, *next;
+   Eina_List *list = NULL, *l;
+   Elm_Gen_Item  *it, *next, *last_it;;
    unsigned int limit = 0, i = 0, n = 0;
    Eina_List *tail = NULL, *unsort = NULL, *stack[32], *prev = NULL;
 
@@ -7825,7 +7818,7 @@ elm_genlist_sort(Evas_Object *obj, Eina_Compare_Cb func)
 
         tail = b->next;
 
-        if (func(a->data, b->data) > 0)
+        if (func(a->data, b->data) < 0)
           ((stack[i++] = a)->next = b)->next = 0;
         else
              ((stack[i++] = b)->next = a)->next = 0;
@@ -7854,6 +7847,12 @@ elm_genlist_sort(Evas_Object *obj, Eina_Compare_Cb func)
      }
    else
      list->accounting->last = tail;
+
+   EINA_LIST_FOREACH(list, l, it)
+     {
+        last_it = (Elm_Gen_Item*)elm_genlist_last_item_get(obj);
+        _item_move_after(it, last_it);
+     }
 
    if (!sd->fx_mode) sd->sorting = EINA_FALSE;
    if (sd->decorate_all_mode) sd->sorting = EINA_FALSE;
