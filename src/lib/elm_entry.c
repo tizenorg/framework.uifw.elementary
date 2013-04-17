@@ -263,6 +263,11 @@ _magnifier_move(void *data)
 
    Evas_Coord x, y, w, h;
    Evas_Coord cx, cy, cw, ch, ox, oy;
+   Evas_Coord px, py, pw, ph;
+   Evas_Coord mw, mh;
+   Evas_Coord sww, swh, adjh;
+   Evas_Coord bdh;
+   float adj_scale;
 
    edje_object_part_text_cursor_geometry_get(sd->entry_edje, "elm.text", &cx, &cy, &cw, &ch);
 
@@ -277,20 +282,47 @@ _magnifier_move(void *data)
      evas_object_geometry_get(data, &x, &y, &w, &h);
 
    ox = oy = 0;
+   edje_object_part_geometry_get(sd->mgf_bg, "bg", NULL, NULL, &mw, &mh);
+   edje_object_part_geometry_get(sd->mgf_bg, "swallow", NULL, NULL, &sww, &swh);
+   bdh = mh - swh;
 
-   if ((cy + y) - sd->mgf_height < 0)
-     oy = -1 * ((cy + y) - sd->mgf_height);
+   adjh = ch * sd->mgf_scale + mh - swh;
+   if (adjh < sd->mgf_height)
+     adjh = sd->mgf_height;
+
+   if (cy + y - adjh < 0)
+     oy = ch;
+
+   //adjusting scale and size
+   adj_scale = sd->mgf_scale;
+   if (cy + y - adjh + oy < 0)
+     {
+        Evas_Coord edj_content_h;
+        adjh = cy + y + ch;
+        if (adjh < sd->mgf_height)
+          adjh = sd->mgf_height;
+        edj_content_h = adjh - bdh;
+        adj_scale = (float)edj_content_h / ch;
+        if (adj_scale > sd->mgf_scale)
+          adj_scale = sd->mgf_scale;
+     }
+   evas_object_resize(sd->mgf_bg, mw, adjh);
 
    if (sd->mgf_type == _ENTRY_MAGNIFIER_FIXEDSIZE)
-     evas_object_move(sd->mgf_bg, (cx + x + cw/2) + ox, (cy + y) - sd->mgf_height + oy);
+     evas_object_move(sd->mgf_bg, cx + x - mw/2, cy + y - adjh + oy);
    else if (sd->mgf_type == _ENTRY_MAGNIFIER_FILLWIDTH)
      evas_object_move(sd->mgf_bg, x, (cy + y) - sd->mgf_height + oy);
    else
      return;
 
-   evas_object_move(sd->mgf_proxy,
-                    (1 - sd->mgf_scale) * cx + x + ox,
-                    (1 - sd->mgf_scale) * cy + y - sd->mgf_height/2 - ch/2 - sd->mgf_arrow_height + sd->mgf_scale * oy);
+   px = x + (1 - adj_scale) * cx + ox;
+   py = y + (cy + ch/2) * (1 - adj_scale) - ch/2 - adjh/2 - sd->mgf_arrow_height/2 + oy;
+
+   pw = (Evas_Coord)((float)w * adj_scale);
+   ph = (Evas_Coord)((float)h * adj_scale);
+   evas_object_image_fill_set(sd->mgf_proxy, 0, 0, pw, ph);
+   evas_object_resize(sd->mgf_proxy, pw, ph);
+   evas_object_move(sd->mgf_proxy, px, py);
 }
 
 static void
