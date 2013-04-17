@@ -1504,9 +1504,7 @@ _elm_naviframe_smart_event(Evas_Object *obj,
    if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
 
    it = (Elm_Naviframe_Item *) elm_naviframe_top_item_get(obj);
-
-   //Prevent the event handling if the popping is going on.
-   if (!it || it->animator) return EINA_FALSE;
+   if (!it) return EINA_FALSE;
 
    elm_naviframe_item_pop(obj);
 
@@ -1765,9 +1763,17 @@ elm_naviframe_item_pop(Evas_Object *obj)
    it = (Elm_Naviframe_Item *)elm_naviframe_top_item_get(obj);
    if (!it) return NULL;
 
+   if (it->animator || it->popping) return NULL;
+
+   it->popping = EINA_TRUE;
+
    if (it->pop_cb)
      {
-        if (!it->pop_cb(it->pop_data, (Elm_Object_Item *)it)) return NULL;
+        if (!it->pop_cb(it->pop_data, (Elm_Object_Item *)it))
+          {
+             it->popping = EINA_FALSE;
+             return NULL;
+          }
      }
 
    if (sd->preserve)
