@@ -466,8 +466,12 @@ void
 _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
 {
    Evas *evas;
-   Evas_Object *ho;
+   Evas_Object *ho, *win;
    Evas_Coord_Rectangle ho_area;
+
+#ifdef HAVE_ELEMENTARY_X
+   Ecore_X_Window xwin = 0;
+#endif
 
    if (!obj) return;
 
@@ -522,6 +526,60 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
 
         ELM_SCROLLABLE_IFACE_GET(s_parent, s_iface);
         s_iface->repeat_events_set(s_parent, EINA_TRUE);
+        break;
+
+      case 3:
+        ho = _access_highlight_object_get(obj);
+        if (!ho)
+          {
+             s_parent = NULL;
+             return;
+          }
+        else
+          {
+             s_parent = ho;
+             evas_object_geometry_get
+               (ho, &ho_area.x, &ho_area.y, &ho_area.w, &ho_area.h);
+
+             offset.x = x - (ho_area.x + (ho_area.w / 2));
+             offset.y = y - (ho_area.y + (ho_area.h / 2));
+          }
+
+#ifdef HAVE_ELEMENTARY_X
+        win = elm_widget_top_get(ho);
+        xwin = elm_win_xwindow_get(win);
+        if (!xwin) return;
+
+        x = x - offset.x;
+        y = y - offset.y;
+        ecore_x_mouse_in_send(xwin, x, y);
+        ecore_x_mouse_move_send(xwin, x, y);
+        ecore_x_mouse_down_send(xwin, x, y, 1);
+#endif
+        break;
+
+      case 4:
+        if (!s_parent) return;
+
+#ifdef HAVE_ELEMENTARY_X
+        win = elm_widget_top_get(s_parent);
+        xwin = elm_win_xwindow_get(win);
+        if (!xwin) return;
+
+        ecore_x_mouse_move_send(xwin, x - offset.x, y - offset.y);
+#endif
+        break;
+
+      case 5:
+        if (!s_parent) return;
+
+#ifdef HAVE_ELEMENTARY_X
+        win = elm_widget_top_get(s_parent);
+        xwin = elm_win_xwindow_get(win);
+        if (!xwin) return;
+
+        ecore_x_mouse_up_send(xwin, x - offset.x, y - offset.y, 1);
+#endif
         break;
 
       default:
@@ -876,7 +934,7 @@ _elm_access_object_hilight(Evas_Object *obj)
    evas_object_resize(o, w, h);
 
    /* use callback, should an access object do below every time when
-	* a window gets a client message ECORE_X_ATOM_E_ILLMUE_ACTION_READ? */
+    * a window gets a client message ECORE_X_ATOM_E_ILLMUE_ACTION_READ? */
    a = calloc(1, sizeof(Elm_Access_Action_Info));
    a->action_by = action_by;
    if (!_access_action_callback_call(obj, ELM_ACCESS_ACTION_HIGHLIGHT, a))
