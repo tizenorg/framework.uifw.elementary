@@ -3647,6 +3647,11 @@ _elm_gesture_layer_smart_del(Evas_Object *obj)
 
           free(sd->gesture[i]);
        }
+   if (sd->gest_taps_timeout)
+     {
+        ecore_timer_del(sd->gest_taps_timeout);
+        sd->gest_taps_timeout = NULL;
+     }
 
    _elm_gesture_layer_parent_sc->base.del(obj); /* handles freeing sd */
 }
