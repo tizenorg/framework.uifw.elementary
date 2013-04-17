@@ -873,25 +873,13 @@ _elm_list_smart_on_focus(Evas_Object *obj)
    if (elm_widget_focus_get(obj) && sd->selected && !sd->last_selected_item)
      sd->last_selected_item = eina_list_data_get(sd->selected);
 
-   if (elm_widget_focus_get(obj))
-     {
-        if (sd->focused)
-          {
-             edje_object_signal_emit
-                (VIEW(sd->focused), "elm,state,focused", "elm");
-		  }
-        else
-           edje_object_signal_emit(ELM_WIDGET_DATA(sd)->resize_obj, "elm,state,focused", "elm");
-     }
-   else
+   if (!elm_widget_focus_get(obj))
      {
         if (sd->focused)
           {
              edje_object_signal_emit
                 (VIEW(sd->focused), "elm,state,unfocused", "elm");
           }
-        else
-           edje_object_signal_emit(ELM_WIDGET_DATA(sd)->resize_obj, "elm,state,unfocused", "elm");
      }
    return EINA_TRUE;
 }
