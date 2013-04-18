@@ -570,6 +570,19 @@ _item_title_prev_btn_set(Elm_Naviframe_Item *it,
      (btn, EVAS_CALLBACK_DEL, _item_title_prev_btn_del_cb, it);
    evas_object_smart_callback_add
      (btn, SIG_CLICKED, _on_item_back_btn_clicked, WIDGET(it));
+
+   //Tizen Only: Temporary code. block the focus for the back button for
+   //H/W Key event support.
+   if (it->dispmode == EVAS_DISPLAY_MODE_COMPRESS) {
+      elm_object_signal_emit(it->title_prev_btn,
+                             "elm,state,display,compress", "elm");
+      elm_object_focus_allow_set(it->title_prev_btn, EINA_FALSE);
+   }
+   else {
+      elm_object_signal_emit(it->title_prev_btn,
+                             "elm,state,display,default", "elm");
+      elm_object_focus_allow_set(it->title_prev_btn, EINA_TRUE);
+   }
 }
 
 static void
