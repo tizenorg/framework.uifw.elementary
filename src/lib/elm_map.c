@@ -5531,7 +5531,9 @@ elm_map_overlay_add(Evas_Object *obj,
    overlay->grp = _overlay_group_new(sd);
    sd->overlays = eina_list_append(sd->overlays, overlay);
 
-   evas_object_smart_changed(sd->pan_obj);
+   if (!strcmp(overlay->wsd->engine->name, INTERNAL_ENGINE_NAME))
+     evas_object_smart_changed(overlay->wsd->pan_obj);
+   else _overlay_place(sd);
 
    return overlay;
 #else
@@ -5988,7 +5990,9 @@ elm_map_overlay_content_set(Elm_Map_Overlay *overlay,
      _overlay_class_content_update(overlay->ovl, content);
    else ERR("Not supported overlay type: %d", overlay->type);
 
-   evas_object_smart_changed(overlay->wsd->pan_obj);
+   if (!strcmp(overlay->wsd->engine->name, INTERNAL_ENGINE_NAME))
+     evas_object_smart_changed(overlay->wsd->pan_obj);
+   else _overlay_place(overlay->wsd);
 #else
    (void)overlay;
    (void)content;
