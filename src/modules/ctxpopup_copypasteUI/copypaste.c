@@ -165,6 +165,21 @@ _ctxpopup_position(Evas_Object *obj __UNUSED__)
              y = ey + cy;
           }
 
+        //limit ctx in viewport
+        if (ext_mod->viewport_rect.x != -1 || ext_mod->viewport_rect.y != -1
+            || ext_mod->viewport_rect.w != -1 || ext_mod->viewport_rect.h != -1)
+          {
+             if (ext_mod->viewport_rect.x > x)
+               x = ext_mod->viewport_rect.x;
+             else if (x > ext_mod->viewport_rect.x + ext_mod->viewport_rect.w)
+               x = ext_mod->viewport_rect.x + ext_mod->viewport_rect.w;
+
+             if (ext_mod->viewport_rect.y > y)
+               y = ext_mod->viewport_rect.y;
+             else if (y > ext_mod->viewport_rect.y + ext_mod->viewport_rect.h)
+               y = ext_mod->viewport_rect.y + ext_mod->viewport_rect.h;
+          }
+
         evas_object_move(ext_mod->popup, x, y);
         evas_object_resize(ext_mod->popup, cw, ch);
      }
