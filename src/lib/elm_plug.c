@@ -198,7 +198,7 @@ _elm_plug_smart_activate(Evas_Object *obj, Elm_Activate act)
    action_info->action_type = msg_id;
 
    ecore_evas_msg_parent_send(ee, MSG_DOMAIN_CONTROL_ACCESS,
-                              msg_id, &action_info, sizeof(Elm_Access_Action_Info));
+                              msg_id, action_info, sizeof(Elm_Access_Action_Info));
 
    free(action_info);
    return EINA_TRUE;
@@ -254,13 +254,18 @@ _access_action_highlight_cb(void *data __UNUSED__,
    ee = _elm_plug_ecore_evas_get(obj);
    if (!ee) return EINA_FALSE;
 
-   elm_access_action_cb_set(obj, ELM_ACCESS_ACTION_HIGHLIGHT_NEXT,
-                            _access_action_highlight_next_cb, NULL);
+   if (action_info->action_type == ELM_ACCESS_ACTION_HIGHLIGHT)
+     {
+        elm_access_action_cb_set(obj, ELM_ACCESS_ACTION_HIGHLIGHT_NEXT,
+                                 _access_action_highlight_next_cb, NULL);
+        elm_access_action_cb_set(obj, ELM_ACCESS_ACTION_HIGHLIGHT_PREV,
+                                 _access_action_highlight_next_cb, NULL);
+     }
 
    ecore_evas_msg_parent_send(ee, MSG_DOMAIN_CONTROL_ACCESS,
-                              ELM_ACCESS_ACTION_HIGHLIGHT,
+                              action_info->action_type,
                               action_info, sizeof(Elm_Access_Action_Info));
-   return EINA_FALSE;
+   return EINA_TRUE;
 }
 
 EAPI Evas_Object *
@@ -281,6 +286,8 @@ elm_plug_add(Evas_Object *parent)
 
    _elm_access_object_register(obj, ELM_WIDGET_DATA(sd)->resize_obj);
    elm_access_action_cb_set(obj, ELM_ACCESS_ACTION_HIGHLIGHT,
+                            _access_action_highlight_cb, NULL);
+   elm_access_action_cb_set(obj, ELM_ACCESS_ACTION_UNHIGHLIGHT,
                             _access_action_highlight_cb, NULL);
 
    return obj;
