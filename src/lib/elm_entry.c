@@ -494,7 +494,8 @@ _signal_handler_moving_cb(void *data, Evas_Object *obj __UNUSED__, const char *e
 static void
 _signal_handler_click_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
 {
-   _select_word(data, NULL, NULL);
+   _magnifier_hide(data);
+   _menu_call(data);
    elm_widget_scroll_freeze_pop(data);
 }
 
@@ -1999,21 +2000,6 @@ _long_press_cb(void *data)
    return ECORE_CALLBACK_CANCEL;
 }
 
-// TIZEN ONLY - START
-static Eina_Bool
-_click_cb(void *data)
-{
-   ELM_ENTRY_DATA_GET(data, sd);
-
-   sd->click_timer = NULL;
-   if ((!_elm_config->desktop_entry) && sd->mouse_upped && sd->editable)
-     {
-        _menu_call(data);
-     }
-   return ECORE_CALLBACK_CANCEL;
-}
-// TIZEN ONLY - END
-
 static void
 _mouse_down_cb(void *data,
                Evas *evas __UNUSED__,
@@ -2034,20 +2020,6 @@ _mouse_down_cb(void *data,
         if (sd->longpress_timer) ecore_timer_del(sd->longpress_timer);
         sd->longpress_timer = ecore_timer_add
             (_elm_config->longpress_timeout, _long_press_cb, data);
-
-        // TIZEN ONLY - START
-        if (sd->click_timer)
-          {
-             ecore_timer_del(sd->click_timer); // avoid double click
-             sd->click_timer = NULL;
-          }
-        else
-          {
-             if (!sd->have_selection)
-               sd->click_timer = ecore_timer_add (0.2, _click_cb, data); //FIXME: time out
-          }
-        sd->mouse_upped = EINA_FALSE;
-        // TIZEN ONLY - END
      }
    else if (ev->button == 3)
      {
@@ -2087,14 +2059,6 @@ _mouse_up_cb(void *data,
           {
              _magnifier_hide(data);
              if (sd->long_pressed) _menu_call(data);
-          }
-        if (sd->click_timer)
-          {
-             if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
-               {
-                  ecore_timer_del(sd->click_timer);
-                  sd->click_timer = NULL;
-               }
           }
         sd->mouse_upped = EINA_TRUE;
         /////
@@ -2816,12 +2780,6 @@ _entry_mouse_double_signal_cb(void *data,
    if (sd->disabled) return;
    sd->double_clicked = EINA_TRUE;
    if (!sd->sel_allow) return;
-
-   if (sd->click_timer)
-     {
-        ecore_timer_del(sd->click_timer);
-        sd->click_timer = NULL;
-     }
 
    edje_object_part_text_select_word(sd->entry_edje, "elm.text");
    if (!_elm_config->desktop_entry)
@@ -3948,7 +3906,6 @@ _elm_entry_smart_del(Evas_Object *obj)
    if (sd->mgf_proxy) evas_object_del(sd->mgf_proxy);
    if (sd->mgf_bg) evas_object_del(sd->mgf_bg);
    if (sd->mgf_clip) evas_object_del(sd->mgf_clip);
-   if (sd->click_timer) ecore_timer_del(sd->click_timer);
    //
    evas_event_thaw(evas_object_evas_get(obj));
    evas_event_thaw_eval(evas_object_evas_get(obj));

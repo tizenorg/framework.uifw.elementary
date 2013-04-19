@@ -138,7 +138,6 @@ struct _Elm_Entry_Smart_Data
    Ecore_Event_Handler                  *client_msg_handler;  // TIZEN ONLY
    Ecore_Timer                          *longpress_timer;
    Ecore_Timer                          *delay_write;
-   Ecore_Timer                          *click_timer; // TIZEN ONLY
    /* for deferred appending */
    Ecore_Idler                          *append_text_idler;
    char                                 *append_text_left;
