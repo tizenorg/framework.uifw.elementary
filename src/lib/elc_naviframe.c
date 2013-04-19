@@ -525,33 +525,15 @@ _hide_button_prop_set(Elm_Naviframe_Item *it, Evas_Object *prev_btn)
    if (it->dispmode == EVAS_DISPLAY_MODE_COMPRESS)
      {
         elm_object_signal_emit(prev_btn, "elm,state,display,compress", "elm");
-        evas_object_propagate_events_set(prev_btn, EINA_FALSE);
         elm_object_focus_allow_set(prev_btn, EINA_FALSE);
+        evas_object_propagate_events_set(prev_btn, EINA_FALSE);
      }
    else
      {
         elm_object_signal_emit(prev_btn, "elm,state,display,default", "elm");
-        evas_object_propagate_events_set(prev_btn, EINA_TRUE);
         elm_object_focus_allow_set(prev_btn, EINA_TRUE);
+        evas_object_propagate_events_set(prev_btn, EINA_TRUE);
      }
-}
-
-char *
-_access_prev_btn_info_cb(void *data, Evas_Object *obj __UNUSED__)
-{
-   Elm_Naviframe_Item *it = (Elm_Naviframe_Item *)data;
-
-   if (it->dispmode == EVAS_DISPLAY_MODE_COMPRESS)
-     return strdup(E_("Close Keyboard"));
-   else
-     return strdup(E_("Back"));
-}
-
-char *
-_access_more_btn_info_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__)
-{
-   /* Tizen Only */
-   return strdup(E_("More"));
 }
 
 static void
@@ -571,18 +553,7 @@ _item_title_prev_btn_set(Elm_Naviframe_Item *it,
    evas_object_smart_callback_add
      (btn, SIG_CLICKED, _on_item_back_btn_clicked, WIDGET(it));
 
-   //Tizen Only: Temporary code. block the focus for the back button for
-   //H/W Key event support.
-   if (it->dispmode == EVAS_DISPLAY_MODE_COMPRESS) {
-      elm_object_signal_emit(it->title_prev_btn,
-                             "elm,state,display,compress", "elm");
-      elm_object_focus_allow_set(it->title_prev_btn, EINA_FALSE);
-   }
-   else {
-      elm_object_signal_emit(it->title_prev_btn,
-                             "elm,state,display,default", "elm");
-      elm_object_focus_allow_set(it->title_prev_btn, EINA_TRUE);
-   }
+   _hide_button_prop_set(it, btn);
 }
 
 static void
@@ -933,7 +904,6 @@ _on_item_back_btn_clicked(void *data __UNUSED__,
                           void *event_info __UNUSED__)
 {
    static Ecore_X_Window keygrab_win = NULL;
-
    Ecore_X_Atom type = ecore_x_atom_get("_HWKEY_EMULATION");
    char msg_data[20];
 
@@ -1214,29 +1184,16 @@ _item_dispmode_set(Elm_Naviframe_Item *it, Evas_Display_Mode dispmode)
    switch (dispmode)
      {
       case EVAS_DISPLAY_MODE_COMPRESS:
-         //Tizen Only: Temporary code. block the focus for the back button for
-         //H/W Key event support.
-         if (it->title_prev_btn)
-           {
-              elm_object_signal_emit(it->title_prev_btn,
-                                     "elm,state,display,compress", "elm");
-              elm_object_focus_allow_set(it->title_prev_btn, EINA_FALSE);
-           }
          elm_object_signal_emit(VIEW(it), "elm,state,display,compress", "elm");
          break;
       default:
-         //Tizen Only: Temporary code. block the focus for the back button for
-         //H/W Key event support.
-         if (it->title_prev_btn)
-           {
-              elm_object_signal_emit(it->title_prev_btn,
-                                     "elm,state,display,default", "elm");
-              elm_object_focus_allow_set(it->title_prev_btn, EINA_TRUE);
-           }
          elm_object_signal_emit(VIEW(it), "elm,state,display,default", "elm");
          break;
      }
    it->dispmode = dispmode;
+
+   if (it->title_prev_btn)
+     _hide_button_prop_set(it, it->title_prev_btn);
 }
 
 static Elm_Naviframe_Item *
@@ -1509,7 +1466,6 @@ _elm_naviframe_smart_event(Evas_Object *obj,
 {
    Elm_Naviframe_Item *it;
    Evas_Event_Key_Down *ev = event_info;
-   ELM_NAVIFRAME_DATA_GET(obj, sd);
 
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
    if (elm_widget_disabled_get(obj)) return EINA_FALSE;
