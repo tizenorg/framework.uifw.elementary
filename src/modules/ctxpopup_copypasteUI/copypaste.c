@@ -13,16 +13,10 @@
 #define S_CLIPBOARD MULTI_(IDS_COM_BODY_CLIPBOARD)
 #define S_COPIED MULTI_(IDS_COM_POP_COPIED_TO_CLIPBOARD)
 
-// TEMP: Will be done by clipboard - start
-#define NOTIFY_TIMEOUT 2.0
-#define DATA_KEY "_data"
-// TEMP - end
-
 Elm_Entry_Extension_data *ext_mod;
 static int _mod_hook_count = 0;
 
 typedef struct _Elm_Entry_Context_Menu_Item Elm_Entry_Context_Menu_Item;
-typedef struct _Tickernoti_Data Tickernoti_Data;
 
 struct _Elm_Entry_Context_Menu_Item
 {
@@ -34,13 +28,6 @@ struct _Elm_Entry_Context_Menu_Item
    Evas_Smart_Cb func;
    void *data;
 };
-
-// TEMP: Will be done by clipboard - start
-struct _Tickernoti_Data
-{
-   Ecore_Timer *timer;
-};
-// TEMP - end
 
 static void _ctxpopup_hide(Evas_Object *popup);
 static void _ctxpopup_position(Evas_Object *obj);
@@ -281,116 +268,6 @@ _ctxpopup_position(Evas_Object *obj __UNUSED__)
      }
 }
 
-// TEMP: Will be done by clipboard - start
-static Eina_Bool
-_hide_notify_cb(void *data __UNUSED__)
-{
-   Tickernoti_Data *td;
-   if (!ext_mod) return ECORE_CALLBACK_CANCEL;
-   if (!ext_mod->notify) return ECORE_CALLBACK_CANCEL;
-   evas_object_hide(ext_mod->notify);
-   elm_win_indicator_mode_set(ext_mod->notify, ELM_WIN_INDICATOR_SHOW);
-
-   td = evas_object_data_get(ext_mod->notify, DATA_KEY);
-   if (!td) return ECORE_CALLBACK_CANCEL;
-   if (td->timer)
-     ecore_timer_del(td->timer);
-   td->timer = NULL;
-   return ECORE_CALLBACK_CANCEL;
-}
-
-static void
-_notify_create(Evas_Object *parent)
-{
-   Evas_Object *content;
-   Tickernoti_Data *td;
-   Evas_Object *content_edje;
-   Evas_Coord nx, ny, nw, nh;
-   Evas_Coord x, y, h;
-   int angle;
-
-   if (!ext_mod) return;
-
-   if (ext_mod->notify)
-     {
-        free(evas_object_data_get(ext_mod->notify, DATA_KEY));
-        evas_object_del(ext_mod->notify);
-     }
-
-   //win
-   ext_mod->notify = elm_win_add(parent, NULL, ELM_WIN_NOTIFICATION);
-   elm_win_borderless_set(ext_mod->notify, EINA_TRUE);
-   elm_win_autodel_set(ext_mod->notify, EINA_TRUE);
-   elm_win_alpha_set(ext_mod->notify, EINA_TRUE);
-   evas_object_size_hint_weight_set(ext_mod->notify, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-
-   //content
-   content = elm_layout_add(ext_mod->notify);
-   elm_layout_theme_set(content, "tickernoti", "base", "textonly");
-   elm_object_text_set(content, S_COPIED);
-   evas_object_show(content);
-   evas_object_size_hint_weight_set(content, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   elm_win_resize_object_add(ext_mod->notify, content);
-
-   //position
-   content_edje = elm_layout_edje_get(content);
-   edje_object_part_geometry_get(content_edje, "bg", NULL, NULL, NULL, &h);
-   ecore_x_window_size_get(ecore_x_window_root_first_get(), &x, &y);
-
-   angle = elm_win_rotation_get(elm_widget_top_get(parent));
-   switch (angle)
-     {
-      case 0:
-         nx = ny = 0;
-         nw = x;
-         nh = h;
-         break;
-
-      case 90:
-         nx = ny = 0;
-         nw = h;
-         nh = y;
-         break;
-
-      case 180:
-         nx = 0;
-         ny = y - h;
-         nw = x;
-         nh = h;
-         break;
-
-      case 270:
-      case -90:
-         nx = x -h;
-         ny = 0;
-         nw = h;
-         nh = y;
-         angle = 270;
-         break;
-
-      default:
-         nx = ny = 0;
-         nw = x;
-         nh = h;
-         angle = 0;
-         break;
-     }
-   evas_object_move(ext_mod->notify, nx, ny);
-   evas_object_resize(ext_mod->notify, nw, nh);
-   elm_win_rotation_set(ext_mod->notify, angle);
-
-   //timer to hide notify
-   td = (Tickernoti_Data *)calloc(1, sizeof(Tickernoti_Data));
-   if (!td) return;
-   td->timer = ecore_timer_add(NOTIFY_TIMEOUT, _hide_notify_cb, NULL);
-   evas_object_data_set(ext_mod->notify, DATA_KEY, td);
-
-   elm_win_prop_focus_skip_set(ext_mod->notify, EINA_TRUE);
-   evas_object_show(ext_mod->notify);
-   elm_win_indicator_mode_set(ext_mod->notify, ELM_WIN_INDICATOR_HIDE);
-}
-// TEMP - end
-
 static void
 _select_all(void *data, Evas_Object *obj, void *event_info)
 {
@@ -426,8 +303,6 @@ _cut(void *data, Evas_Object *obj, void *event_info)
    ext_mod->cut(data,obj,event_info);
    _ctxpopup_hide(obj);
 
-   _notify_create((Evas_Object *)data); // TEMP: will be done by clipboard
-
    //elm_object_scroll_freeze_pop(ext_mod->popup);
 }
 
@@ -438,7 +313,6 @@ _copy(void *data, Evas_Object *obj, void *event_info)
 
    ext_mod->copy(data,obj,event_info);
    _ctxpopup_hide(obj);
-   _notify_create((Evas_Object *) data); // TEMP: will be done by clipboard
 
    //elm_object_scroll_freeze_pop(ext_mod->popup);
 }
@@ -560,29 +434,11 @@ obj_hook(Evas_Object *obj)
 EAPI void
 obj_unhook(Evas_Object *obj)
 {
-   Tickernoti_Data *td;
-
    _mod_hook_count--;
    if(_mod_hook_count > 0) return;
 
    if(ext_mod)
      {
-        // TEMP: Will be done by clipboard - start
-        if (ext_mod->notify)
-          {
-             evas_object_hide(ext_mod->notify);
-             elm_win_indicator_mode_set(ext_mod->notify, ELM_WIN_INDICATOR_SHOW);
-             td = evas_object_data_get(ext_mod->notify, DATA_KEY);
-             if (td)
-               {
-                  if (td->timer)
-                    ecore_timer_del(td->timer);
-                  td->timer = NULL;
-                  free(td);
-                  td = NULL;
-               }
-          }
-        // TEMP: Will be done by clipboard - end
         free(ext_mod);
         ext_mod = NULL;
      }
