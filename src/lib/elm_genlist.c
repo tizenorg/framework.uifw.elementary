@@ -4045,8 +4045,8 @@ _queue_process(Elm_Genlist_Smart_Data *sd)
         sd->queue = eina_list_remove_list(sd->queue, sd->queue);
         it->item->queued = EINA_FALSE;
         if (_item_process(sd, it)) continue;
-        t = ecore_time_get();
         _item_process_post(sd, it, EINA_TRUE);
+        t = ecore_time_get();
         /* same as eina_inlist_count > 1 */
         if (sd->blocks && sd->blocks->next)
           {
@@ -4061,6 +4061,7 @@ _item_idle_enterer(void *data)
 {
    Elm_Genlist_Smart_Data *sd = data;
 
+   if (sd->scrolling) return ECORE_CALLBACK_RENEW;
    if (sd->prev_viewport_w == 0) return ECORE_CALLBACK_RENEW;
    if (_queue_process(sd) > 0)
      {
@@ -4550,9 +4551,11 @@ static void
 _scroll_animate_start_cb(Evas_Object *obj,
                          void *data __UNUSED__)
 {
+   ELM_GENLIST_DATA_GET(obj, sd);
 #if GENLIST_FX_SUPPORT
    _elm_genlist_fx_clear(obj, EINA_FALSE);
 #endif
+   sd->scrolling = EINA_TRUE;
    evas_object_smart_callback_call(obj, SIG_SCROLL_ANIM_START, NULL);
 }
 
@@ -4560,9 +4563,11 @@ static void
 _scroll_animate_stop_cb(Evas_Object *obj,
                         void *data __UNUSED__)
 {
+   ELM_GENLIST_DATA_GET(obj, sd);
 #if GENLIST_FX_SUPPORT
    _elm_genlist_fx_clear(obj, EINA_FALSE);
 #endif
+   sd->scrolling = EINA_FALSE;
    evas_object_smart_callback_call(obj, SIG_SCROLL_ANIM_STOP, NULL);
 }
 
@@ -4570,6 +4575,8 @@ static void
 _scroll_drag_start_cb(Evas_Object *obj,
                       void *data __UNUSED__)
 {
+   ELM_GENLIST_DATA_GET(obj, sd);
+   sd->scrolling = EINA_TRUE;
    evas_object_smart_callback_call(obj, SIG_SCROLL_DRAG_START, NULL);
 }
 
@@ -4577,6 +4584,8 @@ static void
 _scroll_drag_stop_cb(Evas_Object *obj,
                      void *data __UNUSED__)
 {
+   ELM_GENLIST_DATA_GET(obj, sd);
+   sd->scrolling = EINA_FALSE;
    evas_object_smart_callback_call(obj, SIG_SCROLL_DRAG_STOP, NULL);
 }
 
