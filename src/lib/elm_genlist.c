@@ -51,6 +51,7 @@ static const char SIG_SCROLL_ANIM_START[] = "scroll,anim,start";
 static const char SIG_SCROLL_ANIM_STOP[] = "scroll,anim,stop";
 static const char SIG_SCROLL_DRAG_START[] = "scroll,drag,start";
 static const char SIG_SCROLL_DRAG_STOP[] = "scroll,drag,stop";
+static const char SIG_SCROLL[] = "scroll";
 static const char SIG_EDGE_TOP[] = "edge,top";
 static const char SIG_EDGE_BOTTOM[] = "edge,bottom";
 static const char SIG_EDGE_LEFT[] = "edge,left";
@@ -99,6 +100,7 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_DRAG_STOP, ""},
    {SIG_DRAG, ""},
    {SIG_LONGPRESSED, ""},
+   {SIG_SCROLL, ""},
    {SIG_SCROLL_ANIM_START, ""},
    {SIG_SCROLL_ANIM_STOP, ""},
    {SIG_SCROLL_DRAG_START, ""},
@@ -4581,6 +4583,13 @@ _scroll_drag_start_cb(Evas_Object *obj,
 }
 
 static void
+_scroll_cb(Evas_Object *obj,
+           void *data __UNUSED__)
+{
+   evas_object_smart_callback_call(obj, SIG_SCROLL, NULL);
+}
+
+static void
 _scroll_drag_stop_cb(Evas_Object *obj,
                      void *data __UNUSED__)
 {
@@ -4879,6 +4888,7 @@ _elm_genlist_smart_add(Evas_Object *obj)
 
    priv->s_iface->animate_start_cb_set(obj, _scroll_animate_start_cb);
    priv->s_iface->animate_stop_cb_set(obj, _scroll_animate_stop_cb);
+   priv->s_iface->scroll_cb_set(obj, _scroll_cb);
    priv->s_iface->drag_start_cb_set(obj, _scroll_drag_start_cb);
    priv->s_iface->drag_stop_cb_set(obj, _scroll_drag_stop_cb);
    priv->s_iface->edge_left_cb_set(obj, _edge_left_cb);
