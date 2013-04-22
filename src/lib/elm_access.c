@@ -340,12 +340,7 @@ _access_obj_mouse_in_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSE
      }
 
    if (_elm_config->access_mode)
-     {
-        ho = _access_highlight_object_get(data);
-        if (ho == data) return;
-
-        _access_highlight_read(ac, data);
-     }
+     _elm_access_highlight_set(data);
 }
 
 static void
