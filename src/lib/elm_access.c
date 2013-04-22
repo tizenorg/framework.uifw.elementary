@@ -38,7 +38,7 @@ _elm_access_smart_add(Evas_Object *obj)
    EVAS_SMART_DATA_ALLOC(obj, Elm_Widget_Smart_Data);
    ELM_WIDGET_CLASS(_elm_access_parent_sc)->base.add(obj);
 
-   elm_widget_can_focus_set(obj, EINA_TRUE);
+   elm_widget_can_focus_set(obj, _elm_config->access_mode);
 }
 
 static Eina_Bool
@@ -138,6 +138,12 @@ _elm_access_smart_activate(Evas_Object *obj, Elm_Activate act)
 }
 
 static void
+_elm_access_smart_access(Evas_Object *obj, Eina_Bool is_access)
+{
+   elm_widget_can_focus_set(obj, is_access);
+}
+
+static void
 _elm_access_smart_set_user(Elm_Widget_Smart_Class *sc)
 {
    sc->base.add = _elm_access_smart_add;
@@ -147,6 +153,7 @@ _elm_access_smart_set_user(Elm_Widget_Smart_Class *sc)
    sc->focus_direction = NULL;
    sc->on_focus = _elm_access_smart_on_focus;
    sc->activate = _elm_access_smart_activate;
+   sc->access = _elm_access_smart_access;
 
    return;
 }
