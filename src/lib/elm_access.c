@@ -309,8 +309,9 @@ _access_obj_mouse_in_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSE
         ecore_timer_del(ac->delay_timer);
         ac->delay_timer = NULL;
      }
-   if (_elm_config->access_mode != ELM_ACCESS_MODE_OFF)
-      ac->delay_timer = ecore_timer_add(0.2, _access_obj_over_timeout_cb, data);
+
+   if (_elm_config->access_mode)
+     _elm_access_highlight_set(data);
 }
 
 static void
