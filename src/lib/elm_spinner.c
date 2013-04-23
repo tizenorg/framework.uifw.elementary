@@ -7,15 +7,25 @@ EAPI const char ELM_SPINNER_SMART_NAME[] = "elm_spinner";
 
 static const char SIG_CHANGED[] = "changed";
 static const char SIG_DELAY_CHANGED[] = "delay,changed";
+static const char SIG_LANG_CHANGED[] = "language,changed";
+
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CHANGED, ""},
    {SIG_DELAY_CHANGED, ""},
+   {SIG_LANG_CHANGED, ""},
    {NULL, NULL}
 };
 
 EVAS_SMART_SUBCLASS_NEW
   (ELM_SPINNER_SMART_NAME, _elm_spinner, Elm_Spinner_Smart_Class,
   Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks);
+
+static Eina_Bool
+_elm_spinner_smart_translate(Evas_Object *obj)
+{
+   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+   return EINA_TRUE;
+}
 
 static void
 _entry_show(Elm_Spinner_Smart_Data *sd)
@@ -776,6 +786,7 @@ _elm_spinner_smart_set_user(Elm_Spinner_Smart_Class *sc)
    ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_spinner_smart_sizing_eval;
 
    ELM_WIDGET_CLASS(sc)->theme = _elm_spinner_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_spinner_smart_translate;
 
    /* access */
    if (_elm_config->access_mode)

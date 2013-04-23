@@ -8,8 +8,11 @@ EAPI const char ELM_FILESELECTOR_BUTTON_SMART_NAME[] =
 #define DEFAULT_WINDOW_TITLE "Select a file"
 
 static const char SIG_FILE_CHOSEN[] = "file,chosen";
+static const char SIG_LANG_CHANGED[] = "language,changed";
+
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_FILE_CHOSEN, "s"},
+   {SIG_LANG_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -17,6 +20,13 @@ EVAS_SMART_SUBCLASS_NEW
   (ELM_FILESELECTOR_BUTTON_SMART_NAME, _elm_fileselector_button,
   Elm_Fileselector_Button_Smart_Class, Elm_Button_Smart_Class,
   elm_button_smart_class_get, _smart_callbacks);
+
+static Eina_Bool
+_elm_fileselector_button_smart_translate(Evas_Object *obj)
+{
+   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+   return EINA_TRUE;
+}
 
 static Eina_Bool
 _elm_fileselector_button_smart_theme(Evas_Object *obj)
@@ -197,6 +207,7 @@ _elm_fileselector_button_smart_set_user(
    ELM_WIDGET_CLASS(sc)->base.del = _elm_fileselector_button_smart_del;
 
    ELM_WIDGET_CLASS(sc)->theme = _elm_fileselector_button_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_fileselector_button_smart_translate;
 
    ELM_BUTTON_CLASS(sc)->admits_autorepeat = EINA_FALSE;
 }

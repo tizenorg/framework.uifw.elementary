@@ -19,6 +19,8 @@ static const char SIG_SELECTION_COPY[] = "selection,copy";
 static const char SIG_SELECTION_CUT[] = "selection,cut";
 static const char SIG_UNPRESSED[] = "unpressed";
 static const char SIG_FILE_CHOSEN[] = "file,chosen";
+static const char SIG_LANG_CHANGED[] = "language,changed";
+
 static const Evas_Smart_Cb_Description _smart_callbacks[] =
 {
    {SIG_CHANGED, ""},
@@ -34,6 +36,7 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] =
    {SIG_SELECTION_CUT, ""},
    {SIG_UNPRESSED, ""},
    {SIG_FILE_CHOSEN, "s"},
+   {SIG_LANG_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -90,6 +93,13 @@ _ACTIVATED_fwd(void *data,
    file = elm_object_text_get(sd->entry);
    elm_fileselector_button_path_set(sd->button, file);
    evas_object_smart_callback_call(data, SIG_ACTIVATED, event_info);
+}
+
+static Eina_Bool
+_elm_fileselector_entry_smart_translate(Evas_Object *obj)
+{
+   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+   return EINA_TRUE;
 }
 
 static void
@@ -342,6 +352,7 @@ _elm_fileselector_entry_smart_set_user(Elm_Fileselector_Entry_Smart_Class *sc)
 
    ELM_WIDGET_CLASS(sc)->disable = _elm_fileselector_entry_smart_disable;
    ELM_WIDGET_CLASS(sc)->theme = _elm_fileselector_entry_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_fileselector_entry_smart_translate;
 
    ELM_WIDGET_CLASS(sc)->focus_next = _elm_fileselector_entry_smart_focus_next;
    ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
