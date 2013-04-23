@@ -24,7 +24,14 @@ EVAS_SMART_SUBCLASS_NEW
 static Eina_Bool
 _elm_ctxpopup_smart_translate(Evas_Object *obj)
 {
+   ELM_CTXPOPUP_DATA_GET(obj, sd);
+   Elm_Ctxpopup_Item *it;
+   Eina_List *l;
+
    evas_object_hide(obj);
+
+   EINA_LIST_FOREACH(sd->items, l, it)
+     elm_widget_item_translate(it);
 
    return EINA_TRUE;
 }
@@ -1636,6 +1643,7 @@ _elm_ctxpopup_smart_set_user(Elm_Ctxpopup_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->disable = _elm_ctxpopup_smart_disable;
    ELM_WIDGET_CLASS(sc)->event = _elm_ctxpopup_smart_event;
    ELM_WIDGET_CLASS(sc)->theme = _elm_ctxpopup_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_ctxpopup_smart_translate;
    ELM_WIDGET_CLASS(sc)->sub_object_add = _elm_ctxpopup_smart_sub_object_add;
    ELM_WIDGET_CLASS(sc)->focus_next = _elm_ctxpopup_smart_focus_next;
    ELM_WIDGET_CLASS(sc)->focus_direction = _elm_ctxpopup_smart_focus_direction;

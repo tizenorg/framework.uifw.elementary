@@ -46,6 +46,19 @@ EVAS_SMART_SUBCLASS_NEW
   elm_layout_smart_class_get, _smart_callbacks);
 
 static Eina_Bool
+_elm_multibuttonentry_smart_translate(Evas_Object *obj)
+{
+   ELM_MULTIBUTTONENTRY_DATA_GET(obj, sd);
+   Elm_Multibuttonentry_Item *it;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(sd->items, l, it)
+     elm_widget_item_translate(it);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
 _elm_multibuttonentry_smart_focus_next(const Evas_Object *obj,
                                Elm_Focus_Direction dir,
                                Evas_Object **next)
@@ -2064,6 +2077,7 @@ _elm_multibuttonentry_smart_set_user(Elm_Multibuttonentry_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->base.del = _elm_multibuttonentry_smart_del;
 
    ELM_WIDGET_CLASS(sc)->theme = _elm_multibuttonentry_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_multibuttonentry_smart_translate;
    ELM_WIDGET_CLASS(sc)->on_focus = _elm_multibuttonentry_smart_on_focus;
 
    /* not a 'focus chain manager' */

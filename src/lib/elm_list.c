@@ -436,6 +436,13 @@ _elm_list_smart_event(Evas_Object *obj,
 static Eina_Bool
 _elm_list_smart_translate(Evas_Object *obj)
 {
+   ELM_LIST_DATA_GET(obj, sd);
+   Elm_List_Item *it;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(sd->items, l, it)
+     elm_widget_item_translate(it);
+
    evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
 
    return EINA_TRUE;

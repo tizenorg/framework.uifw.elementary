@@ -14,6 +14,19 @@ EVAS_SMART_SUBCLASS_NEW
   (ELM_MENU_SMART_NAME, _elm_menu, Elm_Menu_Smart_Class,
    Elm_Widget_Smart_Class, elm_widget_smart_class_get, _smart_callbacks);
 
+static Eina_Bool
+_elm_menu_smart_translate(Evas_Object *obj)
+{
+   ELM_MENU_DATA_GET(obj, sd);
+   Elm_Menu_Item *it;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(sd->items, l, it)
+     elm_widget_item_translate(it);
+
+   return EINA_TRUE;
+}
+
 static void
 _item_del(Elm_Menu_Item *item)
 {
@@ -589,6 +602,7 @@ _elm_menu_smart_set_user(Elm_Menu_Smart_Class *sc)
 
    ELM_WIDGET_CLASS(sc)->parent_set = _elm_menu_smart_parent_set;
    ELM_WIDGET_CLASS(sc)->theme = _elm_menu_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_menu_smart_translate;
 }
 
 EAPI const Elm_Menu_Smart_Class *

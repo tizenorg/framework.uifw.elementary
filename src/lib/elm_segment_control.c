@@ -15,6 +15,20 @@ EVAS_SMART_SUBCLASS_NEW
   Elm_Segment_Control_Smart_Class, Elm_Layout_Smart_Class,
   elm_layout_smart_class_get, _smart_callbacks);
 
+static Eina_Bool
+_elm_segment_control_smart_translate(Evas_Object *obj)
+{
+   ELM_SEGMENT_CONTROL_DATA_GET(obj, sd);
+   Elm_Segment_Item *it;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(sd->items, l, it)
+     elm_widget_item_translate(it);
+
+   return EINA_TRUE;
+}
+
+
 static void
 _elm_segment_control_smart_sizing_eval(Evas_Object *obj)
 {
@@ -658,6 +672,7 @@ _elm_segment_control_smart_set_user(Elm_Segment_Control_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->base.del = _elm_segment_control_smart_del;
 
    ELM_WIDGET_CLASS(sc)->theme = _elm_segment_control_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_segment_control_smart_translate;
    ELM_WIDGET_CLASS(sc)->disable = _elm_segment_control_smart_disable;
 
 #if 0

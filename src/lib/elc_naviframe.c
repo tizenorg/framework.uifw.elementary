@@ -32,6 +32,18 @@ static const char SIG_CLICKED[] = "clicked";
 
 static void _on_item_back_btn_clicked(void *data, Evas_Object *obj, void *event_info __UNUSED__);
 
+static Eina_Bool
+_elm_naviframe_smart_translate(Evas_Object *obj)
+{
+   ELM_NAVIFRAME_DATA_GET(obj, sd);
+   Elm_Naviframe_Item *it;
+
+   EINA_INLIST_FOREACH(sd->stack, it)
+     elm_widget_item_translate(it);
+
+   return EINA_TRUE;
+}
+
 static void
 _item_content_del_cb(void *data,
                      Evas *e __UNUSED__,
@@ -1507,6 +1519,7 @@ _elm_naviframe_smart_set_user(Elm_Naviframe_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->base.del = _elm_naviframe_smart_del;
 
    ELM_WIDGET_CLASS(sc)->theme = _elm_naviframe_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_naviframe_smart_translate;
    ELM_WIDGET_CLASS(sc)->focus_next = _elm_naviframe_smart_focus_next;
    ELM_WIDGET_CLASS(sc)->focus_direction = _elm_naviframe_smart_focus_direction;
    ELM_WIDGET_CLASS(sc)->access = _elm_naviframe_smart_access;

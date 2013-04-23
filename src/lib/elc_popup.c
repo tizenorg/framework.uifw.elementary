@@ -27,6 +27,19 @@ EVAS_SMART_SUBCLASS_NEW
 
 static void  _on_content_del(void *data, Evas *e, Evas_Object *obj, void *event_info);
 
+static Eina_Bool
+_elm_popup_smart_translate(Evas_Object *obj)
+{
+   ELM_POPUP_DATA_GET(obj, sd);
+   Elm_Popup_Item *it;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(sd->items, l, it)
+     elm_widget_item_translate(it);
+
+   return EINA_TRUE;
+}
+
 static void
 _visuals_set(Evas_Object *obj)
 {
@@ -1658,6 +1671,7 @@ _elm_popup_smart_set_user(Elm_Popup_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->parent_set = _elm_popup_smart_parent_set;
    ELM_WIDGET_CLASS(sc)->event = _elm_popup_smart_event;
    ELM_WIDGET_CLASS(sc)->theme = _elm_popup_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_popup_smart_translate;
    ELM_WIDGET_CLASS(sc)->focus_next = _elm_popup_smart_focus_next;
    ELM_WIDGET_CLASS(sc)->access = _elm_popup_smart_access;
    ELM_WIDGET_CLASS(sc)->focus_direction = _elm_popup_smart_focus_direction;

@@ -1348,6 +1348,12 @@ _item_content_unset_hook(Elm_Object_Item *it,
 static Eina_Bool
 _elm_toolbar_smart_translate(Evas_Object *obj)
 {
+   ELM_TOOLBAR_DATA_GET(obj, sd);
+   Elm_Toolbar_Item *it;
+
+   EINA_INLIST_FOREACH(sd->items, it)
+     elm_widget_item_translate(it);
+
    evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
 
    return EINA_TRUE;

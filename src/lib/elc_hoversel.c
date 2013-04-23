@@ -17,6 +17,19 @@ EVAS_SMART_SUBCLASS_NEW
   Elm_Button_Smart_Class, elm_button_smart_class_get, _smart_callbacks);
 
 static Eina_Bool
+_elm_hoversel_smart_translate(Evas_Object *obj)
+{
+   ELM_HOVERSEL_DATA_GET(obj, sd);
+   Elm_Hoversel_Item *it;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(sd->items, l, it)
+     elm_widget_item_translate(it);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
 _elm_hoversel_smart_theme(Evas_Object *obj)
 {
    char buf[4096];
@@ -245,6 +258,7 @@ _elm_hoversel_smart_set_user(Elm_Hoversel_Smart_Class *sc)
 
    ELM_WIDGET_CLASS(sc)->parent_set = _elm_hoversel_smart_parent_set;
    ELM_WIDGET_CLASS(sc)->theme = _elm_hoversel_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_hoversel_smart_translate;
 
    ELM_BUTTON_CLASS(sc)->admits_autorepeat = EINA_FALSE;
 }

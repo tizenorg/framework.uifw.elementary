@@ -41,6 +41,19 @@ EVAS_SMART_SUBCLASS_IFACE_NEW
   Elm_Diskselector_Smart_Class, Elm_Widget_Smart_Class,
   elm_widget_smart_class_get, _smart_callbacks, _smart_interfaces);
 
+static Eina_Bool
+_elm_diskselector_smart_translate(Evas_Object *obj)
+{
+   ELM_DISKSELECTOR_DATA_GET(obj, sd);
+   Elm_Diskselector_Item *it;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(sd->items, l, it)
+     elm_widget_item_translate(it);
+
+   return EINA_TRUE;
+}
+
 static void
 _selected_item_indicate(Elm_Diskselector_Item *it)
 {
@@ -1422,6 +1435,7 @@ _elm_diskselector_smart_set_user(Elm_Diskselector_Smart_Class *sc)
      _elm_diskselector_smart_sub_object_del;
    ELM_WIDGET_CLASS(sc)->on_focus = _elm_diskselector_smart_on_focus;
    ELM_WIDGET_CLASS(sc)->theme = _elm_diskselector_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_diskselector_smart_translate;
    ELM_WIDGET_CLASS(sc)->event = _elm_diskselector_smart_event;
 
    /* access */
