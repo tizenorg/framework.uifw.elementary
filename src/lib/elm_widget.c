@@ -2969,7 +2969,7 @@ elm_widget_show_region_set(Evas_Object *obj,
                            Eina_Bool forceshow)
 {
    Evas_Object *parent_obj, *child_obj;
-   Evas_Coord px, py, cx, cy;
+   Evas_Coord px, py, cx, cy, nx, ny;
 
    API_ENTRY return;
 
@@ -2984,8 +2984,18 @@ elm_widget_show_region_set(Evas_Object *obj,
    sd->rw = w;
    sd->rh = h;
    if (sd->on_show_region)
+   {
      sd->on_show_region
        (sd->on_show_region_data, obj);
+
+     if (_elm_scrollable_is(obj))
+       {
+          ELM_SCROLLABLE_IFACE_GET(obj, s_iface);
+          s_iface->content_pos_get(obj, &nx, &ny);
+          x -= nx;
+          y -= ny;
+       }
+   }
 
    do
      {
