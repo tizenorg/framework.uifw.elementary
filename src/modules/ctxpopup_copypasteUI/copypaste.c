@@ -604,8 +604,8 @@ obj_longpress(Evas_Object *obj)
              evas_object_event_callback_add(obj, EVAS_CALLBACK_DEL, _entry_del_cb, ext_mod->popup);
              evas_object_event_callback_add(obj, EVAS_CALLBACK_HIDE, _entry_hide_cb, ext_mod->popup);
           }
-        /*currently below theme not used,when guideline comes a new theme can be created if required*/
-        //elm_object_style_set(ext_mod->popup,"extended/entry");
+        elm_object_style_set(ext_mod->popup,"copypaste");
+
         context_menu_orientation = edje_object_data_get
            (ext_mod->ent, "context_menu_orientation");
         if ((context_menu_orientation) &&
