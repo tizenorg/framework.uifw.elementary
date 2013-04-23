@@ -2477,7 +2477,6 @@ _elm_gengrid_item_new(Elm_Gengrid_Smart_Data *sd,
 
    elm_widget_item_disable_hook_set(it, _item_disable_hook);
    elm_widget_item_del_pre_hook_set(it, _item_del_pre_hook);
-   elm_gengrid_item_class_ref((Elm_Gengrid_Item_Class *)itc);
    it->item = ELM_NEW(Elm_Gen_Item_Type);
 
    GG_IT(it)->wsd = sd;
