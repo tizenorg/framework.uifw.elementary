@@ -1939,6 +1939,42 @@ elm_genlist_item_select_mode_get(const Elm_Object_Item *it);
 EAPI Elm_Object_Item *
 elm_genlist_nth_item_get(const Evas_Object *obj, unsigned int nth);
 
+
+/**
+ * Set Genlist fx mode
+ *
+ * note!! : this API can be changed or deleted later.
+ *
+ * This sets Genlist Special Effects.
+ * Only In case genlist effets have to be disabled, use it.
+ *
+ * Normal case don't use this API
+ * fx mode is enabled by default.
+ *
+ * @param obj The Genlist object
+ * @param disabled The FX status
+ * (EINA_TRUE = fx mode, EINA_FALSE = normal mode)
+ *
+ * @ingroup Genlist
+ */
+EAPI void
+elm_genlist_fx_mode_set(Evas_Object *obj, Eina_Bool fx_mode);
+
+
+/**
+ * Get the Genlist fx mode
+ *
+ * note!! : this API can be changed or deleted later.
+ *
+ * @param obj The genlist object
+ * @return The fx mode
+ * (EINA_TRUE = on, EINA_FALSE = off)
+ *
+ * @ingroup Genlist
+ */
+EAPI Eina_Bool
+elm_genlist_fx_mode_get(const Evas_Object *obj);
+
 /**
  * @}
  */
