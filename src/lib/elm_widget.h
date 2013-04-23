@@ -524,6 +524,7 @@ typedef struct _Elm_Widget_Smart_Data
    Eina_Bool                     can_access : 1;
    Eina_Bool                     highlighted : 1;
    Eina_Bool                     highlight_root : 1;
+   Eina_Bool                     on_translate : 1;
 } Elm_Widget_Smart_Data;
 
 /**
@@ -666,6 +667,7 @@ struct _Elm_Widget_Item
 
    Eina_Bool                      disabled : 1;
    Eina_Bool                      on_deletion : 1;
+   Eina_Bool                      on_translate : 1;
 };
 
 struct _Elm_Object_Item
@@ -805,6 +807,8 @@ EAPI void             elm_widget_text_part_set(Evas_Object *obj, const char *par
 EAPI const char      *elm_widget_text_part_get(const Evas_Object *obj, const char *part);
 EAPI void             elm_widget_domain_translatable_part_text_set(Evas_Object *obj, const char *part, const char *domain, const char *text);
 EAPI const char      *elm_widget_translatable_part_text_get(const Evas_Object *obj, const char *part);
+EAPI void             elm_widget_domain_part_text_translatable_set(Evas_Object *obj, const char *part, const char *domain, Eina_Bool translatable);
+EAPI const char *     elm_widget_part_text_translate(Evas_Object *obj, const char *part, const char *text);
 EAPI void             elm_widget_content_part_set(Evas_Object *obj, const char *part, Evas_Object *content);
 EAPI Evas_Object     *elm_widget_content_part_get(const Evas_Object *obj, const char *part);
 EAPI Evas_Object     *elm_widget_content_part_unset(Evas_Object *obj, const char *part);
@@ -862,6 +866,7 @@ EAPI void             _elm_widget_item_del_pre_hook_set(Elm_Widget_Item *item, E
 EAPI void             _elm_widget_item_domain_translatable_part_text_set(Elm_Widget_Item *item, const char *part, const char *domain, const char *label);
 EAPI const char *     _elm_widget_item_translatable_part_text_get(const Elm_Widget_Item *item, const char *part);
 EAPI void             _elm_widget_item_translate(Elm_Widget_Item *item);
+EAPI void             _elm_widget_item_domain_part_text_translatable_set(Elm_Widget_Item *item, const char *part, const char *domain, Eina_Bool translatable);
 
 /**
  * Function to operate on a given widget's scrollabe children when necessary.
@@ -1080,6 +1085,14 @@ EAPI void             elm_widget_tree_dot_dump(const Evas_Object *top, FILE *out
  */
 #define elm_widget_item_del_pre_hook_set(item, func) \
   _elm_widget_item_del_pre_hook_set((Elm_Widget_Item *)item, (Elm_Widget_Del_Pre_Cb)func)
+
+/**
+ * Convenience function to query del pre hook.
+ * @see _elm_widget_item_del_pre_hook_set()
+ */
+#define elm_widget_item_translate(item) \
+  _elm_widget_item_translate((Elm_Widget_Item *)item)
+
 
 #define ELM_WIDGET_CHECK_OR_RETURN(obj, ...)                    \
    do {                                                         \

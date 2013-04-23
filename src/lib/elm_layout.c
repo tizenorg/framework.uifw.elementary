@@ -1490,6 +1490,8 @@ elm_layout_text_set(Evas_Object *obj,
    ELM_LAYOUT_CHECK(obj) EINA_FALSE;
    ELM_LAYOUT_DATA_GET_OR_RETURN_VAL(obj, sd, EINA_FALSE);
 
+   text = elm_widget_part_text_translate(obj, part, text);
+
    return ELM_LAYOUT_CLASS(ELM_WIDGET_DATA(sd)->api)->text_set
             (obj, part, text);
 }
