@@ -58,12 +58,15 @@ export LDFLAGS+=" -Wl,--hash-style=both -Wl,--as-needed"
 	--disable-web
 
 make %{?jobs:-j%jobs}
+msgfmt -c --statistics -o po/dt_fmt.mo po/dt_fmt.po
 
 %install
 rm -rf %{buildroot}
 %make_install
 mkdir -p %{buildroot}/usr/share/license
 cp %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/usr/share/license/%{name}
+mkdir -p %{buildroot}/usr/share/locale/dt_fmt/LC_MESSAGES/
+cp %{_builddir}/%{buildsubdir}/po/dt_fmt.mo %{buildroot}/usr/share/locale/dt_fmt/LC_MESSAGES/
 
 %post -p /sbin/ldconfig
 
