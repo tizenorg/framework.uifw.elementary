@@ -2192,7 +2192,10 @@ _elm_win_mouse_button_down(void *data,
 {
    Elm_Win_Smart_Data *sd = data;
    if (!sd) return ECORE_CALLBACK_PASS_ON;
-   elm_win_focus_highlight_enabled_set(sd->obj, EINA_FALSE);
+
+   if (sd->keyboard_attached)
+     elm_win_focus_highlight_enabled_set(sd->obj, EINA_FALSE);
+
    return ECORE_CALLBACK_PASS_ON;
 }
 
