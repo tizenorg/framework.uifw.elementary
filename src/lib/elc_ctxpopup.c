@@ -753,7 +753,6 @@ _show_signals_emit(Evas_Object *obj,
      }
 
    edje_object_signal_emit(sd->bg, "elm,state,show", "elm");
-//   elm_layout_signal_emit(obj, "elm,state,show", "elm");
 }
 
 static void
@@ -820,22 +819,6 @@ _base_shift_by_arrow(Evas_Object *arrow,
 
       default:
          break;
-     }
-}
-
-//TODO: compress item - different from opensource
-static void
-_compress_item(Evas_Object *obj)
-{
-   Eina_List *elist;
-   Elm_Ctxpopup_Item *item;
-
-   ELM_CTXPOPUP_DATA_GET(obj, sd);
-   if (!sd) return;
-
-   EINA_LIST_FOREACH(sd->items, elist, item)
-     {
-        edje_object_signal_emit(item->base.view, "elm,state,compress", "elm");
      }
 }
 
@@ -918,10 +901,6 @@ _elm_ctxpopup_smart_sizing_eval(Evas_Object *obj)
    //Base
    sd->dir = _base_geometry_calc(obj, &rect);
 
-   //TODO: compress item - different from opensource
-   if (!sd->horizontal && !sd->content)
-     _compress_item(obj);
-
    _arrow_update(obj, sd->dir, rect);
    _base_shift_by_arrow(sd->arrow, sd->dir, &rect);
 
@@ -976,6 +955,8 @@ _on_parent_resize(void *data,
 {
    ELM_CTXPOPUP_DATA_GET(data, sd);
 
+   _hide_signals_emit(data, sd->dir);
+
    sd->dir = ELM_CTXPOPUP_DIRECTION_UNKNOWN;
 
    evas_object_hide(data);
@@ -1015,7 +996,7 @@ _elm_ctxpopup_smart_theme(Evas_Object *obj)
 {
    Eina_List *elist;
    Elm_Ctxpopup_Item *item;
-   int idx = 0;
+   int idx = 0, orientation = -1;
    Eina_Bool rtl;
 
    ELM_CTXPOPUP_DATA_GET(obj, sd);
@@ -1029,8 +1010,14 @@ _elm_ctxpopup_smart_theme(Evas_Object *obj)
      (obj, sd->bg, "ctxpopup", "bg", elm_widget_style_get(obj));
    elm_widget_theme_object_set
      (obj, sd->arrow, "ctxpopup", "arrow", elm_widget_style_get(obj));
-   elm_widget_theme_object_set
-     (obj, sd->layout, "ctxpopup", "layout", elm_widget_style_get(obj));
+
+   orientation = sd->orientation;
+   if (orientation == 90 || orientation == 270)
+     elm_widget_theme_object_set
+       (obj, sd->layout, "ctxpopup", "layout/landscape", elm_widget_style_get(obj));
+   else
+     elm_widget_theme_object_set
+       (obj, sd->layout, "ctxpopup", "layout", elm_widget_style_get(obj));
 
    //Items
    EINA_LIST_FOREACH(sd->items, elist, item)
@@ -1298,6 +1285,7 @@ _on_show(void *data __UNUSED__,
    int idx = 0;
 
    ELM_CTXPOPUP_DATA_GET(obj, sd);
+   ELM_WIDGET_DATA_GET(obj, wsd);
 
    if ((!sd->items) && (!sd->content)) return;
 
@@ -1309,6 +1297,13 @@ _on_show(void *data __UNUSED__,
 
    edje_object_signal_emit(sd->bg, "elm,state,show", "elm");
    elm_layout_signal_emit(obj, "elm,state,show", "elm");
+
+   if (wsd->orient_mode == 90 || wsd->orient_mode == 270)
+     elm_widget_theme_object_set
+       (obj, sd->layout, "ctxpopup", "layout/landscape", elm_widget_style_get(obj));
+   else
+     elm_widget_theme_object_set
+       (obj, sd->layout, "ctxpopup", "layout", elm_widget_style_get(obj));
 
    EINA_LIST_FOREACH(sd->items, elist, item)
      {
@@ -1692,7 +1687,19 @@ elm_ctxpopup_add(Evas_Object *parent)
    /* access: parent could be any object such as elm_list which does
       not know elc_ctxpopup as its child object in the focus_next(); */
    ELM_WIDGET_DATA_GET(obj, sd);
+   ELM_CTXPOPUP_DATA_GET(obj, sd1);
+
    sd->highlight_root = EINA_TRUE;
+   sd1->orientation = sd->orient_mode;
+
+   _elm_widget_orient_signal_emit(obj);
+
+   if (sd1->orientation == 90 || sd1->orientation == 270)
+     elm_widget_theme_object_set
+       (obj, sd1->layout, "ctxpopup", "layout/landscape", elm_widget_style_get(obj));
+   else
+     elm_widget_theme_object_set
+       (obj, sd1->layout, "ctxpopup", "layout", elm_widget_style_get(obj));
 
    return obj;
 }

@@ -152,6 +152,8 @@ struct _Elm_Ctxpopup_Smart_Data
    Eina_Bool              horizontal : 1;
    Eina_Bool              finished : 1;
    Eina_Bool              visible : 1;
+
+   int                    orientation;
 };
 
 /**
