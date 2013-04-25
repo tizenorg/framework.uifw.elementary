@@ -911,13 +911,18 @@ _on_item_back_btn_clicked(void *data,
 #else
 //Tizen Only: Customized
 static void
-_on_item_back_btn_clicked(void *data __UNUSED__,
+_on_item_back_btn_clicked(void *data,
                           Evas_Object *obj,
                           void *event_info __UNUSED__)
 {
    static Ecore_X_Window keygrab_win = NULL;
    Ecore_X_Atom type = ecore_x_atom_get("_HWKEY_EMULATION");
    char msg_data[20];
+
+   //Be sure that Evas has a focused object to pass the key event.
+//   if ((!elm_widget_focus_get(data)) ||
+//       (!evas_focus_get(evas_object_evas_get(obj))))
+     evas_object_focus_set(obj, EINA_TRUE);
 
    //Get the keygrab window handle.
    if (!keygrab_win)
