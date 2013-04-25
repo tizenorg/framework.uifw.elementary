@@ -1339,6 +1339,21 @@ elm_widget_can_focus_set(Evas_Object *obj,
         evas_object_event_callback_add(obj, EVAS_CALLBACK_MOUSE_WHEEL,
                                        _propagate_event,
                                        (void *)(long)EVAS_CALLBACK_MOUSE_WHEEL);
+
+        /* update child focusable-ness on parents, now that a
+         * focusable child got in */
+        Elm_Widget_Smart_Data *sdp = sd;
+        if (!sd->child_can_focus)
+          {
+             sdp->child_can_focus = EINA_TRUE;
+             while (sdp->parent_obj)
+               {
+                  if (sdp->child_can_focus) break;
+
+                  sdp->child_can_focus = EINA_TRUE;
+                  sdp = evas_object_smart_data_get(sdp->parent_obj);
+               }
+          }
      }
    else
      {
