@@ -332,6 +332,8 @@ _desc_init(void)
    ELM_CONFIG_VAL(D, T, thumbscroll_hold_threshold, T_INT);
    ELM_CONFIG_VAL(D, T, thumbscroll_momentum_threshold, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, thumbscroll_friction, T_DOUBLE);
+   ELM_CONFIG_VAL(D, T, thumbscroll_min_friction, T_DOUBLE);
+   ELM_CONFIG_VAL(D, T, thumbscroll_friction_standard, T_INT);
    ELM_CONFIG_VAL(D, T, thumbscroll_bounce_friction, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, thumbscroll_border_friction, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, thumbscroll_sensitivity_friction, T_DOUBLE);
@@ -1029,6 +1031,8 @@ _config_load(void)
    _elm_config->thumbscroll_hold_threshold = 24;
    _elm_config->thumbscroll_momentum_threshold = 100.0;
    _elm_config->thumbscroll_friction = 1.0;
+   _elm_config->thumbscroll_min_friction = 0.5;
+   _elm_config->thumbscroll_friction_standard = 1000;
    _elm_config->thumbscroll_bounce_friction = 0.5;
    _elm_config->thumbscroll_bounce_enable = EINA_TRUE;
    _elm_config->page_scroll_friction = 0.5;
@@ -1422,6 +1426,10 @@ _env_get(void)
    if (s) _elm_config->thumbscroll_momentum_threshold = _elm_atof(s);
    s = getenv("ELM_THUMBSCROLL_FRICTION");
    if (s) _elm_config->thumbscroll_friction = _elm_atof(s);
+   s = getenv("ELM_THUMBSCROLL_MIN_FRICTION");
+   if (s) _elm_config->thumbscroll_min_friction = _elm_atof(s);
+   s = getenv("ELM_THUMBSCROLL_FRICTION_STANDARD");
+   if (s) _elm_config->thumbscroll_friction_standard = atoi(s);
    s = getenv("ELM_THUMBSCROLL_BOUNCE_ENABLE");
    if (s) _elm_config->thumbscroll_bounce_enable = !!atoi(s);
    s = getenv("ELM_THUMBSCROLL_BOUNCE_FRICTION");
@@ -2115,6 +2123,30 @@ EAPI void
 elm_config_scroll_thumbscroll_friction_set(double friction)
 {
    _elm_config->thumbscroll_friction = friction;
+}
+
+EAPI double
+elm_config_scroll_thumbscroll_min_friction_get(void)
+{
+   return _elm_config->thumbscroll_min_friction;
+}
+
+EAPI void
+elm_config_scroll_thumbscroll_min_friction_set(double friction)
+{
+   _elm_config->thumbscroll_min_friction = friction;
+}
+
+EAPI int
+elm_config_scroll_thumbscroll_friction_standard_get(void)
+{
+   return _elm_config->thumbscroll_friction_standard;
+}
+
+EAPI void
+elm_config_scroll_thumbscroll_friction_standard_set(int standard)
+{
+   _elm_config->thumbscroll_friction_standard = standard;
 }
 
 EAPI double
