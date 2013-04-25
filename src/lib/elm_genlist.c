@@ -2636,50 +2636,59 @@ static void _item_unfocused(Elm_Gen_Item *it)
       sd->focused = NULL;
 }
 
-static Elm_Gen_Item *_item_focused_search(Elm_Gen_Item *it, int dir)
+static Elm_Gen_Item *_item_focusable_search(Elm_Gen_Item *it, int dir)
 {
    if (!it) return NULL;
    Elm_Gen_Item *tmp = it;
    if (dir == 1)
      {
-        tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->next);
+        while (tmp)
+          {
+             if ((tmp->select_mode == ELM_OBJECT_SELECT_MODE_DEFAULT) ||
+                 (tmp->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS))
+                break;
+             tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->next);
+          }
      }
    else
      {
-        tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->prev);
+        while (tmp)
+          {
+             if ((tmp->select_mode == ELM_OBJECT_SELECT_MODE_DEFAULT) ||
+                 (tmp->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS))
+                break;
+             tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->prev);
+          }
      }
-   if (!tmp) tmp = it;
    return tmp;
 }
 
 static Eina_Bool _item_focused_next(Elm_Genlist_Smart_Data *sd, int dir)
 {
-   Elm_Gen_Item *it = NULL, *old_focused = NULL;
-   if (elm_widget_focus_get(ELM_WIDGET_DATA(sd)->obj))
-      edje_object_signal_emit
-         (ELM_WIDGET_DATA(sd)->resize_obj, "elm,state,unfocused", "elm");
+   Elm_Gen_Item *it = NULL;
+   Elm_Gen_Item *old_focused = sd->focused;
 
-   old_focused = sd->focused;
-
-   if (!sd->focused)
+   if (sd->focused)
      {
         if (dir == 1)
-           it = ELM_GEN_ITEM_FROM_INLIST(sd->items);
+           it = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(sd->focused)->next);
         else
-           it = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
+           it = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(sd->focused)->prev);
+        _item_unfocused(sd->focused);
      }
    else
      {
-        it = sd->focused;
-        _item_unfocused(sd->focused);
-        it = _item_focused_search(it, dir);
+        if (dir == 1) it = ELM_GEN_ITEM_FROM_INLIST(sd->items);
+        else it = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
+     }
+   it = _item_focusable_search(it, dir);
+   if (!it)
+     {
+        _item_focused(old_focused);
+        return EINA_FALSE;
      }
    _item_focused(it);
-
-   if (old_focused == sd->focused)
-     return EINA_FALSE;
-   else
-     return EINA_TRUE;
+   return EINA_TRUE;
 }
 
 static Eina_Bool

@@ -225,46 +225,34 @@ static void _item_unfocused(Elm_List_Item *it)
       sd->focused = NULL;
 }
 
-static Elm_List_Item *_item_focused_search(Elm_List_Item *it, int dir)
-{
-   if (!it) return NULL;
-   Eina_List *l = eina_list_data_find_list(it->sd->items, it);
-   Eina_List *tmp = l;
-   if (dir == 1) tmp = eina_list_next(tmp);
-   else tmp = eina_list_prev(tmp);
-   if (!tmp) tmp = l;
-   return (Elm_List_Item *)eina_list_data_get(tmp);
-}
-
 static Eina_Bool _item_focused_next(Elm_List_Smart_Data *sd, int dir)
 {
-   Elm_List_Item *it = NULL, *old_focused = NULL;
+   Elm_List_Item *it = NULL;
+   Elm_List_Item *old_focused = (Elm_List_Item *)sd->focused;
 
-   if (elm_widget_focus_get(ELM_WIDGET_DATA(sd)->obj))
-      edje_object_signal_emit
-         (ELM_WIDGET_DATA(sd)->resize_obj, "elm,state,unfocused", "elm");
-
-   old_focused = sd->focused;
-
-   if (!sd->focused)
+   if (sd->focused)
      {
+        Eina_List *l = eina_list_data_find_list(sd->items, sd->focused);
         if (dir == 1)
-           it = (Elm_List_Item *)eina_list_data_get(sd->items);
+          {
+             it = (Elm_List_Item *)eina_list_data_get(eina_list_next(l));
+          }
         else
-           it = (Elm_List_Item *)eina_list_data_get(eina_list_last(sd->items));
+           it = (Elm_List_Item *)eina_list_data_get(eina_list_prev(l));
+        _item_unfocused((Elm_List_Item *)sd->focused);
      }
    else
      {
-        it = (Elm_List_Item *)sd->focused;
-        _item_unfocused((Elm_List_Item *)sd->focused);
-        it = _item_focused_search(it, dir);
+        if (dir == 1) it = (Elm_List_Item *)eina_list_data_get(sd->items);
+        else it = (Elm_List_Item *)eina_list_data_get(eina_list_last(sd->items));
+     }
+   if (!it)
+     {
+        _item_focused(old_focused);
+        return EINA_FALSE;
      }
    _item_focused(it);
-
-   if (old_focused == sd->focused)
-     return EINA_FALSE;
-   else
-     return EINA_TRUE;
+   return EINA_TRUE;
 }
 
 
