@@ -2606,12 +2606,14 @@ static Elm_Gen_Item *_item_focused_search(Elm_Gen_Item *it, int dir)
    return tmp;
 }
 
-static void _item_focused_next(Elm_Genlist_Smart_Data *sd, int dir)
+static Eina_Bool _item_focused_next(Elm_Genlist_Smart_Data *sd, int dir)
 {
-   Elm_Gen_Item *it;
+   Elm_Gen_Item *it = NULL, *old_focused = NULL;
    if (elm_widget_focus_get(ELM_WIDGET_DATA(sd)->obj))
       edje_object_signal_emit
          (ELM_WIDGET_DATA(sd)->resize_obj, "elm,state,unfocused", "elm");
+
+   old_focused = sd->focused;
 
    if (!sd->focused)
      {
@@ -2627,6 +2629,11 @@ static void _item_focused_next(Elm_Genlist_Smart_Data *sd, int dir)
         it = _item_focused_search(it, dir);
      }
    _item_focused(it);
+
+   if (old_focused == sd->focused)
+     return EINA_FALSE;
+   else
+     return EINA_TRUE;
 }
 
 static Eina_Bool
@@ -2679,9 +2686,13 @@ _elm_genlist_smart_event(Evas_Object *obj,
           }
         else
           {
-             _item_focused_next(sd, -1);
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
+             if (_item_focused_next(sd, -1))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else
+               return EINA_FALSE;
           }
      }
    else if ((!strcmp(ev->keyname, "Down")) ||
@@ -2695,9 +2706,13 @@ _elm_genlist_smart_event(Evas_Object *obj,
           }
         else
           {
-             _item_focused_next(sd, 1);
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
+             if (_item_focused_next(sd, 1))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else
+               return EINA_FALSE;
           }
      }
    else if ((!strcmp(ev->keyname, "Home")) ||
