@@ -909,6 +909,31 @@ _on_item_back_btn_clicked(void *data,
    elm_naviframe_item_pop(data);
 }
 #else
+
+//Tizen Only: Get Clipboard Window
+static Ecore_X_Window
+_cbhm_window_get()
+{
+   Ecore_X_Atom cbhm_atom = ecore_x_atom_get("CBHM_ELM_WIN");
+   Ecore_X_Window cbhm_win = NULL;
+   Ecore_X_Window root = ecore_x_window_root_first_get();
+   ecore_x_window_prop_xid_get(root, cbhm_atom, ECORE_X_ATOM_WINDOW, &cbhm_win, 1);
+
+   return cbhm_win;
+}
+
+//Tizen Only: Get Virtual Keyboard Window
+static Ecore_X_Window
+_vkb_window_get()
+{
+   Ecore_X_Atom vkb_atom = ecore_x_atom_get("_ISF_CONTROL_WINDOW");
+   Ecore_X_Window vkb_win = NULL;
+   Ecore_X_Window root = ecore_x_window_root_first_get();
+   ecore_x_window_prop_xid_get(root, vkb_atom, ECORE_X_ATOM_WINDOW, &vkb_win, 1);
+
+   return vkb_win;
+}
+
 //Tizen Only: Customized
 static void
 _on_item_back_btn_clicked(void *data,
@@ -918,6 +943,19 @@ _on_item_back_btn_clicked(void *data,
    static Ecore_X_Window keygrab_win = NULL;
    Ecore_X_Atom type = ecore_x_atom_get("_HWKEY_EMULATION");
    char msg_data[20];
+
+   Ecore_X_Window cbhm_win = _cbhm_window_get();
+   Ecore_X_Window zone = ecore_x_e_illume_zone_get(cbhm_win);
+   Ecore_X_Illume_Clipboard_State cbhm_state = ecore_x_e_illume_clipboard_state_get(zone);
+
+   Ecore_X_Window vkb_win = _vkb_window_get();
+   Ecore_X_Virtual_Keyboard_State vkb_state = ecore_x_e_virtual_keyboard_state_get(vkb_win);
+
+   if (cbhm_state == ECORE_X_ILLUME_CLIPBOARD_STATE_OFF && vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF)
+     {
+        elm_naviframe_item_pop(data);
+        return;
+     }
 
    //Be sure that Evas has a focused object to pass the key event.
 //   if ((!elm_widget_focus_get(data)) ||
