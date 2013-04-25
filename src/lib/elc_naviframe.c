@@ -1527,7 +1527,7 @@ _elm_naviframe_smart_event(Evas_Object *obj,
 
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
    if (elm_widget_disabled_get(obj)) return EINA_FALSE;
-   if (strcmp(ev->keyname, KEY_END) && strcmp(ev->keyname, "Escape")) return EINA_FALSE;
+   if (ev->keyname && strcmp(ev->keyname, KEY_END) && strcmp(ev->keyname, "Escape")) return EINA_FALSE;
    if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
 
    it = (Elm_Naviframe_Item *) elm_naviframe_top_item_get(obj);
