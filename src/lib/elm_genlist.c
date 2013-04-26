@@ -2452,6 +2452,29 @@ _item_highlight(Elm_Gen_Item *it)
    if (it->deco_all_view)
      edje_object_signal_emit(it->deco_all_view, "elm,state,selected", "elm");
    edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
+
+//***************** TIZEN Only
+   Eina_List *l;
+   Evas_Object *content;
+   if (sd->decorate_all_mode)
+     {
+        EINA_LIST_FOREACH(it->item->deco_all_content_objs, l, content)
+          {
+             const char *type = elm_widget_type_get(content);
+             if (type && !strcmp(type, "elm_check"))
+                elm_object_signal_emit(content, "elm,state,mouse,down", "elm");
+          }
+     }
+   else
+     {
+        EINA_LIST_FOREACH(it->content_objs, l, content)
+          {
+             const char *type = elm_widget_type_get(content);
+             if (type && !strcmp(type, "elm_check"))
+                elm_object_signal_emit(content, "elm,state,mouse,down", "elm");
+          }
+     }
+//****************************
    evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
 }
 
@@ -2478,6 +2501,28 @@ _item_unhighlight(Elm_Gen_Item *it)
    if (it->deco_all_view)
      edje_object_signal_emit(it->deco_all_view, "elm,state,unselected", "elm");
    edje_object_signal_emit(VIEW(it), "elm,state,unselected", "elm");
+//******************** TIZEN Only
+   Eina_List *l;
+   Evas_Object *content;
+   if (GL_IT(it)->wsd->decorate_all_mode)
+     {
+        EINA_LIST_FOREACH(it->item->deco_all_content_objs, l, content)
+          {
+             const char *type = elm_widget_type_get(content);
+             if (type && !strcmp(type, "elm_check"))
+                elm_object_signal_emit(content, "elm,state,mouse,up", "elm");
+          }
+     }
+   else
+     {
+        EINA_LIST_FOREACH(it->content_objs, l, content)
+          {
+             const char *type = elm_widget_type_get(content);
+             if (type && !strcmp(type, "elm_check"))
+                elm_object_signal_emit(content, "elm,state,mouse,up", "elm");
+          }
+     }
+   //*******************************
    evas_object_smart_callback_call(WIDGET(it), SIG_UNHIGHLIGHTED, it);
 }
 
@@ -2531,6 +2576,7 @@ _item_select(Elm_Gen_Item *it)
    if (it->func.func) it->func.func((void *)it->func.data, obj, it);
    if (!EINA_MAGIC_CHECK((Elm_Widget_Item *)it, ELM_WIDGET_ITEM_MAGIC))
      return;
+
    evas_object_smart_callback_call(WIDGET(it), SIG_SELECTED, it);
 }
 
