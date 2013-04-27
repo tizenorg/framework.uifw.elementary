@@ -82,7 +82,9 @@ _remove_tags(const char *str)
 static void
 _entry_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
+   _ctxpopup_hide(data);
    evas_object_del(data);
+   data = NULL;
 }
 
 static void
@@ -271,7 +273,7 @@ _ctxpopup_position(Evas_Object *obj __UNUSED__)
 static void
 _select_all(void *data, Evas_Object *obj, void *event_info)
 {
-   if(!ext_mod) return;
+   if((!ext_mod) || (!data)) return;
 
    ext_mod->selectall(data,obj,event_info);
    _ctxpopup_hide(obj);
@@ -280,7 +282,7 @@ _select_all(void *data, Evas_Object *obj, void *event_info)
 static void
 _select(void *data, Evas_Object *obj, void *event_info)
 {
-   if(!ext_mod) return;
+   if((!ext_mod) || (!data)) return;
 
    ext_mod->select(data,obj,event_info);
    _ctxpopup_hide(obj);
@@ -289,7 +291,7 @@ _select(void *data, Evas_Object *obj, void *event_info)
 static void
 _paste(void *data, Evas_Object *obj, void *event_info)
 {
-   if(!ext_mod) return;
+   if((!ext_mod) || (!data)) return;
 
    ext_mod->paste(data,obj,event_info);
    _ctxpopup_hide(obj);
@@ -298,7 +300,7 @@ _paste(void *data, Evas_Object *obj, void *event_info)
 static void
 _cut(void *data, Evas_Object *obj, void *event_info)
 {
-   if(!ext_mod) return;
+   if((!ext_mod) || (!data)) return;
 
    ext_mod->cut(data,obj,event_info);
    _ctxpopup_hide(obj);
@@ -309,7 +311,7 @@ _cut(void *data, Evas_Object *obj, void *event_info)
 static void
 _copy(void *data, Evas_Object *obj, void *event_info)
 {
-   if(!ext_mod) return;
+   if((!ext_mod) || (!data)) return;
 
    ext_mod->copy(data,obj,event_info);
    _ctxpopup_hide(obj);
@@ -320,7 +322,7 @@ _copy(void *data, Evas_Object *obj, void *event_info)
 static void
 _cancel(void *data, Evas_Object *obj, void *event_info)
 {
-   if(!ext_mod) return;
+   if((!ext_mod) || (!data)) return;
 
    ext_mod->cancel(data,obj,event_info);
    _ctxpopup_hide(obj);
@@ -427,6 +429,7 @@ obj_hook(Evas_Object *obj)
    if(!ext_mod)
      {
         ext_mod = ELM_NEW(Elm_Entry_Extension_data);
+        if (!ext_mod) return;
         elm_entry_extension_module_data_get(obj,ext_mod);
      }
 }
@@ -439,6 +442,11 @@ obj_unhook(Evas_Object *obj)
 
    if(ext_mod)
      {
+        if (ext_mod->popup)
+          {
+             evas_object_del(ext_mod->popup);
+             ext_mod->popup = NULL;
+          }
         free(ext_mod);
         ext_mod = NULL;
      }
@@ -464,7 +472,11 @@ obj_longpress(Evas_Object *obj)
 #ifdef HAVE_ELEMENTARY_X
         int cbhm_count = _cbhm_item_count_get(obj);
 #endif
-        if (ext_mod->popup) evas_object_del(ext_mod->popup);
+        if (ext_mod->popup)
+          {
+             evas_object_del(ext_mod->popup);
+             ext_mod->popup = NULL;
+          }
         //else elm_widget_scroll_freeze_push(obj);
         top = elm_widget_top_get(obj);
         if(top)
@@ -474,6 +486,11 @@ obj_longpress(Evas_Object *obj)
              evas_object_smart_callback_add(ext_mod->popup, "dismissed", _ctxpopup_dismissed_cb, obj);
              evas_object_event_callback_add(obj, EVAS_CALLBACK_DEL, _entry_del_cb, ext_mod->popup);
              evas_object_event_callback_add(obj, EVAS_CALLBACK_HIDE, _entry_hide_cb, ext_mod->popup);
+          }
+        else
+          {
+             ext_mod->caller = NULL;
+             return;
           }
         elm_object_style_set(ext_mod->popup,"copypaste");
 
