@@ -811,35 +811,30 @@ _calc_job(void *data)
         if (!sd->must_recalc_idler)
           sd->must_recalc_idler = ecore_idler_add(_must_recalc_idler, sd);
      }
-   if (sd->check_scroll)
+   if (sd->check_scroll && sd->show_item && sd->show_item->item->block)
      {
         _elm_genlist_pan_smart_content_size_get(sd->pan_obj, &pan_w, &pan_h);
-        if (EINA_INLIST_GET(sd->show_item) == sd->items->last)
+        if (sd->items && (EINA_INLIST_GET(sd->show_item) == sd->items->last))
           sd->scroll_to_type = ELM_GENLIST_ITEM_SCROLLTO_IN;
 
-        switch (sd->scroll_to_type)
+        if (sd->scroll_to_type == ELM_GENLIST_ITEM_SCROLLTO_TOP)
           {
-           case ELM_GENLIST_ITEM_SCROLLTO_TOP:
              dy = sd->h;
-             break;
-
-           case ELM_GENLIST_ITEM_SCROLLTO_MIDDLE:
-             dy = sd->h / 2;
-             break;
-
-           case ELM_GENLIST_ITEM_SCROLLTO_IN:
-           default:
-             dy = 0;
-             break;
           }
-        if ((sd->show_item) && (sd->show_item->item->block))
+        else if (sd->scroll_to_type == ELM_GENLIST_ITEM_SCROLLTO_MIDDLE)
           {
-             if ((pan_w > (sd->show_item->x + sd->show_item->item->block->x))
-                 && (pan_h > (sd->show_item->y + sd->show_item->item->block->y
-                              + dy)))
-               {
-                  _item_scroll(sd);
-               }
+             dy = sd->h / 2;
+          }
+        else
+          {
+             dy = 0;
+          }
+
+        if ((pan_w > (sd->show_item->x + sd->show_item->item->block->x))
+            && (pan_h > (sd->show_item->y + sd->show_item->item->block->y
+                         + dy)))
+          {
+             _item_scroll(sd);
           }
      }
 
