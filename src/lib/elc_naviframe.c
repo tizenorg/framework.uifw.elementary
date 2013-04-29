@@ -954,16 +954,12 @@ _on_item_back_btn_clicked(void *data,
    Ecore_X_Window vkb_win = _vkb_window_get();
    Ecore_X_Virtual_Keyboard_State vkb_state = ecore_x_e_virtual_keyboard_state_get(vkb_win);
 
-   if (cbhm_state == ECORE_X_ILLUME_CLIPBOARD_STATE_OFF && vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF)
+   if ((cbhm_state == ECORE_X_ILLUME_CLIPBOARD_STATE_UNKNOWN || cbhm_state == ECORE_X_ILLUME_CLIPBOARD_STATE_OFF)
+      && (vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_UNKNOWN || vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF))
      {
         elm_naviframe_item_pop(data);
         return;
      }
-
-   //Be sure that Evas has a focused object to pass the key event.
-//   if ((!elm_widget_focus_get(data)) ||
-//       (!evas_focus_get(evas_object_evas_get(obj))))
-     evas_object_focus_set(obj, EINA_TRUE);
 
    //Get the keygrab window handle.
    if (!keygrab_win)
