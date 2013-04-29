@@ -1530,6 +1530,10 @@ _elm_win_smart_del(Evas_Object *obj)
 
    ELM_WIN_DATA_GET(obj, sd);
 
+   // TIZEN ONLY (20130422) : For automating default focused UI.
+   if (sd->obj) sd->obj = NULL;
+   //
+
    /* NB: child deletion handled by parent's smart del */
 
    if ((trap) && (trap->del))
@@ -1572,6 +1576,12 @@ _elm_win_smart_del(Evas_Object *obj)
      ecore_event_handler_del(sd->x.client_message_handler);
    if (sd->x.property_handler)
      ecore_event_handler_del(sd->x.property_handler);
+   // TIZEN ONLY (20130422) : For automating default focused UI.
+   if (sd->x.mouse_down_handler)
+     ecore_event_handler_del(sd->x.mouse_down_handler);
+   if (sd->x.key_down_handler)
+     ecore_event_handler_del(sd->x.key_down_handler);
+   //
 #endif
 
    if (sd->img_obj)
