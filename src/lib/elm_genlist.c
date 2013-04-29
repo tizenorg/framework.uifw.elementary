@@ -1963,7 +1963,6 @@ _item_block_position(Item_Block *itb,
    Elm_Gen_Item *it;
    Elm_Gen_Item *git;
    const Eina_List *l;
-   Eina_Bool vis = EINA_FALSE;
    Evas_Coord y = 0, ox, oy, ow, oh, cvx, cvy, cvw, cvh;
 
    //evas_event_freeze(evas_object_evas_get(ELM_WIDGET_DATA(itb->sd)->obj));
@@ -1982,98 +1981,88 @@ _item_block_position(Item_Block *itb,
         it->item->scrl_x = itb->x + it->x - GL_IT(it)->wsd->pan_x + ox;
         it->item->scrl_y = itb->y + it->y - GL_IT(it)->wsd->pan_y + oy;
 
-        vis = (ELM_RECTS_INTERSECT
-                 (it->item->scrl_x, it->item->scrl_y, it->item->w, it->item->h,
-                 cvx, cvy, cvw, cvh));
-        if (1)
+        if ((itb->realized) && (!it->realized))
           {
-             if ((itb->realized) && (!it->realized))
-               {
-                  if (vis) _item_realize(it, in, EINA_FALSE);
-               }
-             if (it->realized)
-               {
-                  if (vis || it->dragging)
-                    {
+             if ((ELM_RECTS_INTERSECT
+                  (it->item->scrl_x, it->item->scrl_y, it->item->w, it->item->h,
+                   cvx, cvy, cvw, cvh)))
+               _item_realize(it, in, EINA_FALSE);
+          }
+        if (it->realized)
+          {
 #if GENLIST_ENTRY_SUPPORT
-                       evas_object_show(VIEW(it));
+             evas_object_show(VIEW(it));
 #endif
-                       if (GL_IT(it)->wsd->reorder_mode &&
-                                GL_IT(it)->wsd->reorder_it &&
-                                  GL_IT(it)->wsd->reorder_it->highlighted)
-                         y += _reorder_item_space_get(it);
-                       git = it->item->group_item;
-                       if (git)
-                         {
-                            if (git->item->scrl_y < oy)
-                              git->item->scrl_y = oy;
-                            if ((git->item->scrl_y + git->item->h) >
-                                (it->item->scrl_y + it->item->h))
-                              git->item->scrl_y = (it->item->scrl_y +
-                                                   it->item->h) - git->item->h;
-                            git->item->scrl_x = it->item->scrl_x;
-                            git->item->want_realize = EINA_TRUE;
-                         }
-                       if ((GL_IT(it)->wsd->reorder_it) &&
-                                GL_IT(it)->wsd->reorder_it->highlighted &&
-                                (it->item->old_scrl_y != it->item->scrl_y))
-                         {
-                            if (!it->item->move_effect_enabled)
-                              {
-                                 it->item->move_effect_enabled = EINA_TRUE;
-                                 GL_IT(it)->wsd->reorder_move_animator =
-                                   ecore_animator_add(
-                                      _reorder_move_animator_cb, it);
-                              }
-                         }
-                       if (!it->item->move_effect_enabled)
-                         {
-                            if ((GL_IT(it)->wsd->decorate_all_mode) &&
-                                (it->itc->decorate_all_item_style))
-                              _decorate_all_item_position
-                                 (it, it->item->scrl_x, it->item->scrl_y);
-                            else
-                              {
-                                 if (it->item->deco_it_view)
-                                   _item_position
-                                      (it, it->item->deco_it_view,
-                                       it->item->scrl_x,
-                                       it->item->scrl_y);
-                                 else
-                                   _item_position
-                                      (it, VIEW(it), it->item->scrl_x,
-                                       it->item->scrl_y);
-                              }
-                            it->item->old_scrl_y = it->item->scrl_y;
-#if GENLIST_PINCH_ZOOM_SUPPORT
-                            if (((GL_IT(it)->wsd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT)
-                                 && (!IS_ROOT_PARENT_IT(it))) || (GL_IT(it)->wsd->sorting))
-                              {
-                                 if (it->deco_all_view) evas_object_hide(it->deco_all_view);
-                                 else evas_object_hide(VIEW(it));
-                              }
-#endif
-
-                         }
+             if (GL_IT(it)->wsd->reorder_mode &&
+                 GL_IT(it)->wsd->reorder_it &&
+                 GL_IT(it)->wsd->reorder_it->highlighted)
+                y += _reorder_item_space_get(it);
+             git = it->item->group_item;
+             if (git)
+               {
+                  if (git->item->scrl_y < oy)
+                     git->item->scrl_y = oy;
+                  if ((git->item->scrl_y + git->item->h) >
+                      (it->item->scrl_y + it->item->h))
+                     git->item->scrl_y = (it->item->scrl_y +
+                                          it->item->h) - git->item->h;
+                  git->item->scrl_x = it->item->scrl_x;
+                  git->item->want_realize = EINA_TRUE;
+               }
+             if ((GL_IT(it)->wsd->reorder_it) &&
+                 GL_IT(it)->wsd->reorder_it->highlighted &&
+                 (it->item->old_scrl_y != it->item->scrl_y))
+               {
+                  if (!it->item->move_effect_enabled)
+                    {
+                       it->item->move_effect_enabled = EINA_TRUE;
+                       GL_IT(it)->wsd->reorder_move_animator =
+                          ecore_animator_add(
+                                             _reorder_move_animator_cb, it);
                     }
+               }
+             if (!it->item->move_effect_enabled)
+               {
+                  if ((GL_IT(it)->wsd->decorate_all_mode) &&
+                      (it->itc->decorate_all_item_style))
+                     _decorate_all_item_position
+                        (it, it->item->scrl_x, it->item->scrl_y);
                   else
                     {
-                       if ((GL_IT(it)->wsd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT)
-                           && (!IS_ROOT_PARENT_IT(it)))
-                         {
-                            if (it->deco_all_view) evas_object_hide(it->deco_all_view);
-                            else evas_object_hide(VIEW(it));
-                         }
+                       if (it->item->deco_it_view)
+                          _item_position
+                             (it, it->item->deco_it_view,
+                              it->item->scrl_x,
+                              it->item->scrl_y);
                        else
-                         _item_unrealize(it, EINA_FALSE);
+                          _item_position
+                             (it, VIEW(it), it->item->scrl_x,
+                              it->item->scrl_y);
                     }
+                  it->item->old_scrl_y = it->item->scrl_y;
+#if GENLIST_PINCH_ZOOM_SUPPORT
+                  if (((GL_IT(it)->wsd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT)
+                       && (!IS_ROOT_PARENT_IT(it))) || (GL_IT(it)->wsd->sorting))
+                    {
+                       if (it->deco_all_view) evas_object_hide(it->deco_all_view);
+                       else evas_object_hide(VIEW(it));
+                    }
+#endif
                }
-             in++;
           }
         else
           {
-             if (vis) it->item->want_realize = EINA_TRUE;
+             if ((GL_IT(it)->wsd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT)
+                 && (!IS_ROOT_PARENT_IT(it)))
+               {
+                  if (it->deco_all_view) evas_object_hide(it->deco_all_view);
+                  else evas_object_hide(VIEW(it));
+               }
+             else
+                _item_unrealize(it, EINA_FALSE);
           }
+
+        in++;
         y += it->item->h;
 #if 0
         // FIXME: diffrence from upstream
