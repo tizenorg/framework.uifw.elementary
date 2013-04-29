@@ -297,6 +297,14 @@ _parse_format(Evas_Object *obj,
         sep_lookup = EINA_FALSE;
         fmt_ptr++;
      }
+
+   //update the separator for last field
+   if (field)
+     {
+        separator[len] = 0;
+        eina_stringshare_replace(&field->separator, separator);
+     }
+
    // return the number of valid fields parsed.
    return location;
 }
