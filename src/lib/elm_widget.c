@@ -941,9 +941,6 @@ _parent_focus(Evas_Object *obj)
         sd->api->on_focus(obj);
      }
    sd->focus_order_on_calc = EINA_FALSE;
-
-   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
-     _elm_access_highlight_set(obj);
 }
 
 static void
@@ -2876,6 +2873,10 @@ elm_widget_focus_steal(Evas_Object *obj)
      }
    _parent_focus(obj);
    _elm_widget_focus_region_show(obj);
+
+   if (_elm_config->access_mode)
+     _elm_access_highlight_set(obj);
+
    return;
 }
 
