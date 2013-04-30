@@ -2134,6 +2134,15 @@ _elm_win_client_message(void *data,
                   free(a);
                }
              else if ((unsigned int)e->data.l[1] ==
+<<<<<<< HEAD
+=======
+                      ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_MOUSE)
+               {
+                  _elm_access_highlight_object_mouse(ELM_WIDGET_DATA(sd)->obj,
+                    e->data.l[2], e->data.l[3], e->data.l[4]);
+               }
+             else if ((unsigned int)e->data.l[1] ==
+>>>>>>> 6908a4b... [access] use ecore_x_atom values for scroll, mouse message
                       ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_BACK)
                {
                   _elm_access_highlight_object_activate
