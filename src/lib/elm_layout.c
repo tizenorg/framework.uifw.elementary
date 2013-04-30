@@ -5,6 +5,7 @@
 EAPI const char ELM_LAYOUT_SMART_NAME[] = "elm_layout";
 
 static const char SIG_THEME_CHANGED[] = "theme,changed";
+static const char SIG_LANG_CHANGED[] = "language,changed";
 
 /* no *direct* instantiation of this class, so far */
 __UNUSED__ static Evas_Smart *_elm_layout_smart_class_new(void);
@@ -12,6 +13,7 @@ __UNUSED__ static Evas_Smart *_elm_layout_smart_class_new(void);
 /* smart callbacks coming from elm layout objects: */
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_THEME_CHANGED, ""},
+   {SIG_LANG_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -60,6 +62,13 @@ struct _Elm_Layout_Sub_Object_Cursor
 
    Eina_Bool    engine_only : 1;
 };
+
+static Eina_Bool
+_elm_layout_smart_translate(Evas_Object *obj)
+{
+   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+   return EINA_TRUE;
+}
 
 /* layout's sizing evaluation is deferred. evaluation requests are
  * queued up and only flag the object as 'changed'. when it comes to
@@ -1316,6 +1325,7 @@ _elm_layout_smart_set_user(Elm_Layout_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->base.calculate = _elm_layout_smart_calculate;
 
    ELM_WIDGET_CLASS(sc)->theme = _elm_layout_smart_theme;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_layout_smart_translate;
    ELM_WIDGET_CLASS(sc)->disable = _elm_layout_smart_disable;
    ELM_WIDGET_CLASS(sc)->focus_next = _elm_layout_smart_focus_next;
    ELM_WIDGET_CLASS(sc)->focus_direction = _elm_layout_smart_focus_direction;
