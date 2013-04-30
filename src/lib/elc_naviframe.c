@@ -540,14 +540,14 @@ _hide_button_prop_set(Elm_Naviframe_Item *it, Evas_Object *prev_btn)
    if (it->dispmode == EVAS_DISPLAY_MODE_COMPRESS)
      {
         elm_object_signal_emit(prev_btn, "elm,state,display,compress", "elm");
-        elm_object_focus_allow_set(prev_btn, EINA_FALSE);
         evas_object_propagate_events_set(prev_btn, EINA_FALSE);
+        elm_object_focus_allow_set(prev_btn, EINA_FALSE);
      }
    else
      {
         elm_object_signal_emit(prev_btn, "elm,state,display,default", "elm");
-        elm_object_focus_allow_set(prev_btn, EINA_TRUE);
         evas_object_propagate_events_set(prev_btn, EINA_TRUE);
+        elm_object_focus_allow_set(prev_btn, EINA_TRUE);
      }
 }
 
@@ -955,11 +955,8 @@ _on_item_back_btn_clicked(void *data,
    Ecore_X_Virtual_Keyboard_State vkb_state = ecore_x_e_virtual_keyboard_state_get(vkb_win);
 
    if ((cbhm_state == ECORE_X_ILLUME_CLIPBOARD_STATE_UNKNOWN || cbhm_state == ECORE_X_ILLUME_CLIPBOARD_STATE_OFF)
-      && (vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_UNKNOWN || vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF))
-     {
-        elm_naviframe_item_pop(data);
-        return;
-     }
+       && (vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_UNKNOWN || vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF))
+     evas_object_focus_set(obj, EINA_TRUE);
 
    //Get the keygrab window handle.
    if (!keygrab_win)
