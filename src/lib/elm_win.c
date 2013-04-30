@@ -2073,12 +2073,20 @@ _elm_win_client_message(void *data,
                   _elm_access_highlight_object_activate
                     (ELM_WIDGET_DATA(sd)->obj, ELM_ACTIVATE_DOWN);
                }
-             else if ((unsigned int)e->data.l[1] == atom_scroll)
+             else if ((unsigned int)e->data.l[1] ==
+                      ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_SCROLL)
                {
                   _elm_access_highlight_object_scroll(ELM_WIDGET_DATA(sd)->obj,
                     e->data.l[2], e->data.l[3], e->data.l[4]);
                }
-             else if ((unsigned int)e->data.l[1] == atom_back)
+             else if ((unsigned int)e->data.l[1] ==
+                      ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_MOUSE)
+               {
+                  _elm_access_highlight_object_mouse(ELM_WIDGET_DATA(sd)->obj,
+                    e->data.l[2], e->data.l[3], e->data.l[4]);
+               }
+             else if ((unsigned int)e->data.l[1] ==
+                      ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_BACK)
                {
                   _elm_access_highlight_object_activate
                     (ELM_WIDGET_DATA(sd)->obj, ELM_ACTIVATE_BACK);

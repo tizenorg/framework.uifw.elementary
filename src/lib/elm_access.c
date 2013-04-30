@@ -474,12 +474,8 @@ void
 _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
 {
    Evas *evas;
-   Evas_Object *ho, *win;
+   Evas_Object *ho;
    Evas_Coord_Rectangle ho_area;
-
-#ifdef HAVE_ELEMENTARY_X
-   Ecore_X_Window xwin = 0;
-#endif
 
    if (!obj) return;
 
@@ -552,7 +548,30 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
         s_iface->repeat_events_set(s_parent, EINA_TRUE);
         break;
 
-      case 3:
+      default:
+        break;
+     }
+}
+
+void
+_elm_access_highlight_object_mouse(Evas_Object *obj, int type, int x, int y)
+{
+   Evas *evas;
+   Evas_Object *ho, *win;
+   Evas_Coord_Rectangle ho_area;
+
+#ifdef HAVE_ELEMENTARY_X
+   Ecore_X_Window xwin = 0;
+#endif
+
+   if (!obj) return;
+
+   evas = evas_object_evas_get(obj);
+   if (!evas) return;
+
+   switch (type)
+     {
+      case 0:
         ho = _access_highlight_object_get(obj);
         if (!ho)
           {
@@ -582,7 +601,7 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
 #endif
         break;
 
-      case 4:
+      case 1:
         if (!s_parent) return;
 
 #ifdef HAVE_ELEMENTARY_X
@@ -594,7 +613,7 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
 #endif
         break;
 
-      case 5:
+      case 2:
         if (!s_parent) return;
 
 #ifdef HAVE_ELEMENTARY_X
