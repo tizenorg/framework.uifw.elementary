@@ -1440,6 +1440,10 @@ elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *act
         _elm_access_highlight_object_scroll(obj, a->mouse_type, a->x, a->y);
         break;
 
+      case ELM_ACCESS_ACTION_MOUSE:
+        _elm_access_highlight_object_mouse(obj, a->mouse_type, a->x, a->y);
+        break;
+
       case ELM_ACCESS_ACTION_BACK:
         break;
 

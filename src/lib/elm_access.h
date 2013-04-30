@@ -45,6 +45,7 @@ enum _Elm_Access_Action_Type
    ELM_ACCESS_ACTION_VALUE_CHANGE, /* TODO: deprecate this */
    ELM_ACCESS_ACTION_SCROLL, /* scroll if one of highlight object parents
                               * is scrollable */
+   ELM_ACCESS_ACTION_MOUSE, /* give mouse event to highlight object */
    ELM_ACCESS_ACTION_UP, /* change value up of highlight object */
    ELM_ACCESS_ACTION_DOWN, /* change value down of highlight object */
    ELM_ACCESS_ACTION_BACK, /* go back to a previous view
