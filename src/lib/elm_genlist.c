@@ -711,6 +711,7 @@ _calc_job(void *data)
    Eina_Bool did_must_recalc = EINA_FALSE;
    Evas_Coord minw = -1, minh = 0, y = 0, dy = 0, vw = 0;
 
+   if (!sd->s_iface) return;
    sd->s_iface->content_viewport_size_get(ELM_WIDGET_DATA(sd)->obj, &sd->w, &sd->h);
 
    //evas_event_freeze(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
