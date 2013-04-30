@@ -199,35 +199,26 @@ _item_text_signals_emit(Elm_Naviframe_Item *it)
      }
 }
 
-static Evas_Object *
-_access_object_get(Elm_Naviframe_Item *it, const char* part)
-{
-   Evas_Object *po, *ao;
-
-   po = (Evas_Object *)edje_object_part_object_get
-          (elm_layout_edje_get(VIEW(it)), part);
-   ao = evas_object_data_get(po, "_part_access_obj");
-
-   return ao;
-}
-
 static void
 _access_focus_set(Elm_Naviframe_Item *it)
 {
    Evas_Object *ao;
 
-   if (!it->title_visible)
-     {
-        elm_object_focus_set(it->content, EINA_TRUE);
-        return;
-     }
+   if (it->unfocusable) return;
 
-   ao =_access_object_get(it, TITLE_ACCESS_PART);
-   if (ao) elm_object_focus_set(ao, EINA_TRUE);
+   ao = ((Elm_Widget_Item *)it)->access_obj;
+
+   if (ao && it->title_visible)
+     {
+        elm_object_focus_set(ao, EINA_TRUE);
+     }
    else if ((it->title_icon) &&
             (elm_widget_can_focus_get(it->title_icon) ||
              elm_widget_child_can_focus_get(it->title_icon)))
-     elm_object_focus_set(it->title_icon, EINA_TRUE);
+     {
+        elm_object_focus_set(it->title_icon, EINA_TRUE);
+     }
+   else elm_object_focus_set(it->content, EINA_TRUE);
 }
 
 static void
@@ -340,19 +331,21 @@ _access_obj_process(Elm_Naviframe_Item *it, Eina_Bool is_access)
 
    if (is_access)
      {
-        if (!_access_object_get(it, TITLE_ACCESS_PART))
+        ao = ((Elm_Widget_Item *)it)->access_obj;
+
+        if (!ao)
           {
              eo = elm_layout_edje_get(VIEW(it));
              ao =_elm_access_edje_object_part_object_register(WIDGET(it), eo,
                                                               TITLE_ACCESS_PART);
-            _elm_access_text_set(_elm_access_object_get(ao),
-                                ELM_ACCESS_TYPE, E_("title"));
-            _elm_access_callback_set(_elm_access_object_get(ao),
-                                     ELM_ACCESS_INFO, _access_info_cb, VIEW(it));
+             _elm_access_text_set(_elm_access_object_get(ao),
+                                 ELM_ACCESS_TYPE, E_("title"));
+             _elm_access_callback_set(_elm_access_object_get(ao),
+                                      ELM_ACCESS_INFO, _access_info_cb, VIEW(it));
 
-            /* to access title access object, any idea? */
-            ((Elm_Widget_Item *)it)->access_obj = ao;
-         }
+             /* to access title access object, any idea? */
+             ((Elm_Widget_Item *)it)->access_obj = ao;
+          }
      }
    else
      {
@@ -423,7 +416,14 @@ _item_text_set_hook(Elm_Object_Item *it,
 
    /* access */
    if (_elm_config->access_mode)
-     _access_obj_process(nit, EINA_TRUE);
+     {
+        Evas_Object *ao;
+
+        _access_obj_process(nit, EINA_TRUE);
+
+        ao = ((Elm_Widget_Item *)nit)->access_obj;
+        if (!elm_object_focus_get(ao)) elm_object_focus_set(ao, EINA_TRUE);
+     }
 
    elm_layout_sizing_eval(WIDGET(nit));
 }
@@ -1069,9 +1069,16 @@ _on_item_show_finished(void *data,
 
    newest = elm_widget_newest_focus_order_get(VIEW(it), &order, EINA_TRUE);
    if (newest)
+   {
      elm_object_focus_set(newest, EINA_TRUE);
+   }
    else
-     elm_object_focus_set(VIEW(it), EINA_TRUE);
+   {
+     if (_elm_config->access_mode)
+       _access_focus_set(it);
+     else
+       elm_object_focus_set(VIEW(it), EINA_TRUE);
+   }
 
    if (sd->freeze_events)
      evas_object_freeze_events_set(VIEW(it), EINA_FALSE);
@@ -1226,7 +1233,7 @@ _elm_naviframe_smart_focus_next(const Evas_Object *obj,
    /* access */
    if (_elm_config->access_mode)
      {
-        ao = _access_object_get(top_it, TITLE_ACCESS_PART);
+        ao = ((Elm_Widget_Item *)top_it)->access_obj;
         if (ao) l = eina_list_append(l, ao);
      }
 
