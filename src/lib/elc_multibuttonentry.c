@@ -1229,7 +1229,8 @@ _box_layout(Evas_Object *o,
              yy = yyy;
              linew = lineww;
           }
-        linew += priv->pad.h;
+        if ((linew != 0) && (l != eina_list_last(priv->children)))
+          linew += priv->pad.h;
      }
 }
 
@@ -1459,7 +1460,7 @@ _item_del_pre_hook(Elm_Object_Item *it)
         elm_box_pack_end(sd->box, sd->guide);
         evas_object_show(sd->guide);
      }
-   if (!sd->items && !elm_object_focus_get(WIDGET(it)) &&
+   else if (!sd->items && !elm_object_focus_get(WIDGET(it)) &&
       sd->entry && !_entry_packed(WIDGET(it)) && sd->editable)
      {
         elm_box_pack_end(sd->box, sd->entry);
