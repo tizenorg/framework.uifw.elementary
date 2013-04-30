@@ -11,6 +11,7 @@
 #define MAX_ITEMS_PER_BLOCK 32
 #define REORDER_EFFECT_TIME 0.1
 #define FX_MOVE_TIME 0.5
+#define FX_TRANSIT_FOCAL 2000
 
 EAPI const char ELM_GENLIST_SMART_NAME[] = "elm_genlist";
 EAPI const char ELM_GENLIST_PAN_SMART_NAME[] = "elm_genlist_pan";
@@ -5668,15 +5669,23 @@ _elm_genlist_fx_clear(Evas_Object *obj, Eina_Bool force)
    EINA_LIST_FREE(sd->capture_before_items, pi)
      {
         if ((pi->it) && (GL_IT(pi->it))) GL_IT(pi->it)->has_proxy_it = EINA_FALSE;
-        if (pi->proxy) evas_object_smart_member_del(pi->proxy);
-        if (pi->proxy) evas_object_del(pi->proxy);
+        if (pi->proxy)
+          {
+             evas_object_map_enable_set(pi->proxy, EINA_FALSE);
+             evas_object_smart_member_del(pi->proxy);
+             evas_object_del(pi->proxy);
+          }
         free(pi);
      }
    EINA_LIST_FREE(sd->capture_after_items, pi)
      {
         if ((pi->it) && (GL_IT(pi->it))) GL_IT(pi->it)->has_proxy_it = EINA_FALSE;
-        if (pi->proxy) evas_object_smart_member_del(pi->proxy);
-        if (pi->proxy) evas_object_del(pi->proxy);
+        if (pi->proxy)
+          {
+             evas_object_map_enable_set(pi->proxy, EINA_FALSE);
+             evas_object_smart_member_del(pi->proxy);
+             evas_object_del(pi->proxy);
+          }
         free(pi);
      }
 
@@ -7233,9 +7242,12 @@ _elm_genlist_fx_capture(Evas_Object *obj, int level)
         EINA_LIST_FREE(sd->capture_before_items, pi)
           {
              if ((pi->it) && (GL_IT(pi->it))) GL_IT(pi->it)->has_proxy_it = EINA_FALSE;
-             if (pi->proxy) evas_object_smart_member_del(pi->proxy);
-             if (pi->proxy) evas_object_del(pi->proxy);
-             free(pi);
+             if (pi->proxy)
+               {
+                  evas_object_map_enable_set(pi->proxy, EINA_FALSE);
+                  evas_object_smart_member_del(pi->proxy);
+                  evas_object_del(pi->proxy);
+               }
           }
      }
    else
@@ -7243,8 +7255,12 @@ _elm_genlist_fx_capture(Evas_Object *obj, int level)
         EINA_LIST_FREE(sd->capture_after_items, pi)
           {
              if ((pi->it) && (GL_IT(pi->it))) GL_IT(pi->it)->has_proxy_it = EINA_FALSE;
-             if (pi->proxy) evas_object_smart_member_del(pi->proxy);
-             if (pi->proxy) evas_object_del(pi->proxy);
+             if (pi->proxy)
+               {
+                  evas_object_map_enable_set(pi->proxy, EINA_FALSE);
+                  evas_object_smart_member_del(pi->proxy);
+                  evas_object_del(pi->proxy);
+               }
              free(pi);
           }
 
@@ -7510,7 +7526,30 @@ _fx_cover_item_get(const Elm_Gen_FX_Item *fi)
 }
 
 static void
-_item_fx_op(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__, double progress __UNUSED__)
+_item_fx_zoom_process(Evas_Object *proxy, float from_rate, float to_rate, double progress)
+{
+   if (!proxy) return;
+   Evas_Map *map;
+   Evas_Coord x, y, w, h;
+   float from, to;
+
+   map = evas_map_new(4);
+   if (!map) return;
+     {
+        from = (FX_TRANSIT_FOCAL - (from_rate * FX_TRANSIT_FOCAL)) * (1 / from_rate);
+        to = ((FX_TRANSIT_FOCAL - (to_rate * FX_TRANSIT_FOCAL)) * (1 / to_rate)) - from;
+
+        evas_object_geometry_get(proxy, &x, &y, &w, &h);
+        evas_map_util_points_populate_from_object_full(map, proxy, from +(progress * to));
+        evas_map_util_3d_perspective(map, x + (w / 2), y + (h / 2), 0, FX_TRANSIT_FOCAL);
+        evas_object_map_enable_set(proxy, EINA_TRUE);
+        evas_object_map_set(proxy, map);
+     }
+   evas_map_free(map);
+}
+
+static void
+_item_fx_op(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__, double progress)
 {
    Elm_Gen_FX_Item *fi = data, *cover_it;
    Elm_Genlist_Smart_Data *sd = GL_IT(fi->it)->wsd;
@@ -7521,6 +7560,15 @@ _item_fx_op(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__, double pr
    evas_object_geometry_get(fi->proxy, &fi_ox, &fi_oy, NULL, NULL);
    evas_object_move(fi->proxy, ox, fi_oy);
    evas_object_show(fi->proxy);
+
+   if ((!sd->pinch_zoom_mode) && (!sd->expanded_item))
+     {
+        if (fi->type == ELM_GEN_ITEM_FX_TYPE_ADD)
+          _item_fx_zoom_process(fi->proxy, 0.8, 1.0, progress);
+        else if (fi->type == ELM_GEN_ITEM_FX_TYPE_DEL)
+          _item_fx_zoom_process(fi->proxy, 1.0, 0.8, progress);
+     }
+
 #if GENLIST_PINCH_ZOOM_SUPPORT
    if ((sd->pinch_zoom_mode) && (IS_ROOT_PARENT_IT(fi->it))) evas_object_raise(fi->proxy);
 #endif
@@ -7574,6 +7622,7 @@ _item_fx_done(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__)
    GL_IT(fx_done_it->it)->has_proxy_it = EINA_FALSE;
 
    evas_object_clip_unset(fx_done_it->proxy);
+   evas_object_map_enable_set(fx_done_it->proxy, EINA_FALSE);
 }
 
 static void
@@ -7754,16 +7803,12 @@ _elm_genlist_fx_play(Evas_Object *obj)
           {
              elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
              elm_transit_effect_color_add(fi->trans, 0, 0, 0, 0, 255, 255, 255, 255);
-             if ((!sd->pinch_zoom_mode) && (!sd->expanded_item))
-               elm_transit_effect_zoom_add(fi->trans, 0.8, 1.0);
           }
         else if (fi->type == ELM_GEN_ITEM_FX_TYPE_DEL)
           {
              _item_unhighlight(fi->it);
              elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
              elm_transit_effect_color_add(fi->trans, 255, 255, 255, 255, 0, 0, 0, 0);
-             if ((!sd->pinch_zoom_mode) && (!sd->expanded_item))
-               elm_transit_effect_zoom_add(fi->trans, 1.0, 0.8);
           }
         elm_transit_effect_add(fi->trans, _item_fx_op, fi, _item_fx_done);
         elm_transit_del_cb_set(fi->trans, _item_fx_del_cb, fi);
