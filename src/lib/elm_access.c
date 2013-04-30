@@ -143,6 +143,17 @@ _elm_access_smart_access(Evas_Object *obj, Eina_Bool is_access)
    elm_widget_can_focus_set(obj, is_access);
 }
 
+static Eina_Bool
+_elm_access_smart_on_focus_region(const Evas_Object *obj,
+                                 Evas_Coord *x,
+                                 Evas_Coord *y,
+                                 Evas_Coord *w,
+                                 Evas_Coord *h)
+{
+   evas_object_geometry_get(obj, x, y, w, h);
+   return EINA_TRUE;
+}
+
 static void
 _elm_access_smart_set_user(Elm_Widget_Smart_Class *sc)
 {
@@ -152,6 +163,7 @@ _elm_access_smart_set_user(Elm_Widget_Smart_Class *sc)
    sc->focus_next = NULL;
    sc->focus_direction = NULL;
    sc->on_focus = _elm_access_smart_on_focus;
+   sc->on_focus_region = _elm_access_smart_on_focus_region;
    sc->activate = _elm_access_smart_activate;
    sc->access = _elm_access_smart_access;
 
