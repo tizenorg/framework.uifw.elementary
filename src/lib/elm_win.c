@@ -2046,6 +2046,8 @@ _elm_win_client_message(void *data,
                   if (!evas) return ECORE_CALLBACK_PASS_ON;
 
                   a = calloc(1, sizeof(Elm_Access_Action_Info));
+                  if (!a) return ECORE_CALLBACK_PASS_ON;
+
                   a->x = e->data.l[2];
                   a->y = e->data.l[3];
                   elm_access_action(ELM_WIDGET_DATA(sd)->obj, ELM_ACCESS_ACTION_HIGHLIGHT, a);
@@ -2076,14 +2078,28 @@ _elm_win_client_message(void *data,
              else if ((unsigned int)e->data.l[1] ==
                       ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_SCROLL)
                {
-                  _elm_access_highlight_object_scroll(ELM_WIDGET_DATA(sd)->obj,
-                    e->data.l[2], e->data.l[3], e->data.l[4]);
+                  a = calloc(1, sizeof(Elm_Access_Action_Info));
+                  if (!a) return ECORE_CALLBACK_PASS_ON;
+
+                  a->mouse_type = e->data.l[2];
+                  a->x = e->data.l[3];
+                  a->y = e->data.l[4];
+                  elm_access_action(ELM_WIDGET_DATA(sd)->obj,
+                                    ELM_ACCESS_ACTION_SCROLL, a);
+                  free(a);
                }
              else if ((unsigned int)e->data.l[1] ==
                       ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_MOUSE)
                {
-                  _elm_access_highlight_object_mouse(ELM_WIDGET_DATA(sd)->obj,
-                    e->data.l[2], e->data.l[3], e->data.l[4]);
+                  a = calloc(1, sizeof(Elm_Access_Action_Info));
+                  if (!a) return ECORE_CALLBACK_PASS_ON;
+
+                  a->mouse_type = e->data.l[2];
+                  a->x = e->data.l[3];
+                  a->y = e->data.l[4];
+                  elm_access_action(ELM_WIDGET_DATA(sd)->obj,
+                                    ELM_ACCESS_ACTION_MOUSE, a);
+                  free(a);
                }
              else if ((unsigned int)e->data.l[1] ==
                       ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_BACK)
