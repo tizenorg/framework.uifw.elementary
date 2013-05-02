@@ -5261,6 +5261,11 @@ _item_del_post_process(Elm_Gen_Item *it)
         }
 
    _item_unrealize(it, EINA_FALSE);
+   edje_object_mirrored_set(VIEW(it),
+                            elm_widget_mirrored_get(WIDGET(it)));
+   edje_object_scale_set(VIEW(it),
+                         elm_widget_scale_get(WIDGET(it))
+                         * elm_config_scale_get());
 
    elm_widget_item_pre_notify_del(it);
    if (it->itc->func.del)
@@ -5278,6 +5283,7 @@ _item_del_post_process(Elm_Gen_Item *it)
    free(it->item);
    it->item = NULL;
 
+   _elm_widget_item_free((Elm_Widget_Item *)it);
    if (sd->calc_job) ecore_job_del(sd->calc_job);
    sd->calc_job = ecore_job_add(_calc_job, sd);
 }
@@ -5290,9 +5296,11 @@ _item_del_pre_process(Elm_Gen_Item *it)
 
    sd->fx_items_deleted = EINA_TRUE;
    if (!sd->genlist_clearing)
-   	  _elm_genlist_fx_capture(ELM_WIDGET_DATA(sd)->obj, 0);
-   if (!eina_list_data_find(sd->pending_del_items, it))
-     sd->pending_del_items = eina_list_append(sd->pending_del_items, it);
+     {
+        _elm_genlist_fx_capture(ELM_WIDGET_DATA(sd)->obj, 0);
+        if (!eina_list_data_find(sd->pending_del_items, it))
+          sd->pending_del_items = eina_list_append(sd->pending_del_items, it);
+     }
 
    _item_free_common(it);
 
@@ -5741,10 +5749,8 @@ _elm_genlist_fx_clear(Evas_Object *obj, Eina_Bool force)
       _decorate_all_item_unrealize(it);
 
    EINA_LIST_FREE (sd->pending_del_items, it)
-     {
         _item_del_post_process(it);
-        _elm_widget_item_free((Elm_Widget_Item *)it);
-     }
+
    if (sd->alpha_bg) evas_object_del(sd->alpha_bg);
    sd->alpha_bg = NULL;
    if (sd->fx_timer) ecore_timer_del(sd->fx_timer);
@@ -7672,10 +7678,7 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
           }
 
         EINA_LIST_FREE (sd->pending_del_items, it)
-          {
-             _item_del_post_process(it);
-             _elm_widget_item_free((Elm_Widget_Item *)it);
-          }
+           _item_del_post_process(it);
 
         EINA_LIST_FREE(sd->capture_before_items, pi)
            if (pi->it) _elm_genlist_proxy_item_del(pi);
