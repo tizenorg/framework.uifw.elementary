@@ -3,6 +3,7 @@
 #include "elm_widget_popup.h"
 
 #define ELM_POPUP_ACTION_BUTTON_MAX 3
+#define OUTLINE_TEXT "Center popup is opened, double tap to close the popup"
 
 EAPI const char ELM_POPUP_SMART_NAME[] = "elm_popup";
 
@@ -10,6 +11,7 @@ static void _button_remove(Evas_Object *, int, Eina_Bool);
 
 static const char ACCESS_TITLE_PART[] = "access.title";
 static const char ACCESS_BODY_PART[] = "access.body";
+static const char ACCESS_BASE_PART[] = "access.base";
 
 static const char SIG_BLOCK_CLICKED[] = "block,clicked";
 static const char SIG_TIMEOUT[] = "timeout";
@@ -225,6 +227,14 @@ _mirrored_set(Evas_Object *obj,
 }
 
 static void
+_access_base_activate_cb(void *data,
+                        Evas_Object *part_obj __UNUSED__,
+                        Elm_Object_Item *item __UNUSED__)
+{
+   evas_object_del(data);
+}
+
+static void
 _access_obj_process(Evas_Object *obj, Eina_Bool is_access)
 {
    Evas_Object *ao;
@@ -252,6 +262,14 @@ _access_obj_process(Evas_Object *obj, Eina_Bool is_access)
              _elm_access_text_set(_elm_access_object_get(ao),
                ELM_ACCESS_INFO, elm_object_text_get(sd->text_content_obj));
           }
+
+        /* register outline */
+        ao = _elm_access_edje_object_part_object_register
+               (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_BASE_PART);
+        _elm_access_text_set(_elm_access_object_get(ao),
+                             ELM_ACCESS_TYPE, E_(OUTLINE_TEXT));
+        _elm_access_activate_callback_set
+          (_elm_access_object_get(ao), _access_base_activate_cb, obj);
      }
    else
      {
@@ -266,6 +284,10 @@ _access_obj_process(Evas_Object *obj, Eina_Bool is_access)
              _elm_access_edje_object_part_object_unregister
                     (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_BODY_PART);
           }
+
+        /* unregister outline */
+        _elm_access_edje_object_part_object_unregister
+               (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_BASE_PART);
      }
 }
 
@@ -1348,6 +1370,9 @@ _elm_popup_smart_focus_next(const Evas_Object *obj,
    /* access */
    if (_elm_config->access_mode)
      {
+        ao = _access_object_get(obj, ACCESS_BASE_PART);
+        if (ao) items = eina_list_append(items, ao);
+
         if (sd->title_text)
           {
              ao = _access_object_get(obj, ACCESS_TITLE_PART);
@@ -1385,6 +1410,9 @@ _elm_popup_smart_focus_direction(const Evas_Object *obj,
    /* access */
    if (_elm_config->access_mode)
      {
+        ao = _access_object_get(obj, ACCESS_BASE_PART);
+        if (ao) items = eina_list_append(items, ao);
+
         if (sd->title_text)
           {
              ao = _access_object_get(obj, ACCESS_TITLE_PART);
@@ -1410,6 +1438,8 @@ _elm_popup_smart_focus_direction(const Evas_Object *obj,
 static void
 _elm_popup_smart_add(Evas_Object *obj)
 {
+   Evas_Object *ao;
+
    EVAS_SMART_DATA_ALLOC(obj, Elm_Popup_Smart_Data);
 
    ELM_WIDGET_CLASS(_elm_popup_parent_sc)->base.add(obj);
@@ -1470,6 +1500,17 @@ _elm_popup_smart_add(Evas_Object *obj)
    elm_widget_can_focus_set(obj, EINA_TRUE);
 
    _visuals_set(obj);
+
+   /* access */
+   if (_elm_config->access_mode)
+     {
+        ao = _elm_access_edje_object_part_object_register
+               (obj, ELM_WIDGET_DATA(priv)->resize_obj, ACCESS_BASE_PART);
+        _elm_access_text_set(_elm_access_object_get(ao),
+                             ELM_ACCESS_TYPE, E_(OUTLINE_TEXT));
+        _elm_access_activate_callback_set
+          (_elm_access_object_get(ao), _access_base_activate_cb, obj);
+     }
 }
 
 static void
