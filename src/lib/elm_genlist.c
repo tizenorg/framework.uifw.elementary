@@ -166,7 +166,7 @@ static void _changed_job(Elm_Genlist_Smart_Data *sd);
 static Eina_Bool      _elm_genlist_fx_capture(Evas_Object *obj, int level);
 static void           _elm_genlist_fx_play(Evas_Object *obj);
 static void           _elm_genlist_fx_clear(Evas_Object *obj, Eina_Bool force);
-static void           _elm_genlist_proxy_item_del(const Elm_Object_Item *item);
+static void           _elm_genlist_proxy_item_del(Proxy_Item *pi);
 #endif
 
 #if GENLIST_PINCH_ZOOM_SUPPORT
@@ -198,6 +198,9 @@ _item_cache_push(Elm_Gen_Item *it)
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
    Item_Cache *ic = NULL;
 
+#if GENLIST_FX_SUPPORT
+   if (sd->pending_del_items) return;
+#endif
    if (sd->item_cache_count >= sd->item_cache_max)
     {
         ic = EINA_INLIST_CONTAINER_GET(sd->item_cache->last, Item_Cache);
@@ -227,11 +230,7 @@ _item_cache_push(Elm_Gen_Item *it)
                                         _contract_signal_cb, it);
    _item_mouse_callbacks_del(it, VIEW(it));
 
-#if GENLIST_FX_SUPPORT
-   if ((it->item->nocache_once) || (it->item->nocache) || (sd->pending_del_items))
-#else
    if ((it->item->nocache_once) || (it->item->nocache))
-#endif
      {
         if (VIEW(it)) evas_object_del(VIEW(it));
         if (it->spacer) evas_object_del(it->spacer);
@@ -3198,64 +3197,6 @@ _decorate_all_item_unrealize(Elm_Gen_Item *it)
 }
 
 static void
-_item_free_common(Elm_Gen_Item *it)
-{
-   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
-   elm_widget_item_pre_notify_del(it);
-   if (it->itc->func.del)
-     it->itc->func.del((void *)it->base.data, WIDGET(it));
-   if (it->tooltip.del_cb)
-     it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
-   if (it->item->block) _item_block_del(it);
-   if (it->parent)
-     it->parent->item->items =
-        eina_list_remove(it->parent->item->items, it);
-   if (it->item->queued) sd->queue = eina_list_remove(sd->queue, it);
-   if (it->group) sd->group_items = eina_list_remove(sd->group_items, it);
-
-   // FIXME: relative will be better to be fixed. it is too harsh.
-   if (it->item->rel)
-     it->item->rel->item->rel_revs =
-        eina_list_remove(it->item->rel->item->rel_revs, it);
-   if (it->item->rel_revs)
-     {
-        Elm_Gen_Item *tmp;
-        EINA_LIST_FREE(it->item->rel_revs, tmp) tmp->item->rel = NULL;
-     }
-   _item_sub_items_clear(it);
-
-#if GENLIST_ENTRY_SUPPORT
-   it->item->unrealize_disabled = EINA_FALSE;
-#endif
-
-   if (it->selected) sd->selected = eina_list_remove(sd->selected, it);
-   if (sd->show_item == it) sd->show_item = NULL;
-   if (sd->anchor_item == it)
-     {
-        sd->anchor_item =
-           ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(it)->next);
-        if (!sd->anchor_item)          sd->anchor_item =
-          ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(it)->prev);
-     }
-   if (sd->expanded_item == it) sd->expanded_item = NULL;
-   if (sd->expanded_next_item == it) sd->expanded_next_item = NULL;
-   if (sd->state) eina_inlist_sorted_state_free(sd->state);
-
-   if (sd->last_selected_item == (Elm_Object_Item *)it)
-     sd->last_selected_item = NULL;
-
-   if (it->long_timer)
-     {
-        ecore_timer_del(it->long_timer);
-        it->long_timer = NULL;
-     }
-   if (it->item->swipe_timer) ecore_timer_del(it->item->swipe_timer);
-
-   sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(it));
-   sd->item_count--;
-}
-
-static void
 _item_mouse_move_cb(void *data,
                     Evas *evas __UNUSED__,
                     Evas_Object *obj,
@@ -5218,21 +5159,73 @@ _item_disable_hook(Elm_Object_Item *item)
 }
 
 static void
+_item_free_common(Elm_Gen_Item *it)
+{
+   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
+   if (it->item->block) _item_block_del(it);
+   if (it->parent)
+     it->parent->item->items =
+        eina_list_remove(it->parent->item->items, it);
+   if (it->item->queued) sd->queue = eina_list_remove(sd->queue, it);
+   if (it->group) sd->group_items = eina_list_remove(sd->group_items, it);
+
+   // FIXME: relative will be better to be fixed. it is too harsh.
+   if (it->item->rel)
+     it->item->rel->item->rel_revs =
+        eina_list_remove(it->item->rel->item->rel_revs, it);
+   if (it->item->rel_revs)
+     {
+        Elm_Gen_Item *tmp;
+        EINA_LIST_FREE(it->item->rel_revs, tmp) tmp->item->rel = NULL;
+     }
+   _item_sub_items_clear(it);
+
+#if GENLIST_ENTRY_SUPPORT
+   it->item->unrealize_disabled = EINA_FALSE;
+#endif
+
+   if (it->selected) sd->selected = eina_list_remove(sd->selected, it);
+   if (sd->show_item == it) sd->show_item = NULL;
+   if (sd->anchor_item == it)
+     {
+        sd->anchor_item =
+           ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(it)->next);
+        if (!sd->anchor_item)          sd->anchor_item =
+          ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(it)->prev);
+     }
+   if (sd->expanded_item == it) sd->expanded_item = NULL;
+   if (sd->expanded_next_item == it) sd->expanded_next_item = NULL;
+   if (sd->state) eina_inlist_sorted_state_free(sd->state);
+
+   if (sd->last_selected_item == (Elm_Object_Item *)it)
+     sd->last_selected_item = NULL;
+
+   if (it->long_timer)
+     {
+        ecore_timer_del(it->long_timer);
+        it->long_timer = NULL;
+     }
+   if (it->item->swipe_timer) ecore_timer_del(it->item->swipe_timer);
+
+   sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(it));
+   sd->item_count--;
+}
+
+static void
 _item_free(Elm_Gen_Item *it)
 {
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
 
-#if GENLIST_FX_SUPPORT
-   if (sd->fx_mode) GL_IT(it)->has_proxy_it = EINA_FALSE;
-   _elm_genlist_proxy_item_del((Elm_Object_Item *)it);
-   if ((!sd->fx_mode) || (sd->genlist_clearing))
-#endif
-     {
-        _item_free_common(it);
-     }
    _item_unrealize(it, EINA_FALSE);
+   elm_widget_item_pre_notify_del(it);
+   if (it->itc->func.del)
+     it->itc->func.del((void *)it->base.data, WIDGET(it));
+   if (it->tooltip.del_cb)
+     it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
+   _item_free_common(it);
    elm_genlist_item_class_unref((Elm_Genlist_Item_Class *)it->itc);
    free(it->item);
+   it->item = NULL;
 
    if (sd->calc_job) ecore_job_del(sd->calc_job);
    sd->calc_job = ecore_job_add(_calc_job, sd);
@@ -5240,17 +5233,78 @@ _item_free(Elm_Gen_Item *it)
 
 #if GENLIST_FX_SUPPORT
 static void
-_item_del_pre_fx_process(Elm_Gen_Item *it)
+_item_del_post_process(Elm_Gen_Item *it)
 {
+   if ((!it) || (!GL_IT(it))) return;
+   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
+   Proxy_Item *pi;
+   Eina_List *l;
+
+   GL_IT(it)->has_proxy_it = EINA_FALSE;
+
+   EINA_LIST_FOREACH(sd->capture_before_items, l, pi)
+      if (pi->it == it)
+        {
+           pi->it = NULL;
+           sd->capture_before_items = eina_list_remove(sd->capture_before_items, pi);
+           _elm_genlist_proxy_item_del(pi);
+           break;
+        }
+
+   EINA_LIST_FOREACH(sd->capture_after_items, l, pi)
+      if (pi->it == it)
+        {
+           pi->it = NULL;
+           sd->capture_after_items = eina_list_remove(sd->capture_after_items, pi);
+           _elm_genlist_proxy_item_del(pi);
+           break;
+        }
+
+   _item_unrealize(it, EINA_FALSE);
+
+   elm_widget_item_pre_notify_del(it);
+   if (it->itc->func.del)
+     it->itc->func.del((void *)it->base.data, WIDGET(it));
+   if (it->tooltip.del_cb)
+     it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
+
+   if (VIEW(it)) evas_object_del(VIEW(it));
+   if (it->spacer) evas_object_del(it->spacer);
+
+   VIEW(it) = NULL;
+   it->spacer = NULL;
+
+   elm_genlist_item_class_unref((Elm_Genlist_Item_Class *)it->itc);
+   free(it->item);
+   it->item = NULL;
+
+   if (sd->calc_job) ecore_job_del(sd->calc_job);
+   sd->calc_job = ecore_job_add(_calc_job, sd);
+}
+
+static void
+_item_del_pre_process(Elm_Gen_Item *it)
+{
+   if ((!it) || (!GL_IT(it))) return;
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
 
    sd->fx_items_deleted = EINA_TRUE;
-   _elm_genlist_fx_capture(ELM_WIDGET_DATA(sd)->obj, 0);
+   if (!sd->genlist_clearing)
+   	  _elm_genlist_fx_capture(ELM_WIDGET_DATA(sd)->obj, 0);
    if (!eina_list_data_find(sd->pending_del_items, it))
      sd->pending_del_items = eina_list_append(sd->pending_del_items, it);
 
    _item_free_common(it);
 
+   edje_object_signal_callback_del_full(VIEW(it), "elm,action,expand,toggle",
+                                        "elm", _expand_toggle_signal_cb, it);
+   edje_object_signal_callback_del_full(VIEW(it), "elm,action,expand", "elm",
+                                        _expand_signal_cb, it);
+   edje_object_signal_callback_del_full(VIEW(it), "elm,action,contract", "elm",
+                                        _contract_signal_cb, it);
+   _item_mouse_callbacks_del(it, VIEW(it));
+
+   if (sd->genlist_clearing) _item_del_post_process(it);
 }
 #endif
 
@@ -5260,9 +5314,9 @@ _item_del_pre_hook(Elm_Object_Item *item)
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
 
 #if GENLIST_FX_SUPPORT
-   if ((GL_IT(it)->wsd->fx_mode) && (!GL_IT(it)->wsd->genlist_clearing))
+   if (GL_IT(it)->wsd->fx_mode)
      {
-        _item_del_pre_fx_process(it);
+        _item_del_pre_process(it);
         return EINA_FALSE;
      }
 #endif
@@ -5656,6 +5710,7 @@ elm_genlist_item_sorted_insert(Evas_Object *obj,
    return (Elm_Object_Item *)it;
 }
 
+#if GENLIST_FX_SUPPORT
 static void
 _elm_genlist_fx_clear(Evas_Object *obj, Eina_Bool force)
 {
@@ -5668,27 +5723,10 @@ _elm_genlist_fx_clear(Evas_Object *obj, Eina_Bool force)
    if ((!force) && (!sd->fx_first_captured)) return;
 
    EINA_LIST_FREE(sd->capture_before_items, pi)
-     {
-        if ((pi->it) && (GL_IT(pi->it))) GL_IT(pi->it)->has_proxy_it = EINA_FALSE;
-        if (pi->proxy)
-          {
-             evas_object_map_enable_set(pi->proxy, EINA_FALSE);
-             evas_object_smart_member_del(pi->proxy);
-             evas_object_del(pi->proxy);
-          }
-        free(pi);
-     }
+      _elm_genlist_proxy_item_del(pi);
+
    EINA_LIST_FREE(sd->capture_after_items, pi)
-     {
-        if ((pi->it) && (GL_IT(pi->it))) GL_IT(pi->it)->has_proxy_it = EINA_FALSE;
-        if (pi->proxy)
-          {
-             evas_object_map_enable_set(pi->proxy, EINA_FALSE);
-             evas_object_smart_member_del(pi->proxy);
-             evas_object_del(pi->proxy);
-          }
-        free(pi);
-     }
+      _elm_genlist_proxy_item_del(pi);
 
    EINA_LIST_FREE(sd->fx_items, fi)
      {
@@ -5704,7 +5742,7 @@ _elm_genlist_fx_clear(Evas_Object *obj, Eina_Bool force)
 
    EINA_LIST_FREE (sd->pending_del_items, it)
      {
-        _item_free(it);
+        _item_del_post_process(it);
         _elm_widget_item_free((Elm_Widget_Item *)it);
      }
    if (sd->alpha_bg) evas_object_del(sd->alpha_bg);
@@ -5718,6 +5756,7 @@ _elm_genlist_fx_clear(Evas_Object *obj, Eina_Bool force)
    sd->fx_first_captured = EINA_FALSE;
    sd->fx_items_deleted = EINA_FALSE;
 }
+#endif
 
 EAPI void
 elm_genlist_clear(Evas_Object *obj)
@@ -7154,20 +7193,19 @@ elm_genlist_fx_mode_get(const Evas_Object *obj)
 }
 
 static void
-_elm_genlist_proxy_item_del(const Elm_Object_Item *item)
+_elm_genlist_proxy_item_del(Proxy_Item *pi)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-   if ((!it) || (!it->item)) return;
+   if ((!pi) || (!pi->proxy)) return;
 
-   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
-   Proxy_Item *pi;
-   Eina_List *l;
+   if ((pi->it) && (GL_IT(pi->it)))
+     GL_IT(pi->it)->has_proxy_it = EINA_FALSE;
+   pi->it = NULL;
 
-   EINA_LIST_FOREACH(sd->capture_before_items, l, pi)
-      if (pi->it == it) pi->it = NULL;
-
-   EINA_LIST_FOREACH(sd->capture_after_items, l, pi)
-      if (pi->it == it) pi->it = NULL;
+   evas_object_map_enable_set(pi->proxy, EINA_FALSE);
+   evas_object_clip_unset(pi->proxy);
+   evas_object_smart_member_del(pi->proxy);
+   evas_object_del(pi->proxy);
+   free(pi);
 }
 
 static Proxy_Item *
@@ -7190,6 +7228,7 @@ _elm_genlist_proxy_item_new(const Elm_Object_Item *item)
      }
    evas_object_clip_set(pi->proxy, evas_object_clip_get(GL_IT(it)->wsd->pan_obj));
    evas_object_smart_member_add(pi->proxy, GL_IT(it)->wsd->pan_obj);
+   elm_widget_sub_object_add(WIDGET(it), pi->proxy);
    evas_object_hide(pi->proxy);
 
    if ((GL_IT(it)->wsd->decorate_all_mode) && (it->deco_all_view))
@@ -7241,29 +7280,13 @@ _elm_genlist_fx_capture(Evas_Object *obj, int level)
      {
         sd->fx_first_captured = EINA_TRUE;
         EINA_LIST_FREE(sd->capture_before_items, pi)
-          {
-             if ((pi->it) && (GL_IT(pi->it))) GL_IT(pi->it)->has_proxy_it = EINA_FALSE;
-             if (pi->proxy)
-               {
-                  evas_object_map_enable_set(pi->proxy, EINA_FALSE);
-                  evas_object_smart_member_del(pi->proxy);
-                  evas_object_del(pi->proxy);
-               }
-          }
+           _elm_genlist_proxy_item_del(pi);
+
      }
    else
      {
         EINA_LIST_FREE(sd->capture_after_items, pi)
-          {
-             if ((pi->it) && (GL_IT(pi->it))) GL_IT(pi->it)->has_proxy_it = EINA_FALSE;
-             if (pi->proxy)
-               {
-                  evas_object_map_enable_set(pi->proxy, EINA_FALSE);
-                  evas_object_smart_member_del(pi->proxy);
-                  evas_object_del(pi->proxy);
-               }
-             free(pi);
-          }
+           _elm_genlist_proxy_item_del(pi);
 
         EINA_INLIST_FOREACH(sd->blocks, itb)
           {
@@ -7562,7 +7585,7 @@ _item_fx_op(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__, double pr
    evas_object_move(fi->proxy, ox, fi_oy);
    evas_object_show(fi->proxy);
 
-   if ((!sd->pinch_zoom_mode) && (!sd->expanded_item))
+   if ((!sd->pinch_zoom_mode) && (!sd->expanded_item) && (!sd->sorting))
      {
         if (fi->type == ELM_GEN_ITEM_FX_TYPE_ADD)
           _item_fx_zoom_process(fi->proxy, 0.8, 1.0, progress);
@@ -7601,44 +7624,29 @@ raise_event_block:
    return;
 }
 
-
-static void
-_item_fx_done(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__)
-{
-   Elm_Gen_FX_Item *fx_done_it = data;
-   Elm_Genlist_Smart_Data *sd;
-
-   if (!fx_done_it || !fx_done_it->it) return;
-
-   sd = GL_IT(fx_done_it->it)->wsd;
-   if (!sd) return;
-
-   evas_object_image_source_visible_set(fx_done_it->proxy, EINA_TRUE);
-   evas_object_lower(fx_done_it->proxy);
-
-   if ((sd->decorate_all_mode) && (fx_done_it->it->deco_all_view))
-     evas_object_move(fx_done_it->it->deco_all_view, fx_done_it->to.x, fx_done_it->to.y);
-   else
-     evas_object_move(VIEW(fx_done_it->it), fx_done_it->to.x, fx_done_it->to.y);
-   GL_IT(fx_done_it->it)->has_proxy_it = EINA_FALSE;
-
-   evas_object_clip_unset(fx_done_it->proxy);
-   evas_object_map_enable_set(fx_done_it->proxy, EINA_FALSE);
-}
-
 static void
 _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
 {
    Elm_Gen_FX_Item *fx_done_it = data;
    Elm_Gen_Item *it = NULL;
    Proxy_Item *pi = NULL;
-   Eina_List *l;
    Elm_Genlist_Smart_Data *sd;
 
    if (!fx_done_it || !fx_done_it->it) return;
 
    sd = GL_IT(fx_done_it->it)->wsd;
    if (!sd) return;
+
+   if ((sd->decorate_all_mode) && (fx_done_it->it->deco_all_view))
+     _item_position(fx_done_it->it, fx_done_it->it->deco_all_view,
+                    fx_done_it->to.x, fx_done_it->to.y);
+   else
+     _item_position(fx_done_it->it, VIEW(fx_done_it->it),
+                    fx_done_it->to.x, fx_done_it->to.y);
+
+   evas_object_image_source_visible_set(fx_done_it->proxy, EINA_TRUE);
+   evas_object_lower(fx_done_it->proxy);
+   GL_IT(fx_done_it->it)->has_proxy_it = EINA_FALSE;
 
    sd->fx_items = eina_list_remove(sd->fx_items, fx_done_it);
    GL_IT(fx_done_it->it)->fi = NULL;
@@ -7665,14 +7673,15 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
 
         EINA_LIST_FREE (sd->pending_del_items, it)
           {
-             _item_free(it);
+             _item_del_post_process(it);
              _elm_widget_item_free((Elm_Widget_Item *)it);
           }
 
-        EINA_LIST_FOREACH(sd->capture_before_items, l, pi)
-           evas_object_hide(pi->proxy);
-        EINA_LIST_FOREACH(sd->capture_after_items, l, pi)
-           evas_object_hide(pi->proxy);
+        EINA_LIST_FREE(sd->capture_before_items, pi)
+           if (pi->it) _elm_genlist_proxy_item_del(pi);
+
+        EINA_LIST_FREE(sd->capture_after_items, pi)
+           if (pi->it) _elm_genlist_proxy_item_del(pi);
 
         sd->fx_playing = EINA_FALSE;
         sd->sorting = EINA_FALSE;
@@ -7711,7 +7720,7 @@ _sorting_effect_animator_cb(void *data)
              elm_transit_effect_translation_add(fi->trans, fi->to.x, fi->to.y - 30 * elm_config_scale_get(), fi->to.x, fi->to.y);
              elm_transit_effect_color_add(fi->trans,0, 0, 0, 0, 255,255,255,255);
 
-             elm_transit_effect_add(fi->trans, _item_fx_op, fi, _item_fx_done);
+             elm_transit_effect_add(fi->trans, _item_fx_op, fi, NULL);
              elm_transit_del_cb_set(fi->trans, _item_fx_del_cb, fi);
              elm_transit_duration_set(fi->trans,0.3);
              elm_transit_objects_final_state_keep_set(fi->trans, EINA_FALSE);
@@ -7811,7 +7820,7 @@ _elm_genlist_fx_play(Evas_Object *obj)
              elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
              elm_transit_effect_color_add(fi->trans, 255, 255, 255, 255, 0, 0, 0, 0);
           }
-        elm_transit_effect_add(fi->trans, _item_fx_op, fi, _item_fx_done);
+        elm_transit_effect_add(fi->trans, _item_fx_op, fi, NULL);
         elm_transit_del_cb_set(fi->trans, _item_fx_del_cb, fi);
 
         elm_transit_duration_set(fi->trans, FX_MOVE_TIME);
