@@ -2,7 +2,11 @@
 #include "elm_priv.h"
 #include "elm_widget_ctxpopup.h"
 
+#define OUTLINE_TEXT "Center popup is opened, double tap to close the popup"
+
 EAPI const char ELM_CTXPOPUP_SMART_NAME[] = "elm_ctxpopup";
+
+static const char ACCESS_OUTLINE_PART[] = "access.outline";
 
 static const char SIG_DISMISSED[] = "dismissed";
 static const char SIG_LANG_CHANGED[] = "language,changed";
@@ -25,6 +29,18 @@ _elm_ctxpopup_smart_translate(Evas_Object *obj)
    return EINA_TRUE;
 }
 
+static Evas_Object *
+_access_object_get(const Evas_Object *obj, const char* part)
+{
+   Evas_Object *po, *ao;
+   ELM_CTXPOPUP_DATA_GET(obj, sd);
+
+   po = (Evas_Object *)edje_object_part_object_get(ELM_WIDGET_DATA(sd)->resize_obj, part);
+   ao = evas_object_data_get(po, "_part_access_obj");
+
+   return ao;
+}
+
 static Eina_Bool
 _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
                                Elm_Focus_Direction dir,
@@ -33,11 +49,18 @@ _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
    Eina_List *items = NULL;
    Eina_List *elist = NULL;
    Elm_Ctxpopup_Item *it;
+   Evas_Object *ao;
 
    ELM_CTXPOPUP_DATA_GET(obj, sd);
 
    if (!sd)
      return EINA_FALSE;
+
+   if (_elm_config->access_mode)
+     {
+        ao = _access_object_get(obj, ACCESS_OUTLINE_PART);
+        if (ao) items = eina_list_append(items, ao);
+     }
 
    if (eina_list_count(sd->items))
      {
@@ -1444,6 +1467,37 @@ _elm_ctxpopup_smart_disable(Evas_Object *obj)
 }
 
 static void
+_access_outline_activate_cb(void *data,
+                        Evas_Object *part_obj __UNUSED__,
+                        Elm_Object_Item *item __UNUSED__)
+{
+   evas_object_hide(data);
+   evas_object_smart_callback_call(data, SIG_DISMISSED, NULL);
+}
+
+static void
+_access_obj_process(Evas_Object *obj, Eina_Bool is_access)
+{
+   Evas_Object *ao;
+   ELM_CTXPOPUP_DATA_GET(obj, sd);
+
+   if (is_access)
+     {
+        ao = _elm_access_edje_object_part_object_register
+               (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_OUTLINE_PART);
+        _elm_access_text_set(_elm_access_object_get(ao),
+                             ELM_ACCESS_TYPE, E_(OUTLINE_TEXT));
+        _elm_access_activate_callback_set
+          (_elm_access_object_get(ao), _access_outline_activate_cb, obj);
+     }
+   else
+     {
+        _elm_access_edje_object_part_object_unregister
+               (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_OUTLINE_PART);
+     }
+}
+
+static void
 _elm_ctxpopup_smart_add(Evas_Object *obj)
 {
    EVAS_SMART_DATA_ALLOC(obj, Elm_Ctxpopup_Smart_Data);
@@ -1511,6 +1565,9 @@ _elm_ctxpopup_smart_add(Evas_Object *obj)
    evas_object_event_callback_add(obj, EVAS_CALLBACK_MOVE, _on_move, NULL);
 
    elm_widget_can_focus_set(obj, EINA_TRUE);
+
+   /* access */
+   if (_elm_config->access_mode) _access_obj_process(obj, EINA_TRUE);
 }
 
 static void
@@ -1551,6 +1608,8 @@ _elm_ctxpopup_smart_access(Evas_Object *obj, Eina_Bool is_access)
 
    ELM_CTXPOPUP_CHECK(obj);
    ELM_CTXPOPUP_DATA_GET(obj, sd);
+
+   _access_obj_process(obj, is_access);
 
    EINA_LIST_FOREACH(sd->items, elist, it)
      _access_widget_item_register(it, is_access);
