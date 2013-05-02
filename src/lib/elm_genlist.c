@@ -2181,6 +2181,8 @@ _elm_genlist_pan_smart_calculate(Evas_Object *obj)
 #endif
    if (psd->wsd->pan_changed)
      {
+        if (psd->wsd->calc_job) ecore_job_del(psd->wsd->calc_job);
+        psd->wsd->calc_job = NULL;
         _calc_job(psd->wsd);
         psd->wsd->pan_changed = EINA_FALSE;
      }
