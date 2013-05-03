@@ -372,6 +372,56 @@ tsf_change(void *data       __UNUSED__,
 }
 
 static void
+tsmf_round(void *data       __UNUSED__,
+           Evas_Object     *obj,
+           void *event_info __UNUSED__)
+{
+   double val = elm_slider_value_get(obj);
+   double v;
+
+   v = ((double)((int)(val * 10.0))) / 10.0;
+   if (v != val) elm_slider_value_set(obj, v);
+}
+
+static void
+tsmf_change(void *data       __UNUSED__,
+            Evas_Object     *obj,
+            void *event_info __UNUSED__)
+{
+   double tsmf = elm_config_scroll_thumbscroll_min_friction_get();
+   double val = elm_slider_value_get(obj);
+
+   if (tsmf == val) return;
+   elm_config_scroll_thumbscroll_min_friction_set(val);
+   elm_config_all_flush();
+}
+
+static void
+tsfs_round(void *data       __UNUSED__,
+           Evas_Object     *obj,
+           void *event_info __UNUSED__)
+{
+   double val = elm_slider_value_get(obj);
+   double v;
+
+   v = ((double)((int)(val * 10.0))) / 10.0;
+   if (v != val) elm_slider_value_set(obj, v);
+}
+
+static void
+tsfs_change(void *data       __UNUSED__,
+            Evas_Object     *obj,
+            void *event_info __UNUSED__)
+{
+   double tsfs = elm_config_scroll_thumbscroll_friction_standard_get();
+   double val = elm_slider_value_get(obj);
+
+   if (tsfs == val) return;
+   elm_config_scroll_thumbscroll_friction_standard_set(val);
+   elm_config_all_flush();
+}
+
+static void
 tsbf_round(void *data       __UNUSED__,
            Evas_Object     *obj,
            void *event_info __UNUSED__)
@@ -972,9 +1022,13 @@ _font_overlay_change(void *data       __UNUSED__,
 static void
 _config_display_update(Evas_Object *win)
 {
-   int flush_interval, font_c, image_c, edje_file_c, edje_col_c, ts_threshould, ts_hold_threshold;
+   int flush_interval, font_c, image_c, edje_file_c, edje_col_c, ts_threshould,
+       ts_hold_threshold;
    double scale, s_bounce_friction, ts_momentum_threshold, ts_friction,
-          ts_border_friction, ts_sensitivity_friction, page_friction, bring_in_friction, zoom_friction;
+          ts_min_friction, ts_friction_standard, ts_border_friction,
+          ts_sensitivity_friction, ts_acceleration_threshold,
+          ts_acceleration_time_limit, ts_acceleration_weight, page_friction,
+          bring_in_friction, zoom_friction;
    const char *curr_theme, *curr_engine;
    const Eina_List *l_items, *l;
    Eina_Bool s_bounce, ts;
@@ -997,6 +1051,8 @@ _config_display_update(Evas_Object *win)
    ts_hold_threshold = elm_config_scroll_thumbscroll_hold_threshold_get();
    ts_momentum_threshold = elm_config_scroll_thumbscroll_momentum_threshold_get();
    ts_friction = elm_config_scroll_thumbscroll_friction_get();
+   ts_min_friction = elm_config_scroll_thumbscroll_min_friction_get();
+   ts_friction_standard = elm_config_scroll_thumbscroll_friction_standard_get();
    ts_border_friction = elm_config_scroll_thumbscroll_border_friction_get();
    ts_sensitivity_friction = elm_config_scroll_thumbscroll_sensitivity_friction_get();
    page_friction = elm_config_scroll_page_scroll_friction_get();
@@ -1036,6 +1092,12 @@ _config_display_update(Evas_Object *win)
                         ts_momentum_threshold);
    elm_slider_value_set(evas_object_data_get(win,
                                              "thumbscroll_friction_slider"),
+                        ts_friction);
+   elm_slider_value_set(evas_object_data_get(win,
+                                             "thumbscroll_min_friction_slider"),
+                        ts_min_friction);
+   elm_slider_value_set(evas_object_data_get(win,
+                                             "thumbscroll_friction__standard_slider"),
                         ts_friction);
    elm_slider_value_set(evas_object_data_get(win, "ts_border_friction_slider"),
                         ts_border_friction);
@@ -2707,6 +2769,47 @@ _status_config_scrolling(Evas_Object *win,
 
    evas_object_smart_callback_add(sl, "changed", tsf_round, NULL);
    evas_object_smart_callback_add(sl, "delay,changed", tsf_change, NULL);
+
+   LABEL_FRAME_ADD("<hilight>Thumb scroll min friction</>");
+
+   sl = elm_slider_add(win);
+   elm_object_tooltip_text_set(sl, "This is the min amount of inertia a<br/>"
+                                   "scroller will impose at self scrolling<br/>"
+                                   "animations");
+   evas_object_data_set(win, "thumbscroll_min_friction_slider", sl);
+   evas_object_size_hint_weight_set(sl, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
+   elm_slider_span_size_set(sl, 120);
+   elm_slider_unit_format_set(sl, "%1.1f");
+   elm_slider_indicator_format_set(sl, "%1.1f");
+   elm_slider_min_max_set(sl, 0.0, 15.0);
+   elm_slider_value_set(sl, elm_config_scroll_thumbscroll_min_friction_get());
+   elm_box_pack_end(bx, sl);
+   evas_object_show(sl);
+
+   evas_object_smart_callback_add(sl, "changed", tsmf_round, NULL);
+   evas_object_smart_callback_add(sl, "delay,changed", tsmf_change, NULL);
+
+   LABEL_FRAME_ADD("<hilight>Thumb scroll friction standard</>");
+
+   sl = elm_slider_add(win);
+   elm_object_tooltip_text_set(sl, "This is the standard velocity of the scroller."
+                                   "<br/>The scroll animation time is same<br/>"
+                                   "with thumbscroll friction, if the velocity"
+                                   "<br/>is same with standard velocity.");
+   evas_object_data_set(win, "thumbscroll_friction_standard_slider", sl);
+   evas_object_size_hint_weight_set(sl, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
+   elm_slider_span_size_set(sl, 120);
+   elm_slider_unit_format_set(sl, "%1.0f pixel/s");
+   elm_slider_indicator_format_set(sl, "%1.0f");
+   elm_slider_min_max_set(sl, 10.0, 5000.0);
+   elm_slider_value_set(sl, elm_config_scroll_thumbscroll_friction_standard_get());
+   elm_box_pack_end(bx, sl);
+   evas_object_show(sl);
+
+   evas_object_smart_callback_add(sl, "changed", tsfs_round, NULL);
+   evas_object_smart_callback_add(sl, "delay,changed", tsfs_change, NULL);
 
    LABEL_FRAME_ADD("<hilight>Thumb scroll border friction</>");
 

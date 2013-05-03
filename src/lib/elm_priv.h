@@ -163,7 +163,7 @@ struct _Elm_Config
    double        thumbscroll_momentum_threshold;
    double        thumbscroll_friction;
    double        thumbscroll_min_friction;
-   int           thumbscroll_friction_standard;
+   double        thumbscroll_friction_standard;
    double        thumbscroll_bounce_friction;
    double        page_scroll_friction;
    double        bring_in_scroll_friction;

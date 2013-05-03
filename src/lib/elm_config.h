@@ -410,7 +410,7 @@ EAPI void         elm_config_scroll_thumbscroll_min_friction_set(double friction
  *
  * @ingroup Scrolling
  */
-EAPI int          elm_config_scroll_thumbscroll_friction_standard_get(void);
+EAPI double       elm_config_scroll_thumbscroll_friction_standard_get(void);
 
 /**
  * Set the standard velocity of the scroller. The scroll animation time is
@@ -422,7 +422,7 @@ EAPI int          elm_config_scroll_thumbscroll_friction_standard_get(void);
  * @see elm_config_thumbscroll_friction_standard_get()
  * @ingroup Scrolling
  */
-EAPI void         elm_config_scroll_thumbscroll_friction_standard_set(int standard);
+EAPI void         elm_config_scroll_thumbscroll_friction_standard_set(double standard);
 
 /**
  * Get the amount of lag between your actual mouse cursor dragging
