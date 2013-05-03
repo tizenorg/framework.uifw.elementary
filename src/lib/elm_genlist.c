@@ -2581,7 +2581,12 @@ _elm_genlist_smart_focus_next(const Evas_Object *obj,
                   if (it->realized)
                     {
                        evas_object_geometry_get(it->base.view, &x, &y, &w, &h);
-                       items = eina_list_append(items, it->base.access_obj);
+
+                       /* check item which displays more than half of its size */
+                       if (it->base.access_obj &&
+                           ELM_RECTS_INTERSECT
+                             (x + (w / 2), y + (h / 2), 0, 0, sx, sy, sw, sh))
+                         items = eina_list_append(items, it->base.access_obj);
 
                        if (!it->base.access_order) continue;
 
