@@ -1977,15 +1977,12 @@ _item_block_position(Item_Block *itb,
         it->item->scrl_x = itb->x + it->x - GL_IT(it)->wsd->pan_x + ox;
         it->item->scrl_y = itb->y + it->y - GL_IT(it)->wsd->pan_y + oy;
 
-        if ((itb->realized) && (!it->realized))
+        if ((ELM_RECTS_INTERSECT
+             (it->item->scrl_x, it->item->scrl_y, it->item->w, it->item->h,
+              cvx, cvy, cvw, cvh)))
           {
-             if ((ELM_RECTS_INTERSECT
-                  (it->item->scrl_x, it->item->scrl_y, it->item->w, it->item->h,
-                   cvx, cvy, cvw, cvh)))
-               _item_realize(it, in, EINA_FALSE);
-          }
-        if (it->realized)
-          {
+             if (itb->realized && !(it->realized))
+                _item_realize(it, in, EINA_FALSE);
 #if GENLIST_ENTRY_SUPPORT
              evas_object_show(VIEW(it));
 #endif
@@ -2046,7 +2043,7 @@ _item_block_position(Item_Block *itb,
 #endif
                }
           }
-        else
+        else if (it->realized && !(it->dragging))
           {
              if ((GL_IT(it)->wsd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT)
                  && (!IS_ROOT_PARENT_IT(it)))
