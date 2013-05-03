@@ -385,9 +385,7 @@ _items_remove(Elm_Ctxpopup_Smart_Data *sd)
    if (!sd->items) return;
 
    EINA_LIST_FOREACH(sd->items, elist, item)
-     {
-         _item_del_pre_hook((Elm_Object_Item *)item);
-     }
+     elm_widget_item_del(item);
 
    sd->items = NULL;
 }
