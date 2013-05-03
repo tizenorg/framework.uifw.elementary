@@ -1658,7 +1658,10 @@ elm_naviframe_item_push(Evas_Object *obj,
    evas_object_show(VIEW(it));
    elm_widget_resize_object_set(obj, VIEW(it));
    if (prev_it)
-     elm_widget_sub_object_add(obj, VIEW(prev_it));
+     {
+        elm_widget_focused_object_clear(VIEW(prev_it));
+        elm_widget_sub_object_add(obj, VIEW(prev_it));
+     }
    evas_object_smart_member_add(sd->dummy_edje, obj);
 
    if (prev_it)
@@ -1757,6 +1760,7 @@ elm_naviframe_item_insert_after(Evas_Object *obj,
    if (top_inserted)
      {
         elm_widget_resize_object_set(obj, VIEW(it));
+        elm_widget_focused_object_clear(VIEW(after));
         elm_widget_sub_object_add(obj, VIEW(after));
         evas_object_smart_member_add(sd->dummy_edje, obj);
         evas_object_show(VIEW(it));
@@ -1913,6 +1917,7 @@ elm_naviframe_item_promote(Elm_Object_Item *it)
    sd->stack = eina_inlist_demote(sd->stack, EINA_INLIST_GET(nit));
 
    elm_widget_resize_object_set(WIDGET(it), VIEW(nit));
+   elm_widget_focused_object_clear(VIEW(prev_top));
    elm_widget_sub_object_add(WIDGET(it), VIEW(prev_top));
    evas_object_smart_member_add(sd->dummy_edje, WIDGET(it));
 
