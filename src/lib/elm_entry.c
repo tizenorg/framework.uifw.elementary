@@ -237,10 +237,8 @@ _magnifier_hide(void *data)
      {
         evas_object_hide(sd->mgf_bg);
         evas_object_hide(sd->mgf_clip);
+        elm_object_scroll_freeze_pop(data);
      }
-
-   if (sd->scroll)
-     sd->s_iface->freeze_set(data, EINA_FALSE);
 
    sd->magnifier_showing = EINA_FALSE;
 }
@@ -254,6 +252,7 @@ _magnifier_show(void *data)
    {
       evas_object_show(sd->mgf_bg);
       evas_object_show(sd->mgf_clip);
+      elm_object_scroll_freeze_push(data);
    }
 
    sd->magnifier_showing = EINA_TRUE;
@@ -389,7 +388,6 @@ _magnifier_create(void *data)
 
    if (sd->scroll)
      {
-        sd->s_iface->freeze_set(data, EINA_TRUE);
         sd->mgf_proxy = evas_object_image_add(evas_object_evas_get(sd->scr_edje));
         evas_object_image_source_set(sd->mgf_proxy, sd->scr_edje);
      }
