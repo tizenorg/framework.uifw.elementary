@@ -5218,13 +5218,13 @@ _item_free(Elm_Gen_Item *it)
 {
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
 
-   _item_unrealize(it, EINA_FALSE);
    elm_widget_item_pre_notify_del(it);
    if (it->itc->func.del)
      it->itc->func.del((void *)it->base.data, WIDGET(it));
    if (it->tooltip.del_cb)
      it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
    _item_free_common(it);
+   _item_unrealize(it, EINA_FALSE);
    elm_genlist_item_class_unref((Elm_Genlist_Item_Class *)it->itc);
    free(it->item);
    it->item = NULL;
@@ -5269,12 +5269,6 @@ _item_del_post_process(Elm_Gen_Item *it)
                          elm_widget_scale_get(WIDGET(it))
                          * elm_config_scale_get());
 
-   elm_widget_item_pre_notify_del(it);
-   if (it->itc->func.del)
-     it->itc->func.del((void *)it->base.data, WIDGET(it));
-   if (it->tooltip.del_cb)
-     it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
-
    if (VIEW(it)) evas_object_del(VIEW(it));
    if (it->spacer) evas_object_del(it->spacer);
 
@@ -5304,6 +5298,11 @@ _item_del_pre_process(Elm_Gen_Item *it)
           sd->pending_del_items = eina_list_append(sd->pending_del_items, it);
      }
 
+   elm_widget_item_pre_notify_del(it);
+   if (it->itc->func.del)
+     it->itc->func.del((void *)it->base.data, WIDGET(it));
+   if (it->tooltip.del_cb)
+     it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
    _item_free_common(it);
 
    edje_object_signal_callback_del_full(VIEW(it), "elm,action,expand,toggle",
