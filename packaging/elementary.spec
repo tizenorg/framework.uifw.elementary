@@ -65,8 +65,8 @@ rm -rf %{buildroot}
 %make_install
 mkdir -p %{buildroot}/usr/share/license
 cp %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/usr/share/license/%{name}
-mkdir -p %{buildroot}/usr/share/locale/dt_fmt/LC_MESSAGES/
-cp %{_builddir}/%{buildsubdir}/po/dt_fmt.mo %{buildroot}/usr/share/locale/dt_fmt/LC_MESSAGES/
+mkdir -p %{buildroot}/usr/share/locale/en_US/LC_MESSAGES/
+cp %{_builddir}/%{buildsubdir}/po/dt_fmt.mo %{buildroot}/usr/share/locale/en_US/LC_MESSAGES/
 
 %post -p /sbin/ldconfig
 
