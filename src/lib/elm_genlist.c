@@ -5215,6 +5215,7 @@ _item_free(Elm_Gen_Item *it)
 {
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
 
+   if (sd->focused == it) sd->focused = NULL;
    elm_widget_item_pre_notify_del(it);
    if (it->itc->func.del)
      it->itc->func.del((void *)it->base.data, WIDGET(it));
@@ -5769,6 +5770,7 @@ elm_genlist_clear(Evas_Object *obj)
    ELM_GENLIST_DATA_GET(obj, sd);
    Elm_Gen_Item *it;
 
+   sd->focused = NULL;
    if (sd->state)
      {
         eina_inlist_sorted_state_free(sd->state);
