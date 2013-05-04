@@ -373,7 +373,34 @@ _magnifier_create(void *data)
    key_data = edje_object_data_get(sd->mgf_bg, "height");
    if (key_data) sd->mgf_height = atoi(key_data);
    key_data = edje_object_data_get(sd->mgf_bg, "scale");
-   if (key_data) sd->mgf_scale = atof(key_data);
+   if (key_data)
+     {
+        struct lconv *lc;
+        lc = localeconv();
+        if (lc && lc->decimal_point && strcmp(lc->decimal_point, "."))
+          {
+             char local[128];
+             strncpy(local, key_data, 128);
+             local[127] = '\0';
+             /* change '.' to local decimal point (ex: ',') */
+             int j = 0;
+             while(local[j] != 0)
+               {
+                  if (local[j] == '.')
+                    {
+                       local[j] = lc->decimal_point[0];
+                       break;
+                    }
+                  j++;
+               }
+             sd->mgf_scale = atof(local);
+          }
+        else
+          sd->mgf_scale = atof(key_data);
+     }
+   else
+     sd->mgf_scale = 1.0;
+
    key_data = edje_object_data_get(sd->mgf_bg, "arrow");
    if (key_data)
      sd->mgf_arrow_height = atoi(key_data);
