@@ -6959,7 +6959,6 @@ elm_genlist_item_class_new(void)
 
    itc->version = CLASS_ALLOCATED;
    itc->refcount = 1;
-   itc->delete_me = EINA_FALSE;
 
    return itc;
 }
@@ -6969,7 +6968,6 @@ elm_genlist_item_class_free(Elm_Genlist_Item_Class *itc)
 {
    if (itc && (itc->version == CLASS_ALLOCATED))
      {
-        itc->delete_me = EINA_TRUE;
         itc->func.text_get = NULL;
         itc->func.content_get = NULL;
         itc->func.state_get = NULL;
@@ -6999,8 +6997,7 @@ elm_genlist_item_class_unref(Elm_Genlist_Item_Class *itc)
    if (itc && (itc->version == CLASS_ALLOCATED))
      {
         if (itc->refcount > 0) itc->refcount--;
-        if (itc->delete_me && (!itc->refcount))
-          elm_genlist_item_class_free(itc);
+        if (!itc->refcount) elm_genlist_item_class_free(itc);
      }
 }
 
