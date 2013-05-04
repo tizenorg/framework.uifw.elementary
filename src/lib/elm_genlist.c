@@ -5260,7 +5260,6 @@ _item_free(Elm_Gen_Item *it)
 {
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
 
-   if (sd->focused == it) sd->focused = NULL;
    elm_widget_item_pre_notify_del(it);
    if (it->itc->func.del)
      it->itc->func.del((void *)it->base.data, WIDGET(it));
@@ -5306,6 +5305,20 @@ _item_del_post_process(Elm_Gen_Item *it)
         }
 
    _item_unrealize(it, EINA_FALSE);
+<<<<<<< HEAD
+=======
+   edje_object_mirrored_set(VIEW(it),
+                            elm_widget_mirrored_get(WIDGET(it)));
+   edje_object_scale_set(VIEW(it),
+                         elm_widget_scale_get(WIDGET(it))
+                         * elm_config_scale_get());
+
+   if (VIEW(it)) evas_object_del(VIEW(it));
+   if (it->spacer) evas_object_del(it->spacer);
+
+   VIEW(it) = NULL;
+   it->spacer = NULL;
+>>>>>>> 96e88c6... [Genlist] Change temporarily item unrealize and del flow for preventing wifi BS. This will be reverted after application announcement
 
    elm_genlist_item_class_unref((Elm_Genlist_Item_Class *)it->itc);
    if (it->item) free(it->item);
