@@ -243,6 +243,12 @@ _elm_popup_smart_del(Evas_Object *obj)
      }
 
    ELM_WIDGET_CLASS(_elm_popup_parent_sc)->base.del(obj);
+
+   if (sd->notify)
+     {
+        evas_object_del(sd->notify);
+        sd->notify = NULL;
+     }
 }
 
 static void
