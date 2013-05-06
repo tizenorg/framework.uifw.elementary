@@ -159,7 +159,7 @@ _conformant_part_sizing_eval(Evas_Object *obj,
           _conformant_part_size_hints_set(obj, sd->portrait_indicator, sx, sy, sw, sh);
      }
 
-   if (part_type & ELM_CONFORMANT_VIRTUAL_KEYPAD_PART)
+   if ((part_type & ELM_CONFORMANT_VIRTUAL_KEYPAD_PART) && sd->virtualkeypad)
      {
         if ((!_conformant_part_geometry_get_from_env
                ("ILLUME_KBD", &sx, &sy, &sw, &sh)) && (xwin))
@@ -187,7 +187,7 @@ _conformant_part_sizing_eval(Evas_Object *obj,
           (obj, sd->virtualkeypad, sx, sy, sw, sh);
      }
 
-   if (part_type & ELM_CONFORMANT_SOFTKEY_PART)
+   if ((part_type & ELM_CONFORMANT_SOFTKEY_PART) && sd->softkey)
      {
         if ((!_conformant_part_geometry_get_from_env
                ("ILLUME_STK", &sx, &sy, &sw, &sh)) && (xwin))
@@ -203,7 +203,7 @@ _conformant_part_sizing_eval(Evas_Object *obj,
           }
         _conformant_part_size_hints_set(obj, sd->softkey, sx, sy, sw, sh);
      }
-   if (part_type & ELM_CONFORMANT_CLIPBOARD_PART)
+   if ((part_type & ELM_CONFORMANT_CLIPBOARD_PART) && sd->clipboard)
      {
         if ((!_conformant_part_geometry_get_from_env
                ("ILLUME_CB", &sx, &sy, &sw, &sh)) && (xwin))
