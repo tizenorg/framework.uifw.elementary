@@ -1640,7 +1640,6 @@ _elm_ctxpopup_smart_set_user(Elm_Ctxpopup_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->sub_object_add = _elm_ctxpopup_smart_sub_object_add;
    ELM_WIDGET_CLASS(sc)->focus_next = _elm_ctxpopup_smart_focus_next;
    ELM_WIDGET_CLASS(sc)->focus_direction = _elm_ctxpopup_smart_focus_direction;
-   ELM_WIDGET_CLASS(sc)->translate = _elm_ctxpopup_smart_translate;
 
    ELM_CONTAINER_CLASS(sc)->content_get = _elm_ctxpopup_smart_content_get;
    ELM_CONTAINER_CLASS(sc)->content_set = _elm_ctxpopup_smart_content_set;
