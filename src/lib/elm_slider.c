@@ -733,14 +733,15 @@ _access_info_cb(void *data __UNUSED__, Evas_Object *obj)
 static char *
 _access_state_cb(void *data __UNUSED__, Evas_Object *obj)
 {
+   /* Tizen Only */
    char *ret;
    Eina_Strbuf *buf = eina_strbuf_new();
    const char *txt = elm_layout_text_get(obj, "elm.units");
 
    if (txt) eina_strbuf_append(buf, txt);
 
-   if (elm_widget_disabled_get(obj))
-     eina_strbuf_append(buf, " state: disabled");
+   if (!elm_widget_disabled_get(obj))
+     eina_strbuf_append(buf, E_(" flick up and down to adjust"));
 
    if (eina_strbuf_length_get(buf))
      {
