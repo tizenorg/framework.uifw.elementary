@@ -16,9 +16,11 @@
 EAPI const char ELM_GENLIST_SMART_NAME[] = "elm_genlist";
 EAPI const char ELM_GENLIST_PAN_SMART_NAME[] = "elm_genlist_pan";
 
-#define ERR_ABORT(_msg) \
-  ERR(_msg);            \
-  if (getenv("ELM_ERROR_ABORT")) abort();
+#define ERR_ABORT(_msg)                         \
+   do {                                         \
+        ERR(_msg);                              \
+        if (getenv("ELM_ERROR_ABORT")) abort(); \
+   } while (0)
 
 #define GL_IT(_it) (_it->item)
 
