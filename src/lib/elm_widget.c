@@ -1335,7 +1335,7 @@ elm_widget_can_focus_set(Evas_Object *obj,
           {
              o = elm_widget_parent_get(o);
              if (!o) break;
-			 sd = evas_object_smart_data_get(o);
+             sd = evas_object_smart_data_get(o);
              if (!sd || sd->child_can_focus) break;
              sd->child_can_focus = EINA_TRUE;
           }
