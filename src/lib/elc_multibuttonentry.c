@@ -379,8 +379,6 @@ _on_item_expanding_transit_del(void *data,
 
    rect = (Evas_Object *)evas_object_data_get(VIEW(it), "effect_rect");
    if (!rect) return;
-
-   _after_rect_expand(rect, it);
 }
 
 static Eina_Bool
@@ -416,6 +414,7 @@ _item_adding_effect_add(Evas_Object *obj,
    Elm_Transit *trans;
    Evas_Coord minh_wo_entry, minh;
    Eina_Bool floating = EINA_FALSE;;
+   Evas_Object *rect = NULL;
 
    ELM_MULTIBUTTONENTRY_DATA_GET(obj, sd);
 
@@ -425,7 +424,6 @@ _item_adding_effect_add(Evas_Object *obj,
    if (sd->boxh < minh)
      {
         Evas_Coord bx, by, bw, bh;
-        Evas_Object *rect;
         Ecore_Animator *anim;
 
         evas_object_geometry_get(sd->box, &bx, &by, &bw, &bh);
@@ -505,6 +503,7 @@ _item_adding_effect_add(Evas_Object *obj,
           }
         evas_object_show(VIEW(it));
      }
+   if (rect) _after_rect_expand(rect, it);
 
    trans = elm_transit_add();
    elm_transit_object_add(trans, VIEW(it));
@@ -1014,7 +1013,7 @@ _layout_shrink(Evas_Object *obj,
                {
                   evas_object_size_hint_min_get(sd->entry, &mnw, NULL);
                   linew += mnw;
-                  if (linew > w)
+                  if (linew > (w * (2 / 3)))
                     sd->expanded_state = EINA_FALSE;
                   else
                     {
