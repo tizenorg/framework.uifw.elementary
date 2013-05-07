@@ -187,9 +187,6 @@ _elm_plug_smart_activate(Evas_Object *obj, Elm_Activate act)
        case ELM_ACTIVATE_DOWN:
           msg_id = ELM_ACCESS_ACTION_DOWN;
           break;
-
-       default:
-          break;
      }
 
    if (msg_id == ELM_ACCESS_ACTION_FIRST) return EINA_FALSE;
