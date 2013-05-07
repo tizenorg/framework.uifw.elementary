@@ -6978,10 +6978,6 @@ elm_genlist_item_class_free(Elm_Genlist_Item_Class *itc)
    if (itc && (itc->version == CLASS_ALLOCATED))
      {
         itc->delete_me = EINA_TRUE;
-        itc->func.text_get = NULL;
-        itc->func.content_get = NULL;
-        itc->func.state_get = NULL;
-        itc->func.del = NULL;
         if (itc->refcount > 0) elm_genlist_item_class_unref(itc);
         else
           {
