@@ -264,12 +264,15 @@ _access_obj_process(Evas_Object *obj, Eina_Bool is_access)
           }
 
         /* register outline */
-        ao = _elm_access_edje_object_part_object_register
-               (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_BASE_PART);
-        _elm_access_text_set(_elm_access_object_get(ao),
-                             ELM_ACCESS_TYPE, E_(OUTLINE_TEXT));
-        _elm_access_activate_callback_set
-          (_elm_access_object_get(ao), _access_base_activate_cb, obj);
+        if (!sd->button_count)
+          {
+             ao = _elm_access_edje_object_part_object_register
+                    (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_BASE_PART);
+             _elm_access_text_set(_elm_access_object_get(ao),
+                                  ELM_ACCESS_TYPE, E_(OUTLINE_TEXT));
+             _elm_access_activate_callback_set
+               (_elm_access_object_get(ao), _access_base_activate_cb, obj);
+          }
      }
    else
      {
@@ -286,8 +289,9 @@ _access_obj_process(Evas_Object *obj, Eina_Bool is_access)
           }
 
         /* unregister outline */
-        _elm_access_edje_object_part_object_unregister
-               (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_BASE_PART);
+        if (!sd->button_count)
+          _elm_access_edje_object_part_object_unregister
+                 (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_BASE_PART);
      }
 }
 
@@ -1152,6 +1156,7 @@ _action_button_set(Evas_Object *obj,
    int i = 0;
    Action_Area_Data *adata;
    char buf[128];
+   Evas_Object *ao;
 
    ELM_POPUP_DATA_GET(obj, sd);
 
@@ -1169,6 +1174,17 @@ _action_button_set(Evas_Object *obj,
         sd->no_shift = EINA_TRUE;
         evas_object_del(sd->buttons[idx]->btn);
         sd->no_shift = EINA_FALSE;
+     }
+
+   if (_elm_config->access_mode)
+     {
+        /* if popup has a button, popup should be closed by the button
+           so outline(ACCESS_BASE_PART) is not necessary any more */
+        ao = _access_object_get(obj, ACCESS_BASE_PART);
+
+        if (ao && sd->button_count)
+          _elm_access_edje_object_part_object_unregister
+               (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_BASE_PART);
      }
 
    snprintf(buf, sizeof(buf), "buttons%u", sd->button_count);
