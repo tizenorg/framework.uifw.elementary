@@ -1385,6 +1385,7 @@ elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *act
    Evas *evas;
    Evas_Object *ho;
    Elm_Access_Action_Info *a;
+   Eina_Bool ret;
 
    a = (Elm_Access_Action_Info *) action_info;
 
@@ -1439,19 +1440,21 @@ elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *act
         break;
 
       case ELM_ACCESS_ACTION_SCROLL:
-        _elm_access_highlight_object_scroll(obj, a->mouse_type, a->x, a->y);
-
         ho = _access_highlight_object_get(obj);
         if (ho)
-          _access_action_callback_call(ho, ELM_ACCESS_ACTION_SCROLL, a);
+          ret = _access_action_callback_call(ho, ELM_ACCESS_ACTION_SCROLL, a);
+
+        if (!ret)
+          _elm_access_highlight_object_scroll(obj, a->mouse_type, a->x, a->y);
         break;
 
       case ELM_ACCESS_ACTION_MOUSE:
-        _elm_access_highlight_object_mouse(obj, a->mouse_type, a->x, a->y);
-
         ho = _access_highlight_object_get(obj);
         if (ho)
-          _access_action_callback_call(ho, ELM_ACCESS_ACTION_MOUSE, a);
+          ret = _access_action_callback_call(ho, ELM_ACCESS_ACTION_MOUSE, a);
+
+        if (!ret)
+          _elm_access_highlight_object_mouse(obj, a->mouse_type, a->x, a->y);
         break;
 
       case ELM_ACCESS_ACTION_BACK:
