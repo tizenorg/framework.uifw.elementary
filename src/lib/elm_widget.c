@@ -6,11 +6,12 @@
 static const char ELM_WIDGET_SMART_NAME[] = "elm_widget";
 
 #define API_ENTRY                                               \
-  Elm_Widget_Smart_Data * sd = evas_object_smart_data_get(obj); \
-  if ((!sd) || (!_elm_widget_is(obj)))
+  Elm_Widget_Smart_Data * sd;                                   \
+  if ((!obj) || (!_elm_widget_is(obj)) ||                       \
+      (!(sd = evas_object_smart_data_get(obj))))
 #define INTERNAL_ENTRY                                          \
-  Elm_Widget_Smart_Data * sd = evas_object_smart_data_get(obj); \
-  if (!sd)                                                      \
+  Elm_Widget_Smart_Data * sd;                                   \
+  if ((!obj) || (!(sd = evas_object_smart_data_get(obj))))      \
     return
 
 #define ELM_WIDGET_FOCUS_GET(obj)                                         \

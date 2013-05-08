@@ -481,6 +481,7 @@ _elm_list_smart_sizing_eval(Evas_Object *obj)
 
    /* parent class' early call */
    if (!sd->s_iface) return;
+   if (!sd->box) return;
 
    evas_object_size_hint_min_get(sd->box, &minw, &minh);
    evas_object_size_hint_max_get(sd->box, &maxw, &maxh);
