@@ -769,7 +769,8 @@ elm_thumb_editable_set(Evas_Object *obj,
 
    sd->edit = edit;
    if (sd->edit)
-     elm_drop_target_add(obj, ELM_SEL_FORMAT_IMAGE, _elm_thumb_dnd_cb, obj);
+     elm_drop_target_add(obj, ELM_SEL_FORMAT_IMAGE, NULL, NULL, NULL, NULL,
+           NULL, NULL, _elm_thumb_dnd_cb, obj);
    else
      elm_drop_target_del(obj);
 

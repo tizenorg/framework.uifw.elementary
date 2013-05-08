@@ -1002,7 +1002,8 @@ _elm_image_smart_edit_set(Evas_Object *obj,
 
    if (sd->edit)
      elm_drop_target_add
-       (obj, ELM_SEL_FORMAT_IMAGE, _elm_image_drag_n_drop_cb, parent);
+       (obj, ELM_SEL_FORMAT_IMAGE, NULL, NULL, NULL, NULL, NULL, NULL,
+        _elm_image_drag_n_drop_cb, parent);
    else
      elm_drop_target_del(obj);
 }

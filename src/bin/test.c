@@ -200,6 +200,9 @@ void test_eio(void *data, Evas_Object *obj, void *event_info);
 void test_web_normal(void *data, Evas_Object *obj, void *event_info);
 void test_web_mobile(void *data, Evas_Object *obj, void *event_info);
 #endif
+void test_dnd_genlist_default_anim(void *data, Evas_Object *obj, void *event_info);
+void test_dnd_genlist_user_anim(void *data, Evas_Object *obj, void *event_info);
+void test_dnd_genlist_gengrid(void *data, Evas_Object *obj, void *event_info);
 
 Evas_Object *win, *tbx; // TODO: refactoring
 void *tt;
@@ -705,10 +708,15 @@ add_tests:
 //   ADD_TEST(NULL, "Helpers", "Factory", test_factory);
 
    //------------------------------//
-   ADD_TEST(NULL, "Micellaneous", "Copy And Paste", test_cnp);
-   ADD_TEST(NULL, "Micellaneous", "Weather", test_weather);
-   ADD_TEST(NULL, "Micellaneous", "Icon Desktops", test_icon_desktops);
-   ADD_TEST(NULL, "Micellaneous", "Floating Objects", test_floating);
+   ADD_TEST(NULL, "Drag & Drop", "Genlist DnD Dflt Anim", test_dnd_genlist_default_anim);
+   ADD_TEST(NULL, "Drag & Drop", "Genlist DnD User Anim", test_dnd_genlist_user_anim);
+   ADD_TEST(NULL, "Drag & Drop", "Genlist-Gengrid DnD", test_dnd_genlist_gengrid);
+
+   //------------------------------//
+   ADD_TEST(NULL, "Miscellaneous", "Copy And Paste", test_cnp);
+   ADD_TEST(NULL, "Miscellaneous", "Weather", test_weather);
+   ADD_TEST(NULL, "Miscellaneous", "Icon Desktops", test_icon_desktops);
+   ADD_TEST(NULL, "Miscellaneous", "Floating Objects", test_floating);
 
 #undef ADD_TEST
 

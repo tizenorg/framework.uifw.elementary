@@ -55,6 +55,7 @@ test_cursor.c \
 test_datetime.c \
 test_dayselector.c \
 test_diskselector.c \
+test_dnd.c \
 test_entry.c \
 test_entry_anchor.c \
 test_entry_anchor2.c \

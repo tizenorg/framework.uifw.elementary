@@ -3834,8 +3834,8 @@ _elm_entry_smart_add(Evas_Object *obj)
    priv->client_msg_handler = ecore_event_handler_add(ECORE_X_EVENT_CLIENT_MESSAGE, _xclient_msg_cb, obj);  // TIZEN ONLY
 
    elm_drop_target_add
-     (obj, ELM_SEL_FORMAT_MARKUP | ELM_SEL_FORMAT_IMAGE,
-     _drag_drop_cb, NULL);
+     (obj, ELM_SEL_FORMAT_MARKUP | ELM_SEL_FORMAT_IMAGE, NULL, NULL, NULL, NULL,
+      NULL, NULL, _drag_drop_cb, NULL);
 #endif
 
    entries = eina_list_prepend(entries, obj);
@@ -4159,7 +4159,8 @@ elm_entry_password_set(Evas_Object *obj,
    else
      {
 #ifdef HAVE_ELEMENTARY_X
-        elm_drop_target_add(obj, ELM_SEL_FORMAT_MARKUP, _drag_drop_cb, NULL);
+        elm_drop_target_add(obj, ELM_SEL_FORMAT_MARKUP, NULL, NULL, NULL, NULL,
+              NULL, NULL, _drag_drop_cb, NULL);
 #endif
         _entry_selection_callbacks_register(obj);
      }
@@ -4347,7 +4348,8 @@ elm_entry_editable_set(Evas_Object *obj,
 
 #ifdef HAVE_ELEMENTARY_X
    if (editable)
-     elm_drop_target_add(obj, ELM_SEL_FORMAT_MARKUP, _drag_drop_cb, NULL);
+     elm_drop_target_add(obj, ELM_SEL_FORMAT_MARKUP, NULL, NULL,NULL, NULL,
+           NULL, NULL, _drag_drop_cb, NULL);
    else
      elm_drop_target_del(obj);
 #endif
@@ -5114,7 +5116,8 @@ elm_entry_cnp_mode_set(Evas_Object *obj,
    else if (cnp_mode == ELM_CNP_MODE_MARKUP)
      format |= ELM_SEL_FORMAT_IMAGE;
 #ifdef HAVE_ELEMENTARY_X
-   elm_drop_target_add(obj, format, _drag_drop_cb, NULL);
+   elm_drop_target_add(obj, format, NULL, NULL,NULL, NULL, NULL, NULL,
+         _drag_drop_cb, NULL);
 #endif
 }
 

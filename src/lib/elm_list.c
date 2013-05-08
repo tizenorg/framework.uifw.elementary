@@ -2383,3 +2383,51 @@ elm_list_last_item_get(const Evas_Object *obj)
 
    return eina_list_data_get(eina_list_last(sd->items));
 }
+
+EAPI Elm_Object_Item *
+elm_list_at_xy_item_get(const Evas_Object *obj,
+                           Evas_Coord x,
+                           Evas_Coord y,
+                           int *posret)
+{
+   ELM_LIST_CHECK(obj) NULL;
+   ELM_LIST_DATA_GET(obj, sd);
+   Eina_List *l;
+   Elm_List_Item *it;
+   Evas_Coord lasty;
+   evas_object_geometry_get(sd->hit_rect, &lasty, NULL, NULL, NULL);
+
+   EINA_LIST_FOREACH(sd->items, l, it)
+     {
+        Evas_Coord itx, ity;
+        Evas_Object *vit = VIEW(it);
+        Evas_Coord vx, vy, vw, vh;
+        evas_object_geometry_get(vit, &vx, &vy, &vw, &vh);
+
+        itx = vx;
+        ity = vy;
+        if (ELM_RECTS_INTERSECT
+              (itx, ity, vw, vh, x, y, 1, 1))
+          {
+             if (posret)
+               {
+                  if (y <= (ity + (vh / 4))) *posret = -1;
+                  else if (y >= (ity + vh - (vh / 4)))
+                    *posret = 1;
+                  else *posret = 0;
+               }
+
+             return (Elm_Object_Item *) it;
+          }
+
+        lasty = ity + vh;
+     }
+
+   if (posret)
+     {
+        if (y > lasty) *posret = 1;
+        else *posret = -1;
+     }
+
+   return NULL;
+}

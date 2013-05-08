@@ -3537,6 +3537,101 @@ elm_gengrid_first_item_get(const Evas_Object *obj)
 }
 
 EAPI Elm_Object_Item *
+elm_gengrid_at_xy_item_get(const Evas_Object *obj,
+                           Evas_Coord x,
+                           Evas_Coord y,
+                           int *xposret,
+                           int *yposret)
+{
+   ELM_GENGRID_CHECK(obj) NULL;
+   ELM_GENGRID_DATA_GET_OR_RETURN_VAL(obj, sd, NULL);
+
+   Elm_Gen_Item *it = ELM_GEN_ITEM_FROM_INLIST(sd->items);
+
+   Evas_Coord l = 0, r = 0, t = 0, b = 0; /* left, right, top, bottom */
+   Eina_Bool init = EINA_TRUE;
+
+   while ((it) && (it->generation < sd->generation))
+     it = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(it)->next);
+
+   if (it)
+     do
+       {
+          Evas_Coord itx, ity;
+          Evas_Coord itw, ith;
+          evas_object_geometry_get(VIEW(it), &itx, &ity, &itw, &ith);
+
+          /* Record leftmost, rightmost, top, bottom cords to set posret */
+          if ((itw > 0) && (ith > 0) && (itx >= 0) && (ity >= 0))
+            {  /* A scroller, ignore items in negative cords,or not rendered */
+               if (init)
+                 {
+                    l = itx;
+                    r = itx + itw;
+                    t = ity;
+                    b = ity + ith;
+                    init = EINA_FALSE;
+                 }
+               else
+                 {
+                    if (itx < l)
+                      l = itx;
+                    if ((itx + itw) > r)
+                      r = itx + itw;
+                    if (ity < t)
+                      t = ity;
+                    if ((ity + ith) > b)
+                      b = ity + ith;
+                 }
+            }
+
+          if (ELM_RECTS_INTERSECT
+                (itx, ity, itw, ith, x, y, 1, 1))
+            {
+               if (yposret)
+                 {
+                    if (y <= (ity + (ith / 4))) *yposret = -1;
+                    else if (y >= (ity + ith - (ith / 4)))
+                      *yposret = 1;
+                    else *yposret = 0;
+                 }
+
+               if (xposret)
+                 {
+                    if (x <= (itx + (itw / 4))) *xposret = -1;
+                    else if (x >= (itx + itw - (itw / 4)))
+                      *xposret = 1;
+                    else *xposret = 0;
+                 }
+
+               return (Elm_Object_Item *) it;
+            }
+
+       } while ((it = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(it)->next)));
+
+   /* No item found, tell the user if hit left/right/top/bottom of items */
+   if (xposret)
+     {
+        *xposret = 0;
+        if (x < l)
+          *xposret = (-1);
+        else if (x > r)
+          *xposret = (1);
+     }
+
+   if (yposret)
+     {
+        *yposret = 0;
+        if (y < t)
+          *yposret = (-1);
+        else if (y > b)
+          *yposret = (1);
+     }
+
+   return NULL;
+}
+
+EAPI Elm_Object_Item *
 elm_gengrid_last_item_get(const Evas_Object *obj)
 {
    ELM_GENGRID_CHECK(obj) NULL;
