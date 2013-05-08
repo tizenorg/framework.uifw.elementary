@@ -1981,7 +1981,12 @@ _item_block_position(Item_Block *itb,
 
         if ((ELM_RECTS_INTERSECT
              (it->item->scrl_x, it->item->scrl_y, it->item->w, it->item->h,
-              cvx, cvy, cvw, cvh)))
+              cvx, cvy, cvw, cvh))
+#if GENLIST_ENTRY_SUPPORT
+            || it->item->unrealize_disabled
+#endif
+            )
+
           {
              if (itb->realized && !(it->realized))
                 _item_realize(it, in, EINA_FALSE);
