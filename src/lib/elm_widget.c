@@ -2852,20 +2852,15 @@ elm_widget_focus_steal(Evas_Object *obj)
    if (sd->disabled) return;
    if (!sd->can_focus) return;
    if (sd->tree_unfocusable) return;
-   parent2 = parent = obj;
+   parent = obj;
    for (;; )
      {
-        o = elm_widget_parent_get(parent2);
-        if (!o)
-          {
-             parent = parent2;
-             break;
-          }
-        if (!evas_object_visible_get(o)) return;
+        o = elm_widget_parent_get(parent);
+        if (!o) break;
         sd = evas_object_smart_data_get(o);
         if (sd->disabled || sd->tree_unfocusable) return;
-        if (sd->focused) parent = o;
-        parent2 = o;
+        if (sd->focused) break;
+        parent = o;
      }
    if ((!elm_widget_parent_get(parent)) &&
        (!elm_widget_parent2_get(parent)))
