@@ -204,7 +204,9 @@ _access_shutdown(void)
 
    initted = 0;
 
-   free(mapi);
+   /* FIXME: _elm_module_unload(); could access m->api and try to free(); */
+   free(m->api);
+   m->api = NULL;
    mapi = NULL;
 }
 
