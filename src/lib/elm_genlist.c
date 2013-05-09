@@ -5272,11 +5272,6 @@ _item_del_post_process(Elm_Gen_Item *it)
         }
 
    _item_unrealize(it, EINA_FALSE);
-   edje_object_mirrored_set(VIEW(it),
-                            elm_widget_mirrored_get(WIDGET(it)));
-   edje_object_scale_set(VIEW(it),
-                         elm_widget_scale_get(WIDGET(it))
-                         * elm_config_scale_get());
 
    if (VIEW(it)) evas_object_del(VIEW(it));
    if (it->spacer) evas_object_del(it->spacer);
@@ -5285,7 +5280,7 @@ _item_del_post_process(Elm_Gen_Item *it)
    it->spacer = NULL;
 
    elm_genlist_item_class_unref((Elm_Genlist_Item_Class *)it->itc);
-   free(it->item);
+   if (it->item) free(it->item);
    it->item = NULL;
 
    _elm_widget_item_free((Elm_Widget_Item *)it);
