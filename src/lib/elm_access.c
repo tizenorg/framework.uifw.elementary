@@ -25,7 +25,7 @@ struct _Action_Info
 typedef struct _Action_Info Action_Info;
 
 static Eina_Bool mouse_event_enable = EINA_TRUE;
-static Eina_Bool read_mode = EINA_FALSE;
+static Eina_Bool auto_highlight = EINA_FALSE;
 static Evas_Coord_Point offset;
 static Evas_Object *s_parent; /* scrollable parent */
 static Elm_Access_Action_Type action_by = ELM_ACCESS_ACTION_FIRST;
@@ -307,6 +307,8 @@ static void
 _access_obj_mouse_in_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info  __UNUSED__)
 {
    Elm_Access_Info *ac;
+   Evas_Object *ho;
+
    if (!mouse_event_enable) return;
 
    ac = evas_object_data_get(data, "_elm_access");
@@ -319,7 +321,12 @@ _access_obj_mouse_in_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSE
      }
 
    if (_elm_config->access_mode)
-     _elm_access_highlight_set(data);
+     {
+        ho = _access_highlight_object_get(data);
+        if (ho == data) return;
+
+        _access_highlight_read(ac, data);
+     }
 }
 
 static void
@@ -398,17 +405,17 @@ _elm_access_mouse_event_enabled_set(Eina_Bool enabled)
 }
 
 void
-_elm_access_read_mode_set(Eina_Bool enabled)
+_elm_access_auto_highlight_set(Eina_Bool enabled)
 {
    enabled = !!enabled;
-   if (read_mode == enabled) return;
-   read_mode = enabled;
+   if (auto_highlight == enabled) return;
+   auto_highlight = enabled;
 }
 
 Eina_Bool
-_elm_access_read_mode_get()
+_elm_access_auto_highlight_get()
 {
-   return read_mode;
+   return auto_highlight;
 }
 
 void
@@ -678,7 +685,7 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir)
      }
    while (parent);
 
-   _elm_access_read_mode_set(EINA_TRUE);
+   _elm_access_auto_highlight_set(EINA_TRUE);
 
    ret = elm_widget_focus_next_get(obj, dir, &target);
    if (ret && target)
@@ -700,7 +707,7 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir)
           }
      }
 
-   _elm_access_read_mode_set(EINA_FALSE);
+   _elm_access_auto_highlight_set(EINA_FALSE);
 
    return ret;
 }
@@ -724,14 +731,12 @@ _elm_access_highlight_set(Evas_Object* obj)
 
    _access_highlight_read(ac, obj);
 
-   /* move mouse position to inside of highlight object. if an object has a
-      highlight by highlight_cycle();, the mouse still positions at previous
-      position which would be made by MOUSE_IN event. */
-   if (!_elm_access_read_mode_get()) return;
-
    evas = evas_object_evas_get(obj);
    if (!evas) return;
 
+   /* move mouse position to inside of highlight object. if an object has a
+      highlight by highlight_cycle();, the mouse still positions at previous
+      position which would be made by MOUSE_IN event. */
    evas_object_geometry_get(obj, &ho_point.x, &ho_point.y, 0, 0);
    evas_event_feed_mouse_move(evas, ho_point.x, ho_point.y, 0, NULL);
 }
@@ -808,8 +813,6 @@ _elm_access_highlight_object_activate(Evas_Object *obj, Elm_Activate act)
       case ELM_ACTIVATE_DEFAULT:
       case ELM_ACTIVATE_UP:
       case ELM_ACTIVATE_DOWN:
-        _elm_access_read_mode_set(EINA_FALSE);
-
         if (!elm_object_focus_get(ho))
         elm_object_focus_set(ho, EINA_TRUE);
 
@@ -852,7 +855,7 @@ _elm_access_highlight_cycle(Evas_Object *obj, Elm_Focus_Direction dir)
      }
    while (parent);
 
-   _elm_access_read_mode_set(EINA_TRUE);
+   _elm_access_auto_highlight_set(EINA_TRUE);
 
    if (dir == ELM_FOCUS_NEXT)
      type = ELM_ACCESS_ACTION_HIGHLIGHT_NEXT;
@@ -866,7 +869,7 @@ _elm_access_highlight_cycle(Evas_Object *obj, Elm_Focus_Direction dir)
 
    action_by = ELM_ACCESS_ACTION_FIRST;
 
-   _elm_access_read_mode_set(EINA_FALSE);
+   _elm_access_auto_highlight_set(EINA_FALSE);
 }
 
 EAPI char *
@@ -1402,7 +1405,7 @@ elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *act
    Evas *evas;
    Evas_Object *ho;
    Elm_Access_Action_Info *a;
-   Eina_Bool ret;
+   Eina_Bool ret = EINA_FALSE;
 
    a = (Elm_Access_Action_Info *) action_info;
 
@@ -1413,9 +1416,9 @@ elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *act
         evas = evas_object_evas_get(obj);
         if (!evas) return EINA_FALSE;
 
-        _elm_access_mouse_event_enabled_set(EINA_TRUE);
-
         evas_event_feed_mouse_in(evas, 0, NULL);
+
+        _elm_access_mouse_event_enabled_set(EINA_TRUE);
         evas_event_feed_mouse_move(evas, a->x, a->y, 0, NULL);
         _elm_access_mouse_event_enabled_set(EINA_FALSE);
 

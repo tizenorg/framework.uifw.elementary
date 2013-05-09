@@ -13,9 +13,9 @@ static const char ELM_WIDGET_SMART_NAME[] = "elm_widget";
   if (!sd)                                                      \
     return
 
-#define ELM_WIDGET_FOCUS_GET(obj)                                    \
-  ((_elm_access_read_mode_get()) ? (elm_widget_highlight_get(obj)) : \
-                                  (elm_widget_focus_get(obj)))
+#define ELM_WIDGET_FOCUS_GET(obj)                                         \
+  ((_elm_access_auto_highlight_get()) ? (elm_widget_highlight_get(obj)) : \
+                                        (elm_widget_focus_get(obj)))
 typedef struct _Elm_Event_Cb_Data         Elm_Event_Cb_Data;
 typedef struct _Elm_Translate_String_Data Elm_Translate_String_Data;
 
@@ -1814,8 +1814,14 @@ elm_widget_focus_cycle(Evas_Object *obj,
    if (target)
      {
         /* access */
-        if (_elm_config->access_mode && _elm_access_read_mode_get())
+        if (_elm_config->access_mode)
           {
+             /* highlight cycle does not steal a focus, only after window gets
+                the ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_ACTIVATE message,
+                target will steal focus, or focus its own job. */
+             if (!_elm_access_auto_highlight_get())
+               elm_widget_focus_steal(target);
+
              _elm_access_highlight_set(target);
              _elm_widget_focus_region_show(target);
           }
