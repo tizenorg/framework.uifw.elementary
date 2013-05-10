@@ -4120,7 +4120,11 @@ _item_move_after(Elm_Gen_Item *it,
    if (it->item->block) _item_block_del(it);
 
    GL_IT(it)->wsd->items = eina_inlist_append_relative
-       (GL_IT(it)->wsd->items, EINA_INLIST_GET(it), EINA_INLIST_GET(after));
+      (GL_IT(it)->wsd->items, EINA_INLIST_GET(it), EINA_INLIST_GET(after));
+
+   if (it->item->rel)
+     it->item->rel->item->rel_revs =
+        eina_list_remove(it->item->rel->item->rel_revs, it);
    it->item->rel = after;
    after->item->rel_revs = eina_list_append(after->item->rel_revs, it);
    it->item->before = EINA_FALSE;
@@ -4153,6 +4157,10 @@ _item_move_before(Elm_Gen_Item *it,
    if (it->item->block) _item_block_del(it);
    GL_IT(it)->wsd->items = eina_inlist_prepend_relative
        (GL_IT(it)->wsd->items, EINA_INLIST_GET(it), EINA_INLIST_GET(before));
+
+   if (it->item->rel)
+     it->item->rel->item->rel_revs =
+        eina_list_remove(it->item->rel->item->rel_revs, it);
    it->item->rel = before;
    before->item->rel_revs = eina_list_append(before->item->rel_revs, it);
    it->item->before = EINA_TRUE;
