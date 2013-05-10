@@ -175,6 +175,11 @@ static void           _elm_genlist_proxy_item_del(Proxy_Item *pi);
 EAPI Eina_Bool          elm_genlist_pinch_zoom_mode_set(Evas_Object *obj, Elm_Gen_Pinch_Zoom_Mode mode);
 #endif
 
+typedef struct _Size_Cache {
+     Evas_Coord minw;
+     Evas_Coord minh;
+} Size_Cache;
+
 static void
 _item_cache_all_free(Elm_Genlist_Smart_Data *sd)
 {
@@ -1656,24 +1661,19 @@ _item_realize(Elm_Gen_Item *it,
         _elm_genlist_item_index_update(it);
      }
 
-   /* homogenous genlist shortcut */
-   if ((calc) && (GL_IT(it)->wsd->homogeneous) && (!it->item->mincalcd) &&
-       ((it->group && GL_IT(it)->wsd->group_item_width) ||
-        (!it->group && GL_IT(it)->wsd->item_width)))
+   if ((calc) && (GL_IT(it)->wsd->homogeneous) && (!it->item->mincalcd))
      {
-        if (it->group)
+        Size_Cache *size = eina_hash_find
+           (GL_IT(it)->wsd->size_caches,
+            it->itc->item_style);
+        if (size)
           {
-             it->item->w = it->item->minw = GL_IT(it)->wsd->group_item_width;
-             it->item->h = it->item->minh = GL_IT(it)->wsd->group_item_height;
+             it->item->w = it->item->minw = size->minw;
+             it->item->h = it->item->minh = size->minh;
+             it->item->mincalcd = EINA_TRUE;
           }
-        else
-          {
-             it->item->w = it->item->minw = GL_IT(it)->wsd->item_width;
-             it->item->h = it->item->minh = GL_IT(it)->wsd->item_height;
-          }
-        it->item->mincalcd = EINA_TRUE;
      }
-   else
+   if (!calc || !it->item->mincalcd)
      {
         if (eina_list_count(it->content_objs) != 0)
           ERR_ABORT("If you see this error, please notify us and we"
@@ -1723,21 +1723,16 @@ _item_realize(Elm_Gen_Item *it,
                  (mw > GL_IT(it)->wsd->prev_viewport_w))
                 mw = GL_IT(it)->wsd->prev_viewport_w;
 
-
              it->item->w = it->item->minw = mw;
              it->item->h = it->item->minh = mh;
              it->item->mincalcd = EINA_TRUE;
 
-             if ((!GL_IT(it)->wsd->group_item_width) && (it->group))
+             if (GL_IT(it)->wsd->homogeneous)
                {
-                  GL_IT(it)->wsd->group_item_width = mw;
-                  GL_IT(it)->wsd->group_item_height = mh;
-               }
-             else if ((!GL_IT(it)->wsd->item_width) &&
-                      (it->item->type == ELM_GENLIST_ITEM_NONE))
-               {
-                  GL_IT(it)->wsd->item_width = mw;
-                  GL_IT(it)->wsd->item_height = mh;
+                  Size_Cache *size = ELM_NEW(Size_Cache);
+                  size->minw = mw;
+                  size->minh = mh;
+                  eina_hash_add(GL_IT(it)->wsd->size_caches, it->itc->item_style, size);
                }
           }
         if (!calc) evas_object_show(VIEW(it));
@@ -2134,17 +2129,14 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
                        itb->w = mw;
                     }
 
-                  if ((!sd->group_item_width) && (it->group))
+                  if (GL_IT(it)->wsd->homogeneous)
                     {
-                       sd->group_item_width = mw;
-                       sd->group_item_height = mh;
+                       Size_Cache *size = ELM_NEW(Size_Cache);
+                       size->minw = mw;
+                       size->minh = mh;
+                       eina_hash_add(GL_IT(it)->wsd->size_caches, it->itc->item_style, size);
                     }
-                  else if ((!sd->item_width) &&
-                           (it->item->type == ELM_GENLIST_ITEM_NONE))
-                    {
-                       sd->item_width = mw;
-                       sd->item_height = mh;
-                    }
+
                }
              num++;
           }
@@ -2974,9 +2966,7 @@ _elm_genlist_smart_theme(Evas_Object *obj)
    // FIXME: difference from opensource
    elm_layout_theme_set(obj, "genlist", "base", elm_widget_style_get(obj));
 #endif
-
-   sd->item_width = sd->item_height = 0;
-   sd->group_item_width = sd->group_item_height = 0;
+   eina_hash_free_buckets(sd->size_caches);
    sd->minw = sd->minh = sd->realminw = 0;
    EINA_INLIST_FOREACH(sd->blocks, itb)
      {
@@ -4441,22 +4431,20 @@ _item_block_recalc(Item_Block *itb,
                }
              else
                {
-                  if ((itb->sd->homogeneous) &&
-                      (itb->sd->mode == ELM_LIST_COMPRESS))
+                  if (itb->sd->homogeneous)
                     {
-                       if (it->group)
+                       Size_Cache *size = eina_hash_find
+                          (itb->sd->size_caches,
+                           it->itc->item_style);
+                       if (size)
                          {
-                            it->item->w = it->item->minw =
-                                GL_IT(it)->wsd->group_item_width;
-                            it->item->h = it->item->minh =
-                                GL_IT(it)->wsd->group_item_height;
+                            it->item->w = it->item->minw = size->minw;
+                            it->item->h = it->item->minh = size->minh;
                          }
                        else
                          {
-                            it->item->w = it->item->minw =
-                                GL_IT(it)->wsd->item_width;
-                            it->item->h = it->item->minh =
-                                GL_IT(it)->wsd->item_height;
+                            _item_realize(it, in, EINA_TRUE);
+                            _item_unrealize(it, EINA_TRUE);
                          }
                     }
                   else
@@ -4868,6 +4856,12 @@ _mouse_move_scroller(void        *data,
 #endif
 
 static void
+_size_cache_free(void *data)
+{
+   if (data) free(data);
+}
+
+static void
 _elm_genlist_smart_add(Evas_Object *obj)
 {
    Evas_Coord minw, minh;
@@ -4877,6 +4871,7 @@ _elm_genlist_smart_add(Evas_Object *obj)
 
    ELM_WIDGET_CLASS(_elm_genlist_parent_sc)->base.add(obj);
 
+   priv->size_caches = eina_hash_pointer_new(_size_cache_free);
    priv->hit_rect = evas_object_rectangle_add(evas_object_evas_get(obj));
    evas_object_smart_member_add(priv->hit_rect, obj);
    elm_widget_sub_object_add(obj, priv->hit_rect);
@@ -5779,6 +5774,7 @@ elm_genlist_clear(Evas_Object *obj)
    ELM_GENLIST_DATA_GET(obj, sd);
    Elm_Gen_Item *it;
 
+   eina_hash_free_buckets(sd->size_caches);
    sd->focused = NULL;
    if (sd->state)
      {
@@ -6202,17 +6198,13 @@ _elm_genlist_item_coordinates_calc(Elm_Object_Item *item,
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
    Evas_Coord gith = 0;
 
-   if (!((GL_IT(it)->wsd->homogeneous) &&
-         (GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS)))
+   if ((it->item->queued) || !(it->item->mincalcd) || !(it->realized))
      {
-        if ((it->item->queued) || (!it->item->mincalcd))
-          {
-             GL_IT(it)->wsd->show_item = it;
-             GL_IT(it)->wsd->bring_in = bring_in;
-             GL_IT(it)->wsd->scroll_to_type = type;
-             it->item->show_me = EINA_TRUE;
-             return EINA_FALSE;
-          }
+        GL_IT(it)->wsd->show_item = it;
+        GL_IT(it)->wsd->bring_in = bring_in;
+        GL_IT(it)->wsd->scroll_to_type = type;
+        it->item->show_me = EINA_TRUE;
+        return EINA_FALSE;
      }
    if (GL_IT(it)->wsd->show_item)
      {
@@ -7124,16 +7116,6 @@ elm_genlist_item_select_mode_set(Elm_Object_Item *item,
           ecore_job_del(GL_IT(it)->wsd->update_job);
         GL_IT(it)->wsd->update_job =
           ecore_job_add(_update_job, GL_IT(it)->wsd);
-
-        // reset homogeneous item size
-        if (GL_IT(it)->wsd->homogeneous)
-          {
-             if (it->group)
-               GL_IT(it)->wsd->group_item_width =
-                 GL_IT(it)->wsd->group_item_height = 0;
-             else
-               GL_IT(it)->wsd->item_width = GL_IT(it)->wsd->item_height = 0;
-          }
      }
 }
 

@@ -152,8 +152,6 @@ struct _Elm_Genlist_Smart_Data
                                                      * repositioned */
    Elm_Object_Item                      *last_selected_item;
    Ecore_Job                            *calc_job;
-   int                                   item_width, item_height;
-   int                                   group_item_width, group_item_height;
    int                                   minw, minh;
    unsigned int                          item_count;
    Evas_Coord                            pan_x, pan_y;
@@ -252,6 +250,7 @@ struct _Elm_Genlist_Smart_Data
    Eina_Bool                             check_scroll : 1;
    Eina_Bool                             pan_changed : 1;
    Eina_Bool                             homogeneous : 1;
+   Eina_Hash                             *size_caches;
    Eina_Bool                             longpressed : 1;
 
    Eina_Bool                             mouse_down : 1;
