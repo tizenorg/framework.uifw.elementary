@@ -31,6 +31,7 @@ static Evas_Object *s_parent; /* scrollable parent */
 static Elm_Access_Action_Type action_by = ELM_ACCESS_ACTION_FIRST;
 
 static Evas_Object * _elm_access_add(Evas_Object *parent);
+static Eina_Bool _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir);
 
 static void
 _elm_access_smart_add(Evas_Object *obj)
@@ -476,6 +477,7 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
    Evas *evas;
    Evas_Object *ho;
    Evas_Coord_Rectangle ho_area;
+   Evas_Coord hx, hy, hw, hh, sx, sy, sw, sh;
 
    if (!obj) return;
 
@@ -537,6 +539,21 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
 
       case 1:
         if (!s_parent) return;
+        ho = _access_highlight_object_get(obj);
+        if (ho)
+          {
+             evas_object_geometry_get(ho, &hx, &hy, &hw, &hh);
+             evas_object_geometry_get(s_parent, &sx, &sy, &sw, &sh);
+
+             if (hx + (hw / 2) < sx || hy + (hh / 2) < sy)
+               {
+                  _access_highlight_next_get(obj, ELM_FOCUS_NEXT);
+               }
+             if (hx + (hw / 2) > sx + sw || hy + (hh / 2) > sy + sh)
+               {
+                  _access_highlight_next_get(obj, ELM_FOCUS_PREVIOUS);
+               }
+          }
         evas_event_feed_mouse_move(evas, x - offset.x, y - offset.y, 0, NULL);
         break;
 
