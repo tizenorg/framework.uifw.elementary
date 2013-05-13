@@ -205,6 +205,46 @@ typedef void (*Elm_Map_Module_Region_to_Canvas_Func)(const Evas_Object *,
                                                      double lat,
                                                      int *x,
                                                      int *y);
+/*NLP specific change*/
+typedef void Map_Engine_Object; //opaque handle for interacting with map engine module
+
+/*NLP specific calls*/
+typedef Map_Engine_Object* (*Elm_Map_Module_Icon_Add)(Evas_Object*,
+char *buffer,
+int w,
+int h,
+                                                        double lon,
+                                                        double lat);
+
+typedef void (*Elm_Map_Module_Icon_Remove)(const Evas_Object*, Map_Engine_Object*);
+
+typedef Map_Engine_Object* (*Elm_Map_Module_Get_Object_From_Coord)(Evas_Object*,
+								   int xcoord,
+								   int ycoord);
+
+typedef void (*Elm_Map_Module_Object_Visibility_Set)(Evas_Object*,
+						    Map_Engine_Object *mapobject,
+						    int boolean);// 0=hide, 1=show
+
+typedef void (*Elm_Map_Module_Object_Visibility_Range_Set)(void *handle,
+							   void *mapobject,
+							   int min,
+                                                           int max);
+
+typedef Map_Engine_Object* (*Elm_Map_Module_Group_Create)(Evas_Object*,
+							double lon,
+							double lat);
+
+typedef void (*Elm_Map_Module_Group_Object_Add)(Evas_Object *handle,
+					Map_Engine_Object *mapgroupobject,
+					Map_Engine_Object *mapobject);
+//remove the object from the group
+typedef void (*Elm_Map_Module_Group_Object_Remove)(void *handle,
+					Map_Engine_Object *mapgroupobject,
+					Map_Engine_Object *mapobject);
+//delete the group
+typedef void (*Elm_Map_Module_Group_Remove)(Evas_Object*,
+						Map_Engine_Object* mapobject);
 
 typedef struct _Source_Tile            Source_Tile;
 // FIXME: Currently tile size must be 256*256
@@ -256,6 +296,18 @@ struct _Source_Engine
    Elm_Map_Module_Region_Get_Func        region_get;
    Elm_Map_Module_Canvas_to_Region_Func  canvas_to_region;
    Elm_Map_Module_Region_to_Canvas_Func  region_to_canvas;
+/*NLP specific functions*/
+   Elm_Map_Module_Icon_Add              icon_add;
+   Elm_Map_Module_Icon_Remove           icon_remove;
+   Elm_Map_Module_Get_Object_From_Coord object_from_coord;
+   Elm_Map_Module_Object_Visibility_Set object_visibility;
+   Elm_Map_Module_Object_Visibility_Range_Set object_visibility_range;
+
+   Elm_Map_Module_Group_Create          group_create;
+   Elm_Map_Module_Group_Remove          group_remove;
+
+   Elm_Map_Module_Group_Object_Add      group_object_add;
+   Elm_Map_Module_Group_Object_Remove   group_object_remove;
 };
 
 typedef struct _Path                   Path;
@@ -341,12 +393,12 @@ struct _Overlay_Default
    // Display priority is content > icon > clas_obj > clas_icon > layout
    Evas_Object        *content;
    Evas_Object        *icon;
-
    Color               c;
    // if clas_content or icon exists, do not inherit from class
    Evas_Object        *clas_content; // Duplicated from class content
    Evas_Object        *clas_icon; // Duplicated from class icon
    Evas_Object        *layout;
+   Elm_Map_Overlay    *base;
 };
 
 struct _Overlay_Class
@@ -356,6 +408,7 @@ struct _Overlay_Class
    int                 zoom_max;
    Evas_Object        *content;
    Evas_Object        *icon;
+   Elm_Map_Overlay    *base;
 };
 
 struct _Overlay_Bubble
@@ -365,6 +418,7 @@ struct _Overlay_Bubble
    Evas_Object        *obj, *sc, *bx;
    double              lon, lat;
    Evas_Coord          x, y, w, h;
+   Elm_Map_Overlay    *base;
 };
 
 struct _Overlay_Route
@@ -374,6 +428,7 @@ struct _Overlay_Route
    Evas_Object        *obj;
    Eina_List          *paths;
    Eina_List          *nodes;
+   Elm_Map_Overlay    *base;
 };
 
 struct _Overlay_Line
@@ -381,6 +436,7 @@ struct _Overlay_Line
    Elm_Map_Smart_Data *wsd;
    double              flon, flat, tlon, tlat;
    Evas_Object        *obj;
+   Elm_Map_Overlay    *base;
 };
 
 struct _Overlay_Polygon
@@ -388,6 +444,7 @@ struct _Overlay_Polygon
    Elm_Map_Smart_Data *wsd;
    Eina_List          *regions; // list of Regions
    Evas_Object        *obj;
+   Elm_Map_Overlay    *base;
 };
 
 struct _Overlay_Circle
@@ -397,6 +454,7 @@ struct _Overlay_Circle
    double              radius; // Intial pixel in intial view
    double              ratio; // initial-radius/map-size
    Evas_Object        *obj;
+   Elm_Map_Overlay    *base;
 };
 
 struct _Overlay_Scale
@@ -405,6 +463,7 @@ struct _Overlay_Scale
    Evas_Coord          x, y;
    Evas_Coord          w, h;
    Evas_Object        *obj;
+   Elm_Map_Overlay    *base;
 };
 
 struct _Elm_Map_Overlay
@@ -423,6 +482,9 @@ struct _Elm_Map_Overlay
 
    Elm_Map_Overlay_Del_Cb del_cb;
    void                  *del_cb_data;
+
+ //NLP specific changes
+   Map_Engine_Object  *engobj;
 
    // These are not used if overlay type is class or group
    Overlay_Group         *grp;
@@ -720,4 +782,24 @@ EAPI const Elm_Map_Smart_Class *elm_map_smart_class_get(void);
         ((obj), ELM_MAP_SMART_NAME, __func__)) \
     return
 
+
+#define ELM_MAP_ENG_OBJECT_CREATE(func, o, args...)\
+   if(func)\
+      o = func(args);
+
+#define ELM_MAP_ENG_OBJECT_DELETE(func, h, o)\
+   if (func){ \
+      func(h, o); \
+        o = NULL; \
+   }
+
+#define ELM_MAP_ENG_OBJECT_FIND(func, o, args...) \
+   if (func) { \
+      o = func(args);\
+   }
+
+#define ELM_MAP_ENG_OBJECT_SET(func, h, args...) \
+   if (func){ \
+      func(h, args); \
+   }
 #endif
