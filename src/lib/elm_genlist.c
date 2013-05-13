@@ -1098,7 +1098,14 @@ _item_mode_content_realize(Elm_Gen_Item *it,
              if (ic)
                {
                   res = eina_list_append(res, ic);
-                  edje_object_part_swallow(target, key, ic);
+                  if (!edje_object_part_swallow(target, key, ic))
+                    {
+                       WRN("%s (%p) can not be swallowed into %s",
+                           evas_object_type_get(ic), ic, key);
+                       evas_object_del(ic);
+                       continue;
+
+                    }
                   evas_object_show(ic);
 #if GENLIST_ENTRY_SUPPORT
                   if (it->flipped)
@@ -1402,7 +1409,14 @@ _item_content_realize(Elm_Gen_Item *it,
              if (ic)
                {
                   res = eina_list_append(res, ic);
-                  edje_object_part_swallow(target, key, ic);
+                  if (!edje_object_part_swallow(target, key, ic))
+                    {
+                       WRN("%s (%p) can not be swallowed into %s",
+                           evas_object_type_get(ic), ic, key);
+                       evas_object_del(ic);
+                       continue;
+
+                    }
                   evas_object_show(ic);
 
 #if GENLIST_ENTRY_SUPPORT
