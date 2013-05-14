@@ -1918,7 +1918,9 @@ _overlay_bubble_new(Elm_Map_Overlay *overlay)
    evas_object_event_callback_add(bubble->obj, EVAS_CALLBACK_MOUSE_DOWN,
                                   _overlay_clicked_cb, overlay);
 
-   bubble->sc = elm_scroller_add(bubble->obj);
+   // FIXME: different from upstream.
+   // elm_widget_sub_object_add will fail if edje is used as parent object.
+   bubble->sc = elm_scroller_add(ELM_WIDGET_DATA(overlay->wsd)->obj);
    elm_widget_style_set(bubble->sc, "map_bubble");
    elm_scroller_content_min_limit(bubble->sc, EINA_FALSE, EINA_TRUE);
    elm_scroller_policy_set
@@ -6097,6 +6099,8 @@ elm_map_overlay_color_set(Elm_Map_Overlay *overlay,
      _overlay_default_color_update(overlay->ovl, overlay->c);
    else if (overlay->type == ELM_MAP_OVERLAY_TYPE_ROUTE)
      _overlay_route_color_update(overlay->ovl, overlay->c);
+   else if (overlay->type == ELM_MAP_OVERLAY_TYPE_CIRCLE)
+     _overlay_circle_color_update(overlay->ovl, overlay->c);
    else
      {
         ERR("Not supported overlay type: %d", overlay->type);
