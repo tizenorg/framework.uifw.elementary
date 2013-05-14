@@ -5321,14 +5321,16 @@ _item_del_pre_process(Elm_Gen_Item *it)
      it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
    _item_free_common(it);
 
-   edje_object_signal_callback_del_full(VIEW(it), "elm,action,expand,toggle",
-                                        "elm", _expand_toggle_signal_cb, it);
-   edje_object_signal_callback_del_full(VIEW(it), "elm,action,expand", "elm",
-                                        _expand_signal_cb, it);
-   edje_object_signal_callback_del_full(VIEW(it), "elm,action,contract", "elm",
-                                        _contract_signal_cb, it);
-   _item_mouse_callbacks_del(it, VIEW(it));
-
+   if (VIEW(it))
+     {
+        edje_object_signal_callback_del_full(VIEW(it), "elm,action,expand,toggle",
+                                             "elm", _expand_toggle_signal_cb, it);
+        edje_object_signal_callback_del_full(VIEW(it), "elm,action,expand", "elm",
+                                             _expand_signal_cb, it);
+        edje_object_signal_callback_del_full(VIEW(it), "elm,action,contract", "elm",
+                                             _contract_signal_cb, it);
+        _item_mouse_callbacks_del(it, VIEW(it));
+     }
    if (sd->genlist_clearing) _item_del_post_process(it);
 }
 #endif
