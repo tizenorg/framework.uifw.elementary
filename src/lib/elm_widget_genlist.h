@@ -290,6 +290,7 @@ struct _Elm_Genlist_Smart_Data
    Eina_Bool                             rendered : 1;
    Eina_Bool                             fx_items_deleted : 1;
    Eina_Bool                             genlist_clearing : 1;
+   Eina_Bool                             scrolling : 1;
 #endif
 #if GENLIST_PINCH_ZOOM_SUPPORT
    Elm_Gen_Pinch_Zoom_Mode               pinch_zoom_mode;

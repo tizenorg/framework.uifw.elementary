@@ -4578,6 +4578,7 @@ _scroll_animate_start_cb(Evas_Object *obj,
    ELM_GENLIST_DATA_GET(obj, sd);
 #if GENLIST_FX_SUPPORT
    _elm_genlist_fx_clear(obj, EINA_FALSE);
+   sd->scrolling = EINA_TRUE;
 #endif
    if (sd->queue_idle_enterer)
      {
@@ -4594,6 +4595,7 @@ _scroll_animate_stop_cb(Evas_Object *obj,
    ELM_GENLIST_DATA_GET(obj, sd);
 #if GENLIST_FX_SUPPORT
    _elm_genlist_fx_clear(obj, EINA_FALSE);
+   sd->scrolling = EINA_FALSE;
 #endif
    if (!sd->queue_idle_enterer)
      sd->queue_idle_enterer = ecore_idle_enterer_add(_item_idle_enterer, sd);
@@ -4604,6 +4606,10 @@ static void
 _scroll_drag_start_cb(Evas_Object *obj,
                       void *data __UNUSED__)
 {
+#if GENLIST_FX_SUPPORT
+   ELM_GENLIST_DATA_GET(obj, sd);
+   sd->scrolling = EINA_TRUE;
+#endif
    evas_object_smart_callback_call(obj, SIG_SCROLL_DRAG_START, NULL);
 }
 
@@ -4611,10 +4617,6 @@ static void
 _scroll_cb(Evas_Object *obj,
            void *data __UNUSED__)
 {
-   ELM_GENLIST_DATA_GET(obj, sd);
-   if (sd->queue_idle_enterer)
-      ecore_idle_enterer_del(sd->queue_idle_enterer);
-   sd->queue_idle_enterer = NULL;
    evas_object_smart_callback_call(obj, SIG_SCROLL, NULL);
 }
 
@@ -4622,6 +4624,10 @@ static void
 _scroll_drag_stop_cb(Evas_Object *obj,
                      void *data __UNUSED__)
 {
+#if GENLIST_FX_SUPPORT
+   ELM_GENLIST_DATA_GET(obj, sd);
+   sd->scrolling = EINA_FALSE;
+#endif
    evas_object_smart_callback_call(obj, SIG_SCROLL_DRAG_STOP, NULL);
 }
 
@@ -4949,6 +4955,7 @@ _elm_genlist_smart_add(Evas_Object *obj)
    priv->fx_playing = EINA_FALSE;
    priv->fx_items_deleted = EINA_FALSE;
    priv->genlist_clearing = EINA_FALSE;
+   priv->scrolling = EINA_FALSE;
 #endif
 
    priv->pan_obj = evas_object_smart_add
@@ -5816,6 +5823,7 @@ elm_genlist_clear(Evas_Object *obj)
         sd->genlist_clearing = EINA_TRUE;
         sd->rendered = EINA_FALSE;
      }
+   sd->scrolling = EINA_FALSE;
 #endif
 #if GENLIST_PINCH_ZOOM_SUPPORT
    sd->pinch_zoom_h = 0;
@@ -7312,6 +7320,7 @@ _elm_genlist_fx_capture(Evas_Object *obj, int level)
    Proxy_Item *pi;
    Evas_Coord ox, oy, ow, oh;
 
+   if (sd->scrolling) return EINA_FALSE;
    if (!sd->sorting)
      {
         if ((!sd->rendered) || (sd->fx_playing)) return EINA_FALSE;
