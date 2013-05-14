@@ -231,6 +231,7 @@ struct _Elm_Genlist_Smart_Data
    Eina_List                            *pending_unrealized_decorate_all_items;
    Elm_Gen_Item                         *realized_top_item;
    Ecore_Timer                          *fx_timer;
+   Ecore_Job                            *fx_job;
 #endif
 
    Eina_Bool                             auto_scroll_enabled : 1;

@@ -2174,6 +2174,14 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
 }
 
 static void
+_fx_job(void *data)
+{
+   Elm_Genlist_Smart_Data *sd = data;
+   _elm_genlist_fx_play(ELM_WIDGET_DATA(sd)->obj);
+   sd->fx_job = NULL;
+}
+
+static void
 _elm_genlist_pan_smart_calculate(Evas_Object *obj)
 {
    Evas_Coord ox, oy, ow, oh, cvx, cvy, cvw, cvh;
@@ -2276,8 +2284,9 @@ _elm_genlist_pan_smart_calculate(Evas_Object *obj)
    psd->wsd->rendered = EINA_TRUE;
    if ((psd->wsd->fx_mode) && (!psd->wsd->queue))
      {
-        if (_elm_genlist_fx_capture(ELM_WIDGET_DATA(psd->wsd)->obj, 1))
-          _elm_genlist_fx_play(ELM_WIDGET_DATA(psd->wsd)->obj);
+        _elm_genlist_fx_capture(ELM_WIDGET_DATA(psd->wsd)->obj, 1);
+        if (psd->wsd->fx_job) ecore_job_del(psd->wsd->fx_job);
+        psd->wsd->fx_job = ecore_job_add(_fx_job, psd->wsd);
      }
 #endif
 #if GENLIST_PINCH_ZOOM_SUPPORT
@@ -5770,6 +5779,8 @@ _elm_genlist_fx_clear(Evas_Object *obj, Eina_Bool force)
    EINA_LIST_FREE (sd->pending_del_items, it)
         _item_del_post_process(it);
 
+   if (sd->fx_job) ecore_job_del(sd->fx_job);
+   sd->fx_job = NULL;
    if (sd->alpha_bg) evas_object_del(sd->alpha_bg);
    sd->alpha_bg = NULL;
    if (sd->fx_timer) ecore_timer_del(sd->fx_timer);
@@ -7217,6 +7228,30 @@ _elm_genlist_proxy_item_del(Proxy_Item *pi)
    free(pi);
 }
 
+static void
+_item_all_position(Elm_Gen_Item *it,
+                   Evas_Coord it_x,
+                   Evas_Coord it_y)
+{
+   if (!it) return;
+
+   if (it->deco_all_view)
+     {
+        _item_position(it, it->deco_all_view, it_x, it_y);
+        evas_object_show(it->deco_all_view);
+     }
+   else if (it->item->deco_it_view)
+     {
+        _item_position(it, it->item->deco_it_view, it_x, it_y);
+        evas_object_show(it->item->deco_it_view);
+     }
+   else
+     {
+        _item_position(it, VIEW(it), it_x, it_y);
+        evas_object_show(VIEW(it));
+     }
+}
+
 static Proxy_Item *
 _elm_genlist_proxy_item_new(const Elm_Object_Item *item)
 {
@@ -7353,12 +7388,24 @@ _elm_genlist_fx_capture(Evas_Object *obj, int level)
                        if (!level)
                          sd->capture_before_items = eina_list_append(sd->capture_before_items, pi);
                        else
-                         sd->capture_after_items = eina_list_append(sd->capture_after_items, pi);
+                         {
+                            if (pi->it->deco_all_view)
+                              evas_object_hide(pi->it->deco_all_view);
+                            else if (pi->it->item->deco_it_view)
+                              evas_object_hide(pi->it->item->deco_it_view);
+                            else
+                              evas_object_hide(VIEW(pi->it));
+                            sd->capture_after_items = eina_list_append(sd->capture_after_items, pi);
+                         }
                     }
                }
           }
         else if (done) break;
      }
+
+   EINA_LIST_FOREACH(sd->capture_before_items, l, pi)
+      _item_all_position(pi->it, pi->x, pi->y);
+
    return EINA_TRUE;
 }
 
@@ -7786,19 +7833,9 @@ _elm_genlist_fx_play(Evas_Object *obj)
         if (!fi->proxy) continue;
 
         if ((fi->from.y <= oy) || (fi->from.y + fi->from.h >= oy + oh))
-          {
-             if ((sd->decorate_all_mode) && (fi->it->deco_all_view))
-               evas_object_move(fi->it->deco_all_view, cvx, fi->to.y);
-             else
-               evas_object_move(VIEW(fi->it), cvx, fi->to.y);
-          }
+          _item_all_position(fi->it, cvx, fi->to.y);
         else if ((fi->to.y <= oy) || (fi->to.y + fi->to.h >= oy + oh))
-          {
-             if ((sd->decorate_all_mode) && (fi->it->deco_all_view))
-               evas_object_move(fi->it->deco_all_view, cvx, fi->from.y);
-             else
-               evas_object_move(VIEW(fi->it), cvx, fi->from.y);
-          }
+          _item_all_position(fi->it, cvx, fi->from.y);
 
         evas_object_resize(fi->proxy, ow, fi->to.h);
         evas_object_show(fi->proxy);
