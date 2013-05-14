@@ -2205,7 +2205,7 @@ _elm_genlist_pan_smart_calculate(Evas_Object *obj)
 
 #if GROUP_ITEMS_FEATURE
    EINA_LIST_FOREACH(psd->wsd->group_items, l, git)
-     git->item->want_realize = EINA_FALSE;  
+     git->item->want_realize = EINA_FALSE;
 #endif
 
    EINA_INLIST_FOREACH(psd->wsd->blocks, itb)
@@ -6239,7 +6239,7 @@ _elm_genlist_item_coordinates_calc(Elm_Object_Item *item,
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
    Evas_Coord gith = 0;
 
-   if ((it->item->queued) || !(it->item->mincalcd) || !(it->realized))
+   if ((it->item->queued) || !(it->item->mincalcd))
      {
         GL_IT(it)->wsd->show_item = it;
         GL_IT(it)->wsd->bring_in = bring_in;
