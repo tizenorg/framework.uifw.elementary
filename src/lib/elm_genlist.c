@@ -674,16 +674,13 @@ _item_block_unrealize(Item_Block *itb)
 
    EINA_LIST_FOREACH(itb->items, l, it)
      {
-        if (itb->must_recalc || !it->group)
-          {
-             if (it->dragging)
-               {
-                  dragging = EINA_TRUE;
-                  it->want_unrealize = EINA_TRUE;
-               }
-             else
-               _item_unrealize(it, EINA_FALSE);
-          }
+       if (it->dragging)
+         {
+           dragging = EINA_TRUE;
+           it->want_unrealize = EINA_TRUE;
+         }
+       else
+         _item_unrealize(it, EINA_FALSE);
      }
    if (!dragging)
      {
@@ -1667,7 +1664,6 @@ _item_realize(Elm_Gen_Item *it,
    if (!calc)
      {
         if ((GL_IT(it)->wsd->decorate_all_mode) && (!it->deco_all_view) &&
-            (it->item->type != ELM_GENLIST_ITEM_GROUP) &&
             (it->itc->decorate_all_item_style))
           _decorate_all_item_realize(it, EINA_FALSE);
 
@@ -1769,8 +1765,7 @@ _item_realize(Elm_Gen_Item *it,
    if (!calc || it->item->unrealize_disabled)
      evas_object_smart_callback_call(WIDGET(it), SIG_REALIZED, it);
 
-   if ((!calc) && (GL_IT(it)->wsd->decorate_all_mode) &&
-       (it->item->type != ELM_GENLIST_ITEM_GROUP))
+   if ((!calc) && (GL_IT(it)->wsd->decorate_all_mode))
      {
         if (it->itc->decorate_all_item_style)
           {
@@ -1779,8 +1774,7 @@ _item_realize(Elm_Gen_Item *it,
              edje_object_message_signal_process(it->deco_all_view);
           }
      }
-   if ((!calc) && (it->decorate_it_set) &&
-       (it->item->type != ELM_GENLIST_ITEM_GROUP))
+   if ((!calc) && (it->decorate_it_set))
      {
         if (it->itc->decorate_item_style)
           {
@@ -2208,14 +2202,11 @@ _elm_genlist_pan_smart_calculate(Evas_Object *obj)
 
    evas_object_geometry_get(obj, &ox, &oy, &ow, &oh);
    evas_output_viewport_get(evas_object_evas_get(obj), &cvx, &cvy, &cvw, &cvh);
-   EINA_LIST_FOREACH(psd->wsd->group_items, l, git)
-    {
+
 #if GROUP_ITEMS_FEATURE
-       git->item->want_realize = EINA_FALSE;
-#else
-       evas_object_hide(VIEW(git));
+   EINA_LIST_FOREACH(psd->wsd->group_items, l, git)
+     git->item->want_realize = EINA_FALSE;  
 #endif
-    }
 
    EINA_INLIST_FOREACH(psd->wsd->blocks, itb)
      {
