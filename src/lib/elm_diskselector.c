@@ -584,6 +584,14 @@ _access_on_highlight_cb(void *data)
    sd->s_iface->region_bring_in(WIDGET(it), x, y, w, h);
 }
 
+static void
+_access_activate_cb(void *data __UNUSED__,
+                    Evas_Object *part_obj __UNUSED__,
+                    Elm_Object_Item *item)
+{
+   _item_click_cb(item, NULL, NULL, NULL);
+}
+
 static Elm_Diskselector_Item *
 _item_new(Evas_Object *obj,
           Evas_Object *icon,
@@ -591,6 +599,7 @@ _item_new(Evas_Object *obj,
           Evas_Smart_Cb func,
           const void *data)
 {
+   Elm_Access_Info *ai;
    Elm_Diskselector_Item *it;
    const char *style = elm_widget_style_get(obj);
 
@@ -624,19 +633,16 @@ _item_new(Evas_Object *obj,
           (VIEW(it), "elm,action,click", "", _item_click_cb, it);
      }
 
-   //XXX: ACCESS
-   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
+   /* access */
+   if (_elm_config->access_mode)
      {
         _elm_access_widget_item_register((Elm_Widget_Item *)it);
+        ai = _elm_access_object_get(it->base.access_obj);
 
-        _elm_access_text_set(_elm_access_object_get(it->base.access_obj),
-                             ELM_ACCESS_TYPE, E_("diskselector item"));
-        _elm_access_callback_set(_elm_access_object_get(it->base.access_obj),
-                                 ELM_ACCESS_INFO,
-                                 _access_info_cb, it);
-        _elm_access_on_highlight_hook_set(
-           _elm_access_object_get(it->base.access_obj), _access_on_highlight_cb,
-           it);
+        _elm_access_text_set(ai, ELM_ACCESS_TYPE, E_("diskselector item"));
+        _elm_access_callback_set(ai, ELM_ACCESS_INFO, _access_info_cb, it);
+        _elm_access_on_highlight_hook_set(ai, _access_on_highlight_cb, it);
+        _elm_access_activate_callback_set(ai, _access_activate_cb, it);
      }
 
    return it;
@@ -1390,7 +1396,7 @@ _elm_diskselector_smart_member_add(Evas_Object *obj,
 }
 
 static void
-_access_hook(Evas_Object *obj, Eina_Bool is_access)
+_elm_diskselector_smart_access(Evas_Object *obj, Eina_Bool is_access)
 {
    ELM_DISKSELECTOR_DATA_GET(obj, sd);
 
@@ -1398,6 +1404,8 @@ _access_hook(Evas_Object *obj, Eina_Bool is_access)
      ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next =  _elm_diskselector_smart_focus_next;
    else
      ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next = NULL;
+
+   //TODO: register, unregister item
 }
 
 
@@ -1416,11 +1424,11 @@ _elm_diskselector_smart_set_user(Elm_Diskselector_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->theme = _elm_diskselector_smart_theme;
    ELM_WIDGET_CLASS(sc)->event = _elm_diskselector_smart_event;
 
-   //XXX: ACCESS
-   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
+   /* access */
+   if (_elm_config->access_mode)
      ELM_WIDGET_CLASS(sc)->focus_next = _elm_diskselector_smart_focus_next;
 
-   ELM_WIDGET_CLASS(sc)->access = _access_hook;
+   ELM_WIDGET_CLASS(sc)->access = _elm_diskselector_smart_access;
 }
 
 EAPI const Elm_Diskselector_Smart_Class *

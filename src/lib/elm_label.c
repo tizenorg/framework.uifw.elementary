@@ -398,6 +398,24 @@ _elm_label_smart_add(Evas_Object *obj)
    elm_layout_sizing_eval(obj);
 }
 
+static Eina_Bool
+_elm_label_smart_activate(Evas_Object *obj, Elm_Activate act)
+{
+   Elm_Access_Info *ac;
+
+   if (!_elm_config->access_mode) return EINA_FALSE;
+
+   if (act != ELM_ACTIVATE_DEFAULT) return EINA_FALSE;
+
+   ac = _elm_access_object_get(obj);
+   if (!ac) return EINA_FALSE;
+   if (!ac->activate) return EINA_FALSE;
+
+   ac->activate(ac->activate_data, obj, NULL);
+
+   return EINA_TRUE;
+}
+
 static void
 _elm_label_smart_set_user(Elm_Label_Smart_Class *sc)
 {
@@ -406,6 +424,7 @@ _elm_label_smart_set_user(Elm_Label_Smart_Class *sc)
    /* not a 'focus chain manager' */
    ELM_WIDGET_CLASS(sc)->focus_next = NULL;
    ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
+   ELM_WIDGET_CLASS(sc)->activate = _elm_label_smart_activate;
 
    ELM_WIDGET_CLASS(sc)->theme = _elm_label_smart_theme;
    ELM_WIDGET_CLASS(sc)->translate = _elm_label_smart_translate;

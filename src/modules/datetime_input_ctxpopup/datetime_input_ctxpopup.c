@@ -374,7 +374,50 @@ _field_mouse_up_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event
 }
 
 static void
-_access_set(Evas_Object *obj, Elm_Datetime_Field_Type field_type)
+_access_activate_cb(void *data,
+                    Evas_Object *part_obj,
+                    Elm_Object_Item *item __UNUSED__)
+{
+   Evas_Object *obj;
+   Ctxpopup_Module_Data *ctx_mod;
+   char buf[BUFF_SIZE];
+
+   ctx_mod = (Ctxpopup_Module_Data *)data;
+   if (!ctx_mod) return;
+
+   obj = part_obj;
+
+   if (!ctx_mod->ctxpopup)
+     {
+        ctx_mod->ctxpopup = elm_ctxpopup_add(obj);
+        snprintf(buf, sizeof(buf), "datetime/%s", elm_object_style_get(ctx_mod->mod_data.base));
+        elm_object_style_set(ctx_mod->ctxpopup, buf);
+        elm_ctxpopup_horizontal_set(ctx_mod->ctxpopup, EINA_TRUE);
+        evas_object_size_hint_weight_set(ctx_mod->ctxpopup, EVAS_HINT_EXPAND,
+                                         EVAS_HINT_EXPAND);
+        evas_object_size_hint_align_set(ctx_mod->ctxpopup, EVAS_HINT_FILL, 0.5);
+        elm_ctxpopup_hover_parent_set(ctx_mod->ctxpopup, elm_widget_top_get(obj));
+        evas_object_event_callback_add(ctx_mod->ctxpopup,  EVAS_CALLBACK_HIDE,
+                                       _ctxpopup_hide_cb, ctx_mod);
+     }
+
+   if (evas_object_visible_get(ctx_mod->ctxpopup) && ctx_mod->sel_field != obj)
+     {
+         if (ctx_mod->sel_field)
+           elm_object_signal_emit(ctx_mod->sel_field, "elm,state,unselect", "elm");
+         ctx_mod->sel_field = obj;
+         ctx_mod->ctxpopup_relaunch = 1;
+         evas_object_hide(ctx_mod->ctxpopup);
+     }
+   else if (ctx_mod->sel_field != obj)
+     {
+        ctx_mod->ctxpopup_relaunch = 0;
+        _field_clicked_cb(ctx_mod, obj);
+     }
+}
+
+static void
+_access_set(Evas_Object *obj, Elm_Datetime_Field_Type field_type, Elm_Datetime_Module_Data *module_data)
 {
    const char* type = NULL;
 
@@ -412,6 +455,11 @@ _access_set(Evas_Object *obj, Elm_Datetime_Field_Type field_type)
      (_elm_access_object_get(obj), ELM_ACCESS_TYPE, type);
    _elm_access_callback_set
      (_elm_access_object_get(obj), ELM_ACCESS_STATE, NULL, NULL);
+
+   if ((field_type >= ELM_DATETIME_YEAR) &&
+       (field_type < ELM_DATETIME_AMPM))
+     _elm_access_activate_callback_set
+       (_elm_access_object_get(obj), _access_activate_cb, module_data);
 }
 
 // module fucns for the specific module type
@@ -468,7 +516,7 @@ field_create(Elm_Datetime_Module_Data *module_data, Elm_Datetime_Field_Type  fie
    evas_object_data_set(field_obj, "_field_type", (void *)field_type);
 
    // ACCESS
-   _access_set(field_obj, field_type);
+   _access_set(field_obj, field_type, ctx_mod);
 
    return field_obj;
 }
