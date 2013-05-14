@@ -1,4 +1,5 @@
 #include <Ecore_X.h>               //Tizen Only
+#include <X11/Xlib.h>              //Tizen Only
 #include <Elementary.h>
 #include "elm_priv.h"
 #include "elm_widget_naviframe.h"
@@ -938,6 +939,30 @@ _vkb_window_get()
 }
 
 //Tizen Only: Customized
+static XKeyEvent *
+_keydown_event_get(Ecore_X_Window x_win, const char *keyname)
+{
+   XKeyEvent *event = (XKeyEvent *)malloc(sizeof(XKeyEvent));
+
+   event->display = ecore_x_display_get();
+   event->window = x_win;
+   event->root = ecore_x_window_root_get(x_win);
+   event->subwindow = None;
+   event->time = 0;
+   event->x = 1;
+   event->y = 1;
+   event->x_root = 1;
+   event->y_root = 1;
+   event->same_screen = True;
+   event->keycode = XKeysymToKeycode(ecore_x_display_get(), XStringToKeysym(keyname));
+   event->type = KeyPress;
+   event->send_event = False;
+   event->serial= 0;
+
+   return event;
+}
+
+//Tizen Only: Customized
 static void
 _on_item_back_btn_clicked(void *data,
                           Evas_Object *obj,
@@ -956,7 +981,16 @@ _on_item_back_btn_clicked(void *data,
 
    if ((cbhm_state == ECORE_X_ILLUME_CLIPBOARD_STATE_UNKNOWN || cbhm_state == ECORE_X_ILLUME_CLIPBOARD_STATE_OFF)
        && (vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_UNKNOWN || vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF))
-     evas_object_focus_set(obj, EINA_TRUE);
+     {
+        evas_object_focus_set(obj, EINA_TRUE);
+
+        Evas_Object *top = elm_widget_top_get(data);
+        Ecore_X_Window x_win = elm_win_xwindow_get(top);
+        XKeyEvent *event = _keydown_event_get(x_win, KEY_END);
+        XSendEvent(ecore_x_display_get(), x_win, EINA_TRUE, KeyPressMask, (XEvent*)event);
+        if (event) free(event);
+        return;
+     }
 
    //Get the keygrab window handle.
    if (!keygrab_win)
