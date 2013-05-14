@@ -3510,11 +3510,26 @@ _multi_touch_gesture_eval(void *data)
                  (WIDGET(it), SIG_MULTI_SWIPE_LEFT, it);
              else if (abs(GL_IT(it)->wsd->cur_x - GL_IT(it)->wsd->cur_mx) >
                       abs(GL_IT(it)->wsd->prev_x - GL_IT(it)->wsd->prev_mx))
-               evas_object_smart_callback_call
-                 (WIDGET(it), SIG_MULTI_PINCH_OUT, it);
+               {
+                  evas_object_smart_callback_call
+                     (WIDGET(it), SIG_MULTI_PINCH_OUT, it);
+#if GENLIST_PINCH_ZOOM_SUPPORT
+                  if (IS_ROOT_PARENT_IT(it) && (GL_IT(it)->wsd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT))
+                    {
+                       elm_genlist_pinch_zoom_mode_set(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj, ELM_GEN_PINCH_ZOOM_EXPAND);
+                       elm_genlist_item_show((Elm_Object_Item *)it, ELM_GENLIST_ITEM_SCROLLTO_TOP);
+                    }
+#endif
+               }
              else
-               evas_object_smart_callback_call
-                 (WIDGET(it), SIG_MULTI_PINCH_IN, it);
+               {
+                  evas_object_smart_callback_call
+                     (WIDGET(it), SIG_MULTI_PINCH_IN, it);
+#if GENLIST_PINCH_ZOOM_SUPPORT
+                  elm_genlist_pinch_zoom_mode_set(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj,
+                                                  ELM_GEN_PINCH_ZOOM_CONTRACT);
+#endif
+               }
           }
         else
           {
