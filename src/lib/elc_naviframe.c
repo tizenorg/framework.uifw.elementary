@@ -511,10 +511,41 @@ _item_content_set(Elm_Naviframe_Item *it,
      (content, EVAS_CALLBACK_DEL, _item_content_del_cb, it);
 }
 
+//Tizen Only: Temporary code. block the focus for the back button for
+//H/W Key event support.
+static void
+_hide_button_prop_set(Elm_Naviframe_Item *it, Evas_Object *prev_btn)
+{
+   if (it->dispmode == EVAS_DISPLAY_MODE_COMPRESS)
+     {
+        elm_object_signal_emit(prev_btn, "elm,state,display,compress", "elm");
+        evas_object_propagate_events_set(prev_btn, EINA_FALSE);
+        elm_object_focus_allow_set(prev_btn, EINA_FALSE);
+     }
+   else
+     {
+        elm_object_signal_emit(prev_btn, "elm,state,display,default", "elm");
+        evas_object_propagate_events_set(prev_btn, EINA_TRUE);
+        elm_object_focus_allow_set(prev_btn, EINA_TRUE);
+     }
+}
+
+char *
+_access_prev_btn_info_cb(void *data, Evas_Object *obj __UNUSED__)
+{
+   Elm_Naviframe_Item *it = (Elm_Naviframe_Item *)data;
+
+   if (it->dispmode == EVAS_DISPLAY_MODE_COMPRESS)
+     return strdup(E_("Close Keyboard"));
+   else
+     return strdup(E_("Back"));
+}
+
 static void
 _item_title_prev_btn_set(Elm_Naviframe_Item *it,
                          Evas_Object *btn)
 {
+   const char* txt;
    if (it->title_prev_btn == btn) return;
    if (it->title_prev_btn) evas_object_del(it->title_prev_btn);
    it->title_prev_btn = btn;
@@ -524,6 +555,20 @@ _item_title_prev_btn_set(Elm_Naviframe_Item *it,
    elm_object_signal_emit(VIEW(it), "elm,state,prev_btn,show", "elm");
    evas_object_event_callback_add
      (btn, EVAS_CALLBACK_DEL, _item_title_prev_btn_del_cb, it);
+<<<<<<< HEAD
+=======
+   evas_object_smart_callback_add
+     (btn, SIG_CLICKED, _on_item_back_btn_clicked, WIDGET(it));
+
+   _hide_button_prop_set(it, btn);
+
+   txt = elm_layout_text_get(btn, NULL);
+   if (txt && (strlen(txt) > 0)) return;
+
+    _elm_access_callback_set
+      (_elm_access_object_get(btn), ELM_ACCESS_INFO,
+       _access_prev_btn_info_cb, it);
+>>>>>>> ea5fd05... [naviframe][access] set access info callback for prev button properly
 }
 
 static void
@@ -1111,17 +1156,6 @@ _item_dispmode_set(Elm_Naviframe_Item *it, Evas_Display_Mode dispmode)
    it->dispmode = dispmode;
 }
 
-static char *
-_access_prev_btn_info_cb(void *data, Evas_Object *obj __UNUSED__)
-{
-   Elm_Naviframe_Item *it = (Elm_Naviframe_Item *)data;
-
-   if (it->dispmode == EVAS_DISPLAY_MODE_COMPRESS)
-     return strdup(E_("Close Keyboard"));
-   else
-     return strdup(E_("Back"));
-}
-
 static Elm_Naviframe_Item *
 _item_new(Evas_Object *obj,
           const Elm_Naviframe_Item *prev_it,
@@ -1180,14 +1214,7 @@ _item_new(Evas_Object *obj,
      }
 
    if (prev_btn)
-     {
-        _item_content_set_hook((Elm_Object_Item *)it, PREV_BTN_PART, prev_btn);
-
-        if (!elm_layout_text_get(prev_btn, NULL))
-          _elm_access_callback_set
-            (_elm_access_object_get(prev_btn), ELM_ACCESS_INFO,
-             _access_prev_btn_info_cb, it);
-     }
+     _item_content_set_hook((Elm_Object_Item *)it, PREV_BTN_PART, prev_btn);
 
    if (next_btn)
      {
