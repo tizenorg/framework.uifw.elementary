@@ -577,6 +577,17 @@ _hide_button_prop_set(Elm_Naviframe_Item *it, Evas_Object *prev_btn)
      }
 }
 
+char *
+_access_prev_btn_info_cb(void *data, Evas_Object *obj __UNUSED__)
+{
+   Elm_Naviframe_Item *it = (Elm_Naviframe_Item *)data;
+
+   if (it->dispmode == EVAS_DISPLAY_MODE_COMPRESS)
+     return strdup(E_("Close Keyboard"));
+   else
+     return strdup(E_("Back"));
+}
+
 static void
 _item_title_prev_btn_set(Elm_Naviframe_Item *it,
                          Evas_Object *btn)
@@ -595,6 +606,13 @@ _item_title_prev_btn_set(Elm_Naviframe_Item *it,
      (btn, SIG_CLICKED, _on_item_back_btn_clicked, WIDGET(it));
 
    _hide_button_prop_set(it, btn);
+
+   txt = elm_layout_text_get(btn, NULL);
+   if (txt && (strlen(txt) > 0)) return;
+
+    _elm_access_callback_set
+      (_elm_access_object_get(btn), ELM_ACCESS_INFO,
+       _access_prev_btn_info_cb, it);
 }
 
 static void
