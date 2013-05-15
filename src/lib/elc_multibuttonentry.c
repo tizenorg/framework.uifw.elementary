@@ -866,6 +866,8 @@ _layout_shrink(Evas_Object *obj,
 
              if (sd->editable)
                {
+                  if (elm_object_focus_get(sd->entry))
+                    elm_object_focus_set(sd->entry, EINA_FALSE);
                   elm_box_unpack(sd->box, sd->entry);
                   evas_object_hide(sd->entry);
                }
@@ -960,6 +962,8 @@ _layout_shrink(Evas_Object *obj,
                   linew += mnw;
                   if (linew > (w * (2 / 3)))
                     {
+                       if (elm_object_focus_get(sd->entry))
+                         elm_object_focus_set(sd->entry, EINA_FALSE);
                        elm_box_unpack(sd->box, sd->entry);
                        evas_object_hide(sd->entry);
                        sd->expanded_state = EINA_FALSE;
