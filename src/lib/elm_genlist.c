@@ -4906,7 +4906,7 @@ _elm_genlist_smart_add(Evas_Object *obj)
 
    ELM_WIDGET_CLASS(_elm_genlist_parent_sc)->base.add(obj);
 
-   priv->size_caches = eina_hash_pointer_new(_size_cache_free);
+   priv->size_caches = eina_hash_string_small_new(_size_cache_free);
    priv->hit_rect = evas_object_rectangle_add(evas_object_evas_get(obj));
    evas_object_smart_member_add(priv->hit_rect, obj);
    elm_widget_sub_object_add(obj, priv->hit_rect);
