@@ -871,7 +871,7 @@ _virtualkeypad_state_change(Evas_Object *obj, Ecore_X_Event_Window_Property *ev)
         DBG("[KEYPAD]:ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF");
         _conformant_part_sizing_eval(obj, ELM_CONFORMANT_VIRTUAL_KEYPAD_PART);
         // Tizen Only - SIP regions for virtual keypad and clipboard are the same in Tizen
-        if (sd->clipboard_state == ECORE_X_ILLUME_CLIPBOARD_STATE_OFF)
+        if (sd->clipboard_state == ECORE_X_ILLUME_CLIPBOARD_STATE_UNKNOWN || sd->clipboard_state == ECORE_X_ILLUME_CLIPBOARD_STATE_OFF)
           elm_widget_display_mode_set(obj, EVAS_DISPLAY_MODE_NONE);
         evas_object_smart_callback_call(obj, SIG_VIRTUALKEYPAD_STATE_OFF, NULL);
      }
@@ -912,7 +912,7 @@ _clipboard_state_change(Evas_Object *obj, Ecore_X_Event_Window_Property *ev)
         evas_object_size_hint_min_set(sd->clipboard, -1, 0);
         evas_object_size_hint_max_set(sd->clipboard, -1, 0);
         // Tizen Only - SIP regions for virtual keypad and clipboard are the same in Tizen
-        if (sd->vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF)
+        if (sd->vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_UNKNOWN || sd->vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF)
           elm_widget_display_mode_set(obj, EVAS_DISPLAY_MODE_NONE);
         evas_object_smart_callback_call(obj, SIG_CLIPBOARD_STATE_OFF, NULL);
      }
