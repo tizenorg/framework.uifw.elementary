@@ -84,7 +84,7 @@ _access_label_info_cb(void *data, Evas_Object *obj __UNUSED__)
 
    if (!txt)
      {
-        txt = elm_object_part_text_get(sd->label, "mbe.label");
+        txt = _elm_util_mkup_to_text(elm_object_part_text_get(sd->label, "mbe.label"));
         return strdup(txt);
      }
    else return strdup(txt);
@@ -104,7 +104,7 @@ _access_shrink_info_cb(void *data, Evas_Object *obj __UNUSED__)
 
    if (!mbe) return NULL;
 
-   if (!txt) txt = elm_object_text_get(sd->end);
+   if (!txt) txt = _elm_util_mkup_to_text(elm_object_text_get(sd->end));
    if (txt)
      {
         buf = eina_strbuf_new();
