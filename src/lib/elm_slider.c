@@ -48,7 +48,7 @@ static void
 _val_fetch(Evas_Object *obj)
 {
    Eina_Bool rtl;
-   double posx = 0.0, posy = 0.0, pos = 0.0, val;
+   double posx = 0.0, posy = 0.0, pos = 0.0, val, per;
    char text[1024] = {0,};
    Eina_Strbuf *buf = NULL;
    char *str = NULL;
@@ -94,6 +94,12 @@ _val_fetch(Evas_Object *obj)
                   eina_strbuf_append(buf, E_(" of "));
                   snprintf(text, sizeof(text), sd->indicator, sd->val_max);
                   eina_strbuf_append(buf, text);
+               }
+             else
+               {
+                  per = (sd->val / (sd->val_max - sd->val_min)) * 100;
+                  per = abs(per);
+                  eina_strbuf_append_printf(buf, "%d %s 100", (int)floor(per), E_(" of "));
                }
 
              _elm_access_say(eina_strbuf_string_get(buf));
