@@ -956,7 +956,7 @@ _keydown_event_get(Ecore_X_Window x_win, const char *keyname)
    event->same_screen = True;
    event->keycode = XKeysymToKeycode(ecore_x_display_get(), XStringToKeysym(keyname));
    event->type = KeyPress;
-   event->send_event = False;
+   event->send_event = True;
    event->serial= 0;
 
    return event;
@@ -987,7 +987,7 @@ _on_item_back_btn_clicked(void *data,
         Evas_Object *top = elm_widget_top_get(data);
         Ecore_X_Window x_win = elm_win_xwindow_get(top);
         XKeyEvent *event = _keydown_event_get(x_win, KEY_END);
-        XSendEvent(ecore_x_display_get(), x_win, EINA_TRUE, KeyPressMask, (XEvent*)event);
+        XSendEvent(ecore_x_display_get(), x_win, EINA_FALSE, KeyPressMask, (XEvent*)event);
         if (event) free(event);
         return;
      }
