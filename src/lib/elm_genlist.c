@@ -2180,9 +2180,7 @@ _elm_genlist_pan_smart_calculate(Evas_Object *obj)
 {
    Evas_Coord ox, oy, ow, oh, cvx, cvy, cvw, cvh;
    Evas_Coord vx = 0, vy = 0, vw = 0, vh = 0;
-   Elm_Gen_Item *git;
    Item_Block *itb;
-   Eina_List *l;
    int in = 0;
 
    ELM_GENLIST_PAN_DATA_GET(obj, psd);
@@ -3995,43 +3993,25 @@ newblock:
    return EINA_TRUE;
 }
 
-static int
+static Eina_Bool
 _item_process(Elm_Genlist_Smart_Data *sd,
               Elm_Gen_Item *it)
 {
-   if (!_item_block_add(sd, it)) return 1;
+   if (!_item_block_add(sd, it)) return EINA_FALSE;
    if (!sd->blocks)
      _item_block_realize(it->item->block);
 
-   return 0;
-}
-
-static void
-_item_process_post(Elm_Genlist_Smart_Data *sd,
-                   Elm_Gen_Item *it,
-                   Eina_Bool qadd)
-{
-   Eina_Bool show_me = EINA_FALSE;
-
    if (it->item->block->changed)
      {
-        show_me = _item_block_recalc
-            (it->item->block, it->item->block->num, qadd);
-        it->item->block->changed = 0;
-        if (sd->pan_changed)
-          {
-             if (sd->calc_job) ecore_job_del(sd->calc_job);
-             sd->calc_job = NULL;
-             _calc_job(sd);
-             sd->pan_changed = EINA_FALSE;
-          }
+        if (_item_block_recalc(it->item->block, it->item->block->num, EINA_TRUE))
+           it->item->block->show_me = EINA_TRUE;
+        it->item->block->changed = EINA_FALSE;
      }
-   if (show_me) it->item->block->show_me = EINA_TRUE;
 
    /* when prepending, move the scroller along with the first selected
-    * item to create the illusion that we're watching the selected
-    * item this prevents the selected item being scrolled off the
-    * viewport
+    * * item to create the illusion that we're watching the selected
+    * * item this prevents the selected item being scrolled off the
+    * * viewport
     */
    if (sd->selected && it->item->before)
      {
@@ -4039,28 +4019,32 @@ _item_process_post(Elm_Genlist_Smart_Data *sd,
         Elm_Gen_Item *it2;
 
         it2 = sd->selected->data;
-        if (!it2->item->block) return;
-        sd->s_iface->content_pos_get(ELM_WIDGET_DATA(sd)->obj, NULL, &y);
-        evas_object_geometry_get(sd->pan_obj, NULL, NULL, NULL, &h);
-        if ((it->y + it->item->block->y > y + h) ||
-            (it->y + it->item->block->y + it->item->h < y))
-          /* offscreen, just update */
-          sd->s_iface->content_region_show
-            (ELM_WIDGET_DATA(sd)->obj, it2->x + it2->item->block->x, y,
-            it2->item->block->w, h);
-        else
-          sd->s_iface->content_region_show
-            (ELM_WIDGET_DATA(sd)->obj, it->x + it->item->block->x,
-            y + it->item->h, it->item->block->w, h);
+        if (it2->item->block)
+          {
+             sd->s_iface->content_pos_get(ELM_WIDGET_DATA(sd)->obj, NULL, &y);
+             evas_object_geometry_get(sd->pan_obj, NULL, NULL, NULL, &h);
+             if ((it->y + it->item->block->y > y + h) ||
+                 (it->y + it->item->block->y + it->item->h < y))
+                /* offscreen, just update */
+                sd->s_iface->content_region_show
+                   (ELM_WIDGET_DATA(sd)->obj, it2->x + it2->item->block->x, y,
+                    it2->item->block->w, h);
+             else
+                sd->s_iface->content_region_show
+                   (ELM_WIDGET_DATA(sd)->obj, it->x + it->item->block->x,
+                    y + it->item->h, it->item->block->w, h);
+          }
      }
+   return EINA_TRUE;
 }
 
 static int
 _queue_process(Elm_Genlist_Smart_Data *sd)
 {
    int n;
-   double t0, t;
+   double t0, t, ft;
 
+   ft = ecore_animator_frametime_get();
    t0 = ecore_loop_time_get();
    for (n = 0; (sd->queue) && (n < 128); n++)
      {
@@ -4069,13 +4053,12 @@ _queue_process(Elm_Genlist_Smart_Data *sd)
         it = eina_list_data_get(sd->queue);
         sd->queue = eina_list_remove_list(sd->queue, sd->queue);
         it->item->queued = EINA_FALSE;
-        if (_item_process(sd, it)) continue;
-        _item_process_post(sd, it, EINA_TRUE);
+        if (!_item_process(sd, it)) continue;
         t = ecore_time_get();
         /* same as eina_inlist_count > 1 */
         if (sd->blocks && sd->blocks->next)
           {
-             if ((t - t0) > (ecore_animator_frametime_get())) break;
+             if ((t - t0) > ft) break;
           }
      }
    return n;
@@ -4447,18 +4430,18 @@ _item_block_recalc(Item_Block *itb,
    EINA_LIST_FOREACH_SAFE(itb->items, l, ll, it)
      {
         show_me |= it->item->show_me;
-        if (!itb->realized)
+        if (qadd)
           {
-             if (qadd)
+             if (!it->item->mincalcd) changed = EINA_TRUE;
+             if (changed)
                {
-                  if (!it->item->mincalcd) changed = EINA_TRUE;
-                  if (changed)
-                    {
-                       _item_realize(it, in, EINA_TRUE);
-                       _item_unrealize(it, EINA_TRUE);
-                    }
+                  _item_realize(it, in, EINA_TRUE);
+                  _item_unrealize(it, EINA_TRUE);
                }
-             else
+          }
+        else
+          {
+             if (!itb->realized)
                {
                   if (itb->sd->homogeneous)
                     {
@@ -4482,11 +4465,11 @@ _item_block_recalc(Item_Block *itb,
                        _item_unrealize(it, EINA_TRUE);
                     }
                }
-          }
-        else
-          {
-             if (!it->item->mincalcd) changed = EINA_TRUE;
-             _item_realize(it, in, EINA_FALSE);
+             else
+               {
+                  if (!it->item->mincalcd) changed = EINA_TRUE;
+                  _item_realize(it, in, EINA_FALSE);
+               }
           }
         minh += it->item->minh;
         if (minw < it->item->minw) minw = it->item->minw;
