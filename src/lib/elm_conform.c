@@ -368,6 +368,7 @@ _land_indicator_disconnected(void *data,
 
    ELM_CONFORMANT_DATA_GET(conform, sd);
 
+   if (sd->land_indi_timer) ecore_timer_del(sd->land_indi_timer);
    sd->land_indi_timer = ecore_timer_add(1, _land_indicator_connect_cb, sd);
 }
 
@@ -380,6 +381,7 @@ _port_indicator_disconnected(void *data,
 
    ELM_CONFORMANT_DATA_GET(conform, sd);
 
+   if (sd->port_indi_timer) ecore_timer_del(sd->port_indi_timer);
    sd->port_indi_timer = ecore_timer_add(1, _port_indicator_connect_cb, sd);
 }
 
