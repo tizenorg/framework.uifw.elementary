@@ -1722,11 +1722,12 @@ _item_realize(Elm_Gen_Item *it,
              Evas_Coord mw = 0, mh = 0;
 
              if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
-               elm_coords_finger_size_adjust(1, &mw, 1, &mh);
-             if ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) &&
-                 (GL_IT(it)->wsd->prev_viewport_w != 0) &&
-                 (mw < GL_IT(it)->wsd->prev_viewport_w))
-                mw = GL_IT(it)->wsd->prev_viewport_w;
+               {
+                  mw = GL_IT(it)->wsd->finger_minw;
+                  mh = GL_IT(it)->wsd->finger_minh;
+               }
+             if (GL_IT(it)->wsd->prev_viewport_w != 0)
+               mw = GL_IT(it)->wsd->prev_viewport_w;
              edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
              if ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) &&
                  (GL_IT(it)->wsd->prev_viewport_w != 0) &&
@@ -2111,11 +2112,12 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
                   Evas_Coord mw = 0, mh = 0;
 
                   if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
-                     elm_coords_finger_size_adjust(1, &mw, 1, &mh);
-                  if ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) &&
-                      (GL_IT(it)->wsd->prev_viewport_w != 0) &&
-                      (mw < GL_IT(it)->wsd->prev_viewport_w))
-                     mw = GL_IT(it)->wsd->prev_viewport_w;
+                    {
+                       mw = GL_IT(it)->wsd->finger_minw;
+                       mh = GL_IT(it)->wsd->finger_minh;
+                    }
+                  if (GL_IT(it)->wsd->prev_viewport_w != 0)
+                    mw = GL_IT(it)->wsd->prev_viewport_w;
                   edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
                   if ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) &&
                       (GL_IT(it)->wsd->prev_viewport_w != 0) &&
@@ -3296,7 +3298,10 @@ _item_mouse_move_cb(void *data,
         return;
      }
    if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
-     elm_coords_finger_size_adjust(1, &minw, 1, &minh);
+     {
+        minw = GL_IT(it)->wsd->finger_minw;
+        minh = GL_IT(it)->wsd->finger_minh;
+     }
 
    evas_object_geometry_get(obj, &x, &y, NULL, NULL);
    x = ev->cur.canvas.x - x;
@@ -3478,7 +3483,9 @@ _multi_touch_gesture_eval(void *data)
         return;
      }
 
-   elm_coords_finger_size_adjust(1, &minw, 1, &minh);
+   minw = GL_IT(it)->wsd->finger_minw;
+   minh = GL_IT(it)->wsd->finger_minh;
+
    off_x = abs(GL_IT(it)->wsd->cur_x - GL_IT(it)->wsd->prev_x);
    off_y = abs(GL_IT(it)->wsd->cur_y - GL_IT(it)->wsd->prev_y);
    off_mx = abs(GL_IT(it)->wsd->cur_mx - GL_IT(it)->wsd->prev_mx);
@@ -4888,6 +4895,10 @@ _elm_genlist_smart_add(Evas_Object *obj)
    EVAS_SMART_DATA_ALLOC(obj, Elm_Genlist_Smart_Data);
 
    ELM_WIDGET_CLASS(_elm_genlist_parent_sc)->base.add(obj);
+
+   priv->finger_minw = 0;
+   priv->finger_minh = 0;
+   elm_coords_finger_size_adjust(1, &priv->finger_minw, 1, &priv->finger_minh);
 
    priv->size_caches = eina_hash_string_small_new(_size_cache_free);
    priv->hit_rect = evas_object_rectangle_add(evas_object_evas_get(obj));
