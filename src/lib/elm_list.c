@@ -64,6 +64,8 @@ _elm_list_item_free(Elm_List_Item *it)
    evas_object_event_callback_del_full
      (VIEW(it), EVAS_CALLBACK_MOUSE_MOVE, _mouse_move_cb, it);
 
+   edje_object_message_signal_process(VIEW(it));
+
    if (it->icon)
      evas_object_event_callback_del_full
        (it->icon, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
