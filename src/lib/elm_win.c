@@ -546,7 +546,8 @@ _shot_handle(Elm_Win_Smart_Data *sd)
 {
    if (!sd->shot.info) return;
 
-   sd->shot.timer = ecore_timer_add(_shot_delay_get(sd), _shot_delay, sd);
+   if (!sd->shot.timer)
+     sd->shot.timer = ecore_timer_add(_shot_delay_get(sd), _shot_delay, sd);
 }
 
 /* elm-win specific associate, does the trap while ecore_evas_object_associate()
@@ -928,8 +929,10 @@ _elm_win_profile_update(Ecore_Evas *ee)
    if (!obj) return;
 
    if (sd->profile.timer)
-     ecore_timer_del(sd->profile.timer);
-   sd->profile.timer = NULL;
+     {
+        ecore_timer_del(sd->profile.timer);
+        sd->profile.timer = NULL;
+     }
 
    /* It should be replaced per-window ELM profile later. */
    _elm_config_profile_set(sd->profile.name);
