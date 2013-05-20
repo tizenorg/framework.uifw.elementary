@@ -1524,6 +1524,7 @@ _elm_naviframe_smart_event(Evas_Object *obj,
 {
    Elm_Naviframe_Item *it;
    Evas_Event_Key_Down *ev = event_info;
+   ELM_NAVIFRAME_DATA_GET(obj, sd);
 
    if (elm_widget_disabled_get(obj)) return EINA_FALSE;
    if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
@@ -1534,10 +1535,11 @@ _elm_naviframe_smart_event(Evas_Object *obj,
    it = (Elm_Naviframe_Item *) elm_naviframe_top_item_get(obj);
    if (!it) return EINA_FALSE;
 
+   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+   if (sd->freeze_events && sd->popping) return EINA_TRUE;
+
    if (it->title_prev_btn)
     evas_object_smart_callback_call(it->title_prev_btn, SIG_CLICKED, NULL);
-
-   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
 
    return EINA_TRUE;
 }
@@ -1551,6 +1553,7 @@ _elm_naviframe_smart_event(Evas_Object *obj,
 {
    Elm_Naviframe_Item *it;
    Evas_Event_Key_Down *ev = event_info;
+   ELM_NAVIFRAME_DATA_GET(obj, sd);
 
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
    if (elm_widget_disabled_get(obj)) return EINA_FALSE;
@@ -1560,9 +1563,10 @@ _elm_naviframe_smart_event(Evas_Object *obj,
    it = (Elm_Naviframe_Item *) elm_naviframe_top_item_get(obj);
    if (!it) return EINA_FALSE;
 
-   elm_naviframe_item_pop(obj);
-
    ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+   if (sd->freeze_events && sd->popping) return EINA_TRUE;
+
+   elm_naviframe_item_pop(obj);
 
    return EINA_TRUE;
 }
