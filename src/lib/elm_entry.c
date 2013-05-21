@@ -935,6 +935,7 @@ _filter_new(Elm_Entry_Filter_Cb func,
    if (!tf) return NULL;
 
    tf->func = func;
+   tf->orig_data = data;
    if (func == elm_entry_filter_limit_size)
      {
         Elm_Entry_Filter_Limit_Size *lim = data, *lim2;
@@ -4809,7 +4810,7 @@ elm_entry_markup_filter_remove(Evas_Object *obj,
 
    EINA_LIST_FOREACH(sd->markup_filters, l, tf)
      {
-        if ((tf->func == func) && ((!data) || (tf->data == data)))
+        if ((tf->func == func) && ((!data) || (tf->orig_data == data)))
           {
              sd->markup_filters = eina_list_remove_list(sd->markup_filters, l);
              _filter_free(tf);
