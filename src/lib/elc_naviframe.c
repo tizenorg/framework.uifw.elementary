@@ -5,6 +5,7 @@
 #include "elm_widget_naviframe.h"
 
 #define KEY_END "XF86Stop"         //Tizen Only
+#define KEY_MENU "XF86Send"        //Tizen Only
 
 EAPI const char ELM_NAVIFRAME_SMART_NAME[] = "elm_naviframe";
 
@@ -1590,7 +1591,8 @@ _elm_naviframe_smart_event(Evas_Object *obj,
 
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
    if (elm_widget_disabled_get(obj)) return EINA_FALSE;
-   if (ev->keyname && strcmp(ev->keyname, KEY_END) && strcmp(ev->keyname, "Escape")) return EINA_FALSE;
+   if (ev->keyname && strcmp(ev->keyname, KEY_END) && strcmp(ev->keyname, "Escape") && strcmp(ev->keyname, KEY_MENU))
+     return EINA_FALSE;
    if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
 
    it = (Elm_Naviframe_Item *) elm_naviframe_top_item_get(obj);
@@ -1599,7 +1601,14 @@ _elm_naviframe_smart_event(Evas_Object *obj,
    ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
    if (sd->freeze_events && sd->popping) return EINA_TRUE;
 
-   elm_naviframe_item_pop(obj);
+   if (!strcmp(ev->keyname, KEY_END) || !strcmp(ev->keyname, "Escape"))
+     elm_naviframe_item_pop(obj);
+   else
+     {
+        Evas_Object *more_btn = elm_object_item_part_content_get(it, "toolbar_more_btn");
+        if (more_btn)
+          evas_object_smart_callback_call(more_btn, "clicked", it);
+     }
 
    return EINA_TRUE;
 }
