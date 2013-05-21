@@ -7800,6 +7800,24 @@ _sorting_effect_animator_cb(void *data)
    return ECORE_CALLBACK_CANCEL;
 }
 
+static Eina_Bool
+_fx_items_intersect(Evas_Object *obj, Elm_Gen_FX_Item *fi)
+{
+   ELM_GENLIST_CHECK(obj);
+   ELM_GENLIST_DATA_GET(obj, sd);
+
+   Elm_Gen_FX_Item *fx_it;
+   Eina_List *l;
+   EINA_LIST_FOREACH(sd->fx_items, l, fx_it)
+     {
+        if ((fx_it == fi) || (fx_it->type != ELM_GEN_ITEM_FX_TYPE_ADD)) continue;
+        if ((fi->from.y >= fx_it->from.y && fi->from.y <= fx_it->from.y + fx_it->from.h) ||
+            (fi->from.y + fi->from.h >= fx_it->from.y && fi->from.y + fi->from.h <= fx_it->from.y + fx_it->from.h))
+          return EINA_TRUE;
+     }
+   return EINA_FALSE;
+}
+
 static void
 _elm_genlist_fx_play(Evas_Object *obj)
 {
@@ -7876,7 +7894,11 @@ _elm_genlist_fx_play(Evas_Object *obj)
           {
              _item_unhighlight(fi->it);
              elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
-             elm_transit_effect_color_add(fi->trans, 255, 255, 255, 255, 0, 0, 0, 0);
+
+             if (_fx_items_intersect(obj, fi))
+               elm_transit_effect_color_add(fi->trans, 1, 1, 1, 1, 0, 0, 0, 0);
+             else
+               elm_transit_effect_color_add(fi->trans, 255, 255, 255, 255, 0, 0, 0, 0);
           }
         elm_transit_effect_add(fi->trans, _item_fx_op, fi, NULL);
         elm_transit_del_cb_set(fi->trans, _item_fx_del_cb, fi);
