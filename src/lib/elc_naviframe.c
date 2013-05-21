@@ -7,6 +7,7 @@ EAPI const char ELM_NAVIFRAME_SMART_NAME[] = "elm_naviframe";
 static const char CONTENT_PART[] = "elm.swallow.content";
 static const char PREV_BTN_PART[] = "elm.swallow.prev_btn";
 static const char NEXT_BTN_PART[] = "elm.swallow.next_btn";
+static const char MORE_BTN_PART[] = "toolbar_more_btn"; //Tizen Only
 static const char ICON_PART[] = "elm.swallow.icon";
 static const char TITLE_PART[] = "elm.text.title";
 static const char SUBTITLE_PART[] = "elm.text.subtitle";
@@ -541,6 +542,13 @@ _access_prev_btn_info_cb(void *data, Evas_Object *obj __UNUSED__)
      return strdup(E_("Back"));
 }
 
+char *
+_access_more_btn_info_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__)
+{
+   /* Tizen Only */
+   return strdup(E_("More"));
+}
+
 static void
 _item_title_prev_btn_set(Elm_Naviframe_Item *it,
                          Evas_Object *btn)
@@ -750,6 +758,12 @@ _title_content_set(Elm_Naviframe_Item *it,
    /* access */
    if (_elm_config->access_mode)
      _access_obj_process(it, EINA_TRUE);
+
+   /* Tizen Only */
+   if (!strcmp(part, MORE_BTN_PART))
+     _elm_access_callback_set
+        (_elm_access_object_get(content), ELM_ACCESS_INFO,
+         _access_more_btn_info_cb, it);
 }
 
 static void
