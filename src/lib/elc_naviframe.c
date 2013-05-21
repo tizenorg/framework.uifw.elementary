@@ -1358,6 +1358,34 @@ _item_new(Evas_Object *obj,
    return it;
 }
 
+//Tizen Only: Pop an item by clicking mouse right button
+static void
+_elm_naviframe_mouse_up_cb(void *data __UNUSED__, Evas *e __UNUSED__,
+                             Evas_Object *obj, void *event_info)
+{
+   Elm_Naviframe_Item *it;
+   Evas_Event_Mouse_Up *ev = event_info;
+   Evas_Coord x, y, w, h;
+   ELM_NAVIFRAME_DATA_GET(obj, sd);
+
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
+   if (elm_widget_disabled_get(obj)) return;
+   if (ev->button != 3) return;
+
+   it = (Elm_Naviframe_Item *) elm_naviframe_top_item_get(obj);
+   if (!it) return;
+
+   if (sd->freeze_events && sd->popping) return;
+
+   evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
+   if ((ev->canvas.x >= x) && (ev->canvas.x <= x + w)
+       && (ev->canvas.y >= y) && (ev->canvas.y <= y + h))
+     {
+        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+        elm_naviframe_item_pop(obj);
+     }
+}
+
 static void
 _on_obj_size_hints_changed(void *data __UNUSED__, Evas *e __UNUSED__,
                            Evas_Object *obj, void *event_info __UNUSED__)
@@ -1445,6 +1473,11 @@ _elm_naviframe_smart_add(Evas_Object *obj)
 
    evas_object_event_callback_add(obj, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
                                   _on_obj_size_hints_changed, obj);
+
+   //Tizen Only: Pop an item by clicking mouse right button
+   evas_object_event_callback_add(obj, EVAS_CALLBACK_MOUSE_UP,
+                                  _elm_naviframe_mouse_up_cb, NULL);
+
    elm_widget_can_focus_set(obj, EINA_TRUE);
 }
 
