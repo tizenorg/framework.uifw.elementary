@@ -588,6 +588,13 @@ _access_prev_btn_info_cb(void *data, Evas_Object *obj __UNUSED__)
      return strdup(E_("Back"));
 }
 
+char *
+_access_more_btn_info_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__)
+{
+   /* Tizen Only */
+   return strdup(E_("More"));
+}
+
 static void
 _item_title_prev_btn_set(Elm_Naviframe_Item *it,
                          Evas_Object *btn)
