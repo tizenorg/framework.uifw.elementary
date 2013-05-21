@@ -1369,7 +1369,9 @@ _inside(Evas_Coord xx1,
         Evas_Coord xx2,
         Evas_Coord yy2)
 {
-   int w = elm_config_finger_size_get() >> 1; /* Finger size devided by 2 */
+   int w = elm_config_finger_size_get();
+   /* Tizen only: comment out below, TODO: make configuable */
+   //int w = elm_config_finger_size_get();>> 1; /* Finger size devided by 2 */
 
    if (xx1 < (xx2 - w))
      return EINA_FALSE;
