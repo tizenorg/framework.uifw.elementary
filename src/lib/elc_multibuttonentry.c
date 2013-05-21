@@ -4,6 +4,7 @@
 
 //#define _VI_EFFECT 0
 //#define _BOX_VI
+//#define _TB_BUG
 
 #ifdef _VI_EFFECT
 #define TRANSIT_DURATION 0.167
@@ -380,7 +381,7 @@ _on_item_expanding_transit_del(void *data,
    rect = (Evas_Object *)evas_object_data_get(VIEW(it), "effect_rect");
    if (!rect) return;
 }
-
+#ifdef _BOX_VI
 static Eina_Bool
 _rect_expanding_animate(void *data)
 {
@@ -406,7 +407,7 @@ _rect_expanding_animate(void *data)
 
    return ECORE_CALLBACK_RENEW;
 }
-
+#endif
 static void
 _item_adding_effect_add(Evas_Object *obj,
                         Elm_Multibuttonentry_Item *it)
@@ -424,8 +425,9 @@ _item_adding_effect_add(Evas_Object *obj,
    if (sd->boxh < minh)
      {
         Evas_Coord bx, by, bw, bh;
+#ifdef _BOX_VI
         Ecore_Animator *anim;
-
+#endif
         evas_object_geometry_get(sd->box, &bx, &by, &bw, &bh);
 
         // if box will be expanded with item and entry
@@ -570,7 +572,7 @@ _after_rect_contract(Evas_Object *rect,
           elm_object_focus_set(sd->entry, EINA_TRUE);
      }
 }
-
+#ifdef _BOX_VI
 static Eina_Bool
 _rect_contracting_animate(void *data)
 {
@@ -603,7 +605,7 @@ _rect_contracting_animate(void *data)
 
    return ECORE_CALLBACK_RENEW;
 }
-
+#endif
 static void
 _item_deleting_effect_add(Evas_Object *obj,
                           Elm_Multibuttonentry_Item *it)
@@ -689,7 +691,8 @@ _layout_expand(Evas_Object *obj)
 {
    int count, items_count, i;
    Eina_List *children;
-   Elm_Multibuttonentry_Item *it;
+   Elm_Multibuttonentry_Item *it, *it1;
+   Evas_Coord itemw = 0, mnh = 0;
 
    ELM_MULTIBUTTONENTRY_DATA_GET(obj, sd);
 
@@ -710,6 +713,25 @@ _layout_expand(Evas_Object *obj)
      }
    if (sd->label && _label_packed(obj)) count--;
    eina_list_free(children);
+
+   // to check whether 1st item is shrinked (ex. multibutton@entry... +N)
+   it1 = eina_list_nth(sd->items, 0);
+
+   itemw = (Evas_Coord)evas_object_data_get(VIEW(it1), "shrinked_item");
+   if (itemw)
+     {
+        evas_object_data_set(VIEW(it1), "shrinked_item", NULL);
+        evas_object_size_hint_min_get(VIEW(it1), NULL, &mnh);
+
+        elm_layout_signal_emit(VIEW(it1), "elm,state,text,ellipsis", "");
+        edje_object_message_signal_process(elm_layout_edje_get(VIEW(it1)));
+        evas_object_size_hint_min_set(VIEW(it1), itemw, mnh);
+#ifdef _TB_BUG
+        elm_layout_sizing_eval(VIEW(it1));
+#else
+        evas_object_resize(VIEW(it1), itemw, mnh);
+#endif
+     }
 
    items_count = eina_list_count(sd->items);
    for (i = count; i < items_count; i++)
@@ -733,7 +755,7 @@ static void
 _layout_shrink(Evas_Object *obj,
                Eina_Bool force)
 {
-   Evas_Coord w, mnw, linew = 0, hpad = 0;
+   Evas_Coord w, mnw, mnh, linew = 0, hpad = 0, labelw, endw;
    int count = 0, items_count, i;
    Eina_List *l, *children;
    Evas_Object *child;
@@ -761,13 +783,36 @@ _layout_shrink(Evas_Object *obj,
 
    EINA_LIST_FOREACH(sd->items, l, it)
      {
-        evas_object_size_hint_min_get(VIEW(it), &mnw, NULL);
+        evas_object_size_hint_min_get(VIEW(it), &mnw, &mnh);
         linew += mnw;
 
         if (linew > w)
           {
              linew -= mnw;
-             break;
+             if (count)
+               break;
+             else if (sd->label && _label_packed(obj))
+               {
+                  // if 1st item is removed, next item should be recalculated
+                  evas_object_size_hint_min_get(sd->label, &labelw, NULL);
+                  if (sd->end)
+                    {
+                       evas_object_size_hint_min_get(sd->end, &endw, NULL);
+                       if (mnw > w - (labelw + hpad + endw + hpad))
+                         mnw = w - (labelw + hpad + endw + hpad);
+                    }
+                  else if (mnw > w - (labelw + hpad))
+                    mnw = w - (labelw + hpad);
+
+                  elm_layout_signal_emit(obj, "elm,state,text,ellipsis", "");
+                  edje_object_message_signal_process(elm_layout_edje_get(obj));
+                  evas_object_size_hint_min_set(obj, mnw, mnh);
+#ifdef _TB_BUG
+                  elm_layout_sizing_eval(obj);
+#else
+                  evas_object_resize(obj, mnw, mnh);
+#endif
+               }
           }
 
         count++;
@@ -806,6 +851,43 @@ _layout_shrink(Evas_Object *obj,
                }
           }
         evas_object_smart_calculate(sd->end);
+        evas_object_size_hint_min_get(sd->end, &mnw, NULL);
+
+        Elm_Multibuttonentry_Item *item;
+        Evas_Coord itemw = 0;
+
+        item = eina_list_nth(sd->items, 0);
+        itemw = (Evas_Coord)evas_object_data_get(VIEW(item), "maximum_width");
+        if (itemw)
+          evas_object_size_hint_min_get(VIEW(item), NULL, &mnh);
+        else
+          evas_object_size_hint_min_get(VIEW(item), &itemw, &mnh);
+
+        linew -= itemw;
+        if (sd->label && _label_packed(obj))
+          {
+             evas_object_size_hint_min_get(sd->label, &labelw, NULL);
+             if (itemw > w - (labelw + hpad + mnw + hpad))
+               {
+                  evas_object_data_set(VIEW(item), "shrinked_item", itemw);
+                  itemw = w - (labelw + hpad + mnw + hpad);
+               }
+          }
+        else if (itemw > w - (mnw + hpad))
+          {
+             evas_object_data_set(VIEW(item), "shrinked_item", itemw);
+             itemw = w - (mnw + hpad);
+          }
+        linew += itemw;
+        elm_layout_signal_emit(VIEW(item), "elm,state,text,ellipsis", "");
+        edje_object_message_signal_process(elm_layout_edje_get(VIEW(item)));
+        evas_object_size_hint_min_set(VIEW(item), itemw, mnh);
+#ifdef _TB_BUG
+        elm_layout_sizing_eval(VIEW(item));
+#else
+        evas_object_resize(VIEW(item), itemw, mnh);
+#endif
+
         evas_object_size_hint_min_get(sd->end, &mnw, NULL);
         linew += mnw;
 
@@ -1038,8 +1120,8 @@ _box_min_size_calculate(Evas_Object *box,
                         int *line_height,
                         void *data)
 {
-   Evas_Coord mnw, mnh, w, minw, minh = 0, linew = 0, lineh = 0;
-   int line_num;
+   Evas_Coord mnw, mnh, w, minw, minh = 0, linew = 0, lineh = 0, labelw = 0, endw = 0, itemw;
+   int line_num, cnt = 0;
    Eina_List *l, *l_next;
    Evas_Object_Box_Option *opt;
 
@@ -1054,6 +1136,30 @@ _box_min_size_calculate(Evas_Object *box,
      {
         evas_object_size_hint_min_get(opt->obj, &mnw, &mnh);
 
+        if ((cnt == 0) && !sd->label && sd->end)
+          {
+             evas_object_size_hint_min_get(sd->end, &endw, NULL);
+             if (mnw > w - (endw + priv->pad.h))
+               mnw = w - (endw + priv->pad.h);
+          }
+        if ((cnt == 1) && sd->label && _label_packed(data))
+          {
+             evas_object_size_hint_min_get(sd->label, &labelw, NULL);
+             if (sd->end)
+               {
+                  evas_object_size_hint_min_get(sd->end, &endw, NULL);
+                  if (mnw > w - (labelw + priv->pad.h + endw + priv->pad.h))
+                    mnw = w - (labelw + priv->pad.h + endw + priv->pad.h);
+               }
+             else
+               {
+                  itemw = (Evas_Coord)evas_object_data_get(opt->obj, "shrinked_item");
+                  if (itemw)
+                    mnw = itemw;
+                  else if (mnw > w - (labelw + priv->pad.h))
+                    mnw = w - (labelw + priv->pad.h);
+               }
+          }
 #ifdef _VI_EFFECT
         if (mnw == w &&
             !strcmp(evas_object_type_get(opt->obj), "rectangle"))
@@ -1063,29 +1169,13 @@ _box_min_size_calculate(Evas_Object *box,
         linew += mnw;
         if (lineh < mnh) lineh = mnh;
 
-        if (!sd->expanded_state)
-          line_num = 1;
-        else
+        if (linew > w * 2 / 3)
           {
-             if (linew > w * 2 / 3)
+             if (linew > w)
                {
-                  if (linew > w)
-                    {
-                       linew = mnw;
-                       line_num++;
-                       if (linew > w * 2 / 3)
-                         {
-                            l_next = eina_list_next(l);
-                            opt = eina_list_data_get(l_next);
-                            if (l_next && opt && opt->obj &&
-                                !strcmp(elm_widget_type_get(opt->obj), "elm_entry"))
-                              {
-                                 linew = 0;
-                                 line_num++;
-                              }
-                         }
-                    }
-                  else
+                  linew = mnw;
+                  line_num++;
+                  if (linew > w * 2 / 3)
                     {
                        l_next = eina_list_next(l);
                        opt = eina_list_data_get(l_next);
@@ -1097,9 +1187,21 @@ _box_min_size_calculate(Evas_Object *box,
                          }
                     }
                }
-           }
+             else
+               {
+                  l_next = eina_list_next(l);
+                  opt = eina_list_data_get(l_next);
+                  if (l_next && opt && opt->obj &&
+                      !strcmp(elm_widget_type_get(opt->obj), "elm_entry"))
+                    {
+                       linew = 0;
+                       line_num++;
+                    }
+               }
+          }
         if ((linew != 0) && (l != eina_list_last(priv->children)))
           linew += priv->pad.h;
+        cnt++;
      }
 
    minh = lineh * line_num + (line_num - 1) * priv->pad.v;
@@ -1126,12 +1228,13 @@ _box_layout(Evas_Object *o,
             void *data)
 {
    Evas_Coord x, y, w, h, xx, yy, xxx, yyy;
-   Evas_Coord minw, minh, linew = 0, lineh = 0, lineww = 0;
+   Evas_Coord minw, minh, linew = 0, lineh = 0, lineww = 0, itemw;
    double ax, ay;
    Eina_Bool rtl;
    Eina_List *l, *l_next;
    Evas_Object *obj;
    Evas_Object_Box_Option *opt;
+   int cnt = 0;
 
    ELM_MULTIBUTTONENTRY_DATA_GET(data, sd);
 
@@ -1159,7 +1262,7 @@ _box_layout(Evas_Object *o,
    yy = y;
    EINA_LIST_FOREACH(priv->children, l, opt)
      {
-        Evas_Coord mnw, mnh, ww, hh, ow, oh;
+        Evas_Coord mnw, mnh, ww, hh, ow, oh, labelw, endw;
         double wx, wy;
         Eina_Bool fw, fh, xw, xh;
 
@@ -1175,6 +1278,37 @@ _box_layout(Evas_Object *o,
         if (rtl) ax = 1.0 - ax;
         if (wx > 0.0) xw = EINA_TRUE;
         if (wy > 0.0) xh = EINA_TRUE;
+
+        if ((cnt == 0) && !sd->label && sd->end)
+          {
+             evas_object_data_set(obj, "maximum_width", mnw);
+             evas_object_size_hint_min_get(sd->end, &endw, NULL);
+             if (mnw > w - (endw + priv->pad.h))
+               mnw = w - (endw + priv->pad.h);
+             elm_layout_signal_emit(obj, "elm,state,text,ellipsis", "");
+             edje_object_message_signal_process(elm_layout_edje_get(obj));
+          }
+        if ((cnt == 1) && sd->label && _label_packed(data))
+          {
+             evas_object_size_hint_min_get(sd->label, &labelw, NULL);
+             if (sd->end)
+               {
+                  evas_object_size_hint_min_get(sd->end, &endw, NULL);
+                  if (mnw > w - (labelw + priv->pad.h + endw + priv->pad.h))
+                    mnw = w - (labelw + priv->pad.h + endw + priv->pad.h);
+               }
+             else
+               {
+                  evas_object_data_set(obj, "maximum_width", mnw);
+                  itemw = (Evas_Coord)evas_object_data_get(obj, "shrinked_item");
+                  if (itemw)
+                    mnw = itemw;
+                  else if (mnw > w - (labelw + priv->pad.h))
+                    mnw = w - (labelw + priv->pad.h);
+               }
+             elm_layout_signal_emit(obj, "elm,state,text,ellipsis", "");
+             edje_object_message_signal_process(elm_layout_edje_get(obj));
+          }
 
         ww = mnw;
         if (xw)
@@ -1234,6 +1368,7 @@ _box_layout(Evas_Object *o,
           }
         if ((linew != 0) && (l != eina_list_last(priv->children)))
           linew += priv->pad.h;
+        cnt++;
      }
 }
 
@@ -1243,11 +1378,14 @@ _on_box_resize(void *data,
                Evas_Object *obj,
                void *event_info __UNUSED__)
 {
-   Evas_Coord w, h;
+   Evas_Coord w, h, mnw, mnh, labelw, hpad;
+   int items_count = 0, i;
+   Elm_Multibuttonentry_Item *it;
 
    ELM_MULTIBUTTONENTRY_DATA_GET(data, sd);
 
    evas_object_geometry_get(obj, NULL, NULL, &w, &h);
+   elm_box_padding_get(obj, &hpad, NULL);
 
    if (sd->boxh < h)
      evas_object_smart_callback_call(data, SIG_EXPANDED, NULL);
@@ -1257,6 +1395,77 @@ _on_box_resize(void *data,
    // on rotation, items should be packed again in the shrinked layout
    if (sd->boxw && sd->boxw != w)
      {
+        // recalculate width of all items
+        if (sd->items)
+          {
+             items_count = eina_list_count(sd->items);
+             for(i = 0; i < items_count; i++)
+               {
+                  it = eina_list_nth(sd->items, i);
+
+                  if (evas_object_data_get(VIEW(it), "shrinked_item"))
+                    evas_object_data_set(VIEW(it), "shrinked_item", NULL);
+#ifdef _TB_BUG
+                  elm_layout_sizing_eval(VIEW(it));
+#else
+                  Evas_Object *textblock = NULL;
+                  Evas_Coord tb_w = 0, minh = 0;
+                  const char *str_left = NULL, *str_right = NULL;
+                  int leftw = 0, rightw = 0;
+
+                  str_left = elm_layout_data_get(VIEW(it), "button_left_pad");
+                  str_right = elm_layout_data_get(VIEW(it), "button_right_pad");
+
+                  textblock = (Evas_Object *)edje_object_part_object_get(elm_layout_edje_get(VIEW(it)), "elm.btn.text");
+                  if (textblock)
+                    {
+                       if (str_left && str_right)
+                         {
+                            leftw = atoi(str_left);
+                            rightw = atoi(str_right);
+                         }
+                       evas_object_size_hint_min_get(VIEW(it), NULL, &minh);
+                       evas_object_textblock_size_native_get(textblock, &tb_w, NULL);
+                       tb_w += (Evas_Coord)(leftw + rightw);
+                       evas_object_size_hint_min_set(VIEW(it), tb_w, minh);
+                    }
+#endif
+                  evas_object_size_hint_min_get(VIEW(it), &mnw, &mnh);
+
+                  if (i == 0)
+                    {
+                       if (sd->label && _label_packed(data))
+                         {
+                            evas_object_size_hint_min_get(sd->label, &labelw, NULL);
+                            if (mnw > w - (labelw + hpad))
+                              {
+                                 mnw = w - (labelw + hpad);
+                                 elm_layout_signal_emit(VIEW(it), "elm,state,text,ellipsis", "");
+                                 edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
+                                 evas_object_size_hint_min_set(VIEW(it), mnw, mnh);
+#ifdef _TB_BUG
+                                 elm_layout_sizing_eval(VIEW(it));
+#else
+                                 evas_object_resize(VIEW(it), mnw, mnh);
+#endif
+                              }
+                         }
+                       evas_object_data_set(VIEW(it), "maximum_width", mnw);
+                    }
+                  if (mnw > w)
+                    {
+                       mnw = w;
+                       elm_layout_signal_emit(VIEW(it), "elm,state,text,ellipsis", "");
+                       edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
+                       evas_object_size_hint_min_set(VIEW(it), mnw, mnh);
+#ifdef _TB_BUG
+                       elm_layout_sizing_eval(VIEW(it));
+#else
+                       evas_object_resize(VIEW(it), mnw, mnh);
+#endif
+                    }
+               }
+          }
         if (!elm_object_focus_get(data) && !sd->expanded)
           _layout_shrink(data, EINA_TRUE);
      }
@@ -1546,8 +1755,7 @@ _item_new(Evas_Object *obj,
    Elm_Multibuttonentry_Item *it;
    Elm_Multibuttonentry_Item_Filter *ft;
    Eina_List *l;
-   const char *str;
-   Evas_Coord minw, minh, maxw = 0;
+   Evas_Coord minw, minh, boxw = 0;
 
    ELM_MULTIBUTTONENTRY_DATA_GET(obj, sd);
 
@@ -1587,15 +1795,18 @@ _item_new(Evas_Object *obj,
    // adjust item size if item is longer than maximum size
    evas_object_smart_calculate(VIEW(it));
    evas_object_size_hint_min_get(VIEW(it), &minw, &minh);
-   str = elm_layout_data_get(VIEW(it), "button_max_size");
-   if (str) maxw = atoi(str);
-   maxw = maxw * elm_widget_scale_get(obj) * elm_config_scale_get();
-   if (minw > maxw)
+   evas_object_geometry_get(sd->box, NULL, NULL, &boxw, NULL);
+
+   if (minw > boxw)
      {
         elm_layout_signal_emit(VIEW(it), "elm,state,text,ellipsis", "");
         edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
-        evas_object_size_hint_min_set(VIEW(it), maxw, minh);
+        evas_object_size_hint_min_set(VIEW(it), boxw, minh);
+#ifdef _TB_BUG
         elm_layout_sizing_eval(VIEW(it));
+#else
+        evas_object_resize(VIEW(it), boxw, minh);
+#endif
      }
 
    elm_widget_item_text_set_hook_set(it, _item_text_set_hook);
@@ -2023,6 +2234,7 @@ _elm_multibuttonentry_smart_del(Evas_Object *obj)
      {
         Elm_Transit *trans;
         Evas_Object *rect;
+        Evas_Coord maxw, shrinkw;
 
         trans = (Elm_Transit *)evas_object_data_get(VIEW(it), "transit");
         if (trans)
@@ -2041,13 +2253,32 @@ _elm_multibuttonentry_smart_del(Evas_Object *obj)
              evas_object_del(rect);
              evas_object_data_set(VIEW(it), "effect_rect", NULL);
           }
+
+        maxw = (Evas_Coord)evas_object_data_get(VIEW(it), "maximum_width");
+        if (maxw)
+          evas_object_data_set(VIEW(it), "maximum_width", NULL);
+
+        shrinkw = (Evas_Coord)evas_object_data_get(VIEW(it), "shrinked_item");
+        if (shrinkw)
+          evas_object_data_set(VIEW(it), "shrinked_item", NULL);
         elm_widget_item_free(it);
      }
 #else
    EINA_LIST_FREE(sd->items, it)
-      elm_widget_item_free(it);
-#endif
+     {
+        Evas_Coord maxw, shrinkw;
 
+        maxw = (Evas_Coord)evas_object_data_get(VIEW(it), "maximum_width");
+        if (maxw)
+          evas_object_data_set(VIEW(it), "maximum_width", NULL);
+
+        shrinkw = (Evas_Coord)evas_object_data_get(VIEW(it), "shrinked_item");
+        if (shrinkw)
+          evas_object_data_set(VIEW(it), "shrinked_item", NULL);
+
+        elm_widget_item_free(it);
+     }
+#endif
    EINA_LIST_FREE(sd->filters, ft)
       free(ft);
 
@@ -2554,6 +2785,7 @@ elm_multibuttonentry_clear(Evas_Object *obj)
      {
         Elm_Transit *trans;
         Evas_Object *rect;
+        Evas_Coord maxw, shrinkw;
 
         trans = (Elm_Transit *)evas_object_data_get(VIEW(it), "transit");
         if (trans)
@@ -2581,13 +2813,32 @@ elm_multibuttonentry_clear(Evas_Object *obj)
                     elm_object_focus_set(sd->entry, EINA_TRUE);
                }
           }
+
+        maxw = (Evas_Coord)evas_object_data_get(VIEW(it), "maximum_width");
+        if (maxw)
+          evas_object_data_set(VIEW(it), "maximum_width", NULL);
+
+        shrinkw = (Evas_Coord)evas_object_data_get(VIEW(it), "shrinked_item");
+        if (shrinkw)
+          evas_object_data_set(VIEW(it), "shrinked_item", NULL);
         elm_widget_item_free(it);
      }
 #else
    EINA_LIST_FREE(sd->items, it)
-      elm_widget_item_free(it);
-#endif
+     {
+        Evas_Coord maxw, shrinkw;
 
+        maxw = (Evas_Coord)evas_object_data_get(VIEW(it), "maximum_width");
+        if (maxw)
+          evas_object_data_set(VIEW(it), "maximum_width", NULL);
+
+        shrinkw = (Evas_Coord)evas_object_data_get(VIEW(it), "shrinked_item");
+        if (shrinkw)
+          evas_object_data_set(VIEW(it), "shrinked_item", NULL);
+
+        elm_widget_item_free(it);
+     }
+#endif
    sd->items = NULL;
    sd->item_be_selected = EINA_FALSE;
    sd->expanded_state = EINA_TRUE;
