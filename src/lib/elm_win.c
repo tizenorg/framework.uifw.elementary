@@ -2020,6 +2020,10 @@ _elm_win_client_message(void *data,
              atom_scroll = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_SCROLL_");
              atom_back = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_BACK_");
              atom_control_panel_open = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_CONTROL_PANEL_OPEN_");
+             if ((unsigned int)e->data.l[1] != atom_control_panel_open)
+               {
+                  _elm_access_all_read_stop();
+               }
 
              if ((unsigned int)e->data.l[1] ==
                  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_NEXT)
@@ -2109,6 +2113,7 @@ _elm_win_client_message(void *data,
                }
              else if ((unsigned int)e->data.l[1] == atom_control_panel_open)
                {
+                  _elm_access_all_read_start(ELM_WIDGET_DATA(sd)->obj);
                }
           }
      }

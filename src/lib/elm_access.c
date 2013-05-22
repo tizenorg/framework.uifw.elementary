@@ -335,7 +335,6 @@ static void
 _access_read_done(void *data __UNUSED__)
 {
    printf("read done\n");
-   // FIXME: produce event here
 }
 
 static void
@@ -714,6 +713,42 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir)
    return ret;
 }
 
+void
+_elm_access_all_read_stop()
+{
+   _access_init();
+   if (mapi)
+     {
+        if (mapi->out_done_callback_set)
+           mapi->out_done_callback_set(NULL, NULL);
+     }
+}
+
+static void
+_access_all_read_done(void *data)
+{
+   printf("all read done\n");
+   _elm_access_highlight_cycle(data, ELM_FOCUS_NEXT);
+}
+
+void
+_elm_access_all_read_start(Evas_Object *obj)
+{
+   Evas_Object *ho;
+
+   ho = _access_highlight_object_get(obj);
+   if (ho) _elm_access_object_unhilight(ho);
+
+   _access_init();
+   if (mapi)
+     {
+        if (mapi->out_done_callback_set)
+           mapi->out_done_callback_set(_access_all_read_done, obj);
+     }
+
+   _elm_access_highlight_cycle(obj, ELM_FOCUS_NEXT);
+}
+
 //-------------------------------------------------------------------------//
 EAPI void
 _elm_access_highlight_set(Evas_Object* obj)
@@ -839,12 +874,11 @@ _elm_access_highlight_cycle(Evas_Object *obj, Elm_Focus_Direction dir)
    Evas_Object *ho, *parent;
 
    ho = _access_highlight_object_get(obj);
-   if (!ho) return;
 
    parent = ho;
 
    /* find highlight root */
-   do
+   while (parent)
      {
         ELM_WIDGET_DATA_GET(parent, sd);
         if (sd->highlight_root)
@@ -855,7 +889,6 @@ _elm_access_highlight_cycle(Evas_Object *obj, Elm_Focus_Direction dir)
           }
         parent = elm_widget_parent_get(parent);
      }
-   while (parent);
 
    _elm_access_auto_highlight_set(EINA_TRUE);
 
@@ -866,7 +899,7 @@ _elm_access_highlight_cycle(Evas_Object *obj, Elm_Focus_Direction dir)
 
    action_by = type;
 
-   if (!_access_action_callback_call(ho, type, NULL))
+   if (!ho || !_access_action_callback_call(ho, type, NULL))
      elm_widget_focus_cycle(obj, dir);
 
    action_by = ELM_ACCESS_ACTION_FIRST;
@@ -931,8 +964,6 @@ _elm_access_say(const char *txt)
    _access_init();
    if (mapi)
      {
-        if (mapi->out_done_callback_set)
-           mapi->out_done_callback_set(_access_read_done, NULL);
         if (mapi->out_cancel) mapi->out_cancel();
         if (txt)
           {
