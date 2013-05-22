@@ -1221,6 +1221,9 @@ _item_place(Elm_Gen_Item *it,
                                    item->moving = EINA_TRUE;
                                    item->moving_effect_start_time =
                                      ecore_loop_time_get();
+                                   if (item->item_reorder_move_animator)
+                                     ecore_animator_del
+                                       (item->item_reorder_move_animator);
                                    item->item_reorder_move_animator =
                                      ecore_animator_add
                                        (_reorder_item_move_animator_cb, it);

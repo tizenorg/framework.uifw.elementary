@@ -53,6 +53,7 @@ _ctxpopup_relaunch_idler(void *data)
    Ctxpopup_Module_Data *ctx_mod;
 
    ctx_mod = (Ctxpopup_Module_Data *)data;
+   ctx_mod->ctx_relaunch_idler = NULL;
    if (!ctx_mod) return ECORE_CALLBACK_CANCEL;
 
    _field_clicked_cb(ctx_mod, ctx_mod->sel_field);
@@ -549,6 +550,9 @@ obj_unhook(Elm_Datetime_Module_Data *module_data)
 
    ctx_mod = (Ctxpopup_Module_Data *)module_data;
    if (!ctx_mod) return;
+
+   if (ctx_mod->ctx_relaunch_idler)
+     ecore_idler_del(ctx_mod->ctx_relaunch_idler);
 
    if (ctx_mod->ctxpopup)
      evas_object_del(ctx_mod->ctxpopup);
