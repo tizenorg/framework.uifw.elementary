@@ -291,8 +291,9 @@ _magnifier_move(void *data)
    if (adjh < sd->mgf_height)
      adjh = sd->mgf_height;
 
+   /* move to fully show magnifier */
    if (cy + y - adjh < 0)
-     oy = ch;
+     oy = adjh - (cy + y);
 
    //adjusting scale and size
    adj_scale = sd->mgf_scale;
