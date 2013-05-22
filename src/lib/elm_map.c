@@ -3696,7 +3696,10 @@ _map_pan_del(Evas_Object *obj)
         sd->zoom_animator = NULL;
      }
    _grid_all_clear(sd);
-   if (sd->download_idler) ecore_idler_del(sd->download_idler);
+   if (sd->download_idler) 
+    {   ecore_idler_del(sd->download_idler);
+        sd->download_idler = NULL;
+    }
    if (sd->download_list) eina_list_free(sd->download_list);
 
    {
