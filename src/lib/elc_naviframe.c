@@ -1366,7 +1366,6 @@ _elm_naviframe_mouse_up_cb(void *data __UNUSED__, Evas *e __UNUSED__,
 {
    Elm_Naviframe_Item *it;
    Evas_Event_Mouse_Up *ev = event_info;
-   Evas_Coord x, y, w, h;
    ELM_NAVIFRAME_DATA_GET(obj, sd);
 
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
@@ -1376,15 +1375,10 @@ _elm_naviframe_mouse_up_cb(void *data __UNUSED__, Evas *e __UNUSED__,
    it = (Elm_Naviframe_Item *) elm_naviframe_top_item_get(obj);
    if (!it) return;
 
+   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
    if (sd->freeze_events && sd->popping) return;
 
-   evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
-   if ((ev->canvas.x >= x) && (ev->canvas.x <= x + w)
-       && (ev->canvas.y >= y) && (ev->canvas.y <= y + h))
-     {
-        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-        elm_naviframe_item_pop(obj);
-     }
+   elm_naviframe_item_pop(obj);
 }
 
 static void
