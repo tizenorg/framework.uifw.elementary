@@ -2099,6 +2099,19 @@ _elm_gengrid_item_del_serious(Elm_Gen_Item *it)
      }
 
    _elm_gengrid_item_del_common(it);
+
+   if ((it == GG_IT(it)->wsd->bring_in_it) && (GG_IT(it)->wsd->bring_in == EINA_TRUE))
+     {
+        GG_IT(it)->wsd->bring_in_it = NULL;
+        GG_IT(it)->wsd->bring_in = EINA_FALSE;
+     }
+
+   if ((it == GG_IT(it)->wsd->show_it) && (GG_IT(it)->wsd->show_region == EINA_TRUE))
+     {
+        GG_IT(it)->wsd->show_it = NULL;
+        GG_IT(it)->wsd->show_region = EINA_FALSE;
+     }
+
    free(it->item);
    it->item = NULL;
 }
