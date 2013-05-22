@@ -1428,6 +1428,7 @@ elm_image_animated_play_set(Evas_Object *obj,
 
    if (play)
      {
+        if (sd->anim_timer) ecore_timer_del(sd->anim_timer);
         sd->anim_timer = ecore_timer_add
             (sd->frame_duration, _elm_image_animate_cb, sd);
      }
