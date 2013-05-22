@@ -224,8 +224,11 @@ _on_pressed_signal(void *data,
         if (sd->ar_threshold <= 0.0)
           _autorepeat_initial_send(data);  /* call immediately */
         else
-          sd->timer = ecore_timer_add
-              (sd->ar_threshold, _autorepeat_initial_send, data);
+          {
+             if (sd->timer) ecore_timer_del(sd->timer);
+             sd->timer = ecore_timer_add
+                (sd->ar_threshold, _autorepeat_initial_send, data);
+          }
      }
 
    evas_object_smart_callback_call(data, SIG_PRESSED, NULL);
