@@ -990,6 +990,9 @@ _elm_access_object_hilight(Evas_Object *obj)
    o = evas_object_name_find(evas_object_evas_get(obj), "_elm_access_disp");
    if (!o)
      {
+        /* edje_object_add(); calls evas_event_feed_mouse_move();
+           and it calls _access_obj_mouse_in_cb(); again. */
+        _elm_access_mouse_event_enabled_set(EINA_FALSE);
         o = edje_object_add(evas_object_evas_get(obj));
         evas_object_name_set(o, "_elm_access_disp");
         evas_object_layer_set(o, ELM_OBJECT_LAYER_TOOLTIP);

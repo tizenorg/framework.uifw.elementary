@@ -2333,6 +2333,9 @@ elm_widget_focus_next_get(const Evas_Object *obj,
                           Elm_Focus_Direction dir,
                           Evas_Object **next)
 {
+   Elm_Access_Info *ac;
+   Evas_Object *clipper;
+
    if (!next)
      return EINA_FALSE;
    *next = NULL;
@@ -2383,7 +2386,18 @@ elm_widget_focus_next_get(const Evas_Object *obj,
    /* focusable object but does not have access info */
    if (_elm_config->access_mode)
      {
-        if (!_elm_access_object_get(obj)) return EINA_FALSE;
+        ac = _elm_access_object_get(obj);
+        if (!ac) return EINA_FALSE;
+
+        /* check whether the hover object is visible or not */
+        if (!evas_object_visible_get(ac->hoverobj)) return EINA_FALSE;
+
+        clipper = evas_object_clip_get(ac->hoverobj);
+        while (clipper)
+          {
+             if (!evas_object_visible_get(clipper)) return EINA_FALSE;
+             clipper = evas_object_clip_get(clipper);
+          }
      }
 
    if (elm_widget_focus_get(obj))
