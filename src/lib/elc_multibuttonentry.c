@@ -464,7 +464,8 @@ _item_adding_effect_add(Evas_Object *obj,
                elm_object_focus_set(sd->entry, EINA_FALSE);
              elm_box_unpack(sd->box, sd->entry);
              evas_object_hide(sd->entry);
-             elm_entry_input_panel_show(sd->entry);
+             if (elm_object_focus_get(WIDGET(it)))
+               elm_entry_input_panel_show(sd->entry);
           }
 
         rect = evas_object_rectangle_add(evas_object_evas_get(obj));
@@ -650,7 +651,8 @@ _item_deleting_effect_add(Evas_Object *obj,
                elm_object_focus_set(sd->entry, EINA_FALSE);
              elm_box_unpack(sd->box, sd->entry);
              evas_object_hide(sd->entry);
-             elm_entry_input_panel_show(sd->entry);
+             if (elm_object_focus_get(WIDGET(it)))
+               elm_entry_input_panel_show(sd->entry);
           }
 
         rect = evas_object_rectangle_add(evas_object_evas_get(obj));
