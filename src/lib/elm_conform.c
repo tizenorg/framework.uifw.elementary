@@ -844,9 +844,24 @@ _on_content_resize(void *data,
    sd->show_region_job = ecore_job_add(_show_region_job, data);
 }
 
-#endif
+static void
+_on_del(void *data,
+                   Evas *e __UNUSED__,
+                   Evas_Object *obj __UNUSED__,
+                   void *event_info __UNUSED__)
+{
+   ELM_CONFORMANT_DATA_GET(data, sd);
 
-#ifdef HAVE_ELEMENTARY_X
+   if (sd->scroller)
+     {
+        evas_object_event_callback_del
+               (sd->scroller, EVAS_CALLBACK_RESIZE, _on_content_resize);
+        evas_object_event_callback_del
+               (sd->scroller, EVAS_CALLBACK_DEL, _on_del);
+     }
+   sd->scroller = NULL;
+}
+
 static void
 _autoscroll_objects_update(void *data)
 {
@@ -883,8 +898,13 @@ _autoscroll_objects_update(void *data)
         sd->scroller = top_scroller;
 
         if (sd->scroller)
-          evas_object_event_callback_add
-            (sd->scroller, EVAS_CALLBACK_RESIZE, _on_content_resize, data);
+          {
+             evas_object_event_callback_add
+               (sd->scroller, EVAS_CALLBACK_RESIZE, _on_content_resize, data);
+             // We are getting sd->scroller provided by app, so we need to keep updating it accordingly.
+             evas_object_event_callback_add
+               (sd->scroller, EVAS_CALLBACK_DEL, _on_del, data);
+          }
      }
 }
 
@@ -1059,8 +1079,12 @@ _elm_conformant_smart_del(Evas_Object *obj)
    if (sd->prop_hdl) ecore_event_handler_del(sd->prop_hdl);
 #endif
    if (sd->scroller)
-     evas_object_event_callback_del
-       (sd->scroller, EVAS_CALLBACK_RESIZE, _on_content_resize);
+     {
+        evas_object_event_callback_del
+               (sd->scroller, EVAS_CALLBACK_RESIZE, _on_content_resize);
+        evas_object_event_callback_del
+               (sd->scroller, EVAS_CALLBACK_DEL, _on_del);
+     }
 
    if (sd->show_region_job) ecore_job_del(sd->show_region_job);
    if (sd->port_indi_timer) ecore_timer_del(sd->port_indi_timer);
