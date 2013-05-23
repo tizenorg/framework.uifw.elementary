@@ -1676,6 +1676,14 @@ _elm_scroll_content_region_show(Evas_Object *obj,
    sid->wy = y;
    sid->ww = w;
    sid->wh = h;
+   if (_paging_is_enabled(sid))
+     {
+        sid->wx = x = (int)(x / sid->pagesize_h) * sid->pagesize_h;
+        sid->ww = w = sid->pagesize_h;
+        sid->wy = y = (int)(y / sid->pagesize_v) * sid->pagesize_v;
+        sid->wh = h = sid->pagesize_v;
+     }
+
    if (_elm_scroll_content_region_show_internal(obj, &x, &y, w, h))
      {
         _elm_scroll_content_pos_set(obj, x, y, EINA_TRUE);

@@ -891,20 +891,9 @@ _elm_widget_focus_region_show(const Evas_Object *obj)
                   o = elm_widget_parent_get(o);
                   continue;
                }
-             else if ((px < ox) && ((px + pw) < (ox + w)))
-               {
-                  // if object is over the viewport to the x axis.
-                  x += w - pw;
-               }
-             else if ((py < oy) && ((py + ph) < (oy + h)))
-               {
-                  // if object is over the viewport to the y axis.
-                  y += h - ph;
-               }
 
              ELM_SCROLLABLE_IFACE_GET(o, s_iface);
              s_iface->content_pos_get(o, &rx, &ry);
-             s_iface->content_viewport_size_get(o, &w, &h);
 
              x += rx + ox - px;
              y += ry + oy - py;
