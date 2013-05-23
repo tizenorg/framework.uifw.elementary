@@ -3522,6 +3522,7 @@ _multi_touch_gesture_eval(void *data)
                   evas_object_smart_callback_call
                      (WIDGET(it), SIG_MULTI_PINCH_IN, it);
 #if GENLIST_PINCH_ZOOM_SUPPORT
+                  elm_object_signal_emit(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj, "do-hide-vbar", "");
                   elm_genlist_pinch_zoom_mode_set(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj,
                                                   ELM_GEN_PINCH_ZOOM_CONTRACT);
 #endif
@@ -3555,6 +3556,7 @@ _multi_touch_gesture_eval(void *data)
                   evas_object_smart_callback_call
                      (WIDGET(it), SIG_MULTI_PINCH_IN, it);
 #if GENLIST_PINCH_ZOOM_SUPPORT
+                  elm_object_signal_emit(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj, "do-hide-vbar", "");
                   elm_genlist_pinch_zoom_mode_set(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj,
                                                   ELM_GEN_PINCH_ZOOM_CONTRACT);
 #endif
