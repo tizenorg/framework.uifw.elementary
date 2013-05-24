@@ -2022,8 +2022,7 @@ _item_block_position(Item_Block *itb,
                     {
                        it->item->move_effect_enabled = EINA_TRUE;
                        GL_IT(it)->wsd->reorder_move_animator =
-                          ecore_animator_add(
-                                             _reorder_move_animator_cb, it);
+                          ecore_animator_add(_reorder_move_animator_cb, it);
                     }
                }
              if (!it->item->move_effect_enabled)
@@ -5891,6 +5890,11 @@ elm_genlist_clear(Evas_Object *obj)
      {
         ecore_timer_del(sd->scr_hold_timer);
         sd->scr_hold_timer = NULL;
+     }
+   if (sd->reorder_move_animator)
+     {
+        ecore_animator_del(sd->reorder_move_animator);
+        sd->reorder_move_animator = NULL;
      }
 
    if (sd->queue) sd->queue = eina_list_free(sd->queue);
