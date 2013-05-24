@@ -133,25 +133,26 @@ _ctxpopup_position(Evas_Object *obj __UNUSED__)
    int gap = 22; //in GUI
 
    evas_object_geometry_get(ext_mod->ent, &ex, &ey, NULL, NULL);
-   elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_UP, ELM_CTXPOPUP_DIRECTION_DOWN, ELM_CTXPOPUP_DIRECTION_LEFT, ELM_CTXPOPUP_DIRECTION_RIGHT);
+   elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_UP,
+                                       ELM_CTXPOPUP_DIRECTION_DOWN, ELM_CTXPOPUP_DIRECTION_LEFT,
+                                       ELM_CTXPOPUP_DIRECTION_RIGHT);
    if (!edje_object_part_text_selection_geometry_get(ext_mod->ent, "elm.text", &sx, &sy, &sw, &sh))
      { //cannot get selection shape
         Evas_Coord cx, cy, cw, ch;
 
         edje_object_part_text_cursor_geometry_get(ext_mod->ent, "elm.text",
                                                   &cx, &cy, &cw, &ch);
-
-        Elm_Ctxpopup_Direction dir = elm_ctxpopup_direction_get(ext_mod->popup);
-        if (dir == ELM_CTXPOPUP_DIRECTION_DOWN)
+        x = ex + cx;
+        y = ey + cy;
+        evas_object_move(ext_mod->popup, x, y);
+        if (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_DOWN)
           {
-             elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_DOWN, ELM_CTXPOPUP_DIRECTION_UP, ELM_CTXPOPUP_DIRECTION_LEFT, ELM_CTXPOPUP_DIRECTION_RIGHT);
+             elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_DOWN,
+                                                 ELM_CTXPOPUP_DIRECTION_UP,
+                                                 ELM_CTXPOPUP_DIRECTION_LEFT,
+                                                 ELM_CTXPOPUP_DIRECTION_RIGHT);
              x = ex + cx;
              y = ey + cy + ch;
-          }
-        else
-          {
-             x = ex + cx;
-             y = ey + cy;
           }
 
         //limit ctx in viewport
@@ -176,10 +177,16 @@ _ctxpopup_position(Evas_Object *obj __UNUSED__)
      {
         Evas_Coord shx, shy, shw, shh;
         Evas_Coord ehx, ehy, ehw, ehh;
+        /* Currently, we cannot get size of ctxpopup, we must set hard value for threshold.
+           After fixing ctxpopup, we can get correctly threshold */
+        Evas_Coord threshold = 300;
 
-        edje_object_part_text_selection_handler_geometry_get(ext_mod->ent, "elm.text", EDJE_SELECTION_HANDLER_START, &shx, &shy, &shw, &shh);
-        edje_object_part_text_selection_handler_geometry_get(ext_mod->ent, "elm.text", EDJE_SELECTION_HANDLER_END, &ehx, &ehy, &ehw, &ehh);
-
+        edje_object_part_text_selection_handler_geometry_get(ext_mod->ent, "elm.text",
+                                                             EDJE_SELECTION_HANDLER_START,
+                                                             &shx, &shy, &shw, &shh);
+        edje_object_part_text_selection_handler_geometry_get(ext_mod->ent, "elm.text",
+                                                             EDJE_SELECTION_HANDLER_END,
+                                                             &ehx, &ehy, &ehw, &ehh);
         if (ext_mod->viewport_rect.x != -1 || ext_mod->viewport_rect.y != -1
             || ext_mod->viewport_rect.w != -1 || ext_mod->viewport_rect.h != -1)
           {
@@ -208,8 +215,13 @@ _ctxpopup_position(Evas_Object *obj __UNUSED__)
                {
                   if (ey + shy < sy) //case: start handler is upside
                     {
-                       //y = ey + shy;
-                       y = sy - gap;
+                       y = ey + shy;
+                       w = x2 - x;
+                       evas_object_move(ext_mod->popup, x + w/2, y);
+                       if (elm_ctxpopup_direction_get(ext_mod->popup) != ELM_CTXPOPUP_DIRECTION_UP)
+                         {
+                            y = sy - gap;
+                         }
                     }
                   else
                     y = sy;
@@ -218,6 +230,9 @@ _ctxpopup_position(Evas_Object *obj __UNUSED__)
              if (y2 > vy + vh) y2 = vy + vh;
              w = x2 - x;
              h = y2 - y;
+             evas_object_move(ext_mod->popup, x + w/2, y);
+             if (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_UP)
+               return;
           }
         else //get selection & cannot get viewport
           {
@@ -240,8 +255,13 @@ _ctxpopup_position(Evas_Object *obj __UNUSED__)
                {
                   if (ey + shy < sy) //start handler is upside
                     {
-                       //y = ey + shy;
-                       y = sy - gap;
+                       y = ey + shy;
+                       w = x2 - x;
+                       evas_object_move(ext_mod->popup, x + w/2, y);
+                       if (elm_ctxpopup_direction_get(ext_mod->popup) != ELM_CTXPOPUP_DIRECTION_UP)
+                         {
+                            y = sy - gap;
+                         }
                     }
                   else
                     y = sy;
@@ -252,21 +272,118 @@ _ctxpopup_position(Evas_Object *obj __UNUSED__)
              h = y2 - y;
           }
         x = x + (w / 2);
-        Elm_Ctxpopup_Direction dir = elm_ctxpopup_direction_get(ext_mod->popup);
-        if (dir != ELM_CTXPOPUP_DIRECTION_UNKNOWN)
-          {
-             if (dir == ELM_CTXPOPUP_DIRECTION_DOWN)
-               {
-                  elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_DOWN, ELM_CTXPOPUP_DIRECTION_UP, ELM_CTXPOPUP_DIRECTION_LEFT, ELM_CTXPOPUP_DIRECTION_RIGHT);
-                  y = sy + sh;
-                  if (y < ey + ehy + ehh)
-                    {
-                       //y = ey + ehy + ehh;
-                       y =  sy + sh + gap; //ey + ehy + 8 + 22;
-                    }
-               }
-          }
         evas_object_move(ext_mod->popup, x, y);
+
+        if (elm_ctxpopup_direction_get(ext_mod->popup) != ELM_CTXPOPUP_DIRECTION_UP)
+          {
+             Eina_Rectangle vp;
+             Eina_Rectangle sel; //selection area which is not covered by start,end sel handlers
+             Evas_Coord cry;
+
+             elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_DOWN,
+                                                 ELM_CTXPOPUP_DIRECTION_UP,
+                                                 ELM_CTXPOPUP_DIRECTION_LEFT,
+                                                 ELM_CTXPOPUP_DIRECTION_RIGHT);
+             vp.x = ext_mod->viewport_rect.x;
+             vp.y = ext_mod->viewport_rect.y;
+             vp.w = ext_mod->viewport_rect.w;
+             vp.h = ext_mod->viewport_rect.h;
+             sel.x = sx;
+             sel.y = sy > ey + shy + shh ? sy : ey + shy + shh;
+             sel.w = sw;
+             cry = sy + sh < ey + ehy ? sy + sh : ey + ehy;
+             sel.h = cry - sel.y;
+             if ((eina_rectangle_intersection(&sel, &vp)) && (sel.h > threshold))
+               {
+                  elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_UP,
+                                                      ELM_CTXPOPUP_DIRECTION_DOWN,
+                                                      ELM_CTXPOPUP_DIRECTION_LEFT,
+                                                      ELM_CTXPOPUP_DIRECTION_RIGHT);
+                  evas_object_move(ext_mod->popup, x, sel.y + sel.h/2);
+                  if (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_UP)
+                    return;
+               }
+
+             y = sel.y + sel.h;
+             if ((y < ey + ehy + ehh) && (ey + ehy < vp.y + vp.h)) //end handler is downside
+               {
+                  y = ey + ehy + ehh;
+                  evas_object_move(ext_mod->popup, x, y);
+                  if (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_DOWN)
+                    return;
+                  y = sy + sh + gap;
+                  evas_object_move(ext_mod->popup, x, y);
+                  if (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_DOWN)
+                    return;
+               }
+             evas_object_move(ext_mod->popup, x, y);
+             if (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_DOWN)
+               return;
+
+             // not enough space and small viewport (like landscape mode)
+             y = sel.y;
+             elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_UP,
+                                                 ELM_CTXPOPUP_DIRECTION_DOWN,
+                                                 ELM_CTXPOPUP_DIRECTION_LEFT,
+                                                 ELM_CTXPOPUP_DIRECTION_RIGHT);
+             evas_object_move(ext_mod->popup, x, y);
+             if (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_UP)
+               return;
+
+             y = sel.y + sel.h;
+             elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_DOWN,
+                                                 ELM_CTXPOPUP_DIRECTION_UP,
+                                                 ELM_CTXPOPUP_DIRECTION_LEFT,
+                                                 ELM_CTXPOPUP_DIRECTION_RIGHT);
+             evas_object_move(ext_mod->popup, x, y);
+             if (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_DOWN)
+               return;
+
+             x = sel.x;
+             y = sel.y + sel.h/2;
+             elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_LEFT,
+                                                 ELM_CTXPOPUP_DIRECTION_RIGHT,
+                                                 ELM_CTXPOPUP_DIRECTION_UP,
+                                                 ELM_CTXPOPUP_DIRECTION_DOWN);
+             evas_object_move(ext_mod->popup, x, y);
+             if (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_LEFT)
+               return;
+
+             x = sel.x + sel.w;
+             evas_object_move(ext_mod->popup, x, y);
+             elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_RIGHT,
+                                                 ELM_CTXPOPUP_DIRECTION_LEFT,
+                                                 ELM_CTXPOPUP_DIRECTION_UP,
+                                                 ELM_CTXPOPUP_DIRECTION_DOWN);
+             if (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_RIGHT)
+               return;
+
+             x = sel.x + sel.w/2;
+             evas_object_move(ext_mod->popup, x, y);
+             elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_LEFT,
+                                                 ELM_CTXPOPUP_DIRECTION_RIGHT,
+                                                 ELM_CTXPOPUP_DIRECTION_UP,
+                                                 ELM_CTXPOPUP_DIRECTION_DOWN);
+             if ((elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_LEFT) ||
+                 (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_RIGHT))
+               return;
+
+             x = sel.x + sel.w;
+             evas_object_move(ext_mod->popup, x, y);
+             elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_LEFT,
+                                                 ELM_CTXPOPUP_DIRECTION_RIGHT,
+                                                 ELM_CTXPOPUP_DIRECTION_UP,
+                                                 ELM_CTXPOPUP_DIRECTION_DOWN);
+             if (elm_ctxpopup_direction_get(ext_mod->popup) == ELM_CTXPOPUP_DIRECTION_LEFT)
+               return;
+
+             x = sel.x;
+             evas_object_move(ext_mod->popup, x, y);
+             elm_ctxpopup_direction_priority_set(ext_mod->popup, ELM_CTXPOPUP_DIRECTION_RIGHT,
+                                                 ELM_CTXPOPUP_DIRECTION_LEFT,
+                                                 ELM_CTXPOPUP_DIRECTION_UP,
+                                                 ELM_CTXPOPUP_DIRECTION_DOWN);
+          }
      }
 }
 
@@ -457,7 +574,8 @@ obj_longpress(Evas_Object *obj)
 {
    if(!ext_mod) return;
 
-   Evas_Object *top;
+   Evas_Object *ctxparent;
+   Evas_Object *parent, *child;
    const Eina_List *l;
    const Elm_Entry_Context_Menu_Item *it;
    const char *context_menu_orientation;
@@ -478,10 +596,27 @@ obj_longpress(Evas_Object *obj)
              ext_mod->popup = NULL;
           }
         //else elm_widget_scroll_freeze_push(obj);
-        top = elm_widget_top_get(obj);
-        if(top)
+        ctxparent = elm_widget_top_get(obj);
+        evas_smart_objects_calculate(evas_object_evas_get(obj));
+        parent = elm_widget_parent_get(obj);
+        child = obj;
+        if (parent)
           {
-             ext_mod->popup = elm_ctxpopup_add(top);
+             while(parent)
+               {
+                  if (!strcmp(elm_widget_type_get(parent), "elm_conformant"))
+                    {
+                       ctxparent = child;
+                       break;
+                    }
+                  child = parent;
+                  parent = elm_widget_parent_get(parent);
+               }
+          }
+
+        if(ctxparent)
+          {
+             ext_mod->popup = elm_ctxpopup_add(ctxparent);
              elm_object_tree_focus_allow_set(ext_mod->popup, EINA_FALSE);
              evas_object_smart_callback_add(ext_mod->popup, "dismissed", _ctxpopup_dismissed_cb, obj);
              evas_object_event_callback_add(obj, EVAS_CALLBACK_DEL, _entry_del_cb, ext_mod->popup);
