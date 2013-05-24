@@ -392,7 +392,7 @@ _select_all(void *data, Evas_Object *obj, void *event_info)
 {
    if((!ext_mod) || (!data)) return;
 
-   ext_mod->selectall(data,obj,event_info);
+   ext_mod->selectall(data, obj, event_info);
    _ctxpopup_hide(obj);
 }
 
@@ -401,7 +401,7 @@ _select(void *data, Evas_Object *obj, void *event_info)
 {
    if((!ext_mod) || (!data)) return;
 
-   ext_mod->select(data,obj,event_info);
+   ext_mod->select(data, obj, event_info);
    _ctxpopup_hide(obj);
 }
 
@@ -410,7 +410,7 @@ _paste(void *data, Evas_Object *obj, void *event_info)
 {
    if((!ext_mod) || (!data)) return;
 
-   ext_mod->paste(data,obj,event_info);
+   ext_mod->paste(data, obj, event_info);
    _ctxpopup_hide(obj);
 }
 
@@ -419,7 +419,7 @@ _cut(void *data, Evas_Object *obj, void *event_info)
 {
    if((!ext_mod) || (!data)) return;
 
-   ext_mod->cut(data,obj,event_info);
+   ext_mod->cut(data, obj, event_info);
    _ctxpopup_hide(obj);
 
    //elm_object_scroll_freeze_pop(ext_mod->popup);
@@ -430,7 +430,7 @@ _copy(void *data, Evas_Object *obj, void *event_info)
 {
    if((!ext_mod) || (!data)) return;
 
-   ext_mod->copy(data,obj,event_info);
+   ext_mod->copy(data, obj, event_info);
    _ctxpopup_hide(obj);
 
    //elm_object_scroll_freeze_pop(ext_mod->popup);
@@ -441,17 +441,16 @@ _cancel(void *data, Evas_Object *obj, void *event_info)
 {
    if((!ext_mod) || (!data)) return;
 
-   ext_mod->cancel(data,obj,event_info);
+   ext_mod->cancel(data, obj, event_info);
    _ctxpopup_hide(obj);
    //elm_object_scroll_freeze_pop(ext_mod->popup);
 }
 
 static void
-_search_menu(void *data, Evas_Object *obj, void *event_info)
+_search_menu(void *data __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
    if(!ext_mod) return;
 
-   int ret;
    bundle *b = bundle_create();
    if (!b)
      {
@@ -481,7 +480,7 @@ _search_menu(void *data, Evas_Object *obj, void *event_info)
 }
 
 static void
-_clipboard_menu(void *data, Evas_Object *obj, void *event_info)
+_clipboard_menu(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 {
    if(!ext_mod) return;
 
@@ -498,7 +497,7 @@ _clipboard_menu(void *data, Evas_Object *obj, void *event_info)
 }
 
 static void
-_item_clicked(void *data, Evas_Object *obj, void *event_info)
+_item_clicked(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 {
    Elm_Entry_Context_Menu_Item *it = data;
    Evas_Object *obj2 = it->obj;
@@ -525,13 +524,13 @@ _ctxpopup_dismissed_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__
 
 // module api funcs needed
 EAPI int
-elm_modapi_init(void *m)
+elm_modapi_init(void *m __UNUSED__)
 {
    return 1; // succeed always
 }
 
 EAPI int
-elm_modapi_shutdown(void *m)
+elm_modapi_shutdown(void *m __UNUSED__)
 {
    return 1; // succeed always
 }
@@ -547,12 +546,12 @@ obj_hook(Evas_Object *obj)
      {
         ext_mod = ELM_NEW(Elm_Entry_Extension_data);
         if (!ext_mod) return;
-        elm_entry_extension_module_data_get(obj,ext_mod);
+        elm_entry_extension_module_data_get(obj, ext_mod);
      }
 }
 
 EAPI void
-obj_unhook(Evas_Object *obj)
+obj_unhook(Evas_Object *obj __UNUSED__)
 {
    _mod_hook_count--;
    if(_mod_hook_count > 0) return;
@@ -584,7 +583,7 @@ obj_longpress(Evas_Object *obj)
    Elm_Object_Item *added_item = NULL;
 
    /*update*/
-   elm_entry_extension_module_data_get(obj,ext_mod);
+   elm_entry_extension_module_data_get(obj, ext_mod);
    if (ext_mod->context_menu)
      {
 #ifdef HAVE_ELEMENTARY_X
@@ -627,7 +626,7 @@ obj_longpress(Evas_Object *obj)
              ext_mod->caller = NULL;
              return;
           }
-        elm_object_style_set(ext_mod->popup,"copypaste");
+        elm_object_style_set(ext_mod->popup, "copypaste");
 
         context_menu_orientation = edje_object_data_get
            (ext_mod->ent, "context_menu_orientation");
@@ -674,7 +673,7 @@ obj_longpress(Evas_Object *obj)
                {
                   icon = elm_icon_add(ext_mod->popup);
                   snprintf(buf, sizeof(buf), "%s/images/copy&paste_icon_search.png", PACKAGE_DATA_DIR);
-                  elm_icon_file_set(icon, buf, NULL);
+                  elm_image_file_set(icon, buf, NULL);
                   added_item = elm_ctxpopup_item_append(ext_mod->popup, NULL, icon, _search_menu, obj);  // Search
                }
           }
@@ -732,7 +731,7 @@ obj_longpress(Evas_Object *obj)
                     {
                        icon = elm_icon_add(ext_mod->popup);
                        snprintf(buf, sizeof(buf), "%s/images/copy&paste_icon_search.png", PACKAGE_DATA_DIR);
-                       elm_icon_file_set(icon, buf, NULL);
+                       elm_image_file_set(icon, buf, NULL);
                        added_item = elm_ctxpopup_item_append(ext_mod->popup, NULL, icon, _search_menu, obj);  // Search
                     }
               }
