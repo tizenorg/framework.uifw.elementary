@@ -181,6 +181,21 @@ typedef struct _Size_Cache {
 } Size_Cache;
 
 static void
+_item_event_del(Elm_Gen_Item *it)
+{
+   if (it->long_timer)
+     {
+        ecore_timer_del(it->long_timer);
+        it->long_timer = NULL;
+     }
+   if (it->item->swipe_timer)
+     {
+        ecore_timer_del(it->item->swipe_timer);
+        it->item->swipe_timer = NULL;
+     }
+}
+
+static void
 _item_cache_all_free(Elm_Genlist_Smart_Data *sd)
 {
    // It would be better not to use
@@ -251,16 +266,7 @@ _item_cache_push(Elm_Gen_Item *it)
         if (it->spacer) evas_object_del(it->spacer);
         goto _ITEM_CLEAN;
      }
-   if (it->long_timer)
-     {
-        ecore_timer_del(it->long_timer);
-        it->long_timer = NULL;
-     }
-   if (it->item->swipe_timer)
-     {
-        ecore_timer_del(it->item->swipe_timer);
-        it->item->swipe_timer = NULL;
-     }
+   _item_event_del(it);
 
    ic->base_view = VIEW(it);
    ic->spacer = it->spacer;
@@ -591,17 +597,7 @@ _item_unrealize(Elm_Gen_Item *it,
    //evas_event_freeze(evas_object_evas_get(WIDGET(it)));
    if (!calc)
      evas_object_smart_callback_call(WIDGET(it), SIG_UNREALIZED, it);
-   if (it->long_timer)
-     {
-        ecore_timer_del(it->long_timer);
-        it->long_timer = NULL;
-     }
-   if (it->item->swipe_timer)
-     {
-        ecore_timer_del(it->item->swipe_timer);
-        it->item->swipe_timer = NULL;
-     }
-
+   _item_event_del(it);
    //Forcing the edje signal process for item's content.
    EINA_LIST_FOREACH(it->content_objs, l, content)
      {
@@ -715,7 +711,12 @@ _calc_job(void *data)
    Eina_Bool did_must_recalc = EINA_FALSE;
    Evas_Coord minw = -1, minh = 0, y = 0, dy = 0, vw = 0;
 
-   if (!sd->s_iface) return;
+   sd->calc_job = NULL;
+   if (!sd->s_iface)
+     {
+        WRN("This should not be happened! Something wrong");
+        return;
+     }
    sd->s_iface->content_viewport_size_get(ELM_WIDGET_DATA(sd)->obj, &sd->w, &sd->h);
 
    //evas_event_freeze(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
@@ -844,7 +845,6 @@ _calc_job(void *data)
           }
      }
 
-   sd->calc_job = NULL;
    evas_object_smart_changed(sd->pan_obj);
    //evas_event_thaw(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
    //evas_event_thaw_eval(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
@@ -2195,7 +2195,6 @@ _elm_genlist_pan_smart_calculate(Evas_Object *obj)
    if (psd->wsd->pan_changed)
      {
         if (psd->wsd->calc_job) ecore_job_del(psd->wsd->calc_job);
-        psd->wsd->calc_job = NULL;
         _calc_job(psd->wsd);
         psd->wsd->pan_changed = EINA_FALSE;
      }
@@ -3458,7 +3457,11 @@ _multi_cancel(void *data)
 {
    Elm_Genlist_Smart_Data *sd = data;
 
-   if (!sd) return ECORE_CALLBACK_CANCEL;
+   if (!sd)
+     {
+        sd->multi_timer = NULL;
+        return ECORE_CALLBACK_CANCEL;
+     }
    sd->multi_timeout = EINA_TRUE;
 
    return ECORE_CALLBACK_RENEW;
@@ -3585,21 +3588,13 @@ _item_multi_down_cb(void *data,
    GL_IT(it)->wsd->multi_touched = EINA_TRUE;
    GL_IT(it)->wsd->prev_mx = ev->canvas.x;
    GL_IT(it)->wsd->prev_my = ev->canvas.y;
-   if (it->long_timer)
-     {
-        ecore_timer_del(it->long_timer);
-        it->long_timer = NULL;
-     }
    if (it->dragging)
      {
         it->dragging = EINA_FALSE;
         evas_object_smart_callback_call(WIDGET(it), SIG_DRAG_STOP, it);
      }
-   if (it->item->swipe_timer)
-     {
-        ecore_timer_del(it->item->swipe_timer);
-        it->item->swipe_timer = NULL;
-     }
+   _item_event_del(it);
+
    GL_IT(it)->wsd->longpressed = EINA_FALSE;
    if (GL_IT(it)->wsd->on_hold)
      {
@@ -3715,14 +3710,13 @@ _item_mouse_down_cb(void *data,
           evas_object_smart_callback_call(WIDGET(it), SIG_ACTIVATED, it);
        }
    evas_object_smart_callback_call(WIDGET(it), SIG_PRESSED, it);
-   if (it->item->swipe_timer) ecore_timer_del(it->item->swipe_timer);
+
+   _item_event_del(it);
    it->item->swipe_timer = ecore_timer_add(0.4, _swipe_cancel, it);
-   if (it->long_timer) ecore_timer_del(it->long_timer);
    if (it->realized)
      it->long_timer = ecore_timer_add
          (sd->longpress_timeout, _long_press_cb, it);
-   else
-     it->long_timer = NULL;
+
    sd->swipe = EINA_FALSE;
    sd->movements = 0;
 }
@@ -4207,22 +4201,13 @@ _item_mouse_up_cb(void *data,
         _multi_touch_gesture_eval(data);
         return;
      }
-   if (it->long_timer)
-     {
-        ecore_timer_del(it->long_timer);
-        it->long_timer = NULL;
-     }
    if (it->dragging)
      {
         it->dragging = EINA_FALSE;
         evas_object_smart_callback_call(WIDGET(it), SIG_DRAG_STOP, it);
         dragged = 1;
      }
-   if (it->item->swipe_timer)
-     {
-        ecore_timer_del(it->item->swipe_timer);
-        it->item->swipe_timer = NULL;
-     }
+   _item_event_del(it);
    if (sd->multi_timer)
      {
         ecore_timer_del(sd->multi_timer);
@@ -4322,10 +4307,10 @@ _scroll_hold_timer_cb(void *data)
 {
    Elm_Genlist_Smart_Data *sd = data;
 
+   sd->scr_hold_timer = NULL;
    if (!data) return ECORE_CALLBACK_CANCEL;
 
    sd->s_iface->hold_set(ELM_WIDGET_DATA(sd)->obj, EINA_FALSE);
-   sd->scr_hold_timer = NULL;
 
    return ECORE_CALLBACK_CANCEL;
 }
@@ -4778,12 +4763,12 @@ _decorate_item_set(Elm_Gen_Item *it)
    sd->mode_item = it;
    it->item->nocache_once = EINA_TRUE;
 
+   sd->s_iface->hold_set(ELM_WIDGET_DATA(sd)->obj, EINA_TRUE);
    if (sd->scr_hold_timer)
      {
         ecore_timer_del(sd->scr_hold_timer);
         sd->scr_hold_timer = NULL;
      }
-   sd->s_iface->hold_set(ELM_WIDGET_DATA(sd)->obj, EINA_TRUE);
    sd->scr_hold_timer = ecore_timer_add(0.1, _scroll_hold_timer_cb, sd);
 
    //evas_event_freeze(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
@@ -4992,13 +4977,7 @@ _elm_genlist_smart_del(Evas_Object *obj)
    ELM_GENLIST_DATA_GET(obj, sd);
 
    elm_genlist_clear(obj);
-   if (sd->calc_job) ecore_job_del(sd->calc_job);
-   if (sd->update_job) ecore_job_del(sd->update_job);
-   if (sd->queue_idle_enterer) ecore_idle_enterer_del(sd->queue_idle_enterer);
-   if (sd->must_recalc_idler) ecore_idler_del(sd->must_recalc_idler);
-   if (sd->multi_timer) ecore_timer_del(sd->multi_timer);
    if (sd->decorate_it_type) eina_stringshare_del(sd->decorate_it_type);
-   if (sd->scr_hold_timer) ecore_timer_del(sd->scr_hold_timer);
 
    evas_object_del(sd->pan_obj);
    ELM_WIDGET_CLASS(_elm_genlist_parent_sc)->base.del(obj);
@@ -5246,12 +5225,7 @@ _item_free_common(Elm_Gen_Item *it)
    if (sd->last_selected_item == (Elm_Object_Item *)it)
      sd->last_selected_item = NULL;
 
-   if (it->long_timer)
-     {
-        ecore_timer_del(it->long_timer);
-        it->long_timer = NULL;
-     }
-   if (it->item->swipe_timer) ecore_timer_del(it->item->swipe_timer);
+   _item_event_del(it);
 
    sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(it));
    sd->item_count--;
@@ -5865,6 +5839,29 @@ elm_genlist_clear(Evas_Object *obj)
    sd->selected = NULL;
 
    sd->anchor_item = NULL;
+   sd->show_item = NULL;
+   sd->reorder_old_pan_y = 0;
+
+   sd->pan_x = 0;
+   sd->pan_y = 0;
+   sd->minw = 0;
+   sd->minh = 0;
+
+   if (sd->alpha_bg) evas_object_del(sd->alpha_bg);
+   sd->alpha_bg = NULL;
+
+   if (sd->pan_obj)
+     {
+        evas_object_size_hint_min_set(sd->pan_obj, sd->minw, sd->minh);
+        evas_object_smart_callback_call(sd->pan_obj, "changed", NULL);
+     }
+   elm_layout_sizing_eval(ELM_WIDGET_DATA(sd)->obj);
+   sd->s_iface->content_region_show(obj, 0, 0, 0, 0);
+
+#if GENLIST_FX_SUPPORT
+   sd->genlist_clearing = EINA_FALSE;
+#endif
+
    if (sd->multi_timer)
      {
         ecore_timer_del(sd->multi_timer);
@@ -5890,34 +5887,13 @@ elm_genlist_clear(Evas_Object *obj)
         ecore_idler_del(sd->must_recalc_idler);
         sd->must_recalc_idler = NULL;
      }
+   if (sd->scr_hold_timer)
+     {
+        ecore_timer_del(sd->scr_hold_timer);
+        sd->scr_hold_timer = NULL;
+     }
+
    if (sd->queue) sd->queue = eina_list_free(sd->queue);
-   if (sd->reorder_move_animator)
-     {
-        ecore_animator_del(sd->reorder_move_animator);
-        sd->reorder_move_animator = NULL;
-     }
-   sd->show_item = NULL;
-   sd->reorder_old_pan_y = 0;
-
-   sd->pan_x = 0;
-   sd->pan_y = 0;
-   sd->minw = 0;
-   sd->minh = 0;
-
-   if (sd->alpha_bg) evas_object_del(sd->alpha_bg);
-   sd->alpha_bg = NULL;
-
-   if (sd->pan_obj)
-     {
-        evas_object_size_hint_min_set(sd->pan_obj, sd->minw, sd->minh);
-        evas_object_smart_callback_call(sd->pan_obj, "changed", NULL);
-     }
-   elm_layout_sizing_eval(ELM_WIDGET_DATA(sd)->obj);
-   sd->s_iface->content_region_show(obj, 0, 0, 0, 0);
-
-#if GENLIST_FX_SUPPORT
-   sd->genlist_clearing = EINA_FALSE;
-#endif
    //evas_event_thaw(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
    //evas_event_thaw_eval(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
 }
