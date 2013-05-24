@@ -299,6 +299,8 @@ _elm_widget_sub_object_add_func(Evas_Object *obj,
         if (elm_widget_focus_get(sobj)) _parents_focus(obj);
      }
 
+   elm_widget_display_mode_set(sobj,
+                               evas_object_size_hint_display_mode_get(obj));
    return EINA_TRUE;
 }
 
@@ -3976,34 +3978,6 @@ elm_widget_activate(Evas_Object *obj, Elm_Activate act)
 /**
  * @internal
  *
- * Returns the widget's Evas_Display_Mode
- *
- * @param obj The widget.
- * @return Evas_Display_Mode of the object.
- *
- * @see elm_widget_display_mode_set().
- * @ingroup Widget
- **/
-EAPI Evas_Display_Mode
-elm_widget_display_mode_get(const Evas_Object *obj)
-{
-   Evas_Display_Mode new_mode;
-   Evas_Object *parent;
-
-   API_ENTRY return EVAS_DISPLAY_MODE_NONE;
-
-   new_mode = evas_object_size_hint_display_mode_get(obj);
-   parent = elm_widget_parent_get(obj);
-
-   if ((new_mode == EVAS_DISPLAY_MODE_INHERIT) && parent)
-     return elm_widget_display_mode_get(parent);
-   return new_mode;
-
-}
-
-/**
- * @internal
- *
  * Sets the widget and child widget's Evas_Display_Mode.
  *
  * @param obj The widget.
@@ -4018,25 +3992,20 @@ elm_widget_display_mode_get(const Evas_Object *obj)
 EAPI void
 elm_widget_display_mode_set(Evas_Object *obj, Evas_Display_Mode dispmode)
 {
-   Evas_Display_Mode child_mode;
    Evas_Object *child;
    Eina_List *l;
+   Evas_Display_Mode prev_dispmode;
 
    API_ENTRY return;
 
-   if (elm_widget_display_mode_get(obj) == dispmode) return;
+   prev_dispmode = evas_object_size_hint_display_mode_get(obj);
+
+   if ((prev_dispmode == dispmode) ||
+       (prev_dispmode == EVAS_DISPLAY_MODE_DONT_CHANGE)) return;
    evas_object_size_hint_display_mode_set(obj, dispmode);
 
-   //TODO: Need to deal with EVAS_DISPLAY_MODE_INHERIT efficiently.
    EINA_LIST_FOREACH (sd->subobjs, l, child)
-     {
-        child_mode = evas_object_size_hint_display_mode_get(child);
-        if (child_mode != EVAS_DISPLAY_MODE_DONT_CHANGE)
-          {
-             elm_widget_display_mode_set(child, dispmode);
-          }
-     }
-
+      elm_widget_display_mode_set(child, dispmode);
 }
 
 // TIZEN ONLY: temporary code. should be removed after eo is applied.
