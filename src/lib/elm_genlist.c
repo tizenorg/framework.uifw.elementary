@@ -7781,7 +7781,6 @@ _sorting_effect_animator_cb(void *data)
    Evas_Coord ox, oy, ow, oh;
    evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
 
-   sd->fx_timer = NULL;
    EINA_LIST_FOREACH(sd->fx_items, l, fi)
      {
         if (!fi->changed)
@@ -7806,13 +7805,14 @@ _sorting_effect_animator_cb(void *data)
              return ECORE_CALLBACK_RENEW;
           }
      }
+   sd->fx_timer = NULL;
    return ECORE_CALLBACK_CANCEL;
 }
 
 static Eina_Bool
 _fx_items_intersect(Evas_Object *obj, Elm_Gen_FX_Item *fi)
 {
-   ELM_GENLIST_CHECK(obj);
+   ELM_GENLIST_CHECK(obj) EINA_FALSE;
    ELM_GENLIST_DATA_GET(obj, sd);
 
    Elm_Gen_FX_Item *fx_it;
