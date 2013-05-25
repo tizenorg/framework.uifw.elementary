@@ -245,10 +245,11 @@ _access_action_highlight_next_cb(void *data __UNUSED__,
 }
 
 static Eina_Bool
-_access_action_highlight_cb(void *data __UNUSED__,
-                            Evas_Object *obj,
-                            Elm_Access_Action_Info *action_info)
+_access_action_cb(void *data __UNUSED__,
+                  Evas_Object *obj,
+                  Elm_Access_Action_Info *action_info)
 {
+   Evas_Coord_Point pos = {0, 0};
    Ecore_Evas *ee = NULL;
 
    ee = _elm_plug_ecore_evas_get(obj);
@@ -260,6 +261,13 @@ _access_action_highlight_cb(void *data __UNUSED__,
                                  _access_action_highlight_next_cb, NULL);
         elm_access_action_cb_set(obj, ELM_ACCESS_ACTION_HIGHLIGHT_PREV,
                                  _access_action_highlight_next_cb, NULL);
+     }
+   else if (action_info->action_type == ELM_ACCESS_ACTION_READ)
+     {
+        evas_object_geometry_get(obj, &pos.x, &pos.y, NULL, NULL);
+		 ERR("%d, %d, %d, %d\n", action_info->x, action_info->y, pos.x, pos.y);
+        action_info->x = action_info->x - pos.x;
+        action_info->y = action_info->y - pos.y;
      }
 
    ecore_evas_msg_parent_send(ee, MSG_DOMAIN_CONTROL_ACCESS,
@@ -286,9 +294,13 @@ elm_plug_add(Evas_Object *parent)
 
    _elm_access_object_register(obj, ELM_WIDGET_DATA(sd)->resize_obj);
    elm_access_action_cb_set(obj, ELM_ACCESS_ACTION_HIGHLIGHT,
-                            _access_action_highlight_cb, NULL);
+                            _access_action_cb, NULL);
    elm_access_action_cb_set(obj, ELM_ACCESS_ACTION_UNHIGHLIGHT,
-                            _access_action_highlight_cb, NULL);
+                            _access_action_cb, NULL);
+   elm_access_action_cb_set(obj, ELM_ACCESS_ACTION_READ,
+                            _access_action_cb, NULL);
+   elm_access_action_cb_set(obj, ELM_ACCESS_ACTION_MOUSE,
+                            _access_action_cb, NULL);
 
    return obj;
 }
