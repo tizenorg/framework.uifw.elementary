@@ -5229,7 +5229,7 @@ elm_entry_end_visible_set(Evas_Object *obj,
 {
    ELM_ENTRY_CHECK(obj);
 
-   if (!elm_layout_content_get(obj, "elm.swallow.icon")) return;
+   if (!elm_layout_content_get(obj, "elm.swallow.end")) return;
 
    if (setting)
      elm_layout_signal_emit(obj, "elm,action,show,end", "elm");
