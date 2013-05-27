@@ -2,7 +2,7 @@
 #include "elm_priv.h"
 #include "elm_widget_ctxpopup.h"
 
-#define OUTLINE_TEXT "Center popup is opened, double tap to close the popup"
+#define OUTLINE_TEXT "Contextual popup is opened, double tap to close the popup"
 
 EAPI const char ELM_CTXPOPUP_SMART_NAME[] = "elm_ctxpopup";
 
@@ -1170,6 +1170,9 @@ _elm_ctxpopup_smart_theme(Evas_Object *obj)
         _elm_ctxpopup_smart_sizing_eval(obj);
      }
 
+   /* access */
+  if (_elm_config->access_mode) _access_obj_process(obj, EINA_TRUE);
+
    return EINA_TRUE;
 }
 
@@ -1566,37 +1569,6 @@ _elm_ctxpopup_smart_disable(Evas_Object *obj)
      elm_object_item_disabled_set(it, elm_widget_disabled_get(obj));
 
    return EINA_TRUE;
-}
-
-static void
-_access_outline_activate_cb(void *data,
-                        Evas_Object *part_obj __UNUSED__,
-                        Elm_Object_Item *item __UNUSED__)
-{
-   evas_object_hide(data);
-   evas_object_smart_callback_call(data, SIG_DISMISSED, NULL);
-}
-
-static void
-_access_obj_process(Evas_Object *obj, Eina_Bool is_access)
-{
-   Evas_Object *ao;
-   ELM_CTXPOPUP_DATA_GET(obj, sd);
-
-   if (is_access)
-     {
-        ao = _elm_access_edje_object_part_object_register
-               (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_OUTLINE_PART);
-        _elm_access_text_set(_elm_access_object_get(ao),
-                             ELM_ACCESS_TYPE, E_(OUTLINE_TEXT));
-        _elm_access_activate_callback_set
-          (_elm_access_object_get(ao), _access_outline_activate_cb, obj);
-     }
-   else
-     {
-        _elm_access_edje_object_part_object_unregister
-               (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_OUTLINE_PART);
-     }
 }
 
 static void
