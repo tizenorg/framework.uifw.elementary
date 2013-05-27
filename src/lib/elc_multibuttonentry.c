@@ -806,13 +806,13 @@ _layout_shrink(Evas_Object *obj,
                   else if (mnw > w - (labelw + hpad))
                     mnw = w - (labelw + hpad);
 
-                  elm_layout_signal_emit(obj, "elm,state,text,ellipsis", "");
-                  edje_object_message_signal_process(elm_layout_edje_get(obj));
-                  evas_object_size_hint_min_set(obj, mnw, mnh);
+                  elm_layout_signal_emit(VIEW(it), "elm,state,text,ellipsis", "");
+                  edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
+                  evas_object_size_hint_min_set(VIEW(it), mnw, mnh);
 #ifdef _TB_BUG
-                  elm_layout_sizing_eval(obj);
+                  elm_layout_sizing_eval(VIEW(it));
 #else
-                  evas_object_resize(obj, mnw, mnh);
+                  evas_object_resize(VIEW(it), mnw, mnh);
 #endif
                }
           }
