@@ -231,6 +231,32 @@ _elm_mapbuf_smart_add(Evas_Object *obj)
    _sizing_eval(obj);
 }
 
+static Eina_Bool
+_elm_mapbuf_smart_focus_next(const Evas_Object *obj,
+                             Elm_Focus_Direction dir,
+                             Evas_Object **next)
+{
+   ELM_MAPBUF_CHECK(obj) EINA_FALSE;
+   ELM_MAPBUF_DATA_GET(obj, sd);
+
+   if (sd->content)
+     return elm_widget_focus_next_get(sd->content, dir, next);
+
+   return EINA_FALSE;
+}
+
+static void
+_elm_mapbuf_smart_access(Evas_Object *obj, Eina_Bool is_access)
+{
+   ELM_MAPBUF_DATA_GET(obj, sd);
+
+   if (is_access)
+     ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next =
+        _elm_mapbuf_smart_focus_next;
+   else
+     ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next = NULL;
+}
+
 static void
 _elm_mapbuf_smart_set_user(Elm_Mapbuf_Smart_Class *sc)
 {
@@ -240,6 +266,10 @@ _elm_mapbuf_smart_set_user(Elm_Mapbuf_Smart_Class *sc)
 
    ELM_WIDGET_CLASS(sc)->theme = _elm_mapbuf_smart_theme;
    ELM_WIDGET_CLASS(sc)->sub_object_del = _elm_mapbuf_smart_sub_object_del;
+   ELM_WIDGET_CLASS(sc)->access = _elm_mapbuf_smart_access;
+
+   if (_elm_config->access_mode)
+     ELM_WIDGET_CLASS(sc)->focus_next = _elm_mapbuf_smart_focus_next;
 
    ELM_CONTAINER_CLASS(sc)->content_set = _elm_mapbuf_smart_content_set;
    ELM_CONTAINER_CLASS(sc)->content_get = _elm_mapbuf_smart_content_get;
