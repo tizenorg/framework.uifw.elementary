@@ -1094,16 +1094,17 @@ _item_mode_content_realize(Elm_Gen_Item *it,
 
              if (ic)
                {
-                  res = eina_list_append(res, ic);
                   if (!edje_object_part_swallow(target, key, ic))
                     {
                        WRN("%s (%p) can not be swallowed into %s",
                            evas_object_type_get(ic), ic, key);
-                       evas_object_del(ic);
                        continue;
 
                     }
+                  if (elm_widget_item_disabled_get(it))
+                    elm_widget_disabled_set(ic, EINA_TRUE);
                   evas_object_show(ic);
+                  res = eina_list_append(res, ic);
 #if GENLIST_ENTRY_SUPPORT
                   if (it->flipped)
                     {
@@ -1145,8 +1146,6 @@ _item_mode_content_realize(Elm_Gen_Item *it,
                        evas_object_smart_callback_add(ic, "unfocused", _content_unfocused, it);
                     }
 #endif
-                  if (elm_widget_item_disabled_get(it))
-                    elm_widget_disabled_set(ic, EINA_TRUE);
                }
           }
      }
@@ -1405,17 +1404,17 @@ _item_content_realize(Elm_Gen_Item *it,
                    ((void *)it->base.data, WIDGET(it), key);
              if (ic)
                {
-                  res = eina_list_append(res, ic);
                   if (!edje_object_part_swallow(target, key, ic))
                     {
                        WRN("%s (%p) can not be swallowed into %s",
                            evas_object_type_get(ic), ic, key);
-                       evas_object_del(ic);
                        continue;
 
                     }
+                  if (elm_widget_item_disabled_get(it))
+                    elm_widget_disabled_set(ic, EINA_TRUE);
                   evas_object_show(ic);
-
+                  res = eina_list_append(res, ic);
 #if GENLIST_ENTRY_SUPPORT
                   // For entry or editfield
                   // 1. Add resize callback for multiline entry.
@@ -1458,8 +1457,6 @@ _item_content_realize(Elm_Gen_Item *it,
                        evas_object_smart_callback_add(ic, "unfocused", _content_unfocused, it);
                     }
 #endif
-                  if (elm_widget_item_disabled_get(it))
-                    elm_widget_disabled_set(ic, EINA_TRUE);
                }
           }
      }
