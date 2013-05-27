@@ -1554,6 +1554,69 @@ _access_widget_item_register(Elm_Gen_Item *it)
    _elm_access_activate_callback_set(ai, _access_activate_cb, it);
 }
 
+static Eina_Bool
+_item_min_calc(Elm_Gen_Item *it)
+{
+   if (it->item->mincalcd) return EINA_FALSE;
+
+   Eina_Bool changed = EINA_FALSE;
+   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
+   Evas_Coord mw = 0, mh = 0;
+   Size_Cache *size = NULL;
+
+   if (sd->homogeneous)
+     size = eina_hash_find(GL_IT(it)->wsd->size_caches,
+                           it->itc->item_style);
+
+   if (size)
+     {
+        mw = size->minw;
+        mh = size->minh;
+     }
+   else
+     {
+        if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
+          {
+             mw = sd->finger_minw;
+             mh = sd->finger_minh;
+          }
+        if (sd->prev_viewport_w != 0) mw = sd->prev_viewport_w;
+        edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
+        if ((sd->mode == ELM_LIST_COMPRESS) && (sd->prev_viewport_w != 0) &&
+            (mw > sd->prev_viewport_w))
+           mw = sd->prev_viewport_w;
+        if (sd->homogeneous)
+          {
+             size = ELM_NEW(Size_Cache);
+             size->minw = mw;
+             size->minh = mh;
+             eina_hash_add(sd->size_caches, it->itc->item_style, size);
+          }
+     }
+
+   if (it->item->minw != mw)
+     {
+        // update block size
+        if (it->item->block->minw > mw)
+           it->item->block->minw = it->item->block->w = mw;
+
+        it->item->w = it->item->minw = mw;
+        changed = EINA_TRUE;
+     }
+   if (it->item->minh != mh)
+     {
+        // update block size
+        it->item->block->minh += (mh - it->item->minh);
+
+        it->item->h = it->item->minh = mh;
+		it->item->block->changed = EINA_TRUE;
+        changed = EINA_TRUE;
+     }
+   it->item->mincalcd = EINA_TRUE;
+
+   return changed;
+}
+
 static void
 _item_realize(Elm_Gen_Item *it,
               int in,
@@ -1661,7 +1724,7 @@ _item_realize(Elm_Gen_Item *it,
           elm_config_scale_get(), 1);
         edje_object_part_swallow(VIEW(it), "elm.swallow.pad", it->spacer);
      }
-   if (!calc)
+   if (!calc || !it->item->mincalcd)
      {
         if ((GL_IT(it)->wsd->decorate_all_mode) && (!it->deco_all_view) &&
             (it->itc->decorate_all_item_style))
@@ -1669,22 +1732,7 @@ _item_realize(Elm_Gen_Item *it,
 
         _elm_genlist_item_state_update(it);
         _elm_genlist_item_index_update(it);
-     }
 
-   if ((calc) && (GL_IT(it)->wsd->homogeneous) && (!it->item->mincalcd))
-     {
-        Size_Cache *size = eina_hash_find
-           (GL_IT(it)->wsd->size_caches,
-            it->itc->item_style);
-        if (size)
-          {
-             it->item->w = it->item->minw = size->minw;
-             it->item->h = it->item->minh = size->minh;
-             it->item->mincalcd = EINA_TRUE;
-          }
-     }
-   if (!calc || !it->item->mincalcd)
-     {
         if (eina_list_count(it->content_objs) != 0)
           ERR_ABORT("If you see this error, please notify us and we"
                     "will fix it");
@@ -1711,43 +1759,10 @@ _item_realize(Elm_Gen_Item *it,
         /* access: unregister item which have no text and content */
         if (_elm_config->access_mode && !it->texts && !it->contents)
           _elm_access_widget_item_unregister((Elm_Widget_Item *)it);
-
-#if 0
-        // FIXME: difference from upstream
-        if (!it->item->mincalcd || ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) && (it->item->w != it->item->minw)))
-#else
-        if (!it->item->mincalcd)
-#endif
-          {
-             Evas_Coord mw = 0, mh = 0;
-
-             if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
-               {
-                  mw = GL_IT(it)->wsd->finger_minw;
-                  mh = GL_IT(it)->wsd->finger_minh;
-               }
-             if (GL_IT(it)->wsd->prev_viewport_w != 0)
-               mw = GL_IT(it)->wsd->prev_viewport_w;
-             edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
-             if ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) &&
-                 (GL_IT(it)->wsd->prev_viewport_w != 0) &&
-                 (mw > GL_IT(it)->wsd->prev_viewport_w))
-                mw = GL_IT(it)->wsd->prev_viewport_w;
-
-             it->item->w = it->item->minw = mw;
-             it->item->h = it->item->minh = mh;
-             it->item->mincalcd = EINA_TRUE;
-
-             if (GL_IT(it)->wsd->homogeneous)
-               {
-                  Size_Cache *size = ELM_NEW(Size_Cache);
-                  size->minw = mw;
-                  size->minh = mh;
-                  eina_hash_add(GL_IT(it)->wsd->size_caches, it->itc->item_style, size);
-               }
-          }
-        if (!calc) evas_object_show(VIEW(it));
+        // FIXME: Is this needed?
+        evas_object_show(VIEW(it));
      }
+   _item_min_calc(it);
 
    if (it->tooltip.content_cb)
      {
@@ -2145,7 +2160,6 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
                        size->minh = mh;
                        eina_hash_add(GL_IT(it)->wsd->size_caches, it->itc->item_style, size);
                     }
-
                }
              num++;
           }
