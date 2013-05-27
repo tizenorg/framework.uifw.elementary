@@ -4987,6 +4987,7 @@ _elm_genlist_smart_del(Evas_Object *obj)
    ELM_GENLIST_DATA_GET(obj, sd);
 
    elm_genlist_clear(obj);
+   if (sd->size_caches) eina_hash_free(sd->size_caches);
    if (sd->decorate_it_type) eina_stringshare_del(sd->decorate_it_type);
 
    evas_object_del(sd->pan_obj);
