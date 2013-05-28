@@ -215,6 +215,7 @@ _items_remove(Elm_Popup_Smart_Data *sd)
 static void
 _elm_popup_smart_del(Evas_Object *obj)
 {
+   Evas_Object *notify = NULL;
    unsigned int i;
 
    ELM_POPUP_DATA_GET(obj, sd);
@@ -242,12 +243,16 @@ _elm_popup_smart_del(Evas_Object *obj)
         _list_del(sd);
      }
 
+   if (elm_widget_parent_get(obj) == sd->notify)
+     {
+        notify = sd->notify;
+     }
+
    ELM_WIDGET_CLASS(_elm_popup_parent_sc)->base.del(obj);
 
-   if (sd->notify)
+   if (notify)
      {
-        evas_object_del(sd->notify);
-        sd->notify = NULL;
+        evas_object_del(notify);
      }
 }
 
