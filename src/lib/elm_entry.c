@@ -3233,9 +3233,13 @@ _elm_entry_smart_signal(Evas_Object *obj,
 
    /* always pass to both edje objs */
    edje_object_signal_emit(sd->entry_edje, emission, source);
+   edje_object_message_signal_process(sd->entry_edje);
 
    if (sd->scr_edje)
-     edje_object_signal_emit(sd->scr_edje, emission, source);
+     {
+        edje_object_signal_emit(sd->scr_edje, emission, source);
+        edje_object_message_signal_process(sd->scr_edje);
+     }
 }
 
 static void
