@@ -328,6 +328,8 @@ struct _Elm_Scrollable_Smart_Interface_Data
    Eina_Bool  go_right : 1;
    Eina_Bool  go_up : 1;
    Eina_Bool  go_down : 1;
+   Eina_Bool  loop_h : 1;
+   Eina_Bool  loop_v : 1;
 };
 
 typedef struct _Elm_Scrollable_Smart_Interface Elm_Scrollable_Smart_Interface;
@@ -526,6 +528,13 @@ struct _Elm_Scrollable_Smart_Interface
    void       (*gravity_get)(const Evas_Object *obj,
                              double *x,
                              double *y);
+
+   void       (*loop_set)(Evas_Object *obj,
+                                   Eina_Bool loop_h,
+                                   Eina_Bool loop_v);
+   void       (*loop_get)(const Evas_Object *obj,
+                                   Eina_Bool *loop_h,
+                                   Eina_Bool *loop_v);
 
    Eina_Bool  (*momentum_animator_disabled_get)(const Evas_Object *obj);
    void       (*momentum_animator_disabled_set)(Evas_Object *obj,

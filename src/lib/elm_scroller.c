@@ -314,6 +314,7 @@ _elm_scroller_smart_sizing_eval(Evas_Object *obj)
    Evas_Coord vw = 0, vh = 0, minw = 0, minh = 0, maxw = 0, maxh = 0, w, h,
               vmw, vmh;
    double xw = 0.0, yw = 0.0;
+   int i;
 
    ELM_SCROLLER_DATA_GET(obj, sd);
 
@@ -349,6 +350,11 @@ _elm_scroller_smart_sizing_eval(Evas_Object *obj)
      vh = minh;
 
    if (sd->content) evas_object_resize(sd->content, vw, vh);
+   if (sd->contents) evas_object_resize(sd->contents, vw, vh);
+
+   for (i = 0 ; i < 3 ; i++)
+     if (sd->proxy_content[i])
+       evas_object_image_fill_set(sd->proxy_content[i], 0, 0, vw, vh);
 
    w = -1;
    h = -1;
@@ -605,6 +611,71 @@ _scroll_drag_stop_cb(Evas_Object *obj,
    evas_object_smart_callback_call(obj, SIG_SCROLL_DRAG_STOP, NULL);
 }
 
+static void
+_loop_content_set(Evas_Object *obj, Evas_Object *content)
+{
+   ELM_SCROLLER_DATA_GET(obj, sd);
+
+   if (!sd->contents)
+     {
+        sd->contents = elm_layout_add(obj);
+        evas_object_smart_member_add(sd->contents, obj);
+        elm_layout_theme_set(sd->contents, "scroller", "contents", elm_widget_style_get(obj));
+        evas_object_size_hint_weight_set(sd->contents, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+        evas_object_size_hint_align_set(sd->contents, EVAS_HINT_FILL, EVAS_HINT_FILL);
+
+        elm_widget_sub_object_add(obj, sd->contents);
+        elm_widget_on_show_region_hook_set(sd->contents, _show_region_hook, obj);
+     }
+   elm_object_part_content_set(sd->contents, "elm.swallow.content", content);
+   sd->content = content;
+
+   if (sd->loop_h)
+     {
+        if (!sd->proxy_content[0])
+          {
+             sd->proxy_content[0] = evas_object_image_add(evas_object_evas_get(sd->contents));
+             evas_object_smart_member_add(sd->proxy_content[0], obj);
+             evas_object_size_hint_weight_set(sd->proxy_content[0], EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+             evas_object_size_hint_align_set(sd->proxy_content[0], EVAS_HINT_FILL, EVAS_HINT_FILL);
+          }
+        evas_object_image_source_set(sd->proxy_content[0], content);
+        evas_object_image_source_clip_set(sd->proxy_content[0], EINA_FALSE);
+        elm_object_part_content_set(sd->contents, "elm.swallow.content_r", sd->proxy_content[0]);
+        evas_object_show(sd->proxy_content[0]);
+     }
+
+   if (sd->loop_v)
+     {
+        if (!sd->proxy_content[1])
+          {
+             sd->proxy_content[1] = evas_object_image_add(evas_object_evas_get(sd->contents));
+             evas_object_smart_member_add(sd->proxy_content[1], obj);
+             evas_object_size_hint_weight_set(sd->proxy_content[1], EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+             evas_object_size_hint_align_set(sd->proxy_content[1], EVAS_HINT_FILL, EVAS_HINT_FILL);
+          }
+        evas_object_image_source_set(sd->proxy_content[1], content);
+        evas_object_image_source_clip_set(sd->proxy_content[1], EINA_FALSE);
+        elm_object_part_content_set(sd->contents, "elm.swallow.content_b", sd->proxy_content[1]);
+        evas_object_show(sd->proxy_content[1]);
+     }
+
+   if (sd->loop_h && sd->loop_v)
+     {
+        if (!sd->proxy_content[2])
+          {
+             sd->proxy_content[2] = evas_object_image_add(evas_object_evas_get(sd->contents));
+             evas_object_smart_member_add(sd->proxy_content[2], obj);
+             evas_object_size_hint_weight_set(sd->proxy_content[2], EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+             evas_object_size_hint_align_set(sd->proxy_content[2], EVAS_HINT_FILL, EVAS_HINT_FILL);
+          }
+        evas_object_image_source_set(sd->proxy_content[2], content);
+        evas_object_image_source_clip_set(sd->proxy_content[2], EINA_FALSE);
+        elm_object_part_content_set(sd->contents, "elm.swallow.content_rb", sd->proxy_content[2]);
+        evas_object_show(sd->proxy_content[2]);
+     }
+}
+
 static Eina_Bool
 _elm_scroller_smart_content_set(Evas_Object *obj,
                                 const char *part,
@@ -626,7 +697,16 @@ _elm_scroller_smart_content_set(Evas_Object *obj,
         elm_widget_on_show_region_hook_set(content, _show_region_hook, obj);
         elm_widget_sub_object_add(obj, content);
 
+        if (sd->loop_h || sd->loop_v)
+          {
+             _loop_content_set(obj, content);
+             if(sd->contents)
+               content = sd->contents;
+          }
         sd->s_iface->content_set(obj, content);
+
+        evas_object_event_callback_add
+           (sd->content, EVAS_CALLBACK_CHANGED_SIZE_HINTS, _changed_size_hints_cb, obj);
      }
 
    elm_layout_sizing_eval(obj);
@@ -1106,6 +1186,52 @@ elm_scroller_gravity_get(const Evas_Object *obj,
    ELM_SCROLLABLE_CHECK(obj);
 
    s_iface->gravity_get(obj, x, y);
+}
+
+EAPI void
+elm_scroller_loop_set(Evas_Object *obj,
+                      Eina_Bool loop_h,
+                      Eina_Bool loop_v)
+{
+   ELM_SCROLLABLE_CHECK(obj);
+   ELM_SCROLLER_DATA_GET(obj, sd);
+
+   if (sd->loop_h == loop_h && sd->loop_v == loop_v) return;
+
+   sd->loop_h = loop_h;
+   sd->loop_v = loop_v;
+
+   s_iface->loop_set(obj, loop_h, loop_v);
+
+   if (sd->content)
+     if (sd->loop_h || sd->loop_v)
+       {
+          sd->s_iface->content_set(obj, NULL);
+          _loop_content_set(obj, sd->content);
+
+          if (sd->contents)
+            {
+               sd->s_iface->content_set(obj, sd->contents);
+               elm_widget_sub_object_add(obj, sd->contents);
+               elm_widget_on_show_region_hook_set(sd->contents, _show_region_hook, obj);
+            }
+       }
+     else
+       {
+          sd->s_iface->content_set(obj, NULL);
+          sd->s_iface->content_set(obj, sd->content);
+       }
+   elm_layout_sizing_eval(obj);
+}
+
+EAPI void
+elm_scroller_loop_get(const Evas_Object *obj,
+                      Eina_Bool *loop_h,
+                      Eina_Bool *loop_v)
+{
+   ELM_SCROLLABLE_CHECK(obj);
+
+   s_iface->loop_get(obj, loop_h, loop_v);
 }
 
 EAPI void

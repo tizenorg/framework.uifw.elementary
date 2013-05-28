@@ -132,9 +132,13 @@ struct _Elm_Scroller_Smart_Data
    Evas_Object                          *g_layer;
 
    Evas_Object                          *content;
+   Evas_Object                          *contents;
+   Evas_Object                          *proxy_content[3];
 
    Eina_Bool                             min_w : 1;
    Eina_Bool                             min_h : 1;
+   Eina_Bool                             loop_h : 1;
+   Eina_Bool                             loop_v : 1;
 };
 
 /**

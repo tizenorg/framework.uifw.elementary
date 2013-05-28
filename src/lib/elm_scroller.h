@@ -540,5 +540,38 @@ EAPI void                          elm_scroller_gravity_set(Evas_Object *obj, do
 EAPI void                          elm_scroller_gravity_get(const Evas_Object *obj, double *x, double *y);
 
 /**
+ * @brief Set the infinite loop for a scroller
+ *
+ * @param obj The scroller object
+ * @param loop_h The scrolling horizontal loop
+ * @param loop_v The scrolling vertical loop
+ *
+ * This sets infinite loop for a scroller.
+ *
+ * @since 1.8
+ *
+ * @ingroup Scroller
+ */
+EAPI void                          elm_scroller_loop_set(Evas_Object *obj, Eina_Bool loop_h, Eina_Bool loop_v);
+
+/**
+ * @brief Get the infinite loop for a scroller
+ *
+ * @param obj The scroller object
+ * @param loop_h The scrolling horizontal loop
+ * @param loop_v The scrolling vertical loop
+ *
+ * This gets infinite loop for a scroller.
+ *
+ * @see elm_scroller_loop_set()
+ *
+ * @since 1.8
+ *
+ * @ingroup Scroller
+ */
+
+EAPI void                          elm_scroller_loop_get(const Evas_Object *obj, Eina_Bool *loop_h, Eina_Bool *loop_v);
+
+/**
  * @}
  */
