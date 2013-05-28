@@ -930,7 +930,8 @@ _virtualkeypad_state_change(Evas_Object *obj, Ecore_X_Event_Window_Property *ev)
    if (state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF)
      {
         DBG("[KEYPAD]:ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF");
-        _conformant_part_sizing_eval(obj, ELM_CONFORMANT_VIRTUAL_KEYPAD_PART);
+        evas_object_size_hint_min_set(sd->virtualkeypad, -1, 0);
+        evas_object_size_hint_max_set(sd->virtualkeypad, -1, 0);
         // Tizen Only - SIP regions for virtual keypad and clipboard are the same in Tizen
         if (sd->clipboard_state == ECORE_X_ILLUME_CLIPBOARD_STATE_UNKNOWN || sd->clipboard_state == ECORE_X_ILLUME_CLIPBOARD_STATE_OFF)
           elm_widget_display_mode_set(obj, EVAS_DISPLAY_MODE_NONE);
