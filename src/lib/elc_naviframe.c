@@ -563,8 +563,6 @@ _item_title_prev_btn_set(Elm_Naviframe_Item *it,
    elm_object_signal_emit(VIEW(it), "elm,state,prev_btn,show", "elm");
    evas_object_event_callback_add
      (btn, EVAS_CALLBACK_DEL, _item_title_prev_btn_del_cb, it);
-   evas_object_smart_callback_add
-     (btn, SIG_CLICKED, _on_item_back_btn_clicked, WIDGET(it));
 
    _hide_button_prop_set(it, btn);
 
