@@ -131,6 +131,7 @@ struct _Elm_List_Smart_Data
    Evas_Object                          *box, *hit_rect;
    const Elm_Scrollable_Smart_Interface *s_iface;
 
+   Evas_Object                          *focused_content;
    Elm_Object_Item                      *focused;
    Eina_List                            *items, *selected, *to_delete;
    Elm_Object_Item                      *last_selected_item;
@@ -146,6 +147,7 @@ struct _Elm_List_Smart_Data
       Evas_Coord x, y;
    } history[ELM_LIST_SWIPE_MOVES];
 
+   Eina_Bool                             select_on_focus_enabled : 1;
    Eina_Bool                             was_selected : 1;
    Eina_Bool                             fix_pending : 1;
    Eina_Bool                             longpressed : 1;

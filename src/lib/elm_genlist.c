@@ -137,6 +137,14 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {NULL, NULL}
 };
 
+typedef enum
+{
+   FOCUS_DIR_UP = 0,
+   FOCUS_DIR_DOWN,
+   FOCUS_DIR_LEFT,
+   FOCUS_DIR_RIGHT
+} Focus_Dir;
+
 EVAS_SMART_SUBCLASS_IFACE_NEW
   (ELM_GENLIST_SMART_NAME, _elm_genlist, Elm_Genlist_Smart_Class,
   Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks,
@@ -2626,7 +2634,6 @@ static void _item_focused(Elm_Gen_Item *it)
    if (it->deco_all_view)
       edje_object_signal_emit
          (it->deco_all_view, "elm,state,focused", "elm");
-
    sd->focused = it;
 }
 
@@ -2634,13 +2641,20 @@ static void _item_unfocused(Elm_Gen_Item *it)
 {
    if (!it) return;
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
+   if (!sd->focused) return;
+
+   if (sd->focused_content)
+     {
+        elm_object_focus_set(ELM_WIDGET_DATA(sd)->obj, EINA_FALSE);
+        elm_object_focus_set(ELM_WIDGET_DATA(sd)->obj, EINA_TRUE);
+        sd->focused_content = NULL;
+     }
    edje_object_signal_emit
       (VIEW(sd->focused), "elm,state,unfocused", "elm");
    if (sd->focused->deco_all_view)
       edje_object_signal_emit
          (sd->focused->deco_all_view, "elm,state,unfocused", "elm");
-   if (it == sd->focused)
-      sd->focused = NULL;
+   if (it == sd->focused) sd->focused = NULL;
 }
 
 static Elm_Gen_Item *_item_focusable_search(Elm_Gen_Item *it, int dir)
@@ -2670,31 +2684,96 @@ static Elm_Gen_Item *_item_focusable_search(Elm_Gen_Item *it, int dir)
    return tmp;
 }
 
-static Eina_Bool _item_focused_next(Elm_Genlist_Smart_Data *sd, int dir)
+static Eina_Bool _item_focused_next(Elm_Genlist_Smart_Data *sd, Focus_Dir dir)
 {
    Elm_Gen_Item *it = NULL;
    Elm_Gen_Item *old_focused = sd->focused;
 
-   if (sd->focused)
+   if (dir == FOCUS_DIR_DOWN || dir == FOCUS_DIR_UP)
      {
-        if (dir == 1)
-           it = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(sd->focused)->next);
+        if (dir == FOCUS_DIR_DOWN)
+          {
+             if (sd->focused)
+               {
+                  it = ELM_GEN_ITEM_FROM_INLIST
+                     (EINA_INLIST_GET(sd->focused)->next);
+                  _item_unfocused(sd->focused);
+               }
+             else it = ELM_GEN_ITEM_FROM_INLIST(sd->items);
+             it = _item_focusable_search(it, 1);
+          }
+        else if (dir == FOCUS_DIR_UP)
+          {
+             if (sd->focused)
+               {
+                  it = ELM_GEN_ITEM_FROM_INLIST
+                     (EINA_INLIST_GET(sd->focused)->prev);
+                  _item_unfocused(sd->focused);
+               }
+             else it = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
+             it = _item_focusable_search(it, -1);
+          }
+        if (!it)
+          {
+             _item_focused(old_focused);
+             return EINA_FALSE;
+          }
+        _item_focused(it);
+     }
+   else if (dir == FOCUS_DIR_LEFT || dir == FOCUS_DIR_RIGHT)
+     {
+        Evas_Object *obj = NULL;
+        Eina_List *l = NULL;
+
+        if (!sd->focused) return EINA_FALSE;
+        if (sd->focused_content)
+          {
+             l = eina_list_data_find_list(sd->focused->content_objs,
+                                          sd->focused_content);
+             obj = sd->focused_content;
+          }
+
+        if (dir == FOCUS_DIR_LEFT)
+          {
+             if (l) l = eina_list_prev(l);
+             else l = eina_list_last(sd->focused->content_objs);
+
+             while (l)
+               {
+                  obj = eina_list_data_get(l);
+                  ERR("%s", evas_object_type_get(obj));
+                  if (obj && elm_object_focus_allow_get(obj))
+                     break;
+                  obj = NULL;
+                  l = eina_list_prev(l);
+               }
+          }
+        else if (dir == FOCUS_DIR_RIGHT)
+          {
+             if (l) l = eina_list_next(l);
+             else l = sd->focused->content_objs;
+             while (l)
+               {
+                  obj = eina_list_data_get(l);
+                  if (obj && elm_object_focus_allow_get(obj))
+                     break;
+                  obj = NULL;
+                  l = eina_list_next(l);
+               }
+          }
+        if (obj)
+          {
+             sd->focused_content = obj;
+             elm_object_focus_set(obj, EINA_TRUE);
+          }
         else
-           it = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(sd->focused)->prev);
-        _item_unfocused(sd->focused);
+          {
+             sd->focused_content = NULL;
+             return EINA_FALSE;
+          }
      }
-   else
-     {
-        if (dir == 1) it = ELM_GEN_ITEM_FROM_INLIST(sd->items);
-        else it = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
-     }
-   it = _item_focusable_search(it, dir);
-   if (!it)
-     {
-        _item_focused(old_focused);
-        return EINA_FALSE;
-     }
-   _item_focused(it);
+   else return EINA_FALSE;
+
    return EINA_TRUE;
 }
 
@@ -2730,25 +2809,36 @@ _elm_genlist_smart_event(Evas_Object *obj,
    if ((!strcmp(ev->keyname, "Left")) ||
        ((!strcmp(ev->keyname, "KP_Left")) && (!ev->string)))
      {
-        x -= step_x;
+        if (sd->select_on_focus_enabled) x -= step_x;
+        else
+          {
+             return _item_focused_next(sd, FOCUS_DIR_LEFT);
+          }
      }
    else if ((!strcmp(ev->keyname, "Right")) ||
             ((!strcmp(ev->keyname, "KP_Right")) && (!ev->string)))
      {
-        x += step_x;
+        if (sd->select_on_focus_enabled) x += step_x;
+        else
+          {
+             return _item_focused_next(sd, FOCUS_DIR_LEFT);
+          }
      }
    else if ((!strcmp(ev->keyname, "Up")) ||
             ((!strcmp(ev->keyname, "KP_Up")) && (!ev->string)))
      {
-        if (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-             (_item_multi_select_up(sd))))
+        if (sd->select_on_focus_enabled)
           {
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
+             if (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
+                  (_item_multi_select_up(sd))) || (_item_single_select_up(sd)))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
           }
         else
           {
-             if (_item_focused_next(sd, -1))
+             if (_item_focused_next(sd, FOCUS_DIR_UP))
                {
                   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
                   return EINA_TRUE;
@@ -2760,15 +2850,19 @@ _elm_genlist_smart_event(Evas_Object *obj,
    else if ((!strcmp(ev->keyname, "Down")) ||
             ((!strcmp(ev->keyname, "KP_Down")) && (!ev->string)))
      {
-        if (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-             (_item_multi_select_down(sd))))
+        if (sd->select_on_focus_enabled)
           {
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
+             if (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
+                  (_item_multi_select_down(sd))) ||
+                 (_item_single_select_down(sd)))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
           }
         else
           {
-             if (_item_focused_next(sd, 1))
+             if (_item_focused_next(sd, FOCUS_DIR_DOWN))
                {
                   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
                   return EINA_TRUE;
@@ -2780,18 +2874,38 @@ _elm_genlist_smart_event(Evas_Object *obj,
    else if ((!strcmp(ev->keyname, "Home")) ||
             ((!strcmp(ev->keyname, "KP_Home")) && (!ev->string)))
      {
-        _item_unfocused(sd->focused);
-        _item_focused_next(sd, 1);
-        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+        if (sd->select_on_focus_enabled)
+          {
+             Elm_Object_Item *it = elm_genlist_first_item_get(obj);
+             elm_genlist_item_bring_in(it, ELM_GENLIST_ITEM_SCROLLTO_IN);
+             elm_genlist_item_selected_set(it, EINA_TRUE);
+             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+          }
+        else
+          {
+             _item_unfocused(sd->focused);
+             _item_focused_next(sd, FOCUS_DIR_DOWN);
+             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+          }
         return EINA_TRUE;
      }
    else if ((!strcmp(ev->keyname, "End")) ||
             ((!strcmp(ev->keyname, "KP_End")) && (!ev->string)))
      {
-        _item_unfocused(sd->focused);
-        sd->focused = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
-        _item_focused_next(sd, -1);
-        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+        if (sd->select_on_focus_enabled)
+          {
+             Elm_Object_Item *it = elm_genlist_last_item_get(obj);
+             elm_genlist_item_bring_in(it, ELM_GENLIST_ITEM_SCROLLTO_IN);
+             elm_genlist_item_selected_set(it, EINA_TRUE);
+             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+          }
+        else
+          {
+             _item_unfocused(sd->focused);
+             sd->focused = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
+             _item_focused_next(sd, FOCUS_DIR_UP);
+             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+          }
         return EINA_TRUE;
      }
    else if ((!strcmp(ev->keyname, "Prior")) ||
@@ -4603,6 +4717,8 @@ _scroll_drag_start_cb(Evas_Object *obj,
    ELM_GENLIST_DATA_GET(obj, sd);
    sd->scrolling = EINA_TRUE;
 #endif
+
+   _item_unfocused(sd->focused);
    evas_object_smart_callback_call(obj, SIG_SCROLL_DRAG_START, NULL);
 }
 
@@ -4977,6 +5093,14 @@ _elm_genlist_smart_add(Evas_Object *obj)
 
    _item_cache_all_free(priv);
    _mirrored_set(obj, elm_widget_mirrored_get(obj));
+
+   priv->select_on_focus_enabled = EINA_FALSE;
+   const char *str = edje_object_data_get(ELM_WIDGET_DATA(priv)->resize_obj,
+                                          "focus_highlight");
+   if ((str) && (!strcmp(str, "on")))
+      elm_widget_highlight_in_theme_set(obj, EINA_TRUE);
+   else
+      elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
 
    elm_layout_sizing_eval(obj);
 }
@@ -5809,7 +5933,7 @@ elm_genlist_clear(Evas_Object *obj)
    Elm_Gen_Item *it;
 
    eina_hash_free_buckets(sd->size_caches);
-   sd->focused = NULL;
+   _item_unfocused(sd->focused);
    if (sd->state)
      {
         eina_inlist_sorted_state_free(sd->state);

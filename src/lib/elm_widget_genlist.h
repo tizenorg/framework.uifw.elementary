@@ -139,6 +139,7 @@ struct _Elm_Genlist_Smart_Data
    Evas_Object                          *hit_rect;
    Evas_Object                          *pan_obj;
 
+   Evas_Object                          *focused_content;
    Elm_Gen_Item                         *focused;
    Eina_List                            *selected; /* a list of
                                                     * selected
@@ -234,6 +235,7 @@ struct _Elm_Genlist_Smart_Data
    Ecore_Job                            *fx_job;
 #endif
 
+   Eina_Bool                             select_on_focus_enabled : 1;
    Eina_Bool                             auto_scroll_enabled : 1;
    Eina_Bool                             decorate_all_mode : 1;
    Eina_Bool                             height_for_width : 1;
