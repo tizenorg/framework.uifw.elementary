@@ -33,6 +33,31 @@ Additions:
    * Add edje_object_message_signal_process before edje_object_size_min_restricted_calc.
    * Add elm_object_item_signal_callback_add(), elm_object_item_signal_callback_del().
    * Add the config ELM_THUMBSCROLL_HOLD_THRESHOLD.
+   * Add elm_naviframe_item_pop_cb_set().
+   * Add elm_widget_newest_focus_order_get for knowing the last object(and its focus order) which got focus.
+   * Add the smart signals in scroller. "scroll,left", "scroll,right", "scroll,up", "scroll,down".
+   * Add four more focus diretions. ELM_FOCUS_UP, ELM_FOCUS_DOWN, ELM_FOCUS_RIGHT, ELM_FOCUS_LEFT.
+   * Add APIs - elm_object_focus_next_object_get, elm_object_focus_next_object_set.
+   * Add API - elm_object_focused_object_get.
+   * Add APIs - elm_entry_input_panel_layout_variation_set/get
+   * Add elm_map smart callback - "language,changed".
+   * Add the repeat_events_set/get for blocking the events of content objects.
+   * Add convenient macros - elm_object_translatable_part_text_set(), elm_object_item_translatable_part_text_set().
+   * Add the API elm_scroller_page_scroll_limit_set/get.
+   * Add elm_mapbuf_auto_set/get.
+   * Add the API elm_scroller_single_direction_set/get.
+   * Add the feature for key events.
+   * Add elm_access_action(), elm_access_action_cb_set()
+   * Add elm_object_domain_part_text_translatable_set(), elm_object_item_domain_part_text_translatable_set().
+   * Support language,changed callback (Fileselector_Button, Fileselector Entry, Spinner.
+   * Add the config elm_scroll_smooth_start_enable.
+   * Add elm_layout smart callback - "language,changed".
+   * The momentum animation time is changed as the amount of flick.
+   * Add elm_entry smart callback - "text,set,done".
+   * Add selection handlers to entry.
+   * Add support elm_object_item_signal_emit() for elm_list.
+   * Add ELM_INPUT_PANEL_LAYOUT_DATETIME.
+   * Add elm_config_glayer_long_tap_start_timeout_set/get, elm_config_glayer_double_tap_timeout_set/get
 
 Improvements:
 
