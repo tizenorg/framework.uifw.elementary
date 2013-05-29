@@ -125,6 +125,7 @@ struct _Elm_Mapbuf_Smart_Data
 
    Evas_Object          *content;
 
+   Eina_Bool             inside_view[4];
    Eina_Bool             enabled : 1;
    Eina_Bool             smooth : 1;
    Eina_Bool             alpha : 1;
