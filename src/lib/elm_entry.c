@@ -1212,8 +1212,13 @@ _elm_entry_smart_theme(Evas_Object *obj)
    evas_event_thaw(evas_object_evas_get(obj));
    evas_event_thaw_eval(evas_object_evas_get(obj));
 
-   // TIZEN ONLY(130129) : Currently, for freezing cursor movement only.
-   edje_object_part_text_thaw(sd->entry_edje, "elm.text");
+   // TIZEN ONLY
+   edje_object_part_text_thaw(sd->entry_edje, "elm.text"); //(130129) : Currently, for freezing cursor movement only.
+   if (!_elm_config->desktop_entry)
+     {
+        if (sd->region_get_job) ecore_job_del(sd->region_get_job);
+        sd->region_get_job = ecore_job_add(_region_get_job, obj);
+     }
    //
 
    evas_object_smart_callback_call(obj, SIG_THEME_CHANGED, NULL);
