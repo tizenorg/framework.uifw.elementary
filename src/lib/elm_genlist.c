@@ -12,6 +12,7 @@
 #define REORDER_EFFECT_TIME 0.1
 #define FX_MOVE_TIME 0.5
 #define FX_TRANSIT_FOCAL 2000
+#define FX_ZOOM_TOLERANCE 0.4
 
 EAPI const char ELM_GENLIST_SMART_NAME[] = "elm_genlist";
 EAPI const char ELM_GENLIST_PAN_SMART_NAME[] = "elm_genlist_pan";
@@ -3626,68 +3627,22 @@ _multi_touch_gesture_eval(void *data)
              if ((GL_IT(it)->wsd->cur_x > GL_IT(it)->wsd->prev_x)
                  && (GL_IT(it)->wsd->cur_mx > GL_IT(it)->wsd->prev_mx))
                evas_object_smart_callback_call
-                 (WIDGET(it), SIG_MULTI_SWIPE_RIGHT, it);
+                  (WIDGET(it), SIG_MULTI_SWIPE_RIGHT, it);
              else if ((GL_IT(it)->wsd->cur_x < GL_IT(it)->wsd->prev_x)
                       && (GL_IT(it)->wsd->cur_mx < GL_IT(it)->wsd->prev_mx))
                evas_object_smart_callback_call
-                 (WIDGET(it), SIG_MULTI_SWIPE_LEFT, it);
-             else if (abs(GL_IT(it)->wsd->cur_x - GL_IT(it)->wsd->cur_mx) >
-                      abs(GL_IT(it)->wsd->prev_x - GL_IT(it)->wsd->prev_mx))
-               {
-                  evas_object_smart_callback_call
-                     (WIDGET(it), SIG_MULTI_PINCH_OUT, it);
-#if GENLIST_PINCH_ZOOM_SUPPORT
-                  if (IS_ROOT_PARENT_IT(it) && (GL_IT(it)->wsd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT))
-                    {
-                       elm_genlist_pinch_zoom_mode_set(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj, ELM_GEN_PINCH_ZOOM_EXPAND);
-                       elm_genlist_item_show((Elm_Object_Item *)it, ELM_GENLIST_ITEM_SCROLLTO_TOP);
-                    }
-#endif
-               }
-             else
-               {
-                  evas_object_smart_callback_call
-                     (WIDGET(it), SIG_MULTI_PINCH_IN, it);
-#if GENLIST_PINCH_ZOOM_SUPPORT
-                  elm_object_signal_emit(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj, "do-hide-vbar", "");
-                  elm_genlist_pinch_zoom_mode_set(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj,
-                                                  ELM_GEN_PINCH_ZOOM_CONTRACT);
-#endif
-               }
+                  (WIDGET(it), SIG_MULTI_SWIPE_LEFT, it);
           }
         else
           {
              if ((GL_IT(it)->wsd->cur_y > GL_IT(it)->wsd->prev_y)
                  && (GL_IT(it)->wsd->cur_my > GL_IT(it)->wsd->prev_my))
                evas_object_smart_callback_call
-                 (WIDGET(it), SIG_MULTI_SWIPE_DOWN, it);
+                  (WIDGET(it), SIG_MULTI_SWIPE_DOWN, it);
              else if ((GL_IT(it)->wsd->cur_y < GL_IT(it)->wsd->prev_y)
                       && (GL_IT(it)->wsd->cur_my < GL_IT(it)->wsd->prev_my))
                evas_object_smart_callback_call
-                 (WIDGET(it), SIG_MULTI_SWIPE_UP, it);
-             else if (abs(GL_IT(it)->wsd->cur_y - GL_IT(it)->wsd->cur_my) >
-                      abs(GL_IT(it)->wsd->prev_y - GL_IT(it)->wsd->prev_my))
-               {
-                  evas_object_smart_callback_call
-                     (WIDGET(it), SIG_MULTI_PINCH_OUT, it);
-#if GENLIST_PINCH_ZOOM_SUPPORT
-                  if (IS_ROOT_PARENT_IT(it) && (GL_IT(it)->wsd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT))
-                    {
-                       elm_genlist_pinch_zoom_mode_set(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj, ELM_GEN_PINCH_ZOOM_EXPAND);
-                       elm_genlist_item_show((Elm_Object_Item *)it, ELM_GENLIST_ITEM_SCROLLTO_TOP);
-                    }
-#endif
-               }
-             else
-               {
-                  evas_object_smart_callback_call
-                     (WIDGET(it), SIG_MULTI_PINCH_IN, it);
-#if GENLIST_PINCH_ZOOM_SUPPORT
-                  elm_object_signal_emit(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj, "do-hide-vbar", "");
-                  elm_genlist_pinch_zoom_mode_set(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj,
-                                                  ELM_GEN_PINCH_ZOOM_CONTRACT);
-#endif
-               }
+                  (WIDGET(it), SIG_MULTI_SWIPE_UP, it);
           }
      }
 
@@ -3843,6 +3798,7 @@ _item_mouse_down_cb(void *data,
 
    sd->swipe = EINA_FALSE;
    sd->movements = 0;
+   sd->down_it = it;
 }
 
 static Item_Block *
@@ -4999,6 +4955,50 @@ _size_cache_free(void *data)
    if (data) free(data);
 }
 
+static Evas_Event_Flags
+_pinch_zoom_start_cb(void *data, void *event_info __UNUSED__)
+{
+   Elm_Genlist_Smart_Data *sd = data;
+   if (!elm_widget_scroll_freeze_get(ELM_WIDGET_DATA(sd)->obj))
+     elm_object_scroll_freeze_push(ELM_WIDGET_DATA(sd)->obj);
+   return EVAS_EVENT_FLAG_NONE;
+}
+
+static Evas_Event_Flags
+_pinch_zoom_cb(void *data, void *event_info)
+{
+   Elm_Genlist_Smart_Data *sd = data;
+   Elm_Gesture_Zoom_Info *p = (Elm_Gesture_Zoom_Info *) event_info;
+
+   if (!sd->down_it) return EVAS_EVENT_FLAG_NONE;
+   if (p->zoom > 1.0 + FX_ZOOM_TOLERANCE)
+     {
+        evas_object_smart_callback_call(WIDGET(sd->down_it), SIG_MULTI_PINCH_OUT, sd->down_it);
+        if (sd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT)
+          {
+             elm_genlist_pinch_zoom_mode_set(ELM_WIDGET_DATA(sd)->obj, ELM_GEN_PINCH_ZOOM_EXPAND);
+             elm_genlist_item_show((Elm_Object_Item *)sd->down_it, ELM_GENLIST_ITEM_SCROLLTO_TOP);
+          }
+     }
+   else if (p->zoom < 1.0 - FX_ZOOM_TOLERANCE)
+     {
+        evas_object_smart_callback_call(WIDGET(sd->down_it), SIG_MULTI_PINCH_IN, sd->down_it);
+        if (sd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_NONE)
+          elm_genlist_pinch_zoom_mode_set(ELM_WIDGET_DATA(sd)->obj, ELM_GEN_PINCH_ZOOM_CONTRACT);
+     }
+
+   return EVAS_EVENT_FLAG_NONE;
+}
+
+static Evas_Event_Flags
+_pinch_zoom_end_cb(void *data, void *event_info __UNUSED__)
+{
+   Elm_Genlist_Smart_Data *sd = data;
+   if (elm_widget_scroll_freeze_get(ELM_WIDGET_DATA(sd)->obj))
+     elm_object_scroll_freeze_pop(ELM_WIDGET_DATA(sd)->obj);
+   return EVAS_EVENT_FLAG_NONE;
+}
+
 static void
 _elm_genlist_smart_add(Evas_Object *obj)
 {
@@ -5069,6 +5069,7 @@ _elm_genlist_smart_add(Evas_Object *obj)
    priv->fx_items_deleted = EINA_FALSE;
    priv->genlist_clearing = EINA_FALSE;
    priv->scrolling = EINA_FALSE;
+   priv->down_it = NULL;
 #endif
 
    priv->pan_obj = evas_object_smart_add
@@ -5102,6 +5103,19 @@ _elm_genlist_smart_add(Evas_Object *obj)
    else
       elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
 
+   priv->g_layer = elm_gesture_layer_add(obj);
+   if (!priv->g_layer) ERR("elm_gesture_layer_add() failed");
+   elm_gesture_layer_attach(priv->g_layer, priv->hit_rect);
+
+   elm_gesture_layer_cb_set
+      (priv->g_layer, ELM_GESTURE_ZOOM, ELM_GESTURE_STATE_START,
+       _pinch_zoom_start_cb, priv);
+   elm_gesture_layer_cb_set
+      (priv->g_layer, ELM_GESTURE_ZOOM, ELM_GESTURE_STATE_MOVE,
+       _pinch_zoom_cb, priv);
+   elm_gesture_layer_cb_set
+      (priv->g_layer, ELM_GESTURE_ZOOM, ELM_GESTURE_STATE_END,
+       _pinch_zoom_end_cb, priv);
    elm_layout_sizing_eval(obj);
 }
 
@@ -5953,6 +5967,7 @@ elm_genlist_clear(Evas_Object *obj)
    sd->pinch_zoom_h = 0;
    sd->realized_top_item = NULL;
    sd->pinch_zoom_mode = ELM_GEN_PINCH_ZOOM_NONE;
+   sd->down_it = NULL;
 #endif
 
    //evas_event_freeze(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
@@ -7451,7 +7466,7 @@ _elm_genlist_fx_capture(Evas_Object *obj, int level)
    Proxy_Item *pi;
    Evas_Coord ox, oy, ow, oh;
 
-   if (sd->scrolling) return EINA_FALSE;
+   if ((sd->pinch_zoom_mode) || (sd->scrolling)) return EINA_FALSE;
    if (!sd->sorting)
      {
         if ((!sd->rendered) || (sd->fx_playing)) return EINA_FALSE;
@@ -7489,28 +7504,6 @@ _elm_genlist_fx_capture(Evas_Object *obj, int level)
           }
      }
 
-#if GENLIST_PINCH_ZOOM_SUPPORT
-   if (sd->pinch_zoom_mode)
-     {
-        EINA_INLIST_FOREACH(sd->blocks, itb)
-          {
-             EINA_LIST_FOREACH(itb->items, l, it)
-               {
-
-                  if (IS_ROOT_PARENT_IT(it) && it->realized
-                      && (GL_IT(it)->scrl_y + GL_IT(it)->h >= oy && GL_IT(it)->scrl_y <= oy + oh))
-                    {
-                       pi = _elm_genlist_proxy_item_new((Elm_Object_Item *)it);
-                       if (!level) sd->capture_before_items = eina_list_append(sd->capture_before_items, pi);
-                       else sd->capture_after_items = eina_list_append(sd->capture_after_items, pi);
-                    }
-               }
-          }
-        if ((sd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT) && (level)) return EINA_TRUE;
-        if ((sd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_EXPAND) && (!level)) return EINA_TRUE;
-     }
-#endif
-
    EINA_INLIST_FOREACH(sd->blocks, itb)
      {
         if (itb->realized)
@@ -7518,9 +7511,6 @@ _elm_genlist_fx_capture(Evas_Object *obj, int level)
              done = EINA_TRUE;
              EINA_LIST_FOREACH(itb->items, l, it)
                {
-#if GENLIST_PINCH_ZOOM_SUPPORT
-                  if ((sd->pinch_zoom_mode) && (IS_ROOT_PARENT_IT(it))) continue;
-#endif
                   if (it->realized)
                     {
                        pi = _elm_genlist_proxy_item_new((Elm_Object_Item *)it);
@@ -7695,12 +7685,6 @@ _elm_genlist_fx_items_make(Evas_Object *obj)
      {
         if ((GL_IT(fi->it)->items) && (GL_IT(fi->it)->expanded_depth == 0))
           {
-#if GENLIST_PINCH_ZOOM_SUPPORT
-             if (sd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT)
-               {
-                  fi->from.y = oy + GL_IT(fi->it)->pan_scrl_y - sd->pinch_pan_y;
-               }
-#endif
              if (fi->type == ELM_GEN_ITEM_FX_TYPE_DEL)
                {
                   if (sd->realized_top_item)
@@ -7863,17 +7847,11 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
         EINA_LIST_FREE (sd->pending_unrealized_items, it)
           {
              if (GL_IT(it)) GL_IT(it)->has_proxy_it = EINA_FALSE;
-#if GENLIST_PINCH_ZOOM_SUPPORT
-             if ((sd->pinch_zoom_mode) && (IS_ROOT_PARENT_IT(it))) continue;
-#endif
              _item_unrealize(it, EINA_FALSE);
           }
         EINA_LIST_FREE (sd->pending_unrealized_decorate_all_items, it)
           {
              if (GL_IT(it)) GL_IT(it)->has_proxy_it = EINA_FALSE;
-#if GENLIST_PINCH_ZOOM_SUPPORT
-             if ((sd->pinch_zoom_mode) && (IS_ROOT_PARENT_IT(it))) continue;
-#endif
              _decorate_all_item_unrealize(it);
           }
 
@@ -8059,6 +8037,10 @@ elm_genlist_pinch_zoom_mode_set(Evas_Object *obj, Elm_Gen_Pinch_Zoom_Mode mode)
    if ((sd->queue) || (!sd->rendered)
        || (sd->queue_idle_enterer) || (!sd->fx_mode)) return EINA_FALSE;
 
+   if (mode == ELM_GEN_PINCH_ZOOM_CONTRACT)
+     sd->multi_touched = EINA_FALSE;
+   elm_object_signal_emit(obj, "do-hide-vbar", "");
+
    EINA_INLIST_FOREACH(sd->blocks, itb)
      {
         EINA_LIST_FOREACH(itb->items, l, it)
@@ -8077,8 +8059,6 @@ elm_genlist_pinch_zoom_mode_set(Evas_Object *obj, Elm_Gen_Pinch_Zoom_Mode mode)
    sd->pinch_zoom_mode = mode;
 
    _item_cache_all_free(sd);
-   _elm_genlist_fx_capture(obj, 0);
-
    sd->pinch_pan_y = sd->pan_y;
 
    if (sd->pinch_zoom_mode == ELM_GEN_PINCH_ZOOM_CONTRACT)

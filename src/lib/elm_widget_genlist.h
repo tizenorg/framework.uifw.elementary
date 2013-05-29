@@ -230,9 +230,10 @@ struct _Elm_Genlist_Smart_Data
    Eina_List                            *capture_before_items, *capture_after_items;
    Eina_List                            *pending_del_items, *pending_unrealized_items;
    Eina_List                            *pending_unrealized_decorate_all_items;
-   Elm_Gen_Item                         *realized_top_item;
+   Elm_Gen_Item                         *realized_top_item, *down_it;
    Ecore_Timer                          *fx_timer;
    Ecore_Job                            *fx_job;
+   Evas_Object                          *g_layer;
 #endif
 
    Eina_Bool                             select_on_focus_enabled : 1;
