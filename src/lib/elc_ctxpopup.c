@@ -118,72 +118,6 @@ _elm_ctxpopup_smart_focus_direction(const Evas_Object *obj,
    return ret;
 }
 
-static Eina_Bool
-_elm_ctxpopup_smart_event(Evas_Object *obj,
-                          Evas_Object *src __UNUSED__,
-                          Evas_Callback_Type type,
-                          void *event_info)
-{
-   Evas_Event_Key_Down *ev = event_info;
-
-   ELM_CTXPOPUP_DATA_GET(obj, sd);
-
-   if (elm_widget_disabled_get(obj)) return EINA_FALSE;
-   if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
-
-   if (!strcmp(ev->keyname, "Tab"))
-     {
-        if (evas_key_modifier_is_set(ev->modifiers, "Shift"))
-          elm_widget_focus_cycle(sd->box, ELM_FOCUS_PREVIOUS);
-        else
-          elm_widget_focus_cycle(sd->box, ELM_FOCUS_NEXT);
-        return EINA_TRUE;
-     }
-
-   if (((!strcmp(ev->keyname, "Left")) ||
-        (!strcmp(ev->keyname, "KP_Left")) ||
-        (!strcmp(ev->keyname, "Right")) ||
-        (!strcmp(ev->keyname, "KP_Right")) ||
-        (!strcmp(ev->keyname, "Up")) ||
-        (!strcmp(ev->keyname, "KP_Up")) ||
-        (!strcmp(ev->keyname, "Down")) ||
-        (!strcmp(ev->keyname, "KP_Down"))) && (!ev->string))
-     {
-        double degree = 0.0;
-
-        if ((!strcmp(ev->keyname, "Left")) ||
-            (!strcmp(ev->keyname, "KP_Left")))
-          degree = 270.0;
-        else if ((!strcmp(ev->keyname, "Right")) ||
-                 (!strcmp(ev->keyname, "KP_Right")))
-          degree = 90.0;
-        else if ((!strcmp(ev->keyname, "Up")) ||
-                 (!strcmp(ev->keyname, "KP_Up")))
-          degree = 0.0;
-        else if ((!strcmp(ev->keyname, "Down")) ||
-                 (!strcmp(ev->keyname, "KP_Down")))
-          degree = 180.0;
-
-        elm_widget_focus_direction_go(sd->box, degree);
-        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-        return EINA_TRUE;
-     }
-
-   // TIZEN ONLY : 20130530
-   //if (strcmp(ev->keyname, "Escape")) return EINA_FALSE;
-   if ((strcmp(ev->keyname, "Escape")) &&
-       (strcmp(ev->keyname, "XF86Stop")) &&
-       (strcmp(ev->keyname, "XF86Send")))
-     return EINA_FALSE;
-   //
-
-   _hide_signals_emit(obj, sd->dir);
-
-   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-   return EINA_TRUE;
-}
-
 static void
 _freeze_on_cb(void *data __UNUSED__,
               Evas_Object *obj,
@@ -945,7 +879,7 @@ _elm_ctxpopup_smart_sizing_eval(Evas_Object *obj)
           }
      }
 
-   if (!sd->arrow) return;  /* simple way to flag "under deletion" */
+//   if (!sd->arrow) return;  /* simple way to flag "under deletion" */
 
    if ((!sd->content) && (sd->scr))
      {
@@ -957,9 +891,11 @@ _elm_ctxpopup_smart_sizing_eval(Evas_Object *obj)
    //Base
    sd->dir = _base_geometry_calc(obj, &rect);
 
-   _arrow_update(obj, sd->dir, rect);
-   _base_shift_by_arrow(sd->arrow, sd->dir, &rect);
-
+   if (sd->arrow)
+     {
+        _arrow_update(obj, sd->dir, rect);
+        _base_shift_by_arrow(sd->arrow, sd->dir, &rect);
+     }
    //resize scroller according to final size
    if ((!sd->content) && (sd->scr))
      {
@@ -1046,6 +982,103 @@ _on_content_resized(void *data,
    elm_layout_sizing_eval(data);
 }
 
+static void
+_access_outline_activate_cb(void *data,
+                        Evas_Object *part_obj __UNUSED__,
+                        Elm_Object_Item *item __UNUSED__)
+{
+   evas_object_hide(data);
+   evas_object_smart_callback_call(data, SIG_DISMISSED, NULL);
+}
+
+static void
+_access_obj_process(Evas_Object *obj, Eina_Bool is_access)
+{
+   Evas_Object *ao;
+   ELM_CTXPOPUP_DATA_GET(obj, sd);
+
+   if (is_access)
+     {
+        ao = _elm_access_edje_object_part_object_register
+               (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_OUTLINE_PART);
+        _elm_access_text_set(_elm_access_object_get(ao),
+                             ELM_ACCESS_TYPE, E_(OUTLINE_TEXT));
+        _elm_access_activate_callback_set
+          (_elm_access_object_get(ao), _access_outline_activate_cb, obj);
+     }
+   else
+     {
+        _elm_access_edje_object_part_object_unregister
+               (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_OUTLINE_PART);
+     }
+}
+
+static Eina_Bool
+_elm_ctxpopup_smart_event(Evas_Object *obj,
+                          Evas_Object *src __UNUSED__,
+                          Evas_Callback_Type type,
+                          void *event_info)
+{
+   Evas_Event_Key_Down *ev = event_info;
+
+   ELM_CTXPOPUP_DATA_GET(obj, sd);
+
+   if (elm_widget_disabled_get(obj)) return EINA_FALSE;
+   if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
+
+   if (!strcmp(ev->keyname, "Tab"))
+     {
+        if (evas_key_modifier_is_set(ev->modifiers, "Shift"))
+          elm_widget_focus_cycle(sd->box, ELM_FOCUS_PREVIOUS);
+        else
+          elm_widget_focus_cycle(sd->box, ELM_FOCUS_NEXT);
+        return EINA_TRUE;
+     }
+
+   if (((!strcmp(ev->keyname, "Left")) ||
+        (!strcmp(ev->keyname, "KP_Left")) ||
+        (!strcmp(ev->keyname, "Right")) ||
+        (!strcmp(ev->keyname, "KP_Right")) ||
+        (!strcmp(ev->keyname, "Up")) ||
+        (!strcmp(ev->keyname, "KP_Up")) ||
+        (!strcmp(ev->keyname, "Down")) ||
+        (!strcmp(ev->keyname, "KP_Down"))) && (!ev->string))
+     {
+        double degree = 0.0;
+
+        if ((!strcmp(ev->keyname, "Left")) ||
+            (!strcmp(ev->keyname, "KP_Left")))
+          degree = 270.0;
+        else if ((!strcmp(ev->keyname, "Right")) ||
+                 (!strcmp(ev->keyname, "KP_Right")))
+          degree = 90.0;
+        else if ((!strcmp(ev->keyname, "Up")) ||
+                 (!strcmp(ev->keyname, "KP_Up")))
+          degree = 0.0;
+        else if ((!strcmp(ev->keyname, "Down")) ||
+                 (!strcmp(ev->keyname, "KP_Down")))
+          degree = 180.0;
+
+        elm_widget_focus_direction_go(sd->box, degree);
+        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+        return EINA_TRUE;
+     }
+
+   // TIZEN ONLY : 20130530
+   //if (strcmp(ev->keyname, "Escape")) return EINA_FALSE;
+   if ((strcmp(ev->keyname, "Escape")) &&
+       (strcmp(ev->keyname, "XF86Stop")) &&
+       (strcmp(ev->keyname, "XF86Send")))
+     return EINA_FALSE;
+   //
+
+   _hide_signals_emit(obj, sd->dir);
+
+   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+   return EINA_TRUE;
+}
+
 //FIXME: lost the content size when theme hook is called.
 static Eina_Bool
 _elm_ctxpopup_smart_theme(Evas_Object *obj)
@@ -1064,8 +1097,20 @@ _elm_ctxpopup_smart_theme(Evas_Object *obj)
 
    elm_widget_theme_object_set
      (obj, sd->bg, "ctxpopup", "bg", elm_widget_style_get(obj));
-   elm_widget_theme_object_set
-     (obj, sd->arrow, "ctxpopup", "arrow", elm_widget_style_get(obj));
+
+   if (edje_object_part_exists(elm_layout_edje_get(obj), "elm.swallow.arrow_up") ||
+    edje_object_part_exists(elm_layout_edje_get(obj), "elm.swallow.arrow_down") ||
+    edje_object_part_exists(elm_layout_edje_get(obj), "elm.swallow.arrow_left") ||
+    edje_object_part_exists(elm_layout_edje_get(obj), "elm.swallow.arrow_right"))
+     {
+        elm_widget_theme_object_set
+          (obj, sd->arrow, "ctxpopup", "arrow", elm_widget_style_get(obj));
+     }
+   else
+     {
+        evas_object_del(sd->arrow);
+        sd->arrow = NULL;
+     }
 
    orientation = sd->orientation;
    if (orientation == 90 || orientation == 270)
@@ -1348,7 +1393,8 @@ _on_show(void *data __UNUSED__,
    sd->visible = EINA_TRUE;
 
    evas_object_show(sd->bg);
-   evas_object_show(sd->arrow);
+   if (sd->arrow)
+     evas_object_show(sd->arrow);
    evas_object_show(sd->layout);
 
    edje_object_signal_emit(sd->bg, "elm,state,show", "elm");
@@ -1395,7 +1441,8 @@ _on_hide(void *data __UNUSED__,
    if (!sd->visible) return;
 
    evas_object_hide(sd->bg);
-   evas_object_hide(sd->arrow);
+   if (sd->arrow)
+     evas_object_hide(sd->arrow);
    evas_object_hide(sd->layout);
 
    _scroller_size_reset(sd);
@@ -1411,7 +1458,7 @@ _on_move(void *data __UNUSED__,
 {
    ELM_CTXPOPUP_DATA_GET(obj, sd);
 
-   if (sd->visible) evas_object_show(sd->arrow);
+   if (sd->visible && sd->arrow) evas_object_show(sd->arrow);
 
    _scroller_size_reset(sd);
    _elm_ctxpopup_smart_sizing_eval(obj);
@@ -1649,8 +1696,12 @@ _elm_ctxpopup_smart_del(Evas_Object *obj)
    _parent_detach(obj);
 
    elm_ctxpopup_clear(obj);
-   evas_object_del(sd->arrow);
-   sd->arrow = NULL; /* stops _sizing_eval() from going on on deletion */
+
+   if (sd->arrow)
+     {
+        evas_object_del(sd->arrow);
+        sd->arrow = NULL; /* stops _sizing_eval() from going on on deletion */
+     }
 
    evas_object_del(sd->bg);
    sd->bg = NULL;
