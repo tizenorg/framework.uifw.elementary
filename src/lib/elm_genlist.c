@@ -172,6 +172,7 @@ static void _decorate_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_all_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_item_set(Elm_Gen_Item *it);
 static void _changed_job(Elm_Genlist_Smart_Data *sd);
+static void _item_queue(Elm_Genlist_Smart_Data *sd, Elm_Gen_Item *it, Eina_Compare_Cb cb);
 
 #if GENLIST_FX_SUPPORT
 static Eina_Bool      _elm_genlist_fx_capture(Evas_Object *obj, int level);
@@ -1560,12 +1561,11 @@ _access_widget_item_register(Elm_Gen_Item *it)
    _elm_access_activate_callback_set(ai, _access_activate_cb, it);
 }
 
-static Eina_Bool
-_item_min_calc(Elm_Gen_Item *it)
+static void
+_item_min_calc(Elm_Gen_Item *it, Eina_Bool *width_changed, Eina_Bool *height_changed)
 {
-   if (it->item->mincalcd) return EINA_FALSE;
+   if (it->item->mincalcd) return;
 
-   Eina_Bool changed = EINA_FALSE;
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
    Evas_Coord mw = 0, mh = 0;
    Size_Cache *size = NULL;
@@ -1604,10 +1604,10 @@ _item_min_calc(Elm_Gen_Item *it)
      {
         // update block size
         if (it->item->block->minw > mw)
-           it->item->block->minw = it->item->block->w = mw;
+          it->item->block->minw = it->item->block->w = mw;
 
         it->item->w = it->item->minw = mw;
-        changed = EINA_TRUE;
+        if (width_changed) *width_changed = EINA_TRUE;
      }
    if (it->item->minh != mh)
      {
@@ -1616,11 +1616,9 @@ _item_min_calc(Elm_Gen_Item *it)
 
         it->item->h = it->item->minh = mh;
 		it->item->block->changed = EINA_TRUE;
-        changed = EINA_TRUE;
+        if (height_changed) *height_changed = EINA_TRUE;
      }
    it->item->mincalcd = EINA_TRUE;
-
-   return changed;
 }
 
 static void
@@ -1768,7 +1766,7 @@ _item_realize(Elm_Gen_Item *it,
         // FIXME: Is this needed?
         evas_object_show(VIEW(it));
      }
-   _item_min_calc(it);
+   _item_min_calc(it, NULL, NULL);
 
    if (it->tooltip.content_cb)
      {
@@ -2127,45 +2125,10 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
         width_changed = height_changed = EINA_FALSE;
         EINA_LIST_FOREACH(itb->items, l2, it)
           {
+             it->item->mincalcd = EINA_FALSE;
              if (it->realized)
-               {
-                  Evas_Coord mw = 0, mh = 0;
-
-                  if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
-                    {
-                       mw = GL_IT(it)->wsd->finger_minw;
-                       mh = GL_IT(it)->wsd->finger_minh;
-                    }
-                  if ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) &&
-                      (GL_IT(it)->wsd->prev_viewport_w != 0) &&
-                      (mw < GL_IT(it)->wsd->prev_viewport_w))
-                     mw = GL_IT(it)->wsd->prev_viewport_w;
-
-                  edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
-
-                  if (it->item->minw != mw)
-                    {
-                       it->item->w = it->item->minw = mw;
-                       width_changed = EINA_TRUE;
-                    }
-                  if (it->item->minh != mh)
-                    {
-                       it->item->h = it->item->minh = mh;
-                       height_changed = EINA_TRUE;
-                    }
-                  if (mw > itb->w)
-                    {
-                       itb->w = mw;
-                    }
-
-                  if (GL_IT(it)->wsd->homogeneous)
-                    {
-                       Size_Cache *size = ELM_NEW(Size_Cache);
-                       size->minw = mw;
-                       size->minh = mh;
-                       eina_hash_add(GL_IT(it)->wsd->size_caches, it->itc->item_style, size);
-                    }
-               }
+               _item_min_calc(it, &width_changed, &height_changed);
+             else _item_queue(sd, it, NULL);
              num++;
           }
         if (height_changed)
@@ -3837,6 +3800,7 @@ _item_block_add(Elm_Genlist_Smart_Data *sd,
                 Elm_Gen_Item *it)
 {
    Item_Block *itb = NULL;
+   if (it->item->block) return EINA_TRUE;
 
    if (!it->item->rel)
      {

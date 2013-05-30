@@ -282,9 +282,7 @@ struct _Elm_Genlist_Smart_Data
                                                      * selection */
 
    Eina_Bool                             swipe : 1;
-#if GENLIST_ENTRY_SUPPORT
    Eina_Bool                             size_changed : 1;
-#endif
 
 #if GENLIST_FX_SUPPORT
    Eina_Bool                             fx_mode : 1;
