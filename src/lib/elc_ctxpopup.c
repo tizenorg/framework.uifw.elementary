@@ -67,19 +67,28 @@ _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
      {
         ao = _access_object_get(obj, ACCESS_OUTLINE_PART);
         if (ao) items = eina_list_append(items, ao);
-     }
 
-   if (eina_list_count(sd->items))
-     {
-        EINA_LIST_FOREACH(sd->items, elist, it)
-          items = eina_list_append(items, it->base.access_obj);
+        if (eina_list_count(sd->items))
+          {
+             EINA_LIST_FOREACH(sd->items, elist, it)
+                items = eina_list_append(items, it->base.access_obj);
+          }
+        else
+          {
+             items = eina_list_append(items, sd->box);
+          }
 
         return elm_widget_focus_list_next_get
                  (obj, items, eina_list_data_get, dir, next);
      }
    else
      {
-        return elm_widget_focus_next_get(sd->box, dir, next);
+        if (!elm_widget_focus_next_get(sd->box, dir, next))
+          {
+             elm_widget_focused_object_clear(sd->box);
+             elm_widget_focus_next_get(sd->box, dir, next);
+             return EINA_TRUE;
+          }
      }
 }
 
@@ -129,6 +138,35 @@ _elm_ctxpopup_smart_event(Evas_Object *obj,
           elm_widget_focus_cycle(sd->box, ELM_FOCUS_PREVIOUS);
         else
           elm_widget_focus_cycle(sd->box, ELM_FOCUS_NEXT);
+        return EINA_TRUE;
+     }
+
+   if (((!strcmp(ev->keyname, "Left")) ||
+        (!strcmp(ev->keyname, "KP_Left")) ||
+        (!strcmp(ev->keyname, "Right")) ||
+        (!strcmp(ev->keyname, "KP_Right")) ||
+        (!strcmp(ev->keyname, "Up")) ||
+        (!strcmp(ev->keyname, "KP_Up")) ||
+        (!strcmp(ev->keyname, "Down")) ||
+        (!strcmp(ev->keyname, "KP_Down"))) && (!ev->string))
+     {
+        double degree = 0.0;
+
+        if ((!strcmp(ev->keyname, "Left")) ||
+            (!strcmp(ev->keyname, "KP_Left")))
+          degree = 270.0;
+        else if ((!strcmp(ev->keyname, "Right")) ||
+                 (!strcmp(ev->keyname, "KP_Right")))
+          degree = 90.0;
+        else if ((!strcmp(ev->keyname, "Up")) ||
+                 (!strcmp(ev->keyname, "KP_Up")))
+          degree = 0.0;
+        else if ((!strcmp(ev->keyname, "Down")) ||
+                 (!strcmp(ev->keyname, "KP_Down")))
+          degree = 180.0;
+
+        elm_widget_focus_direction_go(sd->box, degree);
+        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
         return EINA_TRUE;
      }
 
@@ -222,9 +260,9 @@ _y_pos_adjust(Evas_Coord_Point *pos,
 }
 
 static void
-_item_select_cb(void *data, Evas_Object *obj __UNUSED__,
-                const char *emission __UNUSED__,
-                const char *source __UNUSED__)
+_item_select_cb(void *data,
+                Evas_Object *obj __UNUSED__,
+                void *event_info __UNUSED__)
 {
    Elm_Ctxpopup_Item *item = data;
 
@@ -281,7 +319,7 @@ _access_activate_cb(void *data __UNUSED__,
                     Evas_Object *part_obj __UNUSED__,
                     Elm_Object_Item *item)
 {
-   _item_select_cb(item, NULL, NULL, NULL);
+   _item_select_cb(item, NULL, NULL);
 }
 
 static void
@@ -314,8 +352,6 @@ _item_new(Elm_Ctxpopup_Item *item,
    edje_object_mirrored_set(VIEW(item), elm_widget_mirrored_get(WIDGET(item)));
    _elm_theme_object_set(WIDGET(item), VIEW(item), "ctxpopup", group_name,
                          elm_widget_style_get(WIDGET(item)));
-   edje_object_signal_callback_add(VIEW(item), "elm,action,click", "",
-                                   _item_select_cb, item);
    evas_object_size_hint_align_set(VIEW(item), EVAS_HINT_FILL, EVAS_HINT_FILL);
    evas_object_show(VIEW(item));
 
@@ -346,6 +382,21 @@ _item_label_set(Elm_Ctxpopup_Item *item,
 
    edje_object_part_text_set(VIEW(item), "elm.text", label);
    edje_object_message_signal_process(VIEW(item));
+}
+
+static Evas_Object *
+_item_in_focusable_button(Elm_Ctxpopup_Item *item)
+{
+   Evas_Object *bt;
+
+   bt = elm_button_add(WIDGET(item));
+   elm_object_style_set(bt, "focus");
+   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_object_part_content_set(bt, "elm.swallow.content", VIEW(item));
+   evas_object_smart_callback_add(bt, "clicked", _item_select_cb, item);
+   evas_object_show(bt);
+
+   return bt;
 }
 
 static Eina_Bool
@@ -1817,7 +1868,7 @@ elm_ctxpopup_item_append(Evas_Object *obj,
                          const void *data)
 {
    Elm_Ctxpopup_Item *item;
-   Evas_Object *content;
+   Evas_Object *content, *focus_bt;
 
    ELM_CTXPOPUP_CHECK(obj) NULL;
    ELM_CTXPOPUP_DATA_GET(obj, sd);
@@ -1857,7 +1908,8 @@ elm_ctxpopup_item_append(Evas_Object *obj,
 
    _item_icon_set(item, icon);
    _item_label_set(item, label);
-   elm_box_pack_end(sd->box, VIEW(item));
+   focus_bt = _item_in_focusable_button(item);
+   elm_box_pack_end(sd->box, focus_bt);
    sd->items = eina_list_append(sd->items, item);
 
    sd->dir = ELM_CTXPOPUP_DIRECTION_UNKNOWN;
