@@ -109,12 +109,14 @@ _entry_move_cb(void *data, Evas *e, Evas_Object *obj, void *event_info __UNUSED_
 static void
 _entry_resize_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
-   _ctxpopup_hide(data);
+   /* comment to support feature: keep ctx when entry resizes */
+   //_ctxpopup_hide(data);
 }
 
 static void
 _ctxpopup_hide(Evas_Object *popup)
 {
+   ext_mod->popup_showing = EINA_FALSE;
    evas_object_hide(popup);
    evas_object_event_callback_del(ext_mod->caller, EVAS_CALLBACK_DEL, _entry_del_cb);
    evas_object_event_callback_del(ext_mod->caller, EVAS_CALLBACK_HIDE, _entry_hide_cb);
@@ -517,6 +519,13 @@ _ctxpopup_dismissed_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__
    if (dir != ELM_CTXPOPUP_DIRECTION_UNKNOWN)
      {
         elm_entry_select_none(data);
+        ext_mod->popup_showing = EINA_FALSE;
+     }
+   else if (ext_mod->popup_showing)
+     {
+        _ctxpopup_position(obj);
+        evas_object_show(ext_mod->popup);
+        _ctxpopup_position(obj);
      }
 
    //elm_object_scroll_freeze_pop(ext_mod->popup);
@@ -745,6 +754,7 @@ obj_longpress(Evas_Object *obj)
              //elm_object_scroll_freeze_push(ext_mod->popup);
              _ctxpopup_position(obj);
              evas_object_show(ext_mod->popup);
+             ext_mod->popup_showing = EINA_TRUE;
              _ctxpopup_position(obj);
              ext_mod->caller = obj;
              evas_object_event_callback_add(obj, EVAS_CALLBACK_MOVE, _entry_move_cb, ext_mod->popup);
