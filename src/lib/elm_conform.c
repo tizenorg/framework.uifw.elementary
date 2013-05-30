@@ -829,6 +829,15 @@ _show_region_job(void *data)
 // showing the focused/important region.
 #ifdef HAVE_ELEMENTARY_X
 static void
+_add_show_region_job(void *data)
+{
+   ELM_CONFORMANT_DATA_GET(data, sd);
+
+   if (sd->show_region_job) ecore_job_del(sd->show_region_job);
+   sd->show_region_job = ecore_job_add(_show_region_job, data);
+}
+
+static void
 _on_content_resize(void *data,
                    Evas *e __UNUSED__,
                    Evas_Object *obj __UNUSED__,
@@ -840,8 +849,7 @@ _on_content_resize(void *data,
        (sd->clipboard_state == ECORE_X_ILLUME_CLIPBOARD_STATE_OFF))
      return;
 
-   if (sd->show_region_job) ecore_job_del(sd->show_region_job);
-   sd->show_region_job = ecore_job_add(_show_region_job, data);
+   _add_show_region_job(data);
 }
 
 static void
@@ -914,6 +922,7 @@ _virtualkeypad_state_change(Evas_Object *obj, Ecore_X_Event_Window_Property *ev)
    ELM_CONFORMANT_DATA_GET(obj, sd);
 
    Ecore_X_Window zone = ecore_x_e_illume_zone_get(ev->win);
+   Ecore_X_Virtual_Keyboard_State prevstate = sd->vkb_state;
    Ecore_X_Virtual_Keyboard_State state =
       ecore_x_e_virtual_keyboard_state_get(ev->win);
 
@@ -943,6 +952,8 @@ _virtualkeypad_state_change(Evas_Object *obj, Ecore_X_Event_Window_Property *ev)
         _conformant_part_sizing_eval(obj, ELM_CONFORMANT_VIRTUAL_KEYPAD_PART);
         elm_widget_display_mode_set(obj, EVAS_DISPLAY_MODE_COMPRESS);
         _autoscroll_objects_update(obj);
+        if (prevstate == ECORE_X_VIRTUAL_KEYBOARD_STATE_UNKNOWN)
+            _add_show_region_job(obj);
         evas_object_smart_callback_call(obj, SIG_VIRTUALKEYPAD_STATE_ON, NULL);
      }
 }
@@ -952,6 +963,7 @@ _clipboard_state_change(Evas_Object *obj, Ecore_X_Event_Window_Property *ev)
 {
    ELM_CONFORMANT_DATA_GET(obj, sd);
 
+   Ecore_X_Illume_Clipboard_State prevstate = sd->clipboard_state;
    Ecore_X_Window zone = ecore_x_e_illume_zone_get(ev->win);
    Ecore_X_Illume_Clipboard_State state =
       ecore_x_e_illume_clipboard_state_get(ev->win);
@@ -982,6 +994,8 @@ _clipboard_state_change(Evas_Object *obj, Ecore_X_Event_Window_Property *ev)
      {
         elm_widget_display_mode_set(obj, EVAS_DISPLAY_MODE_COMPRESS);
         _autoscroll_objects_update(obj);
+        if (prevstate == ECORE_X_ILLUME_CLIPBOARD_STATE_UNKNOWN)
+            _add_show_region_job(obj);
         // Tizen Only - SIP regions for virtual keypad and clipboard are the same in Tizen
         edje_object_signal_emit(ELM_WIDGET_DATA(sd)->resize_obj, "elm,state,clipboard,on", "elm");
         evas_object_smart_callback_call(obj, SIG_CLIPBOARD_STATE_ON, NULL);
@@ -1127,12 +1141,32 @@ _elm_conformant_smart_parent_set(Evas_Object *obj,
 #endif
 }
 
+static Eina_Bool
+_elm_conformant_smart_content_set(Evas_Object *obj,
+                                 const char *part,
+                                 Evas_Object *content)
+{
+    ELM_CONFORMANT_DATA_GET(obj, sd);
+
+    if (!ELM_CONTAINER_CLASS(_elm_conformant_parent_sc)->content_set
+         (obj, part, content))
+    return EINA_FALSE;
+
+    /* The internal state of keyboard/clipboard is reset since the state may be set already earlier in which case
+       the _show_region_job will not be called, causing the focused object to be in invisible area (in some scenarios)
+    */
+    sd->vkb_state = ECORE_X_VIRTUAL_KEYBOARD_STATE_UNKNOWN;
+    sd->clipboard_state = ECORE_X_ILLUME_CLIPBOARD_STATE_UNKNOWN;
+    return EINA_TRUE;
+}
+
 static void
 _elm_conformant_smart_set_user(Elm_Conformant_Smart_Class *sc)
 {
    ELM_WIDGET_CLASS(sc)->base.add = _elm_conformant_smart_add;
    ELM_WIDGET_CLASS(sc)->base.del = _elm_conformant_smart_del;
 
+   ELM_CONTAINER_CLASS(sc)->content_set = _elm_conformant_smart_content_set;
    ELM_WIDGET_CLASS(sc)->parent_set = _elm_conformant_smart_parent_set;
    ELM_WIDGET_CLASS(sc)->theme = _elm_conformant_smart_theme;
 
