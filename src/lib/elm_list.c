@@ -1825,8 +1825,6 @@ _elm_list_smart_add(Evas_Object *obj)
       elm_widget_highlight_in_theme_set(obj, EINA_TRUE);
    else
       elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
-   ERR("%s", str);
-
 
    priv->select_on_focus_enabled = EINA_FALSE;
 }
