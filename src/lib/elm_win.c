@@ -75,6 +75,7 @@ struct _Elm_Win_Smart_Data
       //
    } x;
 #endif
+
 #ifdef HAVE_ELEMENTARY_WAYLAND
    struct
    {
@@ -4680,4 +4681,3 @@ elm_win_floating_mode_get(const Evas_Object *obj)
 
    return sd->floating;
 }
-
