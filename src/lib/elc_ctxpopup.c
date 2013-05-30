@@ -170,9 +170,16 @@ _elm_ctxpopup_smart_event(Evas_Object *obj,
         return EINA_TRUE;
      }
 
-   if (strcmp(ev->keyname, "Escape")) return EINA_FALSE;
+   // TIZEN ONLY : 20130530
+   //if (strcmp(ev->keyname, "Escape")) return EINA_FALSE;
+   if ((strcmp(ev->keyname, "Escape")) &&
+       (strcmp(ev->keyname, "XF86Stop")) &&
+       (strcmp(ev->keyname, "XF86Send")))
+     return EINA_FALSE;
+   //
 
-   evas_object_hide(obj);
+   _hide_signals_emit(obj, sd->dir);
+
    ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
    return EINA_TRUE;
 }
