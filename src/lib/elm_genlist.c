@@ -1586,12 +1586,12 @@ _item_min_calc(Elm_Gen_Item *it)
              mw = sd->finger_minw;
              mh = sd->finger_minh;
           }
-        if (sd->prev_viewport_w != 0) mw = sd->prev_viewport_w;
-        edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
         if ((sd->mode == ELM_LIST_COMPRESS) && (sd->prev_viewport_w != 0) &&
-            (mw > sd->prev_viewport_w))
-           mw = sd->prev_viewport_w;
-        if (sd->homogeneous)
+          (mw < sd->prev_viewport_w))
+          mw = sd->prev_viewport_w;
+        edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
+
+         if (sd->homogeneous)
           {
              size = ELM_NEW(Size_Cache);
              size->minw = mw;
@@ -2136,13 +2136,12 @@ _changed_job(Elm_Genlist_Smart_Data *sd)
                        mw = GL_IT(it)->wsd->finger_minw;
                        mh = GL_IT(it)->wsd->finger_minh;
                     }
-                  if (GL_IT(it)->wsd->prev_viewport_w != 0)
-                    mw = GL_IT(it)->wsd->prev_viewport_w;
-                  edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
                   if ((GL_IT(it)->wsd->mode == ELM_LIST_COMPRESS) &&
                       (GL_IT(it)->wsd->prev_viewport_w != 0) &&
-                      (mw > GL_IT(it)->wsd->prev_viewport_w))
+                      (mw < GL_IT(it)->wsd->prev_viewport_w))
                      mw = GL_IT(it)->wsd->prev_viewport_w;
+
+                  edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
 
                   if (it->item->minw != mw)
                     {
