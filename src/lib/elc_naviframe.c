@@ -356,7 +356,7 @@ _access_obj_process(Elm_Naviframe_Item *it, Eina_Bool is_access)
         if (!ao)
           {
              eo = elm_layout_edje_get(VIEW(it));
-             ao =_elm_access_edje_object_part_object_register(WIDGET(it), eo,
+             ao =_elm_access_edje_object_part_object_register(VIEW(it), eo,
                                                               TITLE_ACCESS_PART);
              _elm_access_text_set(_elm_access_object_get(ao),
                                  ELM_ACCESS_TYPE, E_("title"));
@@ -371,7 +371,7 @@ _access_obj_process(Elm_Naviframe_Item *it, Eina_Bool is_access)
      {
         if (it->title_label)
           _elm_access_edje_object_part_object_unregister
-                (WIDGET(it), elm_layout_edje_get(VIEW(it)), TITLE_ACCESS_PART);
+                (VIEW(it), elm_layout_edje_get(VIEW(it)), TITLE_ACCESS_PART);
 
         /* to access title access object, any idea? */
         ao = ((Elm_Widget_Item *)it)->access_obj;
@@ -1418,14 +1418,33 @@ _elm_naviframe_smart_focus_next(const Evas_Object *obj,
    l = eina_list_append(l, VIEW(top_it));
 
    /* access */
-   if (_elm_config->access_mode)
+   if (_elm_config->access_mode && _elm_access_auto_highlight_get())
      {
         ao = ((Elm_Widget_Item *)top_it)->access_obj;
-        if (ao) l = eina_list_append(l, ao);
+        if (ao &&
+            !elm_widget_highlight_get(ao) &&
+            !elm_widget_highlight_get(VIEW(top_it)))
+          {
+             /* if title does not have a highlight and sub object of item layout
+                does not have a highlight, give a highlight to the title */
+             *next = ao;
+             return EINA_TRUE;
+          }
      }
 
    ret = elm_widget_focus_list_next_get(obj, l, list_data_get, dir, next);
    eina_list_free(l);
+
+   if (!ret && _elm_config->access_mode && _elm_access_auto_highlight_get())
+     {
+        ao = ((Elm_Widget_Item *)top_it)->access_obj;
+        if (ao && !elm_widget_highlight_get(ao))
+          {
+             /* if a highlight meet end, give a highlight to the title  */
+             *next = ao;
+             return EINA_TRUE;
+          }
+     }
 
    return ret;
 }

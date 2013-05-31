@@ -1084,6 +1084,8 @@ elm_object_focus_set(Evas_Object *obj,
      {
         const char *type;
 
+        //if the focus_next api of each widget does not use elm_object_focus_set();
+        //you don't need to check the highlight with elm_widget_highlight_get();
         if (focus == elm_widget_focus_get(obj)) return;
 
         // ugly, but, special case for inlined windows

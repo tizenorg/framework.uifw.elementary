@@ -2884,9 +2884,6 @@ elm_widget_focus_steal(Evas_Object *obj)
    _parent_focus(obj);
    _elm_widget_focus_region_show(obj);
 
-   if (_elm_config->access_mode)
-     _elm_access_highlight_set(obj);
-
    return;
 }
 

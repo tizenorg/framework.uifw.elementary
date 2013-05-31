@@ -542,6 +542,20 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
 
               if (!s_parent) return;
 
+             evas_object_geometry_get(ho, &hx, &hy, &hw, &hh);
+             evas_object_geometry_get(s_parent, &sx, &sy, &sw, &sh);
+
+             if (hx + (hw / 2) < sx || hy + (hh / 2) < sy)
+               {
+                  s_parent = NULL;
+                  return;
+               }
+             if (hx + (hw / 2) > sx + sw || hy + (hh / 2) > sy + sh)
+               {
+                  s_parent = NULL;
+                  return;
+               }
+
               ELM_SCROLLABLE_IFACE_GET(s_parent, s_iface);
               s_iface->repeat_events_set(s_parent, EINA_FALSE);
 
