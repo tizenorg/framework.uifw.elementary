@@ -2964,17 +2964,16 @@ _elm_genlist_smart_on_focus(Evas_Object *obj)
 {
    ELM_GENLIST_DATA_GET(obj, sd);
 
-   // Why does parent do first?
    if (!ELM_WIDGET_CLASS(_elm_genlist_parent_sc)->on_focus(obj))
      return EINA_FALSE;
 
-   if (elm_widget_focus_get(obj) && (sd->items) && (sd->selected) &&
-       (!sd->last_selected_item))
+   if ((sd->items) && (sd->selected) && (!sd->last_selected_item))
      sd->last_selected_item = eina_list_data_get(sd->selected);
 
-   if (!elm_widget_focus_get(obj))
+   if (sd->select_on_focus_enabled) return EINA_TRUE;
+   if (sd->focused )
      {
-        if (sd->focused)
+        if (!elm_widget_focus_get(obj))
           {
              edje_object_signal_emit
                 (VIEW(sd->focused), "elm,state,unfocused", "elm");
@@ -2982,7 +2981,20 @@ _elm_genlist_smart_on_focus(Evas_Object *obj)
                 edje_object_signal_emit
                    (sd->focused->deco_all_view, "elm,state,unfocused", "elm");
           }
+        else
+          {
+             if (elm_win_focus_highlight_enabled_get(elm_widget_top_get(obj)))
+               {
+                  edje_object_signal_emit
+                     (VIEW(sd->focused), "elm,state,focused", "elm");
+                  if (sd->focused->deco_all_view)
+                     edje_object_signal_emit
+                        (sd->focused->deco_all_view, "elm,state,focused", "elm");
+               }
+          }
      }
+   else
+      _item_focused_next(sd, FOCUS_DIR_DOWN);
 
    return EINA_TRUE;
 }
@@ -5058,18 +5070,17 @@ _elm_genlist_smart_add(Evas_Object *obj)
    _item_cache_all_free(priv);
    _mirrored_set(obj, elm_widget_mirrored_get(obj));
 
-   priv->select_on_focus_enabled = EINA_FALSE;
    const char *str = edje_object_data_get(ELM_WIDGET_DATA(priv)->resize_obj,
                                           "focus_highlight");
    if ((str) && (!strcmp(str, "on")))
       elm_widget_highlight_in_theme_set(obj, EINA_TRUE);
    else
       elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
+   priv->select_on_focus_enabled = EINA_FALSE;
 
    priv->g_layer = elm_gesture_layer_add(obj);
    if (!priv->g_layer) ERR("elm_gesture_layer_add() failed");
    elm_gesture_layer_attach(priv->g_layer, priv->hit_rect);
-
    elm_gesture_layer_cb_set
       (priv->g_layer, ELM_GESTURE_ZOOM, ELM_GESTURE_STATE_START,
        _pinch_zoom_start_cb, priv);

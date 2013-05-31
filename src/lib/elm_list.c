@@ -993,14 +993,24 @@ _elm_list_smart_on_focus(Evas_Object *obj)
    if (elm_widget_focus_get(obj) && sd->selected && !sd->last_selected_item)
      sd->last_selected_item = eina_list_data_get(sd->selected);
 
-   if (!elm_widget_focus_get(obj))
+   if (sd->select_on_focus_enabled) return EINA_TRUE;
+   if (sd->focused)
      {
-        if (sd->focused)
+        if (!elm_widget_focus_get(obj))
           {
              edje_object_signal_emit
-                (VIEW(sd->focused), "elm,state,unfocused", "elm");
+               (VIEW(sd->focused), "elm,state,unfocused", "elm");
+          }
+        else
+          {
+             if (elm_win_focus_highlight_enabled_get(elm_widget_top_get(obj)))
+               edje_object_signal_emit
+                 (VIEW(sd->focused), "elm,state,focused", "elm");
           }
      }
+   else
+      _item_focused_next(sd, FOCUS_DIR_DOWN);
+
    return EINA_TRUE;
 }
 
@@ -1825,7 +1835,6 @@ _elm_list_smart_add(Evas_Object *obj)
       elm_widget_highlight_in_theme_set(obj, EINA_TRUE);
    else
       elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
-
    priv->select_on_focus_enabled = EINA_FALSE;
 }
 
