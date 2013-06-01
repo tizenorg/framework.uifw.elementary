@@ -282,7 +282,6 @@ struct _Elm_Genlist_Smart_Data
                                                      * selection */
 
    Eina_Bool                             swipe : 1;
-   Eina_Bool                             size_changed : 1;
 
 #if GENLIST_FX_SUPPORT
    Eina_Bool                             fx_mode : 1;
@@ -353,6 +352,7 @@ struct Elm_Gen_Item_Type
    Eina_Bool               show_me : 1;
    /* if item is realized once, it is not unrealized & realized again. */
    Eina_Bool               unrealize_disabled: 1;
+   Eina_Bool               multiline;
 #if GENLIST_FX_SUPPORT
    Eina_Bool               has_proxy_it : 1;
 #endif
@@ -390,6 +390,7 @@ struct _Item_Cache
 
    Eina_Bool    expanded : 1; // it->item->expanded
    Eina_Bool    tree : 1; // it->group
+   Eina_Bool    multiline : 1;
 };
 
 typedef struct _Elm_Genlist_Pan_Smart_Class

@@ -171,7 +171,6 @@ static void _elm_genlist_item_state_update(Elm_Gen_Item *it);
 static void _decorate_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_all_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_item_set(Elm_Gen_Item *it);
-static void _changed_job(Elm_Genlist_Smart_Data *sd);
 static void _item_queue(Elm_Genlist_Smart_Data *sd, Elm_Gen_Item *it, Eina_Compare_Cb cb);
 
 #if GENLIST_FX_SUPPORT
@@ -285,6 +284,7 @@ _item_cache_push(Elm_Gen_Item *it)
 
    ic->expanded = it->item->expanded;
    if (it->item->type & ELM_GENLIST_ITEM_TREE) ic->tree = 1;
+   ic->multiline = it->item->multiline;
 
    edje_object_signal_emit(ic->base_view, "elm,state,unselected", "elm");
    evas_object_hide(ic->base_view);
@@ -320,7 +320,7 @@ _item_cache_pop(Elm_Gen_Item *it)
    if (it->item->type & ELM_GENLIST_ITEM_TREE) tree = 1;
    EINA_INLIST_FOREACH_SAFE(sd->item_cache, l, ic)
      {
-        if (ic->expanded)continue;
+        if (ic->expanded) continue;
 
         if ((ic->tree == tree) &&
             (((!it->itc->item_style) && (!ic->item_style)) ||
@@ -333,6 +333,7 @@ _item_cache_pop(Elm_Gen_Item *it)
 
              VIEW(it) = ic->base_view;
              it->spacer = ic->spacer;
+             it->item->multiline = ic->multiline;
 
 #if 1 // FIXME: different from upstream
              // Because of item cache, set state as default after cache item
@@ -502,9 +503,22 @@ _elm_genlist_pan_smart_resize(Evas_Object *obj,
    psd->wsd->s_iface->content_viewport_size_get(ELM_WIDGET_DATA(psd->wsd)->obj,
                                                 &vw, NULL);
    if (psd->wsd->mode == ELM_LIST_COMPRESS &&
-       vw != psd->wsd->prev_viewport_w)
-     psd->wsd->size_changed = EINA_TRUE;
-   if (vw != 0) psd->wsd->prev_viewport_w = vw;
+       psd->wsd->prev_viewport_w != w)
+     {
+		 Item_Block *itb;
+		 Eina_List *l;
+		 EINA_INLIST_FOREACH(psd->wsd->blocks, itb)
+		 {
+			 Elm_Gen_Item *it;
+			 EINA_LIST_FOREACH(itb->items, l, it)
+			 {
+				 if (!it->item->multiline) continue;
+				 it->item->mincalcd = EINA_FALSE;
+				 _item_queue(psd->wsd, it, NULL);
+			 }
+		 }
+     }
+   psd->wsd->prev_viewport_w = w;
 
    psd->wsd->pan_changed = EINA_TRUE;
    if (psd->wsd->calc_job) ecore_job_del(psd->wsd->calc_job);
@@ -1378,8 +1392,8 @@ _changed_size_hints(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__,
    Elm_Gen_Item *it = data;
    if (!it) return;
    if (it->want_unrealize) return;
-   GL_IT(it)->wsd->size_changed = EINA_TRUE;
-   evas_object_smart_changed(GL_IT(it)->wsd->pan_obj);
+   it->item->mincalcd = EINA_FALSE;
+   _item_queue(GL_IT(it)->wsd, it, NULL);
 }
 #endif
 
@@ -1612,7 +1626,7 @@ _item_min_calc(Elm_Gen_Item *it, Eina_Bool *width_changed, Eina_Bool *height_cha
         it->item->block->minh += (mh - it->item->minh);
 
         it->item->h = it->item->minh = mh;
-		it->item->block->changed = EINA_TRUE;
+        it->item->block->changed = EINA_TRUE;
         if (height_changed) *height_changed = EINA_TRUE;
      }
    it->item->mincalcd = EINA_TRUE;
@@ -1645,6 +1659,8 @@ _item_realize(Elm_Gen_Item *it,
      {
         const char *stacking_even;
         const char *stacking;
+        const char *key;
+        const Eina_List *l;
 
         it->item->nocache_once = EINA_FALSE;
 
@@ -1667,6 +1683,31 @@ _item_realize(Elm_Gen_Item *it,
         elm_widget_theme_object_set
           (WIDGET(it), VIEW(it), "genlist", buf,
           elm_widget_style_get(WIDGET(it)));
+
+        Eina_List *txts = elm_widget_stringlist_get
+           (edje_object_data_get(VIEW(it), "texts"));
+
+        EINA_LIST_FOREACH(txts, l, key)
+          {
+             const Evas_Object *txt = edje_object_part_object_get(VIEW(it), key);
+             if (strcmp(evas_object_type_get(txt), "textblock")) continue;
+
+             const Evas_Textblock_Style *style =
+                evas_object_textblock_style_get(txt);
+             if (style)
+               {
+                  const char *str = evas_textblock_style_get(style);
+                  if (str)
+                    {
+                       if (!strstr(str, "ellipsis="))
+                         {
+                            it->item->multiline = EINA_TRUE;
+                            break;
+                         }
+                    }
+               }
+          }
+
 
 #if 1 // FIXME: difference from upstream
         if (it->item->expanded_depth > 0)
@@ -2007,7 +2048,6 @@ _item_block_position(Item_Block *itb,
             || it->item->unrealize_disabled
 #endif
             )
-
           {
              if (itb->realized && !(it->realized))
                 _item_realize(it, in, EINA_FALSE);
@@ -2104,55 +2144,39 @@ _item_block_realize(Item_Block *itb)
 }
 
 static void
-_changed_job(Elm_Genlist_Smart_Data *sd)
-{
-   Eina_List *l2;
-
-   Item_Block *itb;
-   int num = 0, num0;
-   Eina_Bool anything_changed = EINA_FALSE;
-   Eina_Bool width_changed = EINA_FALSE;
-   Eina_Bool height_changed = EINA_FALSE;
-
-   EINA_INLIST_FOREACH(sd->blocks, itb)
-     {
-        Elm_Gen_Item *it;
-
-        num0 = num;
-        width_changed = height_changed = EINA_FALSE;
-        EINA_LIST_FOREACH(itb->items, l2, it)
-          {
-             it->item->mincalcd = EINA_FALSE;
-             if (it->realized)
-               _item_min_calc(it, &width_changed, &height_changed);
-             else _item_queue(sd, it, NULL);
-             num++;
-          }
-        if (height_changed)
-          {
-             anything_changed = EINA_TRUE;
-             itb->changed = EINA_TRUE;
-             _item_block_recalc(itb, num0, 0);
-             _item_block_position(itb, num0);
-          }
-        else if (width_changed)
-          {
-             _item_block_position(itb, num0);
-          }
-     }
-   if (anything_changed)
-     {
-        if (sd->calc_job) ecore_job_del(sd->calc_job);
-        sd->calc_job = ecore_job_add(_calc_job, sd);
-     }
-}
-
-static void
 _fx_job(void *data)
 {
    Elm_Genlist_Smart_Data *sd = data;
    _elm_genlist_fx_play(ELM_WIDGET_DATA(sd)->obj);
    sd->fx_job = NULL;
+}
+
+static void
+_item_block_calc(Item_Block *itb)
+{
+   const Eina_List *l;
+   Elm_Gen_Item *it;
+   Evas_Coord minh = 0;
+   int in = 0;
+
+   in = itb->num;
+   EINA_LIST_FOREACH(itb->items, l, it)
+     {
+        if (!it->realized)
+          {
+             _item_realize(it, in, EINA_TRUE);
+             _item_unrealize(it, EINA_TRUE);
+          }
+        else
+           _item_min_calc(it, NULL, NULL);
+
+        in++;
+        minh += it->item->minh;
+        if (itb->minw > it->item->minw) itb->minw = it->item->minw;
+     }
+   itb->minh = minh;
+   itb->changed = EINA_FALSE;
+   itb->position_update = EINA_FALSE;
 }
 
 static void
@@ -2177,14 +2201,13 @@ _elm_genlist_pan_smart_calculate(Evas_Object *obj)
         psd->wsd->pan_changed = EINA_FALSE;
      }
 
-   evas_object_geometry_get(obj, &ox, &oy, &ow, &oh);
-   evas_output_viewport_get(evas_object_evas_get(obj), &cvx, &cvy, &cvw, &cvh);
-
 #if GROUP_ITEMS_FEATURE
    EINA_LIST_FOREACH(psd->wsd->group_items, l, git)
      git->item->want_realize = EINA_FALSE;
 #endif
 
+   evas_object_geometry_get(obj, &ox, &oy, &ow, &oh);
+   evas_output_viewport_get(evas_object_evas_get(obj), &cvx, &cvy, &cvw, &cvh);
    EINA_INLIST_FOREACH(psd->wsd->blocks, itb)
      {
         itb->w = psd->wsd->minw;
@@ -2196,18 +2219,12 @@ _elm_genlist_pan_smart_calculate(Evas_Object *obj)
              if ((!itb->realized) || (itb->changed))
                {
                   _item_block_realize(itb);
-#if 0
-                  // FIXME: difference from opensource
-                  if (sd->wd->calc_job) ecore_job_del(sd->wd->calc_job);
-                  sd->wd->calc_job = NULL;
-                  _calc_job(sd->wd);
-#endif
                }
              _item_block_position(itb, in);
           }
-        else
+        else if (itb->realized)
           {
-             if (itb->realized) _item_block_unrealize(itb);
+             _item_block_unrealize(itb);
           }
         in += itb->count;
      }
@@ -2241,12 +2258,6 @@ _elm_genlist_pan_smart_calculate(Evas_Object *obj)
    else if (psd->wsd->reorder_fast == -1)
      psd->wsd->s_iface->content_region_show(ELM_WIDGET_DATA(psd->wsd)->obj,
                                             vx, vy + 10, vw, vh);
-
-   if (psd->wsd->size_changed)
-     {
-        _changed_job(psd->wsd);
-        psd->wsd->size_changed = EINA_FALSE;
-     }
 
 #if GENLIST_FX_SUPPORT
    psd->wsd->rendered = EINA_TRUE;
@@ -2701,7 +2712,6 @@ static Eina_Bool _item_focused_next(Elm_Genlist_Smart_Data *sd, Focus_Dir dir)
              while (l)
                {
                   obj = eina_list_data_get(l);
-                  ERR("%s", evas_object_type_get(obj));
                   if (obj && elm_object_focus_allow_get(obj))
                      break;
                   obj = NULL;
@@ -4056,10 +4066,9 @@ _item_process(Elm_Genlist_Smart_Data *sd,
    if (!sd->blocks)
      _item_block_realize(it->item->block);
 
-   if (it->item->block->changed)
+   if (_item_block_recalc(it->item->block, it->item->block->num, EINA_TRUE))
      {
-        if (_item_block_recalc(it->item->block, it->item->block->num, EINA_TRUE))
-           it->item->block->show_me = EINA_TRUE;
+        it->item->block->show_me = EINA_TRUE;
         it->item->block->changed = EINA_FALSE;
      }
 
@@ -4160,6 +4169,11 @@ _item_queue(Elm_Genlist_Smart_Data *sd,
    if (sd->queue_idle_enterer)
       ecore_idle_enterer_del(sd->queue_idle_enterer);
    sd->queue_idle_enterer = ecore_idle_enterer_add(_item_idle_enterer, sd);
+
+   // wake up mainloop
+   // Job always be alive because idle_enterer should be alive
+   if (sd->calc_job) ecore_job_del(sd->calc_job);
+   sd->calc_job = ecore_job_add(_calc_job, sd);
 }
 
 /* If the application wants to know the relative item, use
@@ -4478,11 +4492,15 @@ _item_block_recalc(Item_Block *itb,
         show_me |= it->item->show_me;
         if (qadd)
           {
-             if (!it->item->mincalcd) changed = EINA_TRUE;
-             if (changed)
+             if (!it->item->mincalcd)
                {
-                  _item_realize(it, in, EINA_TRUE);
-                  _item_unrealize(it, EINA_TRUE);
+                  changed = EINA_TRUE;
+                  if (it->realized) _item_min_calc(it, NULL, NULL);
+                  else
+                    {
+                       _item_realize(it, in, EINA_TRUE);
+                       _item_unrealize(it, EINA_TRUE);
+                    }
                }
           }
         else
@@ -4528,7 +4546,11 @@ _item_block_recalc(Item_Block *itb,
 #endif
         y += it->item->h;
      }
-   if (changed) itb->sd->pan_changed = changed;
+   if (changed)
+     {
+        itb->sd->pan_changed = changed;
+//        evas_object_smart_changed(itb->sd->pan_obj);
+     }
    itb->minw = minw;
    itb->minh = minh;
    itb->changed = EINA_FALSE;
