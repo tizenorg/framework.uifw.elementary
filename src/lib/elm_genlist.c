@@ -283,8 +283,6 @@ _item_cache_push(Elm_Gen_Item *it)
    ic->item_style = eina_stringshare_add(it->itc->item_style);
    if (it->item->type & ELM_GENLIST_ITEM_TREE) ic->tree = 1;
 
-   ic->selected = it->selected;
-   ic->disabled = elm_widget_item_disabled_get(it);
    ic->expanded = it->item->expanded;
    if (it->item->type & ELM_GENLIST_ITEM_TREE) ic->tree = 1;
 
@@ -322,8 +320,7 @@ _item_cache_pop(Elm_Gen_Item *it)
    if (it->item->type & ELM_GENLIST_ITEM_TREE) tree = 1;
    EINA_INLIST_FOREACH_SAFE(sd->item_cache, l, ic)
      {
-        if ((ic->selected) || (ic->disabled) || (ic->expanded))
-          continue;
+        if (ic->expanded)continue;
 
         if ((ic->tree == tree) &&
             (((!it->itc->item_style) && (!ic->item_style)) ||

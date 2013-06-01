@@ -388,8 +388,6 @@ struct _Item_Cache
 
    const char  *item_style; // it->itc->item_style
 
-   Eina_Bool    selected : 1; // it->selected
-   Eina_Bool    disabled : 1; // it->disabled
    Eina_Bool    expanded : 1; // it->item->expanded
    Eina_Bool    tree : 1; // it->group
 };
