@@ -1799,7 +1799,7 @@ _item_new(Evas_Object *obj,
    evas_object_size_hint_min_get(VIEW(it), &minw, &minh);
    evas_object_geometry_get(sd->box, NULL, NULL, &boxw, NULL);
 
-   if (minw > boxw)
+   if (sd->boxw && minw > boxw)
      {
         elm_layout_signal_emit(VIEW(it), "elm,state,text,ellipsis", "");
         edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
