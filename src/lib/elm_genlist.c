@@ -1689,11 +1689,14 @@ _item_realize(Elm_Gen_Item *it,
 
         EINA_LIST_FOREACH(txts, l, key)
           {
-             const Evas_Object *txt = edje_object_part_object_get(VIEW(it), key);
-             if (strcmp(evas_object_type_get(txt), "textblock")) continue;
+             const Evas_Object *txt_obj = NULL;
+             const char *type = NULL;
+             txt_obj = edje_object_part_object_get(VIEW(it), key);
+             if (txt_obj) type =  evas_object_type_get(txt_obj);
+             if (type && strcmp(type, "textblock")) continue;
 
              const Evas_Textblock_Style *style =
-                evas_object_textblock_style_get(txt);
+                evas_object_textblock_style_get(txt_obj);
              if (style)
                {
                   const char *str = evas_textblock_style_get(style);
