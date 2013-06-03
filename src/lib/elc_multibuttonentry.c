@@ -73,6 +73,14 @@ _elm_multibuttonentry_smart_focus_next(const Evas_Object *obj,
    if (!sd)
      return EINA_FALSE;
 
+   if (!elm_widget_highlight_get(obj))
+     {
+        *next = obj;
+        return EINA_TRUE;
+     }
+
+
+   //TODO: enhance below lines
    if (!elm_widget_focus_next_get(sd->box, dir, next))
      {
         elm_widget_focused_object_clear(sd->box);
@@ -1723,9 +1731,9 @@ _access_state_cb(void *data, Evas_Object *obj __UNUSED__)
 }
 
 static void
-_access_activate_cb(void *data __UNUSED__,
-                    Evas_Object *part_obj __UNUSED__,
-                    Elm_Object_Item *item)
+_access_item_activate_cb(void *data __UNUSED__,
+                        Evas_Object *part_obj __UNUSED__,
+                        Elm_Object_Item *item)
 {
    _on_item_selected(item, NULL, NULL, NULL);
 }
@@ -1744,7 +1752,7 @@ _access_widget_item_register(Elm_Multibuttonentry_Item *it, Eina_Bool is_access)
 
         _elm_access_callback_set(ai, ELM_ACCESS_INFO, _access_info_cb, it);
         _elm_access_callback_set(ai, ELM_ACCESS_STATE, _access_state_cb, it);
-        _elm_access_activate_callback_set(ai, _access_activate_cb, it);
+        _elm_access_activate_callback_set(ai, _access_item_activate_cb, it);
      }
 }
 
@@ -2307,6 +2315,42 @@ _elm_multibuttonentry_smart_access(Evas_Object *obj, Eina_Bool is_access)
      _access_widget_item_register(it, is_access);
 }
 
+static Eina_Bool
+_elm_multibuttonentry_smart_activate(Evas_Object *obj, Elm_Activate act)
+{
+   ELM_MULTIBUTTONENTRY_DATA_GET(obj, sd);
+
+   if (act != ELM_ACTIVATE_DEFAULT) return EINA_FALSE;
+
+   if (!elm_widget_disabled_get(obj))
+     {
+        if (sd->guide && _guide_packed(obj))
+          {
+             elm_box_unpack(sd->box, sd->guide);
+             evas_object_hide(sd->guide);
+
+             if (sd->editable)
+               {
+                  elm_box_pack_end(sd->box, sd->entry);
+                  evas_object_show(sd->entry);
+               }
+          }
+        // when object gets focused, it should be expanded layout
+        else if (!sd->expanded)
+          _layout_expand(obj);
+
+        if (sd->editable)
+          {
+             elm_layout_signal_emit(obj, "elm,state,event,allow", "");
+             elm_object_focus_set(sd->entry, EINA_TRUE);
+          }
+
+        evas_object_smart_callback_call(obj, SIG_FOCUSED, NULL);
+    }
+
+   return EINA_TRUE;
+}
+
 static void
 _elm_multibuttonentry_smart_set_user(Elm_Multibuttonentry_Smart_Class *sc)
 {
@@ -2331,6 +2375,7 @@ _elm_multibuttonentry_smart_set_user(Elm_Multibuttonentry_Smart_Class *sc)
       ELM_WIDGET_CLASS(sc)->focus_next = _elm_multibuttonentry_smart_focus_next;
 
    ELM_WIDGET_CLASS(sc)->access = _elm_multibuttonentry_smart_access;
+   ELM_WIDGET_CLASS(sc)->activate = _elm_multibuttonentry_smart_activate;
 }
 
 EAPI const Elm_Multibuttonentry_Smart_Class *
