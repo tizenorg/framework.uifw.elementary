@@ -3944,6 +3944,7 @@ newblock:
      {
         Eina_List *tmp;
 
+#if 0
         if ((!GL_IT(it)->wsd->sorting) && (it->item->rel->item->queued))
           {
              /* NOTE: for a strange reason eina_list and eina_inlist
@@ -3960,6 +3961,7 @@ newblock:
 
              return EINA_FALSE;
           }
+#endif
         itb = it->item->rel->item->block;
         if (!itb) goto newblock;
         tmp = eina_list_data_find_list(itb->items, it->item->rel);
@@ -4144,6 +4146,7 @@ _item_idle_enterer(void *data)
 {
    Elm_Genlist_Smart_Data *sd = data;
 
+   sd->processed_sizes = 0;
    if (sd->prev_viewport_w == 0) return ECORE_CALLBACK_RENEW;
    if (_queue_process(sd) > 0)
      {
@@ -4169,13 +4172,9 @@ _item_queue(Elm_Genlist_Smart_Data *sd,
             Elm_Gen_Item *it,
             Eina_Compare_Cb cb)
 {
-   if (it->item->queued) return;
+   Evas_Coord vh;
 
-   it->item->queued = EINA_TRUE;
-   if (cb && !sd->requeued)
-     sd->queue = eina_list_sorted_insert(sd->queue, cb, it);
-   else
-     sd->queue = eina_list_append(sd->queue, it);
+   if (it->item->queued) return;
 
    if (sd->queue_idle_enterer)
       ecore_idle_enterer_del(sd->queue_idle_enterer);
@@ -4185,6 +4184,20 @@ _item_queue(Elm_Genlist_Smart_Data *sd,
    // Job always be alive because idle_enterer should be alive
    if (sd->calc_job) ecore_job_del(sd->calc_job);
    sd->calc_job = ecore_job_add(_calc_job, sd);
+
+   sd->s_iface->content_viewport_size_get(ELM_WIDGET_DATA(sd)->obj, NULL, &vh);
+   if (sd->prev_viewport_w && (sd->processed_sizes < vh))
+     {
+        _item_process(sd, it);
+        sd->processed_sizes += it->item->minh;
+        return;
+     }
+   it->item->queued = EINA_TRUE;
+   if (cb && !sd->requeued)
+     sd->queue = eina_list_sorted_insert(sd->queue, cb, it);
+   else
+     sd->queue = eina_list_append(sd->queue, it);
+
 }
 
 /* If the application wants to know the relative item, use

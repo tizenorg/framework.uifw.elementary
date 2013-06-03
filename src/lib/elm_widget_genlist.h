@@ -298,6 +298,7 @@ struct _Elm_Genlist_Smart_Data
 #endif
    Eina_Bool                             sorting : 1;
    Evas_Coord                            finger_minw, finger_minh;
+   int                                   processed_sizes;
 };
 
 typedef struct _Item_Block Item_Block;
