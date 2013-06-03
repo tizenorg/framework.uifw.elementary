@@ -2983,7 +2983,11 @@ _elm_genlist_smart_on_focus(Evas_Object *obj)
      {
         if (elm_win_focus_highlight_enabled_get(elm_widget_top_get(obj)))
           {
-             if (sd->focused)
+             if (sd->last_selected_item)
+               {
+                  _item_focused((Elm_Gen_Item *)sd->last_selected_item);
+               }
+             else if (sd->focused)
                {
                   edje_object_signal_emit
                     (VIEW(sd->focused), "elm,state,focused", "elm");
@@ -2992,7 +2996,7 @@ _elm_genlist_smart_on_focus(Evas_Object *obj)
                        (sd->focused->deco_all_view, "elm,state,focused", "elm");
                }
              else
-                _item_focused_next(sd, FOCUS_DIR_DOWN);
+               _item_focused_next(sd, FOCUS_DIR_DOWN);
           }
      }
    else
