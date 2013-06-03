@@ -171,7 +171,7 @@ static void _elm_genlist_item_state_update(Elm_Gen_Item *it);
 static void _decorate_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_all_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_item_set(Elm_Gen_Item *it);
-static void _item_queue(Elm_Genlist_Smart_Data *sd, Elm_Gen_Item *it, Eina_Compare_Cb cb);
+static void _item_queue(Elm_Genlist_Smart_Data *sd, Elm_Gen_Item *it, Eina_Compare_Cb cb, Eina_Bool direct);
 
 #if GENLIST_FX_SUPPORT
 static Eina_Bool      _elm_genlist_fx_capture(Evas_Object *obj, int level);
@@ -514,7 +514,7 @@ _elm_genlist_pan_smart_resize(Evas_Object *obj,
 			 {
 				 if (!it->item->multiline) continue;
 				 it->item->mincalcd = EINA_FALSE;
-				 _item_queue(psd->wsd, it, NULL);
+				 _item_queue(psd->wsd, it, NULL, EINA_FALSE);
 			 }
 		 }
      }
@@ -1393,7 +1393,7 @@ _changed_size_hints(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__,
    if (!it) return;
    if (it->want_unrealize) return;
    it->item->mincalcd = EINA_FALSE;
-   _item_queue(GL_IT(it)->wsd, it, NULL);
+   _item_queue(GL_IT(it)->wsd, it, NULL, EINA_FALSE);
 }
 #endif
 
@@ -4170,7 +4170,8 @@ _item_idle_enterer(void *data)
 static void
 _item_queue(Elm_Genlist_Smart_Data *sd,
             Elm_Gen_Item *it,
-            Eina_Compare_Cb cb)
+            Eina_Compare_Cb cb,
+            Eina_Bool direct)
 {
    Evas_Coord vh;
 
@@ -4186,7 +4187,7 @@ _item_queue(Elm_Genlist_Smart_Data *sd,
    sd->calc_job = ecore_job_add(_calc_job, sd);
 
    sd->s_iface->content_viewport_size_get(ELM_WIDGET_DATA(sd)->obj, NULL, &vh);
-   if (sd->prev_viewport_w && (sd->processed_sizes < vh))
+   if (direct && sd->prev_viewport_w && (sd->processed_sizes < vh))
      {
         _item_process(sd, it);
         sd->processed_sizes += it->item->minh;
@@ -4224,7 +4225,7 @@ _item_move_after(Elm_Gen_Item *it,
    after->item->rel_revs = eina_list_append(after->item->rel_revs, it);
    it->item->before = EINA_FALSE;
    if (after->item->group_item) it->item->group_item = after->item->group_item;
-   _item_queue(GL_IT(it)->wsd, it, NULL);
+   _item_queue(GL_IT(it)->wsd, it, NULL, EINA_TRUE);
 
    evas_object_smart_callback_call(WIDGET(it), SIG_MOVED_AFTER, it);
 }
@@ -4261,7 +4262,7 @@ _item_move_before(Elm_Gen_Item *it,
    it->item->before = EINA_TRUE;
    if (before->item->group_item)
      it->item->group_item = before->item->group_item;
-   _item_queue(GL_IT(it)->wsd, it, NULL);
+   _item_queue(GL_IT(it)->wsd, it, NULL, EINA_TRUE);
 
    evas_object_smart_callback_call(WIDGET(it), SIG_MOVED_BEFORE, it);
 }
@@ -5673,7 +5674,7 @@ elm_genlist_item_append(Evas_Object *obj,
         it2->item->rel_revs = eina_list_append(it2->item->rel_revs, it);
      }
    it->item->before = EINA_FALSE;
-   _item_queue(sd, it, NULL);
+   _item_queue(sd, it, NULL, EINA_TRUE);
 
    return (Elm_Object_Item *)it;
 }
@@ -5717,7 +5718,7 @@ elm_genlist_item_prepend(Evas_Object *obj,
         it2->item->rel_revs = eina_list_append(it2->item->rel_revs, it);
      }
    it->item->before = EINA_TRUE;
-   _item_queue(sd, it, NULL);
+   _item_queue(sd, it, NULL, EINA_TRUE);
 
    return (Elm_Object_Item *)it;
 }
@@ -5764,7 +5765,7 @@ elm_genlist_item_insert_after(Evas_Object *obj,
    it->item->rel = after;
    after->item->rel_revs = eina_list_append(after->item->rel_revs, it);
    it->item->before = EINA_FALSE;
-   _item_queue(sd, it, NULL);
+   _item_queue(sd, it, NULL, EINA_TRUE);
 
    return (Elm_Object_Item *)it;
 }
@@ -5811,7 +5812,7 @@ elm_genlist_item_insert_before(Evas_Object *obj,
    it->item->rel = before;
    before->item->rel_revs = eina_list_append(before->item->rel_revs, it);
    it->item->before = EINA_TRUE;
-   _item_queue(sd, it, NULL);
+   _item_queue(sd, it, NULL, EINA_TRUE);
 
    return (Elm_Object_Item *)it;
 }
@@ -5903,7 +5904,7 @@ elm_genlist_item_sorted_insert(Evas_Object *obj,
         rel->item->rel_revs = eina_list_append(rel->item->rel_revs, it);
      }
 
-   _item_queue(sd, it, _elm_genlist_item_list_compare);
+   _item_queue(sd, it, _elm_genlist_item_list_compare, EINA_TRUE);
 
    return (Elm_Object_Item *)it;
 }
