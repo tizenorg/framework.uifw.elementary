@@ -220,7 +220,6 @@ _access_info_cb(void *data, Evas_Object *obj __UNUSED__)
    Elm_Ctxpopup_Item *it = (Elm_Ctxpopup_Item *)data;
    const char *txt = NULL;
    Evas_Object *icon = NULL;
-   Eina_Strbuf *buf = NULL;
    char *str = NULL;
 
    if (!it) return NULL;
@@ -228,18 +227,8 @@ _access_info_cb(void *data, Evas_Object *obj __UNUSED__)
    txt = it->label;
    icon = it->icon;
 
-   if (txt && icon)
-     {
-        buf = eina_strbuf_new();
-        eina_strbuf_append(buf, E_("icon "));
-        eina_strbuf_append(buf, txt);
-        str = eina_strbuf_string_steal(buf);
-        eina_strbuf_free(buf);
-        return str;
-     }
-   else if ((!txt) && icon) return strdup(E_("icon"));
-   else if (txt && (!icon)) return strdup(txt);
-
+   if (txt) return strdup(txt);
+   if (icon) return strdup(E_("icon"));
    return NULL;
 }
 
