@@ -780,6 +780,7 @@ _layout_shrink(Evas_Object *obj,
 
    if (!sd->items) return;
    if (!sd->expanded_state && !force) return;
+   if (!sd->boxw) return;
 
    evas_object_geometry_get(sd->box, NULL, NULL, &w, NULL);
    elm_box_padding_get(sd->box, &hpad, NULL);
