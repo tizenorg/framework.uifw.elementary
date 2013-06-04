@@ -582,6 +582,9 @@ struct _Elm_Access_Info
 
    /* the owner part object that owns this access info */
    Evas_Object               *part_object;
+
+   Evas_Object               *next;
+   Evas_Object               *prev;
 };
 
 void                  _elm_access_shutdown();
@@ -742,6 +745,8 @@ EAPI const Elm_Widget_Smart_Class *elm_widget_smart_class_get(void);
 
 EAPI Eina_Bool        elm_widget_highlight_get(const Evas_Object *obj);
 EAPI void             elm_widget_parent_highlight_set(Evas_Object *obj, Eina_Bool highlighted);
+EAPI void             elm_widget_focus_region_show(const Evas_Object *obj);
+
 /**
  * @internal
  *

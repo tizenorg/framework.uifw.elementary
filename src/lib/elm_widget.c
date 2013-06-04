@@ -908,6 +908,12 @@ _elm_widget_focus_region_show(const Evas_Object *obj)
      }
 }
 
+EAPI void
+elm_widget_focus_region_show(const Evas_Object *obj)
+{
+   _elm_widget_focus_region_show(obj);
+}
+
 static void
 _parent_focus(Evas_Object *obj)
 {

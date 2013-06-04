@@ -171,6 +171,17 @@ EAPI Evas_Object                 *elm_object_part_content_unset(Evas_Object *obj
 #define elm_object_content_unset(obj) elm_object_part_content_unset((obj), NULL)
 
 /**
+ * Register a part on an object as an access object.
+ * @since 1.8
+ *
+ * @param obj The Elementary object
+ * @param part The object's part name to register
+ *
+ * @ingroup General
+ */
+EAPI Evas_Object *                elm_object_part_access_register(Evas_Object *obj, const char *part);
+
+/**
  * Set the text to read out when in accessibility mode
  *
  * @param obj The object which is to be described

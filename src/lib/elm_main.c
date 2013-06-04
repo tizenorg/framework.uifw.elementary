@@ -1019,6 +1019,21 @@ elm_object_part_content_unset(Evas_Object *obj, const char *part)
    return elm_widget_content_part_unset(obj, part);
 }
 
+EAPI Evas_Object *
+elm_object_part_access_register(Evas_Object *obj, const char *part)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(obj, NULL);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(part, NULL);
+   if (!evas_object_smart_type_check(obj, "elm_layout"))
+     {
+        ERR("Only for parts of a layout, access object can be registered");
+        return NULL;
+     }
+
+   Evas_Object *edj = elm_layout_edje_get(obj);
+   return _elm_access_edje_object_part_object_register(obj, edj, part);
+}
+
 EAPI Eina_Bool
 elm_object_style_set(Evas_Object *obj,
                      const char  *style)
