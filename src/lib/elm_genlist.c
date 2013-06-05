@@ -1693,6 +1693,7 @@ _item_realize(Elm_Gen_Item *it,
              const char *type = NULL;
              txt_obj = edje_object_part_object_get(VIEW(it), key);
              if (txt_obj) type =  evas_object_type_get(txt_obj);
+             if (!type) continue;
              if (type && strcmp(type, "textblock")) continue;
 
              const Evas_Textblock_Style *style =
