@@ -2604,11 +2604,12 @@ static void _item_focused(Elm_Gen_Item *it)
                                   ELM_GENLIST_ITEM_SCROLLTO_IN);
      }
 
-   edje_object_signal_emit
-      (VIEW(it), "elm,state,focused", "elm");
    if (it->deco_all_view)
-      edje_object_signal_emit
-         (it->deco_all_view, "elm,state,focused", "elm");
+     edje_object_signal_emit
+       (it->deco_all_view, "elm,state,focused", "elm");
+   else
+     edje_object_signal_emit
+       (VIEW(it), "elm,state,focused", "elm");
    sd->focused = it;
 }
 
@@ -2634,14 +2635,13 @@ static void _item_unfocused(Elm_Gen_Item *it)
 
 static Elm_Gen_Item *_item_focusable_search(Elm_Gen_Item *it, int dir)
 {
-   if (!it) return NULL;
+      if (!it) return NULL;
    Elm_Gen_Item *tmp = it;
    if (dir == 1)
      {
         while (tmp)
           {
-             if ((tmp->select_mode == ELM_OBJECT_SELECT_MODE_DEFAULT) ||
-                 (tmp->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS))
+             if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp))
                 break;
              tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->next);
           }
@@ -2650,9 +2650,8 @@ static Elm_Gen_Item *_item_focusable_search(Elm_Gen_Item *it, int dir)
      {
         while (tmp)
           {
-             if ((tmp->select_mode == ELM_OBJECT_SELECT_MODE_DEFAULT) ||
-                 (tmp->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS))
-                break;
+             if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp))
+               break;
              tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->prev);
           }
      }
@@ -2993,11 +2992,12 @@ _elm_genlist_smart_on_focus(Evas_Object *obj)
                }
              else if (sd->focused)
                {
-                  edje_object_signal_emit
-                    (VIEW(sd->focused), "elm,state,focused", "elm");
                   if (sd->focused->deco_all_view)
                     edje_object_signal_emit
                        (sd->focused->deco_all_view, "elm,state,focused", "elm");
+                  else
+                    edje_object_signal_emit
+                      (VIEW(sd->focused), "elm,state,focused", "elm");
                }
              else
                _item_focused_next(sd, FOCUS_DIR_DOWN);
