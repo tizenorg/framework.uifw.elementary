@@ -14,6 +14,13 @@
 #define PRELOAD             1
 #define REORDER_EFFECT_TIME 0.5
 #define FX_MOVE_TIME 0.5
+typedef enum
+{
+   FOCUS_DIR_UP = 0,
+   FOCUS_DIR_DOWN,
+   FOCUS_DIR_LEFT,
+   FOCUS_DIR_RIGHT
+} Focus_Dir;
 
 EAPI const char ELM_GENGRID_SMART_NAME[] = "elm_gengrid";
 EAPI const char ELM_GENGRID_PAN_SMART_NAME[] = "elm_gengrid_pan";
@@ -913,6 +920,10 @@ _item_realize(Elm_Gen_Item *it)
 
         if (it->selected)
           edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
+
+        if (GG_IT(it)->wsd->focused)
+          edje_object_signal_emit (VIEW(GG_IT(it)->wsd->focused), "elm,state,focused", "elm");
+
         if (elm_widget_item_disabled_get(it))
           edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
      }
@@ -1766,6 +1777,160 @@ _item_single_select_right(Elm_Gengrid_Smart_Data *sd)
    return EINA_TRUE;
 }
 
+static void _gengrid_item_focused(Elm_Gen_Item *it)
+{
+   if (!it) return;
+   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
+   Evas_Coord x, y, w, h, sx, sy, sw, sh;
+
+   evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
+   evas_object_geometry_get(ELM_WIDGET_DATA(sd)->obj, &sx, &sy, &sw, &sh);
+   if ((x < sx) || (y < sy) || ((x + w) > (sx + sw)) || ((y + h) > (sy + sh)))
+     {
+        elm_gengrid_item_bring_in((Elm_Object_Item *)it,
+                                  ELM_GENLIST_ITEM_SCROLLTO_IN);
+     }
+   edje_object_signal_emit
+      (VIEW(it), "elm,state,focused", "elm");
+
+   sd->focused = it;
+}
+
+static void _gengrid_item_unfocused(Elm_Gen_Item *it)
+{
+   if (!it) return;
+   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
+   if (!sd->focused) return;
+
+   if (sd->focused_content)
+     {
+        elm_object_focus_set(ELM_WIDGET_DATA(sd)->obj, EINA_FALSE);
+        elm_object_focus_set(ELM_WIDGET_DATA(sd)->obj, EINA_TRUE);
+        sd->focused_content = NULL;
+     }
+   edje_object_signal_emit
+      (VIEW(sd->focused), "elm,state,unfocused", "elm");
+
+   if (it == sd->focused) sd->focused = NULL;
+}
+
+static Elm_Gen_Item *_gengrid_item_focusable_search(Elm_Gen_Item *it, int dir)
+{
+   if (!it) return NULL;
+   Elm_Gen_Item *tmp = it;
+   Elm_Gengrid_Smart_Data *sd;
+   sd = GG_IT(it)->wsd;
+
+   if (dir == 1)
+     while ((tmp) && (tmp->generation < sd->generation))
+       {
+          if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp))
+            break;
+          tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->next);
+       }
+   else
+     while ((tmp) && (tmp->generation < sd->generation))
+       {
+          if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp))
+            break;
+          tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->prev);
+       }
+
+   return tmp;
+}
+
+static Eina_Bool _gengrid_item_focused_next(Elm_Gengrid_Smart_Data *sd, Focus_Dir dir)
+{
+   Elm_Gen_Item *it = NULL;
+   Elm_Gen_Item *old_focused = sd->focused;
+
+   if (dir == FOCUS_DIR_DOWN || dir == FOCUS_DIR_UP)
+     {
+        if (dir == FOCUS_DIR_DOWN)
+          {
+             if (sd->focused)
+               {
+                  it = ELM_GEN_ITEM_FROM_INLIST
+                     (EINA_INLIST_GET(sd->focused)->next);
+                  _gengrid_item_unfocused(sd->focused);
+               }
+             else it = ELM_GEN_ITEM_FROM_INLIST(sd->items);
+             it = _gengrid_item_focusable_search(it, 1);
+          }
+        else if (dir == FOCUS_DIR_UP)
+          {
+             if (sd->focused)
+               {
+                  it = ELM_GEN_ITEM_FROM_INLIST
+                     (EINA_INLIST_GET(sd->focused)->prev);
+                  _gengrid_item_unfocused(sd->focused);
+               }
+             else it = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
+             it = _gengrid_item_focusable_search(it, -1);
+          }
+        if (!it)
+          {
+             _gengrid_item_focused(old_focused);
+             return EINA_FALSE;
+          }
+        _gengrid_item_focused(it);
+     }
+   else if (dir == FOCUS_DIR_LEFT || dir == FOCUS_DIR_RIGHT)
+     {
+        Evas_Object *obj = NULL;
+        Eina_List *l = NULL;
+
+        if (!sd->focused) return EINA_FALSE;
+        if (sd->focused_content)
+          {
+             l = eina_list_data_find_list(sd->focused->content_objs,
+                                          sd->focused_content);
+             obj = sd->focused_content;
+          }
+
+        if (dir == FOCUS_DIR_LEFT)
+          {
+             if (l) l = eina_list_prev(l);
+             else l = eina_list_last(sd->focused->content_objs);
+
+             while (l)
+               {
+                  obj = eina_list_data_get(l);
+                  if (obj && elm_object_focus_allow_get(obj))
+                     break;
+                  obj = NULL;
+                  l = eina_list_prev(l);
+               }
+          }
+        else if (dir == FOCUS_DIR_RIGHT)
+          {
+             if (l) l = eina_list_next(l);
+             else l = sd->focused->content_objs;
+             while (l)
+               {
+                  obj = eina_list_data_get(l);
+                  if (obj && elm_object_focus_allow_get(obj))
+                     break;
+                  obj = NULL;
+                  l = eina_list_next(l);
+               }
+          }
+        if (obj)
+          {
+             sd->focused_content = obj;
+             elm_object_focus_set(obj, EINA_TRUE);
+          }
+        else
+          {
+             sd->focused_content = NULL;
+             return EINA_FALSE;
+          }
+     }
+   else return EINA_FALSE;
+
+   return EINA_TRUE;
+}
+
 static Eina_Bool
 _elm_gengrid_smart_event(Evas_Object *obj,
                          Evas_Object *src __UNUSED__,
@@ -1798,111 +1963,198 @@ _elm_gengrid_smart_event(Evas_Object *obj,
    if ((!strcmp(ev->keyname, "Left")) ||
        ((!strcmp(ev->keyname, "KP_Left")) && (!ev->string)))
      {
-        if ((sd->horizontal) &&
-            (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-              (_item_multi_select_up(sd)))
-             || (_item_single_select_up(sd))))
+        if (sd->select_on_focus_enabled)
           {
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
-          }
-        else if ((!sd->horizontal) &&
-                 (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-                   (_item_multi_select_left(sd)))
-                  || (_item_single_select_left(sd))))
-          {
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
+             if ((sd->horizontal) &&
+                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
+                      && (_item_multi_select_up(sd)))
+                      || (_item_single_select_up(sd))))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else if ((!sd->horizontal) &&
+                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
+                      && (_item_multi_select_left(sd)))
+                      || (_item_single_select_left(sd))))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else
+               {
+                  x -= step_x;
+               }
           }
         else
-          x -= step_x;
-     }
+          {
+             if (_gengrid_item_focused_next(sd, FOCUS_DIR_LEFT))
+               {
+                   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                   return EINA_TRUE;
+               }
+             else
+               {
+                  return EINA_FALSE;
+               }
+          }
+        }
    else if ((!strcmp(ev->keyname, "Right")) ||
             ((!strcmp(ev->keyname, "KP_Right")) && (!ev->string)))
      {
-        if ((sd->horizontal) &&
-            (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-              (_item_multi_select_down(sd)))
-             || (_item_single_select_down(sd))))
+        if (sd->select_on_focus_enabled)
           {
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
-          }
-        else if ((!sd->horizontal) &&
-                 (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-                   (_item_multi_select_right(sd)))
-                  || (_item_single_select_right(sd))))
-          {
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
+             if ((sd->horizontal) &&
+                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
+                      && (_item_multi_select_down(sd)))
+                      || (_item_single_select_down(sd))))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else if ((!sd->horizontal) &&
+                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
+                      && (_item_multi_select_right(sd)))
+                      || (_item_single_select_right(sd))))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else
+               {
+                  x += step_x;
+               }
           }
         else
-          x += step_x;
+          {
+             if (_gengrid_item_focused_next(sd, FOCUS_DIR_RIGHT))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else
+               {
+                  return EINA_FALSE;
+               }
+          }
      }
    else if ((!strcmp(ev->keyname, "Up")) ||
             ((!strcmp(ev->keyname, "KP_Up")) && (!ev->string)))
      {
-        if ((sd->horizontal) &&
-            (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-              (_item_multi_select_left(sd)))
-             || (_item_single_select_left(sd))))
+        if (sd->select_on_focus_enabled)
           {
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
-          }
-        else if ((!sd->horizontal) &&
-                 (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-                   (_item_multi_select_up(sd)))
-                  || (_item_single_select_up(sd))))
-          {
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
+             if ((sd->horizontal) &&
+                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
+                      && (_item_multi_select_left(sd)))
+                      || (_item_single_select_left(sd))))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else if ((!sd->horizontal) &&
+                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
+                      && (_item_multi_select_up(sd)))
+                      || (_item_single_select_up(sd))))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else
+               {
+                  y -= step_y;
+               }
           }
         else
-          y -= step_y;
+          {
+             if (_gengrid_item_focused_next(sd, FOCUS_DIR_UP))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else
+               {
+                  return EINA_FALSE;
+               }
+          }
      }
    else if ((!strcmp(ev->keyname, "Down")) ||
             ((!strcmp(ev->keyname, "KP_Down")) && (!ev->string)))
      {
-        if ((sd->horizontal) &&
-            (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-              (_item_multi_select_right(sd)))
-             || (_item_single_select_right(sd))))
+        if (sd->select_on_focus_enabled)
           {
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
-          }
-        else if ((!sd->horizontal) &&
-                 (((evas_key_modifier_is_set(ev->modifiers, "Shift")) &&
-                   (_item_multi_select_down(sd)))
-                  || (_item_single_select_down(sd))))
-          {
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-             return EINA_TRUE;
+             if ((sd->horizontal) &&
+                   (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
+                   && (_item_multi_select_right(sd)))
+                   || (_item_single_select_right(sd))))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else if ((!sd->horizontal) &&
+                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
+                      && (_item_multi_select_down(sd)))
+                      || (_item_single_select_down(sd))))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else
+               {
+                  y += step_y;
+               }
           }
         else
-          y += step_y;
+          {
+             if (_gengrid_item_focused_next(sd, FOCUS_DIR_DOWN))
+               {
+                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+                  return EINA_TRUE;
+               }
+             else
+               {
+                  return EINA_FALSE;
+               }
+          }
      }
    else if ((!strcmp(ev->keyname, "Home")) ||
             ((!strcmp(ev->keyname, "KP_Home")) && (!ev->string)))
      {
-        it = elm_gengrid_first_item_get(obj);
-        elm_gengrid_item_bring_in(it, ELM_GENGRID_ITEM_SCROLLTO_IN);
-        elm_gengrid_item_selected_set(it, EINA_TRUE);
-        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+        if (sd->select_on_focus_enabled)
+          {
+             it = elm_gengrid_first_item_get(obj);
+             elm_gengrid_item_bring_in(it, ELM_GENGRID_ITEM_SCROLLTO_IN);
+             elm_gengrid_item_selected_set(it, EINA_TRUE);
+             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+          }
+        else
+          {
+             _gengrid_item_unfocused(sd->focused);
+             _gengrid_item_focused_next(sd, FOCUS_DIR_DOWN);
+             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+          }
         return EINA_TRUE;
      }
    else if ((!strcmp(ev->keyname, "End")) ||
-            ((!strcmp(ev->keyname, "KP_End")) && (!ev->string)))
+         ((!strcmp(ev->keyname, "KP_End")) && (!ev->string)))
      {
-        it = elm_gengrid_last_item_get(obj);
-        elm_gengrid_item_bring_in(it, ELM_GENGRID_ITEM_SCROLLTO_IN);
-        elm_gengrid_item_selected_set(it, EINA_TRUE);
-        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+        if (sd->select_on_focus_enabled)
+          {
+             it = elm_gengrid_last_item_get(obj);
+             elm_gengrid_item_bring_in(it, ELM_GENGRID_ITEM_SCROLLTO_IN);
+             elm_gengrid_item_selected_set(it, EINA_TRUE);
+             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+          }
+        else
+          {
+             _gengrid_item_unfocused(sd->focused);
+             sd->focused = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
+             _gengrid_item_focused_next(sd, FOCUS_DIR_UP);
+             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+          }
         return EINA_TRUE;
      }
    else if ((!strcmp(ev->keyname, "Prior")) ||
-            ((!strcmp(ev->keyname, "KP_Prior")) && (!ev->string)))
+         ((!strcmp(ev->keyname, "KP_Prior")) && (!ev->string)))
      {
         if (sd->horizontal)
           {
@@ -1920,7 +2172,7 @@ _elm_gengrid_smart_event(Evas_Object *obj,
           }
      }
    else if ((!strcmp(ev->keyname, "Next")) ||
-            ((!strcmp(ev->keyname, "KP_Next")) && (!ev->string)))
+         ((!strcmp(ev->keyname, "KP_Next")) && (!ev->string)))
      {
         if (sd->horizontal)
           {
@@ -1944,9 +2196,9 @@ _elm_gengrid_smart_event(Evas_Object *obj,
         return EINA_TRUE;
      }
    else if (((!strcmp(ev->keyname, "Return")) ||
-             (!strcmp(ev->keyname, "KP_Enter")) ||
-             (!strcmp(ev->keyname, "space")))
-            && (!sd->multi) && (sd->selected))
+          (!strcmp(ev->keyname, "KP_Enter")) ||
+          (!strcmp(ev->keyname, "space")))
+         && (!sd->multi) && (sd->selected))
      {
         it = elm_gengrid_selected_item_get(obj);
         evas_object_smart_callback_call(WIDGET(it), SIG_ACTIVATED, it);
@@ -1970,6 +2222,33 @@ _elm_gengrid_smart_on_focus(Evas_Object *obj)
        (!sd->last_selected_item))
      sd->last_selected_item = eina_list_data_get(sd->selected);
 
+   if (sd->select_on_focus_enabled) return EINA_TRUE;
+
+   if (elm_widget_focus_get(obj))
+     {
+        if (elm_win_focus_highlight_enabled_get(elm_widget_top_get(obj)))
+          {
+             if (sd->last_selected_item)
+               {
+                  _gengrid_item_focused((Elm_Gen_Item *)sd->last_selected_item);
+               }
+             else if (sd->focused)
+               {
+                  edje_object_signal_emit
+                    (VIEW(sd->focused), "elm,state,focused", "elm");
+               }
+             else
+               _gengrid_item_focused_next(sd, FOCUS_DIR_DOWN);
+          }
+     }
+   else
+     {
+        if (sd->focused)
+          {
+             edje_object_signal_emit
+                (VIEW(sd->focused), "elm,state,unfocused", "elm");
+          }
+     }
    return EINA_TRUE;
 }
 
@@ -2589,6 +2868,14 @@ _elm_gengrid_smart_add(Evas_Object *obj)
    pan_data->wsd = priv;
 
    priv->s_iface->extern_pan_set(obj, priv->pan_obj);
+
+   const char *str = edje_object_data_get(ELM_WIDGET_DATA(priv)->resize_obj,
+                                          "focus_highlight");
+   if ((str) && (!strcmp(str, "on")))
+      elm_widget_highlight_in_theme_set(obj, EINA_TRUE);
+   else
+      elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
+   priv->select_on_focus_enabled = EINA_FALSE;
 }
 
 static void

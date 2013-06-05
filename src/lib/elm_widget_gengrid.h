@@ -135,6 +135,8 @@ struct _Elm_Gengrid_Smart_Data
    Evas_Object                          *hit_rect;
    Evas_Object                          *pan_obj;
 
+   Evas_Object                          *focused_content;
+   Elm_Gen_Item                         *focused;
    Eina_List                            *selected; /* a list of
                                                     * selected
                                                     * items */
@@ -229,6 +231,7 @@ struct _Elm_Gengrid_Smart_Data
    Eina_Bool                             fx_items_deleted : 1;
    Eina_Bool                             gengrid_clearing : 1;
 #endif
+   Eina_Bool                             select_on_focus_enabled : 1;
 };
 
 struct Elm_Gen_Item_Type
