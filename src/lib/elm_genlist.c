@@ -4978,15 +4978,6 @@ _size_cache_free(void *data)
 }
 
 static Evas_Event_Flags
-_pinch_zoom_start_cb(void *data, void *event_info __UNUSED__)
-{
-   Elm_Genlist_Smart_Data *sd = data;
-   if (!elm_widget_scroll_freeze_get(ELM_WIDGET_DATA(sd)->obj))
-     elm_object_scroll_freeze_push(ELM_WIDGET_DATA(sd)->obj);
-   return EVAS_EVENT_FLAG_NONE;
-}
-
-static Evas_Event_Flags
 _pinch_zoom_cb(void *data, void *event_info)
 {
    Elm_Genlist_Smart_Data *sd = data;
@@ -5009,15 +5000,6 @@ _pinch_zoom_cb(void *data, void *event_info)
           elm_genlist_pinch_zoom_mode_set(ELM_WIDGET_DATA(sd)->obj, ELM_GEN_PINCH_ZOOM_CONTRACT);
      }
 
-   return EVAS_EVENT_FLAG_NONE;
-}
-
-static Evas_Event_Flags
-_pinch_zoom_end_cb(void *data, void *event_info __UNUSED__)
-{
-   Elm_Genlist_Smart_Data *sd = data;
-   if (elm_widget_scroll_freeze_get(ELM_WIDGET_DATA(sd)->obj))
-     elm_object_scroll_freeze_pop(ELM_WIDGET_DATA(sd)->obj);
    return EVAS_EVENT_FLAG_NONE;
 }
 
@@ -5129,14 +5111,8 @@ _elm_genlist_smart_add(Evas_Object *obj)
    if (!priv->g_layer) ERR("elm_gesture_layer_add() failed");
    elm_gesture_layer_attach(priv->g_layer, priv->hit_rect);
    elm_gesture_layer_cb_set
-      (priv->g_layer, ELM_GESTURE_ZOOM, ELM_GESTURE_STATE_START,
-       _pinch_zoom_start_cb, priv);
-   elm_gesture_layer_cb_set
       (priv->g_layer, ELM_GESTURE_ZOOM, ELM_GESTURE_STATE_MOVE,
        _pinch_zoom_cb, priv);
-   elm_gesture_layer_cb_set
-      (priv->g_layer, ELM_GESTURE_ZOOM, ELM_GESTURE_STATE_END,
-       _pinch_zoom_end_cb, priv);
    elm_layout_sizing_eval(obj);
 }
 
