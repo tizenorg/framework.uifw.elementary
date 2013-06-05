@@ -1283,6 +1283,24 @@ _access_obj_del_cb(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, 
    evas_object_data_del(obj, "_part_access_obj");
 }
 
+static void
+_access_hoverobj_hide_cb(void *data __UNUSED__, Evas *e, Evas_Object *obj, void *event_info __UNUSED__)
+{
+   Elm_Access_Info *ac;
+   Evas_Object *o, *ptarget;
+
+   o = evas_object_name_find(e, "_elm_access_disp");
+   if (!o) return;
+
+   ptarget = evas_object_data_get(o, "_elm_access_target");
+   if (!ptarget) return;
+
+   ac = evas_object_data_get(ptarget, "_elm_access");
+   if (!ac) return;
+
+   if (ac->hoverobj == obj) evas_object_hide(o);
+}
+
 EAPI void
 _elm_access_object_register(Evas_Object *obj, Evas_Object *hoverobj)
 {
@@ -1292,6 +1310,8 @@ _elm_access_object_register(Evas_Object *obj, Evas_Object *hoverobj)
                                   _access_obj_mouse_in_cb, obj);
    evas_object_event_callback_add(hoverobj, EVAS_CALLBACK_DEL,
                                   _access_obj_del_cb, obj);
+   evas_object_event_callback_add(hoverobj, EVAS_CALLBACK_HIDE,
+                                  _access_hoverobj_hide_cb, obj);
    ac = calloc(1, sizeof(Elm_Access_Info));
    evas_object_data_set(obj, "_elm_access", ac);
 
@@ -1307,6 +1327,8 @@ _elm_access_object_unregister(Evas_Object *obj, Evas_Object *hoverobj)
                                        _access_obj_mouse_in_cb, obj);
    evas_object_event_callback_del_full(hoverobj, EVAS_CALLBACK_DEL,
                                        _access_obj_del_cb, obj);
+   evas_object_event_callback_del_full(hoverobj, EVAS_CALLBACK_HIDE,
+                                       _access_hoverobj_hide_cb, obj);
 
    ac = evas_object_data_get(obj, "_elm_access");
    evas_object_data_del(obj, "_elm_access");
