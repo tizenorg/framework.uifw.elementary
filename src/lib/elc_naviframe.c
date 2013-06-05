@@ -34,6 +34,19 @@ static const char SIG_CLICKED[] = "clicked";
 
 static void _on_item_back_btn_clicked(void *data, Evas_Object *obj, void *event_info __UNUSED__);
 
+static void
+_prev_page_focus_recover(Elm_Naviframe_Item *it)
+{
+   Evas_Object *newest;
+   unsigned int order;
+
+   newest = elm_widget_newest_focus_order_get(VIEW(it), &order, EINA_TRUE);
+   if (newest)
+     elm_object_focus_set(newest, EINA_TRUE);
+   else
+     elm_object_focus_set(VIEW(it), EINA_TRUE);
+}
+
 static Eina_Bool
 _elm_naviframe_smart_translate(Evas_Object *obj)
 {
@@ -505,6 +518,8 @@ _item_del_pre_hook(Elm_Object_Item *it)
         elm_widget_resize_object_set(WIDGET(prev_it), VIEW(prev_it));
         evas_object_show(VIEW(prev_it));
         evas_object_raise(VIEW(prev_it));
+
+        _prev_page_focus_recover(prev_it);
 
         elm_object_signal_emit(VIEW(prev_it), "elm,state,visible", "elm");
      }
@@ -1226,8 +1241,6 @@ _on_item_show_finished(void *data,
                        const char *source __UNUSED__)
 {
    Elm_Naviframe_Item *it = data;
-   unsigned int order = 0;
-   Evas_Object *newest;
 
    ELM_NAVIFRAME_DATA_GET(WIDGET(it), sd);
 
@@ -1235,18 +1248,7 @@ _on_item_show_finished(void *data,
 
    elm_widget_tree_unfocusable_set(VIEW(it), it->unfocusable);
 
-   newest = elm_widget_newest_focus_order_get(VIEW(it), &order, EINA_TRUE);
-   if (newest)
-   {
-     elm_object_focus_set(newest, EINA_TRUE);
-   }
-   else
-   {
-     if (_elm_config->access_mode)
-       _access_focus_set(it);
-     else
-       elm_object_focus_set(VIEW(it), EINA_TRUE);
-   }
+   _prev_page_focus_recover(it);
 
    if (sd->freeze_events)
      evas_object_freeze_events_set(VIEW(it), EINA_FALSE);
