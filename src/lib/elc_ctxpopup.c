@@ -68,7 +68,11 @@ _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
         ao = _access_object_get(obj, ACCESS_OUTLINE_PART);
         if (ao) items = eina_list_append(items, ao);
 
-        items = eina_list_append(items, sd->scr);
+        /* scroller exists when ctxpopup has an item */
+        if (sd->scr)
+           items = eina_list_append(items, sd->scr);
+        else
+           items = eina_list_append(items, sd->box);
 
         return elm_widget_focus_list_next_get
                  (obj, items, eina_list_data_get, dir, next);
