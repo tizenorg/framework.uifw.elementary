@@ -330,7 +330,11 @@ _elm_widget_sub_object_del_func(Evas_Object *obj,
              if (getenv("ELM_ERROR_ABORT")) abort_on_warn = 1;
              else abort_on_warn = 0;
           }
-        if (abort_on_warn == 1) abort();
+        if (abort_on_warn == 1)
+          {
+             ERR("### EFL abort on errors ###\n");
+             abort();
+          }
 
         return EINA_FALSE;
      }
@@ -3681,7 +3685,11 @@ elm_widget_is_check(const Evas_Object *obj)
         if (getenv("ELM_ERROR_ABORT")) abort_on_warn = 1;
         else abort_on_warn = 0;
      }
-   if (abort_on_warn == 1) abort();
+   if (abort_on_warn == 1)
+     {
+        ERR("### EFL abort on errors ###\n");
+        abort();
+     }
    return EINA_FALSE;
 }
 
@@ -3718,7 +3726,11 @@ elm_widget_type_check(const Evas_Object *obj,
         if (getenv("ELM_ERROR_ABORT")) abort_on_warn = 1;
         else abort_on_warn = 0;
      }
-   if (abort_on_warn == 1) abort();
+   if (abort_on_warn == 1)
+     {
+        ERR("### EFL abort on errors ###\n");
+        abort();
+     }
    return EINA_FALSE;
 }
 
