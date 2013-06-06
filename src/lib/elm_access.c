@@ -26,6 +26,7 @@ typedef struct _Action_Info Action_Info;
 
 static Eina_Bool mouse_event_enable = EINA_TRUE;
 static Eina_Bool auto_highlight = EINA_FALSE;
+static Eina_Bool invalid_mouse_in = EINA_FALSE;
 static Evas_Coord_Point offset;
 static Evas_Object *s_parent; /* scrollable parent */
 static Elm_Access_Action_Type action_by = ELM_ACCESS_ACTION_FIRST;
@@ -323,7 +324,11 @@ _access_obj_mouse_in_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSE
    Elm_Access_Info *ac;
    Evas_Object *ho;
 
-   if (!mouse_event_enable) return;
+   if (!mouse_event_enable)
+     {
+        invalid_mouse_in = EINA_TRUE;
+        return;
+     }
 
    ac = evas_object_data_get(data, "_elm_access");
    if (!ac) return;
@@ -1523,6 +1528,13 @@ elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *act
         if (!evas) return EINA_FALSE;
 
         evas_event_feed_mouse_in(evas, 0, NULL);
+
+        if (invalid_mouse_in)
+          {
+             /* there would be more proper way to revert mouse_in status */
+             evas_event_feed_mouse_move(evas, -1, -1, 0, NULL);
+             invalid_mouse_in = EINA_FALSE;
+          }
 
         _elm_access_mouse_event_enabled_set(EINA_TRUE);
         evas_event_feed_mouse_move(evas, a->x, a->y, 0, NULL);
