@@ -68,15 +68,7 @@ _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
         ao = _access_object_get(obj, ACCESS_OUTLINE_PART);
         if (ao) items = eina_list_append(items, ao);
 
-        if (eina_list_count(sd->items))
-          {
-             EINA_LIST_FOREACH(sd->items, elist, it)
-                items = eina_list_append(items, it->base.access_obj);
-          }
-        else
-          {
-             items = eina_list_append(items, sd->box);
-          }
+        items = eina_list_append(items, sd->scr);
 
         return elm_widget_focus_list_next_get
                  (obj, items, eina_list_data_get, dir, next);
@@ -244,6 +236,12 @@ _access_state_cb(void *data, Evas_Object *obj __UNUSED__)
    return NULL;
 }
 
+static char *
+_access_type_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__)
+{
+   return strdup(E_("Contextual Popup"));
+}
+
 static void
 _access_activate_cb(void *data __UNUSED__,
                     Evas_Object *part_obj __UNUSED__,
@@ -253,22 +251,18 @@ _access_activate_cb(void *data __UNUSED__,
 }
 
 static void
-_access_widget_item_register(Elm_Ctxpopup_Item *it, Eina_Bool is_access)
+_access_focusable_button_register(Evas_Object *obj, Elm_Ctxpopup_Item *it)
 {
    Elm_Access_Info *ai;
 
-   if (!is_access) _elm_access_widget_item_unregister((Elm_Widget_Item *)it);
-   else
-     {
-        _elm_access_widget_item_register((Elm_Widget_Item *)it);
+   ai = _elm_access_object_get(obj);
 
-        ai = _elm_access_object_get(it->base.access_obj);
+   _elm_access_callback_set(ai, ELM_ACCESS_INFO, _access_info_cb, it);
+   _elm_access_callback_set(ai, ELM_ACCESS_STATE, _access_state_cb, it);
+   _elm_access_callback_set(ai, ELM_ACCESS_TYPE, _access_type_cb, NULL);
+   _elm_access_activate_callback_set(ai, _access_activate_cb, it);
 
-        _elm_access_callback_set(ai, ELM_ACCESS_INFO, _access_info_cb, it);
-        _elm_access_callback_set(ai, ELM_ACCESS_STATE, _access_state_cb, it);
-        _elm_access_text_set(ai, ELM_ACCESS_TYPE, E_("Contextual Popup"));
-        _elm_access_activate_callback_set(ai, _access_activate_cb, it);
-     }
+   ((Elm_Widget_Item *)it)->access_obj = obj;
 }
 
 static void
@@ -284,9 +278,6 @@ _item_new(Elm_Ctxpopup_Item *item,
                          elm_widget_style_get(WIDGET(item)));
    evas_object_size_hint_align_set(VIEW(item), EVAS_HINT_FILL, EVAS_HINT_FILL);
    evas_object_show(VIEW(item));
-
-   /* access */
-   if (_elm_config->access_mode) _access_widget_item_register(item, EINA_TRUE);
 }
 
 static void
@@ -1719,9 +1710,6 @@ _elm_ctxpopup_smart_access(Evas_Object *obj, Eina_Bool is_access)
    ELM_CTXPOPUP_DATA_GET(obj, sd);
 
    _access_obj_process(obj, is_access);
-
-   EINA_LIST_FOREACH(sd->items, elist, it)
-     _access_widget_item_register(it, is_access);
 }
 
 static void
@@ -1967,6 +1955,8 @@ elm_ctxpopup_item_append(Evas_Object *obj,
         _elm_ctxpopup_smart_sizing_eval(obj);
      }
 
+
+   if (_elm_config->access_mode) _access_focusable_button_register(focus_bt, item);
 
    return (Elm_Object_Item *)item;
 }
