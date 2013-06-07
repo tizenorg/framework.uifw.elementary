@@ -11,7 +11,7 @@ group "Elm_Config" struct {
   value "thumbscroll_friction_standard" double: 3500.0;
   value "thumbscroll_bounce_friction" double: 0.5;
   value "thumbscroll_bounce_enable" uchar: 0;
-  value "page_scroll_friction" double: 0.5;
+  value "page_scroll_friction" double: 0.2;
   value "bring_in_scroll_friction" double: 0.5;
   value "zoom_friction" double: 0.5;
   value "thumbscroll_border_friction" double: 0.5;
