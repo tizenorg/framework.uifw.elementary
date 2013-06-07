@@ -2201,6 +2201,7 @@ _elm_gengrid_smart_event(Evas_Object *obj,
      {
         it = elm_gengrid_selected_item_get(obj);
         evas_object_smart_callback_call(WIDGET(it), SIG_ACTIVATED, it);
+        return EINA_TRUE;
      }
    else return EINA_FALSE;
 
