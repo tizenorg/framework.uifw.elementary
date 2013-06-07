@@ -2914,6 +2914,7 @@ _elm_genlist_smart_event(Evas_Object *obj,
              Elm_Gen_Item *it = sd->focused;
              _item_select_unselect(it, EINA_TRUE);
              evas_object_smart_callback_call(WIDGET(it), SIG_ACTIVATED, it);
+             return EINA_TRUE;
           }
      }
    else return EINA_FALSE;
