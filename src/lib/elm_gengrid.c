@@ -920,9 +920,11 @@ _item_realize(Elm_Gen_Item *it)
         if (it->selected)
           edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
 
-        if (GG_IT(it)->wsd->focused)
-          edje_object_signal_emit (VIEW(GG_IT(it)->wsd->focused), "elm,state,focused", "elm");
-
+        if (elm_widget_focus_get(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj))
+          {
+             if (GG_IT(it)->wsd->focused)
+                edje_object_signal_emit (VIEW(GG_IT(it)->wsd->focused), "elm,state,focused", "elm");
+          }
         if (elm_widget_item_disabled_get(it))
           edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
      }

@@ -1884,8 +1884,11 @@ _item_realize(Elm_Gen_Item *it,
              edje_object_message_signal_process(it->item->deco_it_view);
           }
      }
-   if (GL_IT(it)->wsd->focused)
-     edje_object_signal_emit (VIEW(GL_IT(it)->wsd->focused), "elm,state,focused", "elm");
+   if (elm_widget_focus_get(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj))
+     {
+        if (GL_IT(it)->wsd->focused)
+           edje_object_signal_emit (VIEW(GL_IT(it)->wsd->focused), "elm,state,focused", "elm");
+     }
    edje_object_message_signal_process(VIEW(it));
 }
 
