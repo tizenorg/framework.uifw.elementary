@@ -1662,7 +1662,6 @@ _item_realize(Elm_Gen_Item *it,
         const char *stacking_even;
         const char *stacking;
         const char *key;
-        const Eina_List *l;
 
         it->item->nocache_once = EINA_FALSE;
 
@@ -1689,7 +1688,7 @@ _item_realize(Elm_Gen_Item *it,
         Eina_List *txts = elm_widget_stringlist_get
            (edje_object_data_get(VIEW(it), "texts"));
 
-        EINA_LIST_FOREACH(txts, l, key)
+        EINA_LIST_FREE(txts, key)
           {
              const Evas_Object *txt_obj = NULL;
              const char *type = NULL;
