@@ -1396,6 +1396,10 @@ _elm_access_widget_item_unregister(Elm_Widget_Item *item)
    if (!item->access_obj) return;
 
    Elm_Access_Info *ac = _elm_access_object_get(item->access_obj);
+   /* ac could be NULL, when the hover object is deleted only.
+      access object is not deleted even though the hover object is delete only */
+   if (!ac) return;
+
    ho = ac->hoverobj;
 
    evas_object_event_callback_del_full(ho, EVAS_CALLBACK_RESIZE,
