@@ -1849,7 +1849,11 @@ _on_entry_unfocused(void *data,
         Elm_Multibuttonentry_Item *it;
 
         it = _item_new(data, str, NULL, NULL);
-        if (!it) return;
+        if (!it)
+          {
+             free(str);
+             return;
+          }
 
         sd->items = eina_list_append(sd->items, it);
 #ifdef _VI_EFFECT
@@ -1890,7 +1894,11 @@ _entry_filter(void *data,
         Elm_Multibuttonentry_Item *it;
 
         it = _item_new(data, str, NULL, NULL);
-        if (!it) return;
+        if (!it)
+          {
+             free(str);
+             return;
+          }
 
         sd->items = eina_list_append(sd->items, it);
 #ifdef _VI_EFFECT
@@ -1938,7 +1946,11 @@ _on_entry_key_down(void *data,
              Elm_Multibuttonentry_Item *it;
 
              it = _item_new(data, str, NULL, NULL);
-             if (!it) return;
+             if (!it)
+               {
+                  free(str);
+                  return;
+               }
 
              sd->items = eina_list_append(sd->items, it);
 #ifdef _VI_EFFECT
