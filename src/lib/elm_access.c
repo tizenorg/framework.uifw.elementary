@@ -526,22 +526,6 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
                {
                   if(!!evas_object_smart_interface_get(s_parent, ELM_SCROLLABLE_IFACE_NAME))
                     break;
-                  else
-                    {
-                       Eina_List *scr_children, *l;
-                       Evas_Object *child;
-                       Eina_Bool check = EINA_FALSE;
-
-                       scr_children = elm_widget_scrollable_children_get(s_parent);
-                       EINA_LIST_FOREACH(scr_children, l, child)
-                         {
-                            s_parent = child;
-                            check = EINA_TRUE;
-                            break;
-                         }
-                       eina_list_free(scr_children);
-                       if (check) break;
-                    }
                   s_parent = elm_widget_parent_get(s_parent);
                }
 
