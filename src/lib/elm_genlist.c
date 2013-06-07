@@ -1400,6 +1400,44 @@ _changed_size_hints(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__,
 #endif
 
 static Eina_List *
+_item_content_unrealize(Elm_Gen_Item *it,
+                        Evas_Object *target,
+                        Eina_List **source,
+                        const char *parts)
+{
+   Eina_List *res = it->content_objs;
+
+   if (it->itc->func.content_get)
+     {
+        const Eina_List *l;
+        const char *key;
+        Evas_Object *ic = NULL;
+
+        EINA_LIST_FOREACH(*source, l, key)
+          {
+             if (parts && fnmatch(parts, key, FNM_PERIOD))
+               continue;
+
+             ic = edje_object_part_swallow_get(target, key);
+             if (ic)
+               {
+                  res = eina_list_remove(res, ic);
+                  edje_object_part_unswallow(target, ic);
+                  // FIXME: If parent-child relationship was broken before 'ic'
+                  // is deleted, freeze_pop will not be called. ex) elm_slider
+                  // If layout is used instead of edje, this problme can be
+                  // solved.
+                  if (0 != elm_widget_scroll_freeze_get(ic))
+                    elm_widget_scroll_freeze_pop(ic);
+                  evas_object_del(ic);
+               }
+          }
+     }
+
+   return res;
+}
+
+static Eina_List *
 _item_content_realize(Elm_Gen_Item *it,
                       Evas_Object *target,
                       Eina_List **source,
@@ -1780,9 +1818,9 @@ _item_realize(Elm_Gen_Item *it,
         _elm_genlist_item_state_update(it);
         _elm_genlist_item_index_update(it);
 
-        if (eina_list_count(it->content_objs) != 0)
-          ERR_ABORT("If you see this error, please notify us and we"
-                    "will fix it");
+        if (it->content_objs)
+          it->content_objs = _item_content_unrealize(it, VIEW(it),
+                                                     &it->contents, NULL);
 
         _item_text_realize(it, VIEW(it), &it->texts, NULL);
         it->content_objs =
@@ -4459,44 +4497,6 @@ _item_mode_content_unrealize(Elm_Gen_Item *it,
                {
                   res = eina_list_remove(res, ic);
                   edje_object_part_unswallow(target, ic);
-                  evas_object_del(ic);
-               }
-          }
-     }
-
-   return res;
-}
-
-static Eina_List *
-_item_content_unrealize(Elm_Gen_Item *it,
-                        Evas_Object *target,
-                        Eina_List **source,
-                        const char *parts)
-{
-   Eina_List *res = it->content_objs;
-
-   if (it->itc->func.content_get)
-     {
-        const Eina_List *l;
-        const char *key;
-        Evas_Object *ic = NULL;
-
-        EINA_LIST_FOREACH(*source, l, key)
-          {
-             if (parts && fnmatch(parts, key, FNM_PERIOD))
-               continue;
-
-             ic = edje_object_part_swallow_get(target, key);
-             if (ic)
-               {
-                  res = eina_list_remove(res, ic);
-                  edje_object_part_unswallow(target, ic);
-                  // FIXME: If parent-child relationship was broken before 'ic'
-                  // is deleted, freeze_pop will not be called. ex) elm_slider
-                  // If layout is used instead of edje, this problme can be
-                  // solved.
-                  if (0 != elm_widget_scroll_freeze_get(ic))
-                    elm_widget_scroll_freeze_pop(ic);
                   evas_object_del(ic);
                }
           }
