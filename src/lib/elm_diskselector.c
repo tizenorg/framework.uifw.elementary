@@ -20,6 +20,7 @@ static const char SIG_SCROLL_ANIM_START[] = "scroll,anim,start";
 static const char SIG_SCROLL_ANIM_STOP[] = "scroll,anim,stop";
 static const char SIG_SCROLL_DRAG_START[] = "scroll,drag,start";
 static const char SIG_SCROLL_DRAG_STOP[] = "scroll,drag,stop";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_SELECTED, ""},
@@ -28,6 +29,7 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_SCROLL_ANIM_STOP, ""},
    {SIG_SCROLL_DRAG_START, ""},
    {SIG_SCROLL_DRAG_STOP, ""},
+   {SIG_ACCESS_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -1419,6 +1421,7 @@ _elm_diskselector_smart_access(Evas_Object *obj, Eina_Bool is_access)
      ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next = NULL;
 
    //TODO: register, unregister item
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
 }
 
 

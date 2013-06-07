@@ -5,6 +5,7 @@
 EAPI const char ELM_BUBBLE_SMART_NAME[] = "elm_bubble";
 
 static const char SIG_CLICKED[] = "clicked";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 
 static const Elm_Layout_Part_Alias_Description _content_aliases[] =
 {
@@ -23,6 +24,7 @@ static const Elm_Layout_Part_Alias_Description _text_aliases[] =
 static const Evas_Smart_Cb_Description _smart_callbacks[] =
 {
    {SIG_CLICKED, ""},
+   {SIG_ACCESS_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -212,6 +214,8 @@ _elm_bubble_smart_access(Evas_Object *obj, Eina_Bool is_access)
      elm_widget_can_focus_set(obj, EINA_TRUE);
    else
      elm_widget_can_focus_set(obj, EINA_FALSE);
+
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
 }
 
 static void

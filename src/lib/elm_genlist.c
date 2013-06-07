@@ -85,6 +85,7 @@ static const char SIG_PRESSED[] = "pressed";
 static const char SIG_RELEASED[] = "released";
 static const char SIG_FOCUSED[] = "item,focused";
 static const char SIG_UNFOCUSED[] = "item,unfocused";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CLICKED_DOUBLE, ""},
@@ -135,6 +136,7 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_LANG_CHANGED, ""},
    {SIG_PRESSED, ""},
    {SIG_RELEASED, ""},
+   {SIG_ACCESS_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -5204,6 +5206,8 @@ _elm_genlist_smart_access(Evas_Object *obj, Eina_Bool is_access)
    else
      ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next = NULL;
    _access_obj_process(sd, is_access);
+
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
 }
 
 static void

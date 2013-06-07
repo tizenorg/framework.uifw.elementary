@@ -10,10 +10,12 @@ static const char ACCESS_OUTLINE_PART[] = "access.outline";
 
 static const char SIG_DISMISSED[] = "dismissed";
 static const char SIG_LANG_CHANGED[] = "language,changed";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_DISMISSED, ""},
    {SIG_LANG_CHANGED, ""},
+   {SIG_ACCESS_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -1714,6 +1716,8 @@ _elm_ctxpopup_smart_access(Evas_Object *obj, Eina_Bool is_access)
    ELM_CTXPOPUP_DATA_GET(obj, sd);
 
    _access_obj_process(obj, is_access);
+
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
 }
 
 static void

@@ -17,6 +17,7 @@ static const char SIG_LANG_CHANGED[] = "language,changed";
 static const char SIG_SWIPE[] = "swipe";
 static const char SIG_HIGHLIGHTED[] = "highlighted";
 static const char SIG_UNHIGHLIGHTED[] = "unhighlighted";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_ACTIVATED, ""},
    {SIG_CLICKED_DOUBLE, ""},
@@ -31,6 +32,7 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_SWIPE, ""},
    {SIG_HIGHLIGHTED, ""},
    {SIG_UNHIGHLIGHTED, ""},
+   {SIG_ACCESS_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -1946,6 +1948,8 @@ _elm_list_smart_access(Evas_Object *obj, Eina_Bool is_access)
 
    EINA_LIST_FOREACH(sd->items, elist, it)
      _access_widget_item_register(it, is_access);
+
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
 }
 
 static void

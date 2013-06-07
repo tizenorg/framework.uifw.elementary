@@ -20,9 +20,11 @@ static const char TITLE_ACCESS_PART[] = "access.title";
 
 static const char SIG_TRANSITION_FINISHED[] = "transition,finished";
 static const char SIG_TITLE_CLICKED[] = "title,clicked";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_TRANSITION_FINISHED, ""},
    {SIG_TITLE_CLICKED, ""},
+   {SIG_ACCESS_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -1561,6 +1563,8 @@ _elm_naviframe_smart_access(Evas_Object *obj, Eina_Bool is_access)
 
    EINA_INLIST_FOREACH(sd->stack, it)
      _access_obj_process(it, is_access);
+
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
 }
 
 #if 0

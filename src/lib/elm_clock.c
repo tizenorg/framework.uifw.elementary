@@ -9,9 +9,11 @@ EAPI const char ELM_CLOCK_SMART_NAME[] = "elm_clock";
 static void _time_update(Evas_Object *obj);
 
 static const char SIG_CHANGED[] = "changed";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CHANGED, ""},
+   {SIG_ACCESS_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -779,6 +781,8 @@ _elm_clock_smart_access(Evas_Object *obj, Eina_Bool is_access)
    else
      ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next = NULL;
    _access_obj_process(obj, is_access);
+
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
 }
 
 static void

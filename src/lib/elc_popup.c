@@ -15,9 +15,11 @@ static const char ACCESS_BASE_PART[] = "access.base";
 
 static const char SIG_BLOCK_CLICKED[] = "block,clicked";
 static const char SIG_TIMEOUT[] = "timeout";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_BLOCK_CLICKED, ""},
    {SIG_TIMEOUT, ""},
+   {SIG_ACCESS_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -1618,6 +1620,8 @@ static void
 _elm_popup_smart_access(Evas_Object *obj, Eina_Bool is_access)
 {
    _access_obj_process(obj, is_access);
+
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
 }
 
 static Eina_Bool

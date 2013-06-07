@@ -11,11 +11,13 @@ static const char SIG_CLICKED[] = "clicked";
 static const char SIG_LONGPRESSED[] = "longpressed";
 static const char SIG_CLICKED_DOUBLE[] = "clicked,double";
 static const char SIG_LANG_CHANGED[] = "language,changed";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CLICKED, ""},
    {SIG_LONGPRESSED, ""},
    {SIG_CLICKED_DOUBLE, ""},
    {SIG_LANG_CHANGED, ""},
+   {SIG_ACCESS_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -2647,6 +2649,8 @@ _elm_toolbar_smart_access(Evas_Object *obj, Eina_Bool is_access)
    else
      ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next = NULL;
    _access_obj_process(sd, is_access);
+
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
 }
 
 static void

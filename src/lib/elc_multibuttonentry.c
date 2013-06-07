@@ -25,6 +25,7 @@ static const char SIG_EXPANDED[] = "expanded";
 static const char SIG_CONTRACTED[] = "contracted";
 static const char SIG_EXPAND_STATE_CHANGED[] = "expand,state,changed";
 static const char SIG_LONGPRESSED[] = "longpressed";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_ITEM_SELECTED, ""},
@@ -38,6 +39,7 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CONTRACTED, ""},
    {SIG_EXPAND_STATE_CHANGED, ""},
    {SIG_LONGPRESSED, ""},
+   {SIG_ACCESS_CHANGED, ""},
    {NULL, NULL}
 };
 
@@ -2314,6 +2316,8 @@ _elm_multibuttonentry_smart_access(Evas_Object *obj, Eina_Bool is_access)
 
    EINA_LIST_FOREACH(sd->items, elist, it)
      _access_widget_item_register(it, is_access);
+
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
 }
 
 static Eina_Bool
