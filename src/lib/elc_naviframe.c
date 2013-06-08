@@ -244,15 +244,7 @@ _access_focus_set(Elm_Naviframe_Item *it)
    ao = ((Elm_Widget_Item *)it)->access_obj;
 
    if (ao && it->title_visible)
-     {
-        elm_object_focus_set(ao, EINA_TRUE);
-     }
-   else if ((it->title_icon) &&
-            (elm_widget_can_focus_get(it->title_icon) ||
-             elm_widget_child_can_focus_get(it->title_icon)))
-     {
-        elm_object_focus_set(it->title_icon, EINA_TRUE);
-     }
+     elm_object_focus_set(ao, EINA_TRUE);
    else elm_object_focus_set(it->content, EINA_TRUE);
 }
 
