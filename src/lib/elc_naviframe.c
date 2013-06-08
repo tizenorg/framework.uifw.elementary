@@ -337,11 +337,16 @@ static char *
 _access_info_cb(void *data, Evas_Object *obj __UNUSED__)
 {
    Evas_Object *layout;
+   Elm_Naviframe_Item *nit;
    Eina_Strbuf *buf;
    const char *info;
    char *ret;
 
-   layout = (Evas_Object *)data;
+   nit = data;
+
+   if (!nit->title_visible) return NULL;
+
+   layout = VIEW(nit);
    info = elm_object_part_text_get(layout, TITLE_PART);
    if (!info) return NULL;
 
@@ -364,7 +369,7 @@ _access_obj_process(Elm_Naviframe_Item *it, Eina_Bool is_access)
 {
    Evas_Object *ao, *eo;
 
-   if (is_access)
+   if (is_access && (it->title_label || it->subtitle_label))
      {
         ao = ((Elm_Widget_Item *)it)->access_obj;
 
@@ -376,7 +381,7 @@ _access_obj_process(Elm_Naviframe_Item *it, Eina_Bool is_access)
              _elm_access_text_set(_elm_access_object_get(ao),
                                  ELM_ACCESS_TYPE, E_("title"));
              _elm_access_callback_set(_elm_access_object_get(ao),
-                                      ELM_ACCESS_INFO, _access_info_cb, VIEW(it));
+                                      ELM_ACCESS_INFO, _access_info_cb, it);
 
              /* to access title access object, any idea? */
              ((Elm_Widget_Item *)it)->access_obj = ao;
@@ -384,13 +389,13 @@ _access_obj_process(Elm_Naviframe_Item *it, Eina_Bool is_access)
      }
    else
      {
-        if (it->title_label)
-          _elm_access_edje_object_part_object_unregister
-                (VIEW(it), elm_layout_edje_get(VIEW(it)), TITLE_ACCESS_PART);
-
         /* to access title access object, any idea? */
         ao = ((Elm_Widget_Item *)it)->access_obj;
         if (!ao) return;
+
+        if (it->title_label || it->subtitle_label)
+          _elm_access_edje_object_part_object_unregister
+             (VIEW(it), elm_layout_edje_get(VIEW(it)), TITLE_ACCESS_PART);
         evas_object_del(ao);
      }
 }
