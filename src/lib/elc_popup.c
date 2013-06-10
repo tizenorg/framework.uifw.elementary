@@ -365,11 +365,6 @@ _elm_popup_smart_theme(Evas_Object *obj)
         snprintf(buf, sizeof(buf), "buttons%u", sd->button_count);
         elm_layout_theme_set(sd->action_area, "popup", buf,
                              elm_widget_style_get(obj));
-        for (i = 0; i < ELM_POPUP_ACTION_BUTTON_MAX; i++)
-          {
-             if (!sd->buttons[i]) continue;
-             elm_object_style_set(sd->buttons[i]->btn, buf);
-          }
      }
    elm_layout_theme_set(sd->content_area, "popup", "content",
                         elm_widget_style_get(obj));
