@@ -859,6 +859,7 @@ _on_del(void *data,
                    void *event_info __UNUSED__)
 {
    ELM_CONFORMANT_DATA_GET(data, sd);
+   EINA_SAFETY_ON_NULL_RETURN(sd);
 
    if (sd->scroller)
      {
