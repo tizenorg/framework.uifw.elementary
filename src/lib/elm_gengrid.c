@@ -286,6 +286,7 @@ _elm_gengrid_pan_smart_move(Evas_Object *obj,
 {
    ELM_GENGRID_PAN_DATA_GET(obj, psd);
 
+   if (psd->wsd->calc_job) ecore_job_del(psd->wsd->calc_job);
    _calc_job(psd->wsd);
 }
 
