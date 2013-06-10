@@ -2562,6 +2562,7 @@ _tempfile_new(int size)
    /* Set map to NULL and return */
    info->map = NULL;
    info->len = 0;
+   free(info->filename);
    free(info);
    return NULL;
 #else
