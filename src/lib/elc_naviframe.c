@@ -1478,7 +1478,7 @@ _elm_naviframe_smart_focus_next(const Evas_Object *obj,
           {
              /* if a highlight meet end, give a highlight to the title  */
              *next = ao;
-             return EINA_TRUE;
+             return ret;
           }
      }
 

@@ -729,16 +729,38 @@ _elm_access_all_read_stop()
 static void
 _access_all_read_done(void *data)
 {
-   printf("all read done\n");
-   _elm_access_highlight_cycle(data, ELM_FOCUS_NEXT);
+   Eina_Bool ret;
+   ret = _access_highlight_next_get(data, ELM_FOCUS_NEXT);
+
+   if (!ret) _elm_access_all_read_stop();
 }
 
 void
 _elm_access_all_read_start(Evas_Object *obj)
 {
-   Evas_Object *ho;
+   int type;
+   Evas_Object *ho, *parent, *target;
+   Eina_Bool ret;
+
+   target = NULL;
+   ret = EINA_FALSE;
 
    ho = _access_highlight_object_get(obj);
+   parent = ho;
+
+   /* find highlight root */
+   while (parent)
+     {
+        ELM_WIDGET_DATA_GET(parent, sd);
+        if (sd->highlight_root)
+          {
+             /* change highlight root */
+             obj = parent;
+             break;
+          }
+        parent = elm_widget_parent_get(parent);
+     }
+
    if (ho) _elm_access_object_unhilight(ho);
 
    _access_init();
@@ -748,7 +770,28 @@ _elm_access_all_read_start(Evas_Object *obj)
            mapi->out_done_callback_set(_access_all_read_done, obj);
      }
 
-   _elm_access_highlight_cycle(obj, ELM_FOCUS_NEXT);
+   _elm_access_auto_highlight_set(EINA_TRUE);
+
+   ret = elm_widget_focus_next_get(obj, ELM_FOCUS_NEXT, &target);
+   if (ret && target)
+     {
+        type = ELM_ACCESS_ACTION_HIGHLIGHT_NEXT;
+
+        if (!_access_action_callback_call(ho, type, NULL))
+          {
+             /* this value is used in _elm_access_object_highlight();
+                to inform the target object of how to get highlight */
+             action_by = type;
+
+             _elm_access_highlight_set(target);
+
+             action_by = ELM_ACCESS_ACTION_FIRST;
+          }
+     }
+
+   _elm_access_auto_highlight_set(EINA_FALSE);
+
+   if (!ret) _elm_access_all_read_stop();
 }
 
 //-------------------------------------------------------------------------//
