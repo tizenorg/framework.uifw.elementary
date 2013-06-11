@@ -35,6 +35,7 @@ EVAS_SMART_SUBCLASS_NEW
 static const char SIG_CLICKED[] = "clicked";
 
 static void _on_item_back_btn_clicked(void *data, Evas_Object *obj, void *event_info __UNUSED__);
+static void _access_focus_set(Elm_Naviframe_Item *it);
 
 static void
 _prev_page_focus_recover(Elm_Naviframe_Item *it)
@@ -46,7 +47,12 @@ _prev_page_focus_recover(Elm_Naviframe_Item *it)
    if (newest)
      elm_object_focus_set(newest, EINA_TRUE);
    else
-     elm_object_focus_set(VIEW(it), EINA_TRUE);
+     {
+        if (_elm_config->access_mode)
+           _access_focus_set(it);
+        else
+           elm_object_focus_set(VIEW(it), EINA_TRUE);
+     }
 }
 
 static Eina_Bool
@@ -244,8 +250,12 @@ _access_focus_set(Elm_Naviframe_Item *it)
    ao = ((Elm_Widget_Item *)it)->access_obj;
 
    if (ao && it->title_visible)
-     elm_object_focus_set(ao, EINA_TRUE);
-   else elm_object_focus_set(it->content, EINA_TRUE);
+     _elm_access_highlight_set(ao);
+   else
+     {
+        if (!elm_widget_highlight_get(it->content))
+          _elm_access_highlight_cycle(it->content, ELM_FOCUS_NEXT);
+     }
 }
 
 static void
@@ -454,7 +464,7 @@ _item_text_set_hook(Elm_Object_Item *it,
         _access_obj_process(nit, EINA_TRUE);
 
         ao = ((Elm_Widget_Item *)nit)->access_obj;
-        if (!elm_object_focus_get(ao)) elm_object_focus_set(ao, EINA_TRUE);
+        if (!elm_widget_highlight_get(ao)) _elm_access_highlight_set(ao);
      }
 
    elm_layout_sizing_eval(WIDGET(nit));
@@ -1783,13 +1793,16 @@ elm_naviframe_item_push(Evas_Object *obj,
         it->animator = ecore_animator_add(_push_transition_cb, it);
      }
    else
-     elm_object_focus_set(VIEW(it), EINA_TRUE);
+     {
+        /* access */
+        if (_elm_config->access_mode)
+          _access_focus_set(it);
+        else
+          elm_object_focus_set(VIEW(it), EINA_TRUE);
+     }
 
    sd->stack = eina_inlist_append(sd->stack, EINA_INLIST_GET(it));
    evas_object_raise(VIEW(it));
-
-   /* access */
-   if (_elm_config->access_mode) _access_focus_set(it);
 
    elm_layout_sizing_eval(obj);
 
@@ -1936,9 +1949,6 @@ elm_naviframe_item_pop(Evas_Object *obj)
         elm_widget_resize_object_set(obj, VIEW(prev_it));
         evas_object_smart_member_add(sd->dummy_edje, obj);
         evas_object_raise(VIEW(prev_it));
-
-        /* access */
-        if (_elm_config->access_mode) _access_focus_set(prev_it);
 
         /* these 2 signals MUST take place simultaneously */
         elm_object_signal_emit(VIEW(it), "elm,state,cur,popped", "elm");
