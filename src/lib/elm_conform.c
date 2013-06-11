@@ -421,9 +421,15 @@ _plug_msg_handle(void *data, Evas_Object *obj, void *event_info)
               int *repeat = msg_data;
               DBG("[INDICATOR]Receive repeat event change message:(%d)", *repeat);
               if (1 == *repeat)
+              {
                 evas_object_repeat_events_set(sd->landscape_indicator, EINA_TRUE);
+                evas_object_repeat_events_set(sd->portrait_indicator, EINA_TRUE);
+              }
               else
+              {
                 evas_object_repeat_events_set(sd->landscape_indicator, EINA_FALSE);
+                evas_object_repeat_events_set(sd->portrait_indicator, EINA_FALSE);
+              }
           }
         if (msg_id == MSG_ID_INDICATOR_TYPE)
           {
