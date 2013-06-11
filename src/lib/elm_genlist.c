@@ -2649,8 +2649,10 @@ static Elm_Gen_Item *_item_focusable_search(Elm_Gen_Item *it, int dir)
      {
         while (tmp)
           {
-             if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp))
-                break;
+             if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp) &&
+                 ((tmp->select_mode == ELM_OBJECT_SELECT_MODE_DEFAULT) ||
+                  (tmp->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS)))
+               break;
              tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->next);
           }
      }
@@ -2658,7 +2660,9 @@ static Elm_Gen_Item *_item_focusable_search(Elm_Gen_Item *it, int dir)
      {
         while (tmp)
           {
-             if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp))
+             if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp) &&
+                 ((tmp->select_mode == ELM_OBJECT_SELECT_MODE_DEFAULT) ||
+                  (tmp->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS)))
                break;
              tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->prev);
           }
@@ -2666,7 +2670,7 @@ static Elm_Gen_Item *_item_focusable_search(Elm_Gen_Item *it, int dir)
    return tmp;
 }
 
-static Eina_Bool _item_focused_next(Elm_Genlist_Smart_Data *sd, Focus_Dir dir)
+static Eina_Bool _item_focus_next(Elm_Genlist_Smart_Data *sd, Focus_Dir dir)
 {
    Elm_Gen_Item *it = NULL;
    Elm_Gen_Item *old_focused = sd->focused;
@@ -2793,7 +2797,7 @@ _elm_genlist_smart_event(Evas_Object *obj,
         if (sd->select_on_focus_enabled) x -= step_x;
         else
           {
-             return _item_focused_next(sd, FOCUS_DIR_LEFT);
+             return _item_focus_next(sd, FOCUS_DIR_LEFT);
           }
      }
    else if ((!strcmp(ev->keyname, "Right")) ||
@@ -2802,7 +2806,7 @@ _elm_genlist_smart_event(Evas_Object *obj,
         if (sd->select_on_focus_enabled) x += step_x;
         else
           {
-             return _item_focused_next(sd, FOCUS_DIR_LEFT);
+             return _item_focus_next(sd, FOCUS_DIR_LEFT);
           }
      }
    else if ((!strcmp(ev->keyname, "Up")) ||
@@ -2819,7 +2823,7 @@ _elm_genlist_smart_event(Evas_Object *obj,
           }
         else
           {
-             if (_item_focused_next(sd, FOCUS_DIR_UP))
+             if (_item_focus_next(sd, FOCUS_DIR_UP))
                {
                   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
                   return EINA_TRUE;
@@ -2843,7 +2847,7 @@ _elm_genlist_smart_event(Evas_Object *obj,
           }
         else
           {
-             if (_item_focused_next(sd, FOCUS_DIR_DOWN))
+             if (_item_focus_next(sd, FOCUS_DIR_DOWN))
                {
                   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
                   return EINA_TRUE;
@@ -2865,7 +2869,7 @@ _elm_genlist_smart_event(Evas_Object *obj,
         else
           {
              _item_unfocused(sd->focused);
-             _item_focused_next(sd, FOCUS_DIR_DOWN);
+             _item_focus_next(sd, FOCUS_DIR_DOWN);
              ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
           }
         return EINA_TRUE;
@@ -2884,7 +2888,7 @@ _elm_genlist_smart_event(Evas_Object *obj,
           {
              _item_unfocused(sd->focused);
              sd->focused = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
-             _item_focused_next(sd, FOCUS_DIR_UP);
+             _item_focus_next(sd, FOCUS_DIR_UP);
              ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
           }
         return EINA_TRUE;
@@ -2997,7 +3001,7 @@ _elm_genlist_smart_on_focus(Evas_Object *obj)
              if (sd->focused)
                _item_focused(sd->focused);
              else
-               _item_focused_next(sd, FOCUS_DIR_DOWN);
+               _item_focus_next(sd, FOCUS_DIR_DOWN);
           }
      }
    else

@@ -1832,14 +1832,18 @@ static Elm_Gen_Item *_gengrid_item_focusable_search(Elm_Gen_Item *it, int dir)
    if (dir == 1)
      while ((tmp) && (tmp->generation < sd->generation))
        {
-          if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp))
+          if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp) &&
+              ((tmp->select_mode == ELM_OBJECT_SELECT_MODE_DEFAULT) ||
+               (tmp->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS)))
             break;
           tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->next);
        }
    else
      while ((tmp) && (tmp->generation < sd->generation))
        {
-          if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp))
+          if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp) &&
+              ((tmp->select_mode == ELM_OBJECT_SELECT_MODE_DEFAULT) ||
+               (tmp->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS)))
             break;
           tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->prev);
        }

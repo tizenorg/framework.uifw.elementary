@@ -254,22 +254,27 @@ static Eina_Bool _item_focused_next(Elm_List_Smart_Data *sd, Focus_Dir dir)
 
    if (dir == FOCUS_DIR_DOWN || dir == FOCUS_DIR_UP)
      {
-        if (sd->focused)
+        if (dir == FOCUS_DIR_DOWN)
           {
-             Eina_List *l = eina_list_data_find_list(sd->items, sd->focused);
-             if (dir == FOCUS_DIR_DOWN)
-               it = (Elm_List_Item *)eina_list_data_get(eina_list_next(l));
-             else
-               it = (Elm_List_Item *)eina_list_data_get(eina_list_prev(l));
-             _item_unfocused((Elm_List_Item *)sd->focused);
+             if (sd->focused)
+               {
+                  Eina_List *l = eina_list_data_find_list(sd->items, sd->focused);
+                  it = (Elm_List_Item *)eina_list_data_get(eina_list_next(l));
+                  _item_unfocused((Elm_List_Item *)sd->focused);
+               }
+             else it = (Elm_List_Item *)eina_list_data_get(sd->items);
           }
-        else
+        else if (dir == FOCUS_DIR_UP)
           {
-             if (dir == FOCUS_DIR_DOWN)
-               it = (Elm_List_Item *)eina_list_data_get(sd->items);
-             else
-               it = (Elm_List_Item *)eina_list_data_get(eina_list_last(sd->items));
+             if (sd->focused)
+               {
+                  Eina_List *l = eina_list_data_find_list(sd->items, sd->focused);
+                  it = (Elm_List_Item *)eina_list_data_get(eina_list_prev(l));
+                  _item_unfocused((Elm_List_Item *)sd->focused);
+               }
+             else it = (Elm_List_Item *)eina_list_data_get(eina_list_last(sd->items));
           }
+
         if (!it)
           {
              _item_focused(old_focused);
