@@ -221,8 +221,10 @@ static void _item_focused(Elm_List_Item *it)
         elm_list_item_bring_in((Elm_Object_Item *)it);
      }
 
-   edje_object_signal_emit
-      (VIEW(it), "elm,state,focused", "elm");
+   if (elm_win_focus_highlight_enabled_get
+       (elm_widget_top_get(ELM_WIDGET_DATA(sd)->obj)))
+     edje_object_signal_emit
+       (VIEW(it), "elm,state,focused", "elm");
 
    sd->focused = (Elm_Object_Item *)it;
 }
@@ -1000,17 +1002,10 @@ _elm_list_smart_on_focus(Evas_Object *obj)
      {
         if (elm_win_focus_highlight_enabled_get(elm_widget_top_get(obj)))
           {
-             if (sd->last_selected_item)
-               {
-                  _item_focused((Elm_List_Item *)sd->last_selected_item);
-               }
-             else if (sd->focused)
-               {
-                  edje_object_signal_emit
-                    (VIEW(sd->focused), "elm,state,focused", "elm");
-               }
+             if (sd->focused)
+               _item_focused((Elm_List_Item *)sd->focused);
              else
-                _item_focused_next(sd, FOCUS_DIR_DOWN);
+               _item_focused_next(sd, FOCUS_DIR_DOWN);
           }
      }
    else

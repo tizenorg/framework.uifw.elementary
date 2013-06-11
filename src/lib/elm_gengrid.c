@@ -921,7 +921,9 @@ _item_realize(Elm_Gen_Item *it)
         if (it->selected)
           edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
 
-        if (elm_widget_focus_get(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj))
+        if (elm_widget_focus_get(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj) &&
+            elm_win_focus_highlight_enabled_get
+            (elm_widget_top_get(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj)))
           {
              if (GG_IT(it)->wsd->focused)
                 edje_object_signal_emit (VIEW(GG_IT(it)->wsd->focused), "elm,state,focused", "elm");
@@ -1779,25 +1781,6 @@ _item_single_select_right(Elm_Gengrid_Smart_Data *sd)
    return EINA_TRUE;
 }
 
-static void _gengrid_item_focused(Elm_Gen_Item *it)
-{
-   if (!it) return;
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
-   Evas_Coord x, y, w, h, sx, sy, sw, sh;
-
-   evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
-   evas_object_geometry_get(ELM_WIDGET_DATA(sd)->obj, &sx, &sy, &sw, &sh);
-   if ((x < sx) || (y < sy) || ((x + w) > (sx + sw)) || ((y + h) > (sy + sh)))
-     {
-        elm_gengrid_item_bring_in((Elm_Object_Item *)it,
-                                  ELM_GENLIST_ITEM_SCROLLTO_IN);
-     }
-   edje_object_signal_emit
-      (VIEW(it), "elm,state,focused", "elm");
-
-   sd->focused = it;
-}
-
 static void _gengrid_item_unfocused(Elm_Gen_Item *it)
 {
    if (!it) return;
@@ -1814,6 +1797,29 @@ static void _gengrid_item_unfocused(Elm_Gen_Item *it)
       (VIEW(sd->focused), "elm,state,unfocused", "elm");
 
    if (it == sd->focused) sd->focused = NULL;
+}
+
+static void _gengrid_item_focused(Elm_Gen_Item *it)
+{
+   if (!it) return;
+   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
+   Evas_Coord x, y, w, h, sx, sy, sw, sh;
+
+   if (sd->focused && (it != sd->focused)) _gengrid_item_unfocused(sd->focused);
+   evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
+   evas_object_geometry_get(ELM_WIDGET_DATA(sd)->obj, &sx, &sy, &sw, &sh);
+   if ((x < sx) || (y < sy) || ((x + w) > (sx + sw)) || ((y + h) > (sy + sh)))
+     {
+        elm_gengrid_item_bring_in((Elm_Object_Item *)it,
+                                  ELM_GENLIST_ITEM_SCROLLTO_IN);
+     }
+
+   if (elm_win_focus_highlight_enabled_get
+       (elm_widget_top_get(ELM_WIDGET_DATA(sd)->obj)))
+     edje_object_signal_emit
+       (VIEW(it), "elm,state,focused", "elm");
+
+   sd->focused = it;
 }
 
 static Elm_Gen_Item *_gengrid_item_focusable_search(Elm_Gen_Item *it, int dir)
@@ -2231,15 +2237,8 @@ _elm_gengrid_smart_on_focus(Evas_Object *obj)
      {
         if (elm_win_focus_highlight_enabled_get(elm_widget_top_get(obj)))
           {
-             if (sd->last_selected_item)
-               {
-                  _gengrid_item_focused((Elm_Gen_Item *)sd->last_selected_item);
-               }
-             else if (sd->focused)
-               {
-                  edje_object_signal_emit
-                    (VIEW(sd->focused), "elm,state,focused", "elm");
-               }
+             if (sd->focused)
+                _gengrid_item_focused(sd->focused);
              else
                _gengrid_item_focused_next(sd, FOCUS_DIR_DOWN);
           }
@@ -2510,6 +2509,7 @@ _item_disable_hook(Elm_Object_Item *item)
 
    if (it->generation < GG_IT(it)->wsd->generation) return;
 
+   if (it == GG_IT(it)->wsd->focused) _gengrid_item_unfocused(it);
    if (it->realized)
      {
         if (elm_widget_item_disabled_get(it))
@@ -2715,6 +2715,8 @@ _item_select(Elm_Gen_Item *it)
      }
    else if (GG_IT(it)->wsd->select_mode != ELM_OBJECT_SELECT_MODE_ALWAYS)
      return;
+
+   _gengrid_item_focused(it);
 
    evas_object_ref(obj);
    it->walking++;

@@ -1884,11 +1884,15 @@ _item_realize(Elm_Gen_Item *it,
              edje_object_message_signal_process(it->item->deco_it_view);
           }
      }
-   if (elm_widget_focus_get(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj))
+
+   if (elm_widget_focus_get(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj) &&
+       elm_win_focus_highlight_enabled_get
+       (elm_widget_top_get(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj)))
      {
         if (GL_IT(it)->wsd->focused)
            edje_object_signal_emit (VIEW(GL_IT(it)->wsd->focused), "elm,state,focused", "elm");
      }
+
    edje_object_message_signal_process(VIEW(it));
 }
 
@@ -2586,7 +2590,7 @@ static void _item_focused(Elm_Gen_Item *it)
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
    Evas_Coord x, y, w, h, sx, sy, sw, sh;
 
-   if (sd->focused && (it == sd->focused)) _item_unfocused(sd->focused);
+   if (sd->focused && (it != sd->focused)) _item_unfocused(sd->focused);
    evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
    evas_object_geometry_get(ELM_WIDGET_DATA(sd)->obj, &sx, &sy, &sw, &sh);
    if ((x < sx) || (y < sy) || ((x + w) > (sx + sw)) || ((y + h) > (sy + sh)))
@@ -2595,12 +2599,16 @@ static void _item_focused(Elm_Gen_Item *it)
                                   ELM_GENLIST_ITEM_SCROLLTO_IN);
      }
 
-   if (it->deco_all_view)
-     edje_object_signal_emit
-       (it->deco_all_view, "elm,state,focused", "elm");
-   else
-     edje_object_signal_emit
-       (VIEW(it), "elm,state,focused", "elm");
+   if (elm_win_focus_highlight_enabled_get
+       (elm_widget_top_get(ELM_WIDGET_DATA(sd)->obj)))
+     {
+        if (it->deco_all_view)
+          edje_object_signal_emit
+            (it->deco_all_view, "elm,state,focused", "elm");
+        else
+          edje_object_signal_emit
+            (VIEW(it), "elm,state,focused", "elm");
+     }
    sd->focused = it;
 }
 
@@ -2650,7 +2658,6 @@ _item_select(Elm_Gen_Item *it)
    it->selected = EINA_TRUE;
    sd->selected = eina_list_append(sd->selected, it);
    sd->last_selected_item = (Elm_Object_Item *)it;
-   if (sd->focused) _item_unfocused(sd->focused);
    _item_focused(it);
 
    if (it->func.func) it->func.func((void *)it->func.data, obj, it);
@@ -3029,19 +3036,14 @@ _elm_genlist_smart_on_focus(Evas_Object *obj)
      sd->last_selected_item = eina_list_data_get(sd->selected);
 
    if (sd->select_on_focus_enabled) return EINA_TRUE;
-
    if (elm_widget_focus_get(obj))
      {
         if (elm_win_focus_highlight_enabled_get(elm_widget_top_get(obj)))
           {
              if (sd->focused)
-               {
-                  _item_focused(sd->focused);
-               }
+               _item_focused(sd->focused);
              else
-               {
-                  _item_focused_next(sd, FOCUS_DIR_DOWN);
-               }
+               _item_focused_next(sd, FOCUS_DIR_DOWN);
           }
      }
    else
