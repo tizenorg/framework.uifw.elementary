@@ -1095,6 +1095,7 @@ _elm_win_smart_focus_next(const Evas_Object *obj,
                           Elm_Focus_Direction dir,
                           Evas_Object **next)
 {
+   Eina_Bool ret;
    ELM_WIN_DATA_GET(obj, sd);
 
    const Eina_List *items;
@@ -1111,7 +1112,12 @@ _elm_win_smart_focus_next(const Evas_Object *obj,
           }
         list_data_get = eina_list_data_get;
 
-        elm_widget_focus_list_next_get(obj, items, list_data_get, dir, next);
+        ret = elm_widget_focus_list_next_get(obj, items, list_data_get, dir, next);
+
+        /* the result is used on the auto read mode. it would meet end of the
+           widget tree if it return EINA_FALSE. stop the auto read if ret is EINA_FALSE */
+        if (_elm_config->access_mode && *next)
+          return ret;
 
         if (*next)
           return EINA_TRUE;
