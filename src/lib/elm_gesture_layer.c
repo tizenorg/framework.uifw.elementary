@@ -1340,6 +1340,10 @@ _event_process(void *data,
 
    ELM_GESTURE_LAYER_DATA_GET(data, sd);
 
+   /* elm_gesture_layer object could be deleted in a test function
+      and accessed after the deletion. The crash occurs in this case */
+   evas_object_ref(data);
+
    /* Start testing candidate gesture from here */
    if (_pointer_event_make(data, event_info, event_type, &_pe))
      pe = &_pe;
@@ -1378,6 +1382,8 @@ _event_process(void *data,
    Eina_Bool states_reset = _clear_if_finished(data);
    if (sd->glayer_continues_enable)
      _continues_gestures_restart(data, states_reset);
+
+   evas_object_unref(data);
 }
 
 static Eina_Bool
