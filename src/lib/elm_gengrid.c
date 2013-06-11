@@ -2209,10 +2209,11 @@ _elm_gengrid_smart_event(Evas_Object *obj,
      }
    else if (((!strcmp(ev->keyname, "Return")) ||
           (!strcmp(ev->keyname, "KP_Enter")) ||
-          (!strcmp(ev->keyname, "space")))
-         && (!sd->multi) && (sd->selected))
+          (!strcmp(ev->keyname, "space"))) &&
+          sd->focused)
      {
-        it = elm_gengrid_selected_item_get(obj);
+        it = sd->focused;
+        elm_gengrid_item_selected_set(it, EINA_TRUE);
         evas_object_smart_callback_call(WIDGET(it), SIG_ACTIVATED, it);
         return EINA_TRUE;
      }
