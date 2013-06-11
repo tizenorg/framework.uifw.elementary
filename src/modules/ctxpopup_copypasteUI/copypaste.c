@@ -637,11 +637,12 @@ obj_longpress(Evas_Object *obj)
           }
         elm_object_style_set(ext_mod->popup, "copypaste");
 
+        elm_ctxpopup_horizontal_set(ext_mod->popup, EINA_TRUE);
         context_menu_orientation = edje_object_data_get
            (ext_mod->ent, "context_menu_orientation");
         if ((context_menu_orientation) &&
-            (!strcmp(context_menu_orientation, "horizontal")))
-          elm_ctxpopup_horizontal_set(ext_mod->popup, EINA_TRUE);
+            (!strcmp(context_menu_orientation, "vertical")))
+          elm_ctxpopup_horizontal_set(ext_mod->popup, EINA_FALSE);
 
         if (!ext_mod->selmode)
           {
