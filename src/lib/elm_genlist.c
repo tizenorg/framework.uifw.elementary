@@ -5355,6 +5355,7 @@ _item_free(Elm_Gen_Item *it)
    if (it->tooltip.del_cb)
      it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
    _item_free_common(it);
+
    _item_unrealize(it, EINA_FALSE);
    elm_genlist_item_class_unref((Elm_Genlist_Item_Class *)it->itc);
    free(it->item);
@@ -5418,6 +5419,7 @@ _item_del_pre_process(Elm_Gen_Item *it)
           sd->pending_del_items = eina_list_append(sd->pending_del_items, it);
      }
 
+   if (sd->focused == it) sd->focused = NULL;
    elm_widget_item_pre_notify_del(it);
    if (it->itc->func.del)
      it->itc->func.del((void *)it->base.data, WIDGET(it));
