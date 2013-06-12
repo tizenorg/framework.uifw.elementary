@@ -1112,20 +1112,24 @@ _elm_ctxpopup_smart_theme(Evas_Object *obj)
         edje_object_mirrored_set(VIEW(item), rtl);
 
         if (item->label && item->icon)
-          _elm_theme_object_set
-             (obj, VIEW(item), "ctxpopup", "icon_text_style_item", elm_widget_style_get(obj));
+          _elm_theme_object_set(obj, VIEW(item), "ctxpopup",
+                                "icon_text_style_item",
+                                elm_widget_style_get(obj));
         else if (item->label)
           {
              if(!sd->horizontal)
-               _elm_theme_object_set(obj, VIEW(item), "ctxpopup", "text_style_item",
+               _elm_theme_object_set(obj, VIEW(item), "ctxpopup",
+                                     "text_style_item",
                                      elm_widget_style_get(obj));
              else
-               _elm_theme_object_set(obj, VIEW(item), "ctxpopup", "text_style_item_horizontal",
+               _elm_theme_object_set(obj, VIEW(item), "ctxpopup",
+                                     "text_style_item_horizontal",
                                      elm_widget_style_get(obj));
           }
         else if (item->icon)
           _elm_theme_object_set
-             (obj, VIEW(item), "ctxpopup", "icon_style_item", elm_widget_style_get(obj));
+             (obj, VIEW(item), "ctxpopup", "icon_style_item",
+              elm_widget_style_get(obj));
         if (item->label)
           edje_object_part_text_set(VIEW(item), "elm.text", item->label);
 
@@ -1401,10 +1405,12 @@ _on_show(void *data __UNUSED__,
         if (item->label && !item->icon)
           {
              if(!sd->horizontal)
-               _elm_theme_object_set(obj, VIEW(item), "ctxpopup", "text_style_item",
+               _elm_theme_object_set(obj, VIEW(item), "ctxpopup",
+                                     "text_style_item",
                                      elm_widget_style_get(obj));
              else
-               _elm_theme_object_set(obj, VIEW(item), "ctxpopup", "text_style_item_horizontal",
+               _elm_theme_object_set(obj, VIEW(item), "ctxpopup",
+                                     "text_style_item_horizontal",
                                      elm_widget_style_get(obj));
           }
 
@@ -1850,7 +1856,8 @@ elm_ctxpopup_horizontal_set(Evas_Object *obj,
           _elm_theme_object_set(obj, VIEW(item), "ctxpopup", "text_style_item",
                                 elm_widget_style_get(obj));
         else if (item->label && !item->icon && horizontal)
-          _elm_theme_object_set(obj, VIEW(item), "ctxpopup", "text_style_item_horizontal",
+          _elm_theme_object_set(obj, VIEW(item), "ctxpopup",
+                                "text_style_item_horizontal",
                                 elm_widget_style_get(obj));
 
         if (idx++ == 0)
