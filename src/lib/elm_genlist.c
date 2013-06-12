@@ -7728,7 +7728,11 @@ _item_fx_op(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__, double pr
 #endif
 
    if ((!sd->expanded_next_item) || (sd->expanded_next_item == fi->it)) goto raise_event_block;
-   if (fi->type == ELM_GEN_ITEM_FX_TYPE_SAME) goto raise_event_block;
+   if (fi->type == ELM_GEN_ITEM_FX_TYPE_SAME)
+     {
+        evas_object_raise(fi->proxy);
+        goto raise_event_block;
+     }
 
    cover_it = _fx_cover_item_get(fi);
    if (!cover_it) goto raise_event_block;
@@ -7947,6 +7951,7 @@ _elm_genlist_fx_play(Evas_Object *obj)
         else if (fi->type == ELM_GEN_ITEM_FX_TYPE_DEL)
           {
              _item_unhighlight(fi->it);
+             evas_object_raise(fi->proxy);
              elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
 
              if (_fx_items_intersect(obj, fi))
