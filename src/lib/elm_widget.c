@@ -2334,7 +2334,6 @@ elm_widget_focus_next_get(const Evas_Object *obj,
                           Evas_Object **next)
 {
    Elm_Access_Info *ac;
-   Evas_Object *clipper;
 
    if (!next)
      return EINA_FALSE;
@@ -2390,14 +2389,10 @@ elm_widget_focus_next_get(const Evas_Object *obj,
         if (!ac) return EINA_FALSE;
 
         /* check whether the hover object is visible or not */
-        if (!evas_object_visible_get(ac->hoverobj)) return EINA_FALSE;
-
-        clipper = evas_object_clip_get(ac->hoverobj);
-        while (clipper)
-          {
-             if (!evas_object_visible_get(clipper)) return EINA_FALSE;
-             clipper = evas_object_clip_get(clipper);
-          }
+        if (!evas_object_visible_get(ac->hoverobj)
+            || (elm_widget_disabled_get(ac->hoverobj))
+            || (elm_widget_tree_unfocusable_get(ac->hoverobj)))
+          return EINA_FALSE;
      }
 
    if (elm_widget_focus_get(obj))
@@ -4091,6 +4086,9 @@ _elm_widget_item_free(Elm_Widget_Item *item)
 
    if (item->access_info)
      eina_stringshare_del(item->access_info);
+
+   if (item->access_order)
+     _elm_access_widget_item_access_order_unset(item);
 
    EINA_LIST_FREE(item->signals, wisd)
      {

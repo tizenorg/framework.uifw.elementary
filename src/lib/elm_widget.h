@@ -570,7 +570,7 @@ struct _Elm_Access_Info
 {
    Evas_Object               *hoverobj;
    Eina_List                 *items;
-   Ecore_Timer               *delay_timer;
+   Ecore_Job                 *highlight_read_job;
    void                      *on_highlight_data;
    Elm_Access_On_Highlight_Cb on_highlight;
 
