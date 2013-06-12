@@ -7706,9 +7706,8 @@ _item_fx_op(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__, double pr
 {
    Elm_Gen_FX_Item *fi = data, *cover_it;
    Elm_Genlist_Smart_Data *sd = GL_IT(fi->it)->wsd;
-   Evas_Coord fi_ox, fi_oy, cover_it_ox, cover_it_oy, cover_h;
+   Evas_Coord fi_ox, fi_oy, cover_it_ox, cover_it_oy;
    Evas_Coord ox, oy, ow, oh;
-   Elm_Gen_Item *tmp_it;
 
    evas_object_show(VIEW(fi->it));
    evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
@@ -7731,32 +7730,25 @@ _item_fx_op(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__, double pr
    if ((!sd->expanded_next_item) || (sd->expanded_next_item == fi->it)) goto raise_event_block;
    if (fi->type == ELM_GEN_ITEM_FX_TYPE_SAME) goto raise_event_block;
 
-   // find the closest item that cover current item when deleting
    cover_it = _fx_cover_item_get(fi);
-   cover_h = 0;
-   while (cover_it)
+   if (!cover_it) goto raise_event_block;
+
+   if (((cover_it->from.h)>= (fi->from.h / 2))
+      || (elm_genlist_item_next_get((Elm_Object_Item *)(cover_it->it))))
      {
         evas_object_geometry_get(cover_it->proxy, &cover_it_ox, &cover_it_oy, NULL, NULL);
 
         if (sd->fx_items_deleted)
           {
-             if (cover_it_oy && (fi->from.h <= cover_it->from.h)
+             if (cover_it_oy
                  && (fi_oy + fi->to.h >= cover_it_oy + cover_it->to.h ) && (fi->from.y < cover_it->from.y))
                evas_object_hide(fi->proxy);
           }
-        else if (cover_it_oy && (fi->from.h <= cover_it->from.h) && (fi_oy >= cover_it_oy))
+        else if (cover_it_oy && (fi_oy >= cover_it_oy))
           evas_object_hide(fi->proxy);
         else
           evas_object_show(fi->proxy);
-
-        cover_h += cover_it->from.h;
-        if (cover_h >= fi->from.h) break;
-
-        tmp_it = (Elm_Gen_Item *)elm_genlist_item_next_get((Elm_Object_Item *)(cover_it->it));
-        if (tmp_it) cover_it = GL_IT(tmp_it)->fi;
-        else break;
      }
-
 raise_event_block:
    evas_object_raise(sd->alpha_bg);
 
