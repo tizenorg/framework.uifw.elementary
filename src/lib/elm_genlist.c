@@ -495,15 +495,8 @@ _elm_genlist_pan_smart_resize(Evas_Object *obj,
                               Evas_Coord w,
                               Evas_Coord h __UNUSED__)
 {
-   Evas_Coord ow = 0, oh = 0, vw = 0;
-
    ELM_GENLIST_PAN_DATA_GET(obj, psd);
 
-   evas_object_geometry_get(obj, NULL, NULL, &ow, &oh);
-   if ((ow == w) && (oh == h)) return;
-
-   psd->wsd->s_iface->content_viewport_size_get(ELM_WIDGET_DATA(psd->wsd)->obj,
-                                                &vw, NULL);
    if (psd->wsd->mode == ELM_LIST_COMPRESS &&
        psd->wsd->prev_viewport_w != w)
      {
@@ -1135,28 +1128,8 @@ _item_mode_content_realize(Elm_Gen_Item *it,
                        // 1. Add resize callback for multiline entry.
                        // 2. Do not unrealize it for focus issue
                        // ps. Only for entry because of performnace
-                       if (!strcmp("elm_layout", evas_object_type_get(ic)))
-                         {
-                            // If editfield style, it can have entry.
-                            const char *group;
-                            edje_object_file_get(elm_layout_edje_get(ic), NULL, &group);
-                            if (group && !strncmp("elm/layout/editfield/", group, 20))
-                              {
-                                 Eina_List *ll;
-                                 Evas_Object *subobj;
-                                 Eina_List *subobjs = elm_widget_sub_object_list_get(ic);
-                                 EINA_LIST_FOREACH(subobjs, ll, subobj)
-                                   {
-                                      if (!strcmp("elm_entry", evas_object_type_get(subobj)) &&
-                                          !elm_entry_single_line_get(subobj))
-                                        it->item->unrealize_disabled = EINA_TRUE;
-                                   }
-                              }
-                         }
-                       else if (!strcmp("elm_entry", evas_object_type_get(ic)) &&
-                                !elm_entry_single_line_get(ic))
-                          it->item->unrealize_disabled = EINA_TRUE;
-
+                       if (!strcmp("elm_entry", evas_object_type_get(ic)))
+                         it->item->unrealize_disabled = EINA_TRUE;
                     }
 #endif
 #if 0
@@ -1481,26 +1454,7 @@ _item_content_realize(Elm_Gen_Item *it,
                   // 1. Add resize callback for multiline entry.
                   // 2. Do not unrealize it for focus issue
                   // ps. Only for entry because of performnace
-                  if (!strcmp("elm_layout", evas_object_type_get(ic)))
-                    {
-                       // If editfield style, it can have entry.
-                       const char *group;
-                       edje_object_file_get(elm_layout_edje_get(ic), NULL, &group);
-                       if (group && !strncmp("elm/layout/editfield/", group, 20))
-                         {
-                            Eina_List *ll;
-                            Evas_Object *subobj;
-                            Eina_List *subobjs = elm_widget_sub_object_list_get(ic);
-                            EINA_LIST_FOREACH(subobjs, ll, subobj)
-                              {
-                                 if (!strcmp("elm_entry", evas_object_type_get(subobj)) &&
-                                     !elm_entry_single_line_get(subobj))
-                                    it->item->unrealize_disabled = EINA_TRUE;
-                              }
-                         }
-                    }
-                  else if (!strcmp("elm_entry", evas_object_type_get(ic)) &&
-                           !elm_entry_single_line_get(ic))
+                  if (!strcmp("elm_entry", evas_object_type_get(ic)))
                     {
                        if (!elm_entry_single_line_get(ic))
                          evas_object_event_callback_add
@@ -3092,9 +3046,7 @@ _elm_genlist_smart_focus_next(const Evas_Object *obj,
                        evas_object_geometry_get(it->base.view, &x, &y, &w, &h);
 
                        /* check item which displays more than half of its size */
-                       if (it->base.access_obj &&
-                           ELM_RECTS_INTERSECT
-                             (x + (w / 2), y + (h / 2), 0, 0, sx, sy, sw, sh))
+                       if (it->base.access_obj)
                          items = eina_list_append(items, it->base.access_obj);
 
                        if (!it->base.access_order) continue;
@@ -5392,6 +5344,7 @@ _item_free(Elm_Gen_Item *it)
 {
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
 
+   if (sd->focused == it) sd->focused = NULL;
    elm_widget_item_pre_notify_del(it);
    if (it->itc->func.del)
      it->itc->func.del((void *)it->base.data, WIDGET(it));
@@ -5437,20 +5390,6 @@ _item_del_post_process(Elm_Gen_Item *it)
         }
 
    _item_unrealize(it, EINA_FALSE);
-<<<<<<< HEAD
-=======
-   edje_object_mirrored_set(VIEW(it),
-                            elm_widget_mirrored_get(WIDGET(it)));
-   edje_object_scale_set(VIEW(it),
-                         elm_widget_scale_get(WIDGET(it))
-                         * elm_config_scale_get());
-
-   if (VIEW(it)) evas_object_del(VIEW(it));
-   if (it->spacer) evas_object_del(it->spacer);
-
-   VIEW(it) = NULL;
-   it->spacer = NULL;
->>>>>>> 96e88c6... [Genlist] Change temporarily item unrealize and del flow for preventing wifi BS. This will be reverted after application announcement
 
    elm_genlist_item_class_unref((Elm_Genlist_Item_Class *)it->itc);
    if (it->item) free(it->item);
@@ -5938,7 +5877,6 @@ _elm_genlist_fx_clear(Evas_Object *obj, Eina_Bool force)
    if (sd->fx_timer) ecore_timer_del(sd->fx_timer);
    sd->fx_timer = NULL;
 
-   sd->genlist_clearing = EINA_TRUE;
    sd->fx_playing = EINA_FALSE;
    sd->sorting = EINA_FALSE;
    sd->fx_first_captured = EINA_FALSE;
