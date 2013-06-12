@@ -1530,7 +1530,7 @@ _elm_win_smart_del(Evas_Object *obj)
 {
    const char *str;
    const Eina_List *l;
-   const Evas_Object *child;
+   Evas_Object *child = NULL;
 
    ELM_WIN_DATA_GET(obj, sd);
 
@@ -2134,15 +2134,6 @@ _elm_win_client_message(void *data,
                   free(a);
                }
              else if ((unsigned int)e->data.l[1] ==
-<<<<<<< HEAD
-=======
-                      ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_MOUSE)
-               {
-                  _elm_access_highlight_object_mouse(ELM_WIDGET_DATA(sd)->obj,
-                    e->data.l[2], e->data.l[3], e->data.l[4]);
-               }
-             else if ((unsigned int)e->data.l[1] ==
->>>>>>> 6908a4b... [access] use ecore_x_atom values for scroll, mouse message
                       ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_BACK)
                {
                   _elm_access_highlight_object_activate
@@ -2717,9 +2708,9 @@ elm_win_add(Evas_Object *parent,
 #define FALLBACK_TRY(engine)                                      \
   if (!tmp_sd.ee) {                                               \
      CRITICAL(engine " engine creation failed. Trying default."); \
-       tmp_sd.ee = ecore_evas_new(NULL, 0, 0, 1, 1, NULL);              \
-       if (tmp_sd.ee)                                                   \
-          elm_config_preferred_engine_set(ecore_evas_engine_name_get(tmp_sd.ee)); \
+     tmp_sd.ee = ecore_evas_new(NULL, 0, 0, 1, 1, NULL);          \
+     if (tmp_sd.ee)                                               \
+       elm_config_preferred_engine_set(ecore_evas_engine_name_get(tmp_sd.ee)); \
   } while (0)
 #define FALLBACK_STORE(engine)                               \
    if (tmp_sd.ee)                                            \
