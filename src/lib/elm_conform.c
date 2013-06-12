@@ -421,15 +421,9 @@ _plug_msg_handle(void *data, Evas_Object *obj, void *event_info)
               int *repeat = msg_data;
               DBG("[INDICATOR]Receive repeat event change message:(%d)", *repeat);
               if (1 == *repeat)
-              {
                 evas_object_repeat_events_set(sd->landscape_indicator, EINA_TRUE);
-                evas_object_repeat_events_set(sd->portrait_indicator, EINA_TRUE);
-              }
               else
-              {
                 evas_object_repeat_events_set(sd->landscape_indicator, EINA_FALSE);
-                evas_object_repeat_events_set(sd->portrait_indicator, EINA_FALSE);
-              }
           }
         if (msg_id == MSG_ID_INDICATOR_TYPE)
           {
@@ -1121,8 +1115,15 @@ _elm_conformant_smart_del(Evas_Object *obj)
         evas_object_smart_callback_del(sd->landscape_indicator, "message.received", _plug_msg_handle);
         evas_object_del(sd->landscape_indicator);
      }
-   top = elm_widget_top_get(obj);
+   top = sd->win;
    evas_object_data_set(top, "\377 elm,conformant", NULL);
+
+   evas_object_smart_callback_del(top, "indicator,prop,changed",
+                                  _on_indicator_mode_changed);
+   evas_object_smart_callback_del(top, "rotation,changed",
+                                  _on_rotation_changed);
+   evas_object_smart_callback_del(top, "iconified", _on_iconified);
+   evas_object_smart_callback_del(top, "normal", _on_normal);
 
    ELM_WIDGET_CLASS(_elm_conformant_parent_sc)->base.del(obj);
 }
@@ -1231,6 +1232,8 @@ elm_conformant_add(Evas_Object *parent)
      (top, "iconified", _on_iconified, obj);
    evas_object_smart_callback_add
      (top, "normal", _on_normal, obj);
+
+   sd->win = top;
 
    return obj;
 }
