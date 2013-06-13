@@ -110,6 +110,7 @@ static Eina_Bool      _elm_gengrid_fx_capture(Evas_Object *obj, int level);
 static void           _elm_gengrid_fx_play(Evas_Object *obj);
 #endif
 
+static void _gengrid_item_unfocused(Elm_Gen_Item *it);
 static void
 _elm_gengrid_pan_smart_pos_max_get(const Evas_Object *obj,
                                    Evas_Coord *x,
@@ -313,6 +314,7 @@ _item_unselect(Elm_Gen_Item *it)
    if ((it->generation < item->wsd->generation) || (!it->highlighted))
      return;
 
+   _gengrid_item_unfocused(it);
    edje_object_signal_emit(VIEW(it), "elm,state,unselected", "elm");
    evas_object_smart_callback_call(WIDGET(it), SIG_UNHIGHLIGHTED, it);
    it->highlighted = EINA_FALSE;
