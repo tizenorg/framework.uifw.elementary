@@ -862,6 +862,7 @@ _elm_win_focus_in(Ecore_Evas *ee)
    Elm_Win_Smart_Data *sd = _elm_win_associate_get(ee);
    Evas_Object *obj;
    unsigned int order = 0;
+   Evas_Object *access_highlight, *highlight_target;
 
    EINA_SAFETY_ON_NULL_RETURN(sd);
 
@@ -883,6 +884,16 @@ _elm_win_focus_in(Ecore_Evas *ee)
         edje_object_signal_emit(sd->frame_obj, "elm,action,focus", "elm");
      }
 
+   /* access */
+   if (_elm_config->access_mode)
+     {
+        access_highlight = evas_object_name_find(evas_object_evas_get(obj),
+                                                 "_elm_access_disp");
+        if (!access_highlight) return;
+
+        evas_object_show(access_highlight);
+        _elm_access_highlight_object_read(obj);
+     }
    /* do nothing */
    /* else if (sd->img_obj) */
    /*   { */
@@ -894,6 +905,7 @@ _elm_win_focus_out(Ecore_Evas *ee)
 {
    Elm_Win_Smart_Data *sd = _elm_win_associate_get(ee);
    Evas_Object *obj;
+   Evas_Object *access_highlight;
 
    EINA_SAFETY_ON_NULL_RETURN(sd);
 
@@ -910,7 +922,12 @@ _elm_win_focus_out(Ecore_Evas *ee)
      }
 
    /* access */
-   _elm_access_object_hilight_disable(evas_object_evas_get(obj));
+   if (_elm_config->access_mode)
+     {
+        access_highlight = evas_object_name_find(evas_object_evas_get(obj),
+                                                 "_elm_access_disp");
+        if (access_highlight) evas_object_hide(access_highlight);
+     }
 
    /* do nothing */
    /* if (sd->img_obj) */

@@ -1048,6 +1048,31 @@ _elm_access_say(const char *txt)
      }
 }
 
+EAPI void
+_elm_access_highlight_object_read(const Evas_Object *obj)
+{
+   Elm_Access_Info *ac;
+   Evas_Object *ho;
+
+   if (!obj) return;
+
+   ho = _access_highlight_object_get(obj);
+   if (!ho) return;
+
+   ac = evas_object_data_get(ho, "_elm_access");
+   if (!ac) return;
+
+   if (ac->highlight_read_job)
+     {
+        ecore_job_del(ac->highlight_read_job);
+        ac->highlight_read_job = NULL;
+     }
+
+   /* use ecore_job_add(); here, an object could have a highlight even though
+      its text is not yet translated in case of the naviframe title */
+   ac->highlight_read_job = ecore_job_add(_access_highlight_read_job, ho);
+}
+
 EAPI Elm_Access_Info *
 _elm_access_object_get(const Evas_Object *obj)
 {

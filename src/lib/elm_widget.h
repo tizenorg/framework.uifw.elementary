@@ -606,6 +606,7 @@ EAPI void             _elm_access_text_set(Elm_Access_Info *ac, int type, const 
 EAPI void             _elm_access_callback_set(Elm_Access_Info *ac, int type, Elm_Access_Info_Cb func, const void *data);
 EAPI char            *_elm_access_text_get(const Elm_Access_Info *ac, int type, const Evas_Object *obj); /* this is ok it actually returns a strduped string - it's meant to! */
 EAPI void             _elm_access_read(Elm_Access_Info *ac, int type, const Evas_Object *obj);
+EAPI void             _elm_access_highlight_object_read(const Evas_Object *obj);
 EAPI void             _elm_access_say(const char *txt);
 EAPI Elm_Access_Info *_elm_access_object_get(const Evas_Object *obj);
 EAPI void             _elm_access_object_hilight(Evas_Object *obj);

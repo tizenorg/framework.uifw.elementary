@@ -60,11 +60,17 @@ static void
 _prev_page_focus_recover(Elm_Naviframe_Item *it)
 {
    Evas_Object *newest;
-   unsigned int order;
+   unsigned int order = 0;
+
+   ELM_WIDGET_DATA_GET(VIEW(it), sd);
+   order = sd->focus_order;
 
    newest = elm_widget_newest_focus_order_get(VIEW(it), &order, EINA_TRUE);
    if (newest)
+   {
      elm_object_focus_set(newest, EINA_TRUE);
+     _elm_access_highlight_set(newest);
+   }
    else
      {
         if (_elm_config->access_mode)
@@ -1316,8 +1322,12 @@ _elm_naviframe_smart_focus_next(const Evas_Object *obj,
    l = eina_list_append(l, VIEW(top_it));
 
    /* access */
-   if (_elm_config->access_mode && _elm_access_auto_highlight_get())
+   if (top_it->title_visible &&
+       _elm_config->access_mode &&
+       _elm_access_auto_highlight_get())
      {
+        if (elm_widget_tree_unfocusable_get(VIEW(top_it))) return EINA_FALSE;
+
         ao = ((Elm_Widget_Item *)top_it)->access_obj;
         if (ao &&
             !elm_widget_highlight_get(ao) &&
@@ -1333,8 +1343,13 @@ _elm_naviframe_smart_focus_next(const Evas_Object *obj,
    ret = elm_widget_focus_list_next_get(obj, l, list_data_get, dir, next);
    eina_list_free(l);
 
-   if (!ret && _elm_config->access_mode && _elm_access_auto_highlight_get())
+   if (!ret &&
+       top_it->title_visible &&
+       _elm_config->access_mode &&
+       _elm_access_auto_highlight_get())
      {
+        if (elm_widget_tree_unfocusable_get(VIEW(top_it))) return EINA_FALSE;
+
         ao = ((Elm_Widget_Item *)top_it)->access_obj;
         if (ao && !elm_widget_highlight_get(ao))
           {

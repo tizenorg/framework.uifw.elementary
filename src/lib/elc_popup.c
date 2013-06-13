@@ -107,6 +107,17 @@ _access_object_get(const Evas_Object *obj, const char* part)
 
    return ao;
 }
+static void
+_access_highlight_set(const Evas_Object *obj)
+{
+   Evas_Object *ao;
+
+   ao = _access_object_get(obj, ACCESS_BASE_PART);
+   if (!ao) ao = _access_object_get(obj, ACCESS_TITLE_PART);
+   if (!ao) ao = _access_object_get(obj, ACCESS_BODY_PART);
+   if (!ao) ao = elm_widget_focused_object_get(obj);
+   if (ao) _elm_access_highlight_set(ao);
+}
 
 static void
 _on_show(void *data __UNUSED__,
@@ -125,6 +136,7 @@ _on_show(void *data __UNUSED__,
    elm_object_content_set(sd->notify, obj);
 
    elm_object_focus_set(obj, EINA_TRUE);
+   if (_elm_config->access_mode) _access_highlight_set(obj);
 }
 
 static void
@@ -1220,8 +1232,13 @@ _action_button_set(Evas_Object *obj,
         ao = _access_object_get(obj, ACCESS_BASE_PART);
 
         if (ao && sd->button_count)
-          _elm_access_edje_object_part_object_unregister
+          {
+             _elm_access_edje_object_part_object_unregister
                (obj, ELM_WIDGET_DATA(sd)->resize_obj, ACCESS_BASE_PART);
+
+             /* there is a case to set button, after evas_object_show(popup); */
+             if (evas_object_visible_get(obj)) _access_highlight_set(obj);
+          }
      }
 
    snprintf(buf, sizeof(buf), "buttons%u", sd->button_count);
