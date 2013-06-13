@@ -1,5 +1,3 @@
-#include <Ecore_X.h>               //Tizen Only
-#include <X11/Xlib.h>              //Tizen Only
 #include <Elementary.h>
 #include "elm_priv.h"
 #include "elm_widget_naviframe.h"
@@ -12,7 +10,6 @@ EAPI const char ELM_NAVIFRAME_SMART_NAME[] = "elm_naviframe";
 static const char CONTENT_PART[] = "elm.swallow.content";
 static const char PREV_BTN_PART[] = "elm.swallow.prev_btn";
 static const char NEXT_BTN_PART[] = "elm.swallow.next_btn";
-static const char MORE_BTN_PART[] = "toolbar_more_btn"; //Tizen Only
 static const char ICON_PART[] = "elm.swallow.icon";
 static const char TITLE_PART[] = "elm.text.title";
 static const char SUBTITLE_PART[] = "elm.text.subtitle";
@@ -579,41 +576,12 @@ _item_content_set(Elm_Naviframe_Item *it,
      (content, EVAS_CALLBACK_DEL, _item_content_del_cb, it);
 }
 
-//Tizen Only: Temporary code. block the focus for the back button for
-//H/W Key event support.
-static void
-_hide_button_prop_set(Elm_Naviframe_Item *it, Evas_Object *prev_btn)
-{
-   if (it->dispmode == EVAS_DISPLAY_MODE_COMPRESS)
-     {
-        elm_object_signal_emit(prev_btn, "elm,state,display,compress", "elm");
-        evas_object_propagate_events_set(prev_btn, EINA_FALSE);
-        elm_object_focus_allow_set(prev_btn, EINA_FALSE);
-     }
-   else
-     {
-        elm_object_signal_emit(prev_btn, "elm,state,display,default", "elm");
-        evas_object_propagate_events_set(prev_btn, EINA_TRUE);
-        elm_object_focus_allow_set(prev_btn, EINA_TRUE);
-     }
-}
-
 char *
 _access_prev_btn_info_cb(void *data, Evas_Object *obj __UNUSED__)
 {
    Elm_Naviframe_Item *it = (Elm_Naviframe_Item *)data;
 
-   if (it->dispmode == EVAS_DISPLAY_MODE_COMPRESS)
-     return strdup(E_("Close Keyboard"));
-   else
-     return strdup(E_("Back"));
-}
-
-char *
-_access_more_btn_info_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__)
-{
-   /* Tizen Only */
-   return strdup(E_("More"));
+   return strdup(E_("Back"));
 }
 
 static void
@@ -632,8 +600,6 @@ _item_title_prev_btn_set(Elm_Naviframe_Item *it,
      (btn, EVAS_CALLBACK_DEL, _item_title_prev_btn_del_cb, it);
    evas_object_smart_callback_add
      (btn, SIG_CLICKED, _on_item_back_btn_clicked, WIDGET(it));
-
-   _hide_button_prop_set(it, btn);
 
    txt = elm_layout_text_get(btn, NULL);
    if (txt && (strlen(txt) > 0)) return;
@@ -824,12 +790,6 @@ _title_content_set(Elm_Naviframe_Item *it,
    /* access */
    if (_elm_config->access_mode)
      _access_obj_process(it, EINA_TRUE);
-
-   /* Tizen Only */
-   if (!strcmp(part, MORE_BTN_PART))
-     _elm_access_callback_set
-        (_elm_access_object_get(content), ELM_ACCESS_INFO,
-         _access_more_btn_info_cb, it);
 }
 
 static void
@@ -969,8 +929,6 @@ _elm_naviframe_smart_sizing_eval(Evas_Object *obj)
    evas_object_size_hint_max_set(obj, -1, -1);
 }
 
-//Tizen Only: Original
-#if 0
 static void
 _on_item_back_btn_clicked(void *data,
                           Evas_Object *obj,
@@ -983,119 +941,6 @@ _on_item_back_btn_clicked(void *data,
    evas_object_smart_callback_del(obj, SIG_CLICKED, _on_item_back_btn_clicked);
    elm_naviframe_item_pop(data);
 }
-#else
-
-//Tizen Only: Get Clipboard Window
-static Ecore_X_Window
-_cbhm_window_get()
-{
-   Ecore_X_Atom cbhm_atom = ecore_x_atom_get("CBHM_ELM_WIN");
-   Ecore_X_Window cbhm_win = NULL;
-   Ecore_X_Window root = ecore_x_window_root_first_get();
-   ecore_x_window_prop_xid_get(root, cbhm_atom, ECORE_X_ATOM_WINDOW, &cbhm_win, 1);
-
-   return cbhm_win;
-}
-
-//Tizen Only: Get Virtual Keyboard Window
-static Ecore_X_Window
-_vkb_window_get()
-{
-   Ecore_X_Atom vkb_atom = ecore_x_atom_get("_ISF_CONTROL_WINDOW");
-   Ecore_X_Window vkb_win = NULL;
-   Ecore_X_Window root = ecore_x_window_root_first_get();
-   ecore_x_window_prop_xid_get(root, vkb_atom, ECORE_X_ATOM_WINDOW, &vkb_win, 1);
-
-   return vkb_win;
-}
-
-//Tizen Only: Customized
-static XKeyEvent *
-_keydown_event_get(Ecore_X_Window x_win, const char *keyname)
-{
-   XKeyEvent *event = (XKeyEvent *)malloc(sizeof(XKeyEvent));
-
-   event->display = ecore_x_display_get();
-   event->window = x_win;
-   event->root = ecore_x_window_root_get(x_win);
-   event->subwindow = None;
-   event->time = 0;
-   event->x = 1;
-   event->y = 1;
-   event->x_root = 1;
-   event->y_root = 1;
-   event->same_screen = True;
-   event->keycode = XKeysymToKeycode(ecore_x_display_get(), XStringToKeysym(keyname));
-   event->type = KeyPress;
-   event->send_event = True;
-   event->serial= 0;
-
-   return event;
-}
-
-//Tizen Only: Customized
-static void
-_on_item_back_btn_clicked(void *data,
-                          Evas_Object *obj,
-                          void *event_info __UNUSED__)
-{
-   static Ecore_X_Window keygrab_win = NULL;
-   Ecore_X_Atom type = ecore_x_atom_get("_HWKEY_EMULATION");
-   char msg_data[20];
-
-   Ecore_X_Window cbhm_win = _cbhm_window_get();
-   Ecore_X_Window zone = ecore_x_e_illume_zone_get(cbhm_win);
-   Ecore_X_Illume_Clipboard_State cbhm_state = ecore_x_e_illume_clipboard_state_get(zone);
-
-   Ecore_X_Window vkb_win = _vkb_window_get();
-   Ecore_X_Virtual_Keyboard_State vkb_state = ecore_x_e_virtual_keyboard_state_get(vkb_win);
-
-   if ((cbhm_state == ECORE_X_ILLUME_CLIPBOARD_STATE_UNKNOWN || cbhm_state == ECORE_X_ILLUME_CLIPBOARD_STATE_OFF)
-       && (vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_UNKNOWN || vkb_state == ECORE_X_VIRTUAL_KEYBOARD_STATE_OFF))
-     {
-        evas_object_focus_set(obj, EINA_TRUE);
-
-        Evas_Object *top = elm_widget_top_get(data);
-        Ecore_X_Window x_win = elm_win_xwindow_get(top);
-        XKeyEvent *event = _keydown_event_get(x_win, KEY_END);
-        XSendEvent(ecore_x_display_get(), x_win, EINA_FALSE, KeyPressMask, (XEvent*)event);
-        if (event) free(event);
-        return;
-     }
-
-   //Get the keygrab window handle.
-   if (!keygrab_win)
-     {
-        Ecore_X_Window *_keygrab_win = NULL;
-        int num;
-        ecore_x_window_prop_property_get(NULL, type, ECORE_X_ATOM_WINDOW, 32,
-                                         (unsigned char **)&_keygrab_win, &num);
-        if (!_keygrab_win)
-          {
-             ERR("Failed to get the key grabber window, naviframe(%p)", obj);
-             return;
-          }
-        keygrab_win = *_keygrab_win;
-        free(_keygrab_win);
-     }
-
-   //Press
-   snprintf(msg_data, sizeof(msg_data), "Px%s", KEY_END);
-   if (!ecore_x_client_message8_send(keygrab_win, type, msg_data,
-                                     sizeof(msg_data)))
-     {
-        ERR("Failed to send message for h/w press, naviframe(%p)", obj);
-     }
-
-   //Release
-   snprintf(msg_data, sizeof(msg_data), "Rx%s", KEY_END);
-   if (!ecore_x_client_message8_send(keygrab_win, type,
-                                     msg_data, sizeof(msg_data)))
-     {
-        ERR("Failed to send message for h/w release, naviframe(%p)", obj);
-     }
-}
-#endif
 
 static Evas_Object *
 _back_btn_new(Evas_Object *obj, const char *title_label)
@@ -1334,9 +1179,6 @@ _item_dispmode_set(Elm_Naviframe_Item *it, Evas_Display_Mode dispmode)
          break;
      }
    it->dispmode = dispmode;
-
-   if (it->title_prev_btn)
-     _hide_button_prop_set(it, it->title_prev_btn);
 }
 
 static Elm_Naviframe_Item *
@@ -1677,12 +1519,6 @@ _elm_naviframe_smart_event(Evas_Object *obj,
 
    if (!strcmp(ev->keyname, KEY_END) || !strcmp(ev->keyname, "Escape"))
      elm_naviframe_item_pop(obj);
-   else
-     {
-        Evas_Object *more_btn = elm_object_item_part_content_get(it, "toolbar_more_btn");
-        if (more_btn)
-          evas_object_smart_callback_call(more_btn, "clicked", it);
-     }
 
    return EINA_TRUE;
 }
