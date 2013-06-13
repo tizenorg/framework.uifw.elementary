@@ -1346,8 +1346,10 @@ _event_process(void *data,
    evas_object_ref(data);
 
    /* Start testing candidate gesture from here */
-   if (_pointer_event_make(data, event_info, event_type, &_pe))
-     pe = &_pe;
+   if (!_pointer_event_make(data, event_info, event_type, &_pe))
+     return;
+
+   pe = &_pe;
 
    /* Test all the gestures */
    {
