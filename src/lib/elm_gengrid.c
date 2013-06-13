@@ -2543,6 +2543,9 @@ _item_del_pre_fx_process(Elm_Gen_Item *it)
    evas_object_event_callback_del_full
       (VIEW(it), EVAS_CALLBACK_MOUSE_MOVE, _item_mouse_move_cb, it);
 
+   if (GG_IT(it)->wsd->focused == (Elm_Object_Item *)it)
+     GG_IT(it)->wsd->focused = NULL;
+
    GG_IT(it)->wsd->items = eina_inlist_remove
       (GG_IT(it)->wsd->items, EINA_INLIST_GET(it));
 

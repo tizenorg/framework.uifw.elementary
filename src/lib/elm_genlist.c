@@ -5337,6 +5337,8 @@ _item_free_common(Elm_Gen_Item *it)
    if (sd->last_selected_item == (Elm_Object_Item *)it)
      sd->last_selected_item = NULL;
 
+   if (sd->focused == (Elm_Object_Item *)it) sd->focused = NULL;
+
    _item_event_del(it);
 
    sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(it));
@@ -5348,7 +5350,6 @@ _item_free(Elm_Gen_Item *it)
 {
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
 
-   if (sd->focused == it) sd->focused = NULL;
    elm_widget_item_pre_notify_del(it);
    if (it->itc->func.del)
      it->itc->func.del((void *)it->base.data, WIDGET(it));
@@ -5419,7 +5420,6 @@ _item_del_pre_process(Elm_Gen_Item *it)
           sd->pending_del_items = eina_list_append(sd->pending_del_items, it);
      }
 
-   if (sd->focused == it) sd->focused = NULL;
    elm_widget_item_pre_notify_del(it);
    if (it->itc->func.del)
      it->itc->func.del((void *)it->base.data, WIDGET(it));
