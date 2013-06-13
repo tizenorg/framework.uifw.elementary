@@ -543,7 +543,11 @@ _resize_job(void *data)
    EINA_LIST_FOREACH(list, l, o)
      {
         if (o == eina_list_nth(list, 0))
-          edje_object_signal_emit(o, "elm,order,first,item", "elm");
+          {
+             edje_object_signal_emit(o, "elm,order,first,item", "elm");
+             if (eina_list_count == 1)
+               edje_object_signal_emit(o, "elm,order,last,item", "elm");
+          }
         else if (o == eina_list_nth(list, eina_list_count(list)-1))
           edje_object_signal_emit(o, "elm,order,last,item", "elm");
         else
