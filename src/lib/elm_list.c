@@ -208,6 +208,22 @@ _item_single_select_down(Elm_List_Smart_Data *sd)
    return EINA_TRUE;
 }
 
+// FIXME: There are applications which do not use elm_win as top widget.
+// This is workaround! Those could not use focus!
+static Eina_Bool _focus_enabled(Evas_Object *obj)
+{
+   if (!elm_widget_focus_get(obj)) return EINA_FALSE;
+
+   const Evas_Object *win = elm_widget_top_get(obj);
+   const char *type = evas_object_type_get(win);
+
+   if (type && !strcmp(type, "elm_win"))
+     {
+        return elm_win_focus_highlight_enabled_get(win);
+     }
+   return EINA_FALSE;
+}
+
 static void _item_focused(Elm_List_Item *it)
 {
    if (!it) return;
@@ -221,8 +237,7 @@ static void _item_focused(Elm_List_Item *it)
         elm_list_item_bring_in((Elm_Object_Item *)it);
      }
 
-   if (elm_win_focus_highlight_enabled_get
-       (elm_widget_top_get(ELM_WIDGET_DATA(sd)->obj)))
+   if (_focus_enabled(ELM_WIDGET_DATA(sd)->obj))
      edje_object_signal_emit
        (VIEW(it), "elm,state,focused", "elm");
 
@@ -1005,7 +1020,7 @@ _elm_list_smart_on_focus(Evas_Object *obj)
    if (sd->select_on_focus_enabled) return EINA_TRUE;
    if (elm_widget_focus_get(obj))
      {
-        if (elm_win_focus_highlight_enabled_get(elm_widget_top_get(obj)))
+        if (_focus_enabled(obj))
           {
              if (sd->focused)
                _item_focused((Elm_List_Item *)sd->focused);

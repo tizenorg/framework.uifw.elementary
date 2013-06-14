@@ -793,6 +793,22 @@ _access_widget_item_register(Elm_Gen_Item *it)
    _elm_access_activate_callback_set(ai, _access_activate_cb, it);
 }
 
+// FIXME: There are applications which do not use elm_win as top widget.
+// This is workaround! Those could not use focus!
+static Eina_Bool _focus_enabled(Evas_Object *obj)
+{
+   if (!elm_widget_focus_get(obj)) return EINA_FALSE;
+
+   const Evas_Object *win = elm_widget_top_get(obj);
+   const char *type = evas_object_type_get(win);
+
+   if (type && !strcmp(type, "elm_win"))
+     {
+        return elm_win_focus_highlight_enabled_get(win);
+     }
+   return EINA_FALSE;
+}
+
 static void
 _item_realize(Elm_Gen_Item *it)
 {
@@ -923,9 +939,7 @@ _item_realize(Elm_Gen_Item *it)
         if (it->selected)
           edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
 
-        if (elm_widget_focus_get(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj) &&
-            elm_win_focus_highlight_enabled_get
-            (elm_widget_top_get(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj)))
+        if (_focus_enabled(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj))
           {
              if (GG_IT(it)->wsd->focused)
                 edje_object_signal_emit (VIEW(GG_IT(it)->wsd->focused), "elm,state,focused", "elm");
@@ -1816,8 +1830,7 @@ static void _gengrid_item_focused(Elm_Gen_Item *it)
                                   ELM_GENLIST_ITEM_SCROLLTO_IN);
      }
 
-   if (elm_win_focus_highlight_enabled_get
-       (elm_widget_top_get(ELM_WIDGET_DATA(sd)->obj)))
+   if (_focus_enabled(ELM_WIDGET_DATA(sd)->obj))
      edje_object_signal_emit
        (VIEW(it), "elm,state,focused", "elm");
 
@@ -2242,7 +2255,7 @@ _elm_gengrid_smart_on_focus(Evas_Object *obj)
 
    if (elm_widget_focus_get(obj))
      {
-        if (elm_win_focus_highlight_enabled_get(elm_widget_top_get(obj)))
+        if (_focus_enabled(obj))
           {
              if (sd->focused)
                 _gengrid_item_focused(sd->focused);
