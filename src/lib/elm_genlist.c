@@ -1000,19 +1000,34 @@ _elm_genlist_item_state_update(Elm_Gen_Item *it)
 {
    if (it->selected)
      {
+        edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
         if (it->deco_all_view)
            edje_object_signal_emit
               (it->deco_all_view, "elm,state,selected", "elm");
-        edje_object_signal_emit
-           (VIEW(it), "elm,state,selected", "elm");
         evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
      }
+   else
+     {
+        edje_object_signal_emit(VIEW(it), "elm,state,unselected", "elm");
+        if (it->deco_all_view)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,unselected", "elm");
+        evas_object_smart_callback_call(WIDGET(it), SIG_UNHIGHLIGHTED, it);
+     }
+
    if (elm_widget_item_disabled_get(it))
      {
         edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
         if (it->deco_all_view)
            edje_object_signal_emit
               (it->deco_all_view, "elm,state,disabled", "elm");
+     }
+   else
+     {
+        edje_object_signal_emit(VIEW(it), "elm,state,enabled", "elm");
+        if (it->deco_all_view)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,enabled", "elm");
      }
    if (it->item->expanded)
      {
@@ -1721,7 +1736,6 @@ _item_realize(Elm_Gen_Item *it,
                }
           }
 
-
 #if 1 // FIXME: difference from upstream
         if (it->item->expanded_depth > 0)
           edje_object_signal_emit(VIEW(it), "bg_color_change", "elm");
@@ -1752,6 +1766,9 @@ _item_realize(Elm_Gen_Item *it,
    if (_elm_config->access_mode) _access_widget_item_register(it);
 
    _item_order_update(EINA_INLIST_GET(it), in);
+   _elm_genlist_item_state_update(it);
+   _elm_genlist_item_index_update(it);
+
 #if 1 // FIXME: difference from upstream
    if (it->item->type != ELM_GENLIST_ITEM_GROUP)
      {
@@ -1784,9 +1801,6 @@ _item_realize(Elm_Gen_Item *it,
         if ((GL_IT(it)->wsd->decorate_all_mode) && (!it->deco_all_view) &&
             (it->itc->decorate_all_item_style))
           _decorate_all_item_realize(it, EINA_FALSE);
-
-        _elm_genlist_item_state_update(it);
-        _elm_genlist_item_index_update(it);
 
         if (it->content_objs)
           it->content_objs = _item_content_unrealize(it, VIEW(it),
