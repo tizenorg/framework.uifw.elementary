@@ -421,9 +421,14 @@ _access_obj_process(Elm_Naviframe_Item *it, Eina_Bool is_access)
         if (!ao) return;
 
         if (it->title_label || it->subtitle_label)
-          _elm_access_edje_object_part_object_unregister
-             (VIEW(it), elm_layout_edje_get(VIEW(it)), TITLE_ACCESS_PART);
-        evas_object_del(ao);
+          {
+             _elm_access_edje_object_part_object_unregister
+               (VIEW(it), elm_layout_edje_get(VIEW(it)), TITLE_ACCESS_PART);
+
+             /* deletion of access object occurs in
+                _elm_access_edje_object_part_object_unregister(); */
+             ((Elm_Widget_Item *)it)->access_obj = NULL;
+          }
      }
 }
 
