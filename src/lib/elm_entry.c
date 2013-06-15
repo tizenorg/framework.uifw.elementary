@@ -3502,7 +3502,11 @@ _access_info_cb(void *data __UNUSED__, Evas_Object *obj)
    txt = elm_widget_access_info_get(obj);
 
    if (!txt) txt = _elm_util_mkup_to_text(elm_entry_entry_get(obj));
-   if (txt) return strdup(txt);
+   if (txt && (strlen(txt) > 0)) return strdup(txt);
+
+   /* to take care guide text */
+   txt = edje_object_part_text_get(sd->entry_edje, "elm.guide");
+   if (txt && (strlen(txt) > 0)) return strdup(txt);
 
    return NULL;
 }
@@ -3859,7 +3863,7 @@ _elm_entry_smart_add(Evas_Object *obj)
    // access
    _elm_access_object_register(obj, priv->entry_edje);
    _elm_access_text_set
-     (_elm_access_object_get(obj), ELM_ACCESS_TYPE, E_("Entry"));
+     (_elm_access_object_get(obj), ELM_ACCESS_TYPE, E_("Edit Field")); // TIZEN ONLY
    _elm_access_callback_set
      (_elm_access_object_get(obj), ELM_ACCESS_INFO, _access_info_cb, NULL);
    _elm_access_callback_set
