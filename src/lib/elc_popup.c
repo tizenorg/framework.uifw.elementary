@@ -1463,6 +1463,9 @@ _elm_popup_smart_focus_next(const Evas_Object *obj,
    /* action area */
    if (sd->button_count) items = eina_list_append(items, sd->action_area);
 
+   if (_elm_config->access_mode)
+     return elm_widget_focus_list_next_get(obj, items, eina_list_data_get, dir, next);
+
    if (!elm_widget_focus_list_next_get(obj, items, eina_list_data_get, dir, next))
      *next = obj;
 
