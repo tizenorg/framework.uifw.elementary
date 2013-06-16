@@ -1464,8 +1464,6 @@ _elm_naviframe_smart_access(Evas_Object *obj, Eina_Bool is_access)
    evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
 }
 
-#if 0
-//Tizen Only: Original
 static Eina_Bool
 _elm_naviframe_smart_event(Evas_Object *obj,
                            Evas_Object *src __UNUSED__,
@@ -1480,7 +1478,10 @@ _elm_naviframe_smart_event(Evas_Object *obj,
    if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
 
-   if (strcmp(ev->keyname, "Escape")) return EINA_FALSE;
+   /* Tizen Only: Need key binding. At this moment, Naviframe doesn't support
+      any key events. */
+   //if (strcmp(ev->keyname, "Escape")) return EINA_FALSE;
+   return EINA_FALSE;
 
    it = (Elm_Naviframe_Item *) elm_naviframe_top_item_get(obj);
    if (!it) return EINA_FALSE;
@@ -1493,36 +1494,6 @@ _elm_naviframe_smart_event(Evas_Object *obj,
 
    return EINA_TRUE;
 }
-#else
-//Tizen Only: Customized
-static Eina_Bool
-_elm_naviframe_smart_event(Evas_Object *obj,
-                           Evas_Object *src __UNUSED__,
-                           Evas_Callback_Type type,
-                           void *event_info)
-{
-   Elm_Naviframe_Item *it;
-   Evas_Event_Key_Down *ev = event_info;
-   ELM_NAVIFRAME_DATA_GET(obj, sd);
-
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
-   if (elm_widget_disabled_get(obj)) return EINA_FALSE;
-   if (ev->keyname && strcmp(ev->keyname, KEY_END) && strcmp(ev->keyname, "Escape") && strcmp(ev->keyname, KEY_MENU))
-     return EINA_FALSE;
-   if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-
-   it = (Elm_Naviframe_Item *) elm_naviframe_top_item_get(obj);
-   if (!it) return EINA_FALSE;
-
-   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-   if (sd->freeze_events && sd->popping) return EINA_TRUE;
-
-   if (!strcmp(ev->keyname, KEY_END) || !strcmp(ev->keyname, "Escape"))
-     elm_naviframe_item_pop(obj);
-
-   return EINA_TRUE;
-}
-#endif
 
 static Eina_Bool
 _elm_naviframe_smart_activate(Evas_Object *obj, Elm_Activate act)
