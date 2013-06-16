@@ -930,10 +930,14 @@ _elm_naviframe_smart_sizing_eval(Evas_Object *obj)
      {
         evas_object_move(VIEW(it), x, y);
         evas_object_resize(VIEW(it), w, h);
-        edje_object_size_min_calc(elm_layout_edje_get(VIEW(it)),
-                                  &it->minw, &it->minh);
-        if (it->minw > minw) minw = it->minw;
-        if (it->minh > minh) minh = it->minh;
+
+        if (it == sd->stack->last)
+          {
+             edje_object_size_min_calc(elm_layout_edje_get(VIEW(it)),
+                                       &it->minw, &it->minh);
+             minw = it->minw;
+             minh = it->minh;
+          }
      }
 
    evas_object_size_hint_min_set(obj, minw, minh);
