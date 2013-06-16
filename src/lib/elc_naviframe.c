@@ -1275,7 +1275,6 @@ _elm_naviframe_mouse_up_cb(void *data __UNUSED__, Evas *e __UNUSED__,
    if (!it) return;
 
    ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-   if (sd->freeze_events && sd->popping) return;
 
    elm_naviframe_item_pop(obj);
 }
@@ -1487,7 +1486,6 @@ _elm_naviframe_smart_event(Evas_Object *obj,
    if (!it) return EINA_FALSE;
 
    ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-   if (sd->freeze_events && sd->popping) return EINA_TRUE;
 
    if (it->title_prev_btn)
     evas_object_smart_callback_call(it->title_prev_btn, SIG_CLICKED, NULL);
@@ -1740,6 +1738,8 @@ elm_naviframe_item_pop(Evas_Object *obj)
 
    ELM_NAVIFRAME_CHECK(obj) NULL;
    ELM_NAVIFRAME_DATA_GET(obj, sd);
+
+   if (sd->freeze_events && sd->popping) return NULL;
 
    it = (Elm_Naviframe_Item *)elm_naviframe_top_item_get(obj);
    if (!it) return NULL;
