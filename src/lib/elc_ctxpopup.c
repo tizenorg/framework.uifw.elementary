@@ -1053,11 +1053,7 @@ _elm_ctxpopup_smart_event(Evas_Object *obj,
 
    // TIZEN ONLY : 20130530
    //if (strcmp(ev->keyname, "Escape")) return EINA_FALSE;
-   if ((strcmp(ev->keyname, "Escape")) &&
-       (strcmp(ev->keyname, "XF86Stop")) &&
-       (strcmp(ev->keyname, "XF86Send")))
-     return EINA_FALSE;
-   //
+   return EINA_FALSE;
 
    _hide_signals_emit(obj, sd->dir);
 
