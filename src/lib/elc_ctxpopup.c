@@ -56,8 +56,6 @@ _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
                                Evas_Object **next)
 {
    Eina_List *items = NULL;
-   Eina_List *elist = NULL;
-   Elm_Ctxpopup_Item *it;
    Evas_Object *ao;
 
    ELM_CTXPOPUP_DATA_GET(obj, sd);
@@ -218,7 +216,6 @@ _access_info_cb(void *data, Evas_Object *obj __UNUSED__)
    Elm_Ctxpopup_Item *it = (Elm_Ctxpopup_Item *)data;
    const char *txt = NULL;
    Evas_Object *icon = NULL;
-   char *str = NULL;
 
    if (!it) return NULL;
 
@@ -1683,11 +1680,7 @@ _elm_ctxpopup_smart_parent_set(Evas_Object *obj,
 static void
 _elm_ctxpopup_smart_access(Evas_Object *obj, Eina_Bool is_access)
 {
-   Eina_List *elist = NULL;
-   Elm_Ctxpopup_Item *it;
-
    ELM_CTXPOPUP_CHECK(obj);
-   ELM_CTXPOPUP_DATA_GET(obj, sd);
 
    _access_obj_process(obj, is_access);
 
