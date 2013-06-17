@@ -1417,6 +1417,8 @@ _elm_popup_smart_focus_next(const Evas_Object *obj,
 {
    Evas_Object *ao;
    Eina_List *items = NULL;
+   Elm_Popup_Item * it = NULL;
+   Eina_List *l;
 
    ELM_POPUP_DATA_GET(obj, sd);
 
@@ -1439,6 +1441,8 @@ _elm_popup_smart_focus_next(const Evas_Object *obj,
    /* content area */
    if (sd->content) items = eina_list_append(items, sd->content_area);
 
+   EINA_LIST_FOREACH(sd->items, l, it)
+     items = eina_list_append(items, it->base.access_obj);
    /* action area */
    if (sd->button_count) items = eina_list_append(items, sd->action_area);
 
@@ -1457,6 +1461,8 @@ _elm_popup_smart_focus_direction(const Evas_Object *obj,
 {
    Evas_Object *ao;
    Eina_List *items = NULL;
+   Elm_Popup_Item * it = NULL;
+   Eina_List *l;
 
    ELM_POPUP_DATA_GET(obj, sd);
 
@@ -1478,6 +1484,9 @@ _elm_popup_smart_focus_direction(const Evas_Object *obj,
 
    /* content area */
    if (sd->content) items = eina_list_append(items, sd->content_area);
+
+   EINA_LIST_FOREACH(sd->items, l, it)
+     items = eina_list_append(items, it->base.access_obj);
 
    /* action area */
    if (sd->button_count) items = eina_list_append(items, sd->action_area);
