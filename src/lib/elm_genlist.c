@@ -1869,7 +1869,8 @@ _item_realize(Elm_Gen_Item *it,
           }
      }
 
-   if (_focus_enabled(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj))
+   if (_focus_enabled(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj) &&
+       (it == GL_IT(it)->wsd->focused))
      {
         if (GL_IT(it)->wsd->focused)
            edje_object_signal_emit (VIEW(GL_IT(it)->wsd->focused), "elm,state,focused", "elm");
@@ -5209,7 +5210,7 @@ _elm_genlist_smart_set_user(Elm_Genlist_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->translate = _elm_genlist_smart_translate;
 
    /* not a 'focus chain manager' */
-   ELM_WIDGET_CLASS(sc)->focus_next = NULL; //_elm_genlist_smart_focus_next;
+   ELM_WIDGET_CLASS(sc)->focus_next = NULL;
    ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
 
    ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_genlist_smart_sizing_eval;
@@ -5364,7 +5365,7 @@ _item_free_common(Elm_Gen_Item *it)
    if (sd->last_selected_item == (Elm_Object_Item *)it)
      sd->last_selected_item = NULL;
 
-   if (sd->focused == (Elm_Object_Item *)it) sd->focused = NULL;
+   if (sd->focused == it) sd->focused = NULL;
 
    _item_event_del(it);
 
