@@ -768,6 +768,7 @@ EAPI Eina_Bool        elm_widget_disabled_get(const Evas_Object *obj);
 EAPI void             elm_widget_show_region_set(Evas_Object *obj, Evas_Coord x, Evas_Coord y, Evas_Coord w, Evas_Coord h, Eina_Bool forceshow);
 EAPI void             elm_widget_show_region_get(const Evas_Object *obj, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h);
 EAPI Eina_Bool        elm_widget_focus_region_get(const Evas_Object *obj, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h);
+EAPI void             elm_widget_parents_bounce_get(Evas_Object *obj, Eina_Bool *horiz, Eina_Bool *vert);
 EAPI void             elm_widget_scroll_hold_push(Evas_Object *obj);
 EAPI void             elm_widget_scroll_hold_pop(Evas_Object *obj);
 EAPI int              elm_widget_scroll_hold_get(const Evas_Object *obj);

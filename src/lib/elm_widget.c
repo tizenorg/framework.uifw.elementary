@@ -3071,6 +3071,34 @@ elm_widget_focus_region_get(const Evas_Object *obj,
    return EINA_TRUE;
 }
 
+EAPI void
+elm_widget_parents_bounce_get(Evas_Object *obj,
+                              Eina_Bool *horiz, Eina_Bool *vert)
+{
+   ELM_WIDGET_CHECK_OR_RETURN(obj);
+
+   Evas_Object *parent_obj = obj;
+   Eina_Bool h, v;
+
+   *horiz = EINA_FALSE;
+   *vert = EINA_FALSE;
+
+   do
+     {
+        parent_obj = elm_widget_parent_get(parent_obj);
+        if ((!parent_obj) || (!_elm_widget_is(parent_obj))) break;
+
+        if (_elm_scrollable_is(parent_obj))
+          {
+             ELM_SCROLLABLE_IFACE_GET(parent_obj, s_iface);
+             s_iface->bounce_allow_get(parent_obj, &h, &v);
+             if (h) *horiz = EINA_TRUE;
+             if (v) *vert = EINA_TRUE;
+          }
+     }
+   while (parent_obj);
+}
+
 EAPI Eina_List *
 elm_widget_scrollable_children_get(Evas_Object *obj)
 {
