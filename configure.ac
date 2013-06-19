@@ -776,6 +776,7 @@ src/bin/Makefile
 src/modules/Makefile
 src/modules/access_output/Makefile
 src/modules/datetime_input_ctxpopup/Makefile
+src/modules/datetime_input_popup/Makefile
 src/modules/test_entry/Makefile
 src/modules/test_map/Makefile
 src/modules/test_map_engine/Makefile

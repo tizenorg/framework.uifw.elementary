@@ -28,6 +28,8 @@ EAPI const char ELM_DATETIME_SMART_NAME[] = "elm_datetime";
 #define EDC_PART_FIELD_DISABLE_SIG_STR "field%d,disable"
 #define EDC_PART_FIELD_SEPARATOR_ENABLE_SIG_STR  "field%d,separator,enable"
 #define EDC_PART_FIELD_SEPARATOR_DISABLE_SIG_STR "field%d,separator,disable"
+#define EDC_PART_TIMEPICKER_STARTING_FIELD_STR "timepicker,starting,field%d"
+#define EDC_PART_DATEPICKER_STARTING_FIELD_STR "datepicker,starting,field%d"
 
 /* struct tm does not define the fields in the order year, month,
  * date, hour, minute. values are reassigned to an array for easy
@@ -213,6 +215,8 @@ _field_list_arrange(Evas_Object *obj)
    Datetime_Field *field;
    char buf[BUFFER_SIZE];
    int idx;
+   int datepicker_start_idx = ELM_DATETIME_TYPE_COUNT;
+   int timepicker_start_idx = ELM_DATETIME_TYPE_COUNT;
 
    ELM_DATETIME_DATA_GET(obj, sd);
 
@@ -230,6 +234,27 @@ _field_list_arrange(Evas_Object *obj)
         if (field->visible && field->fmt_exist)
           elm_layout_content_set(obj, buf, field->item_obj);
      }
+
+   for (idx = 0; idx < ELM_DATETIME_HOUR; idx++)
+     {
+        field = sd->field_list + idx;
+        if ((field->fmt_exist) && (field->location < datepicker_start_idx))
+          datepicker_start_idx = field->location;
+     }
+
+   snprintf(buf, sizeof(buf), EDC_PART_DATEPICKER_STARTING_FIELD_STR,
+            datepicker_start_idx);
+   elm_layout_signal_emit(obj, buf, "elm");
+
+   for (idx = ELM_DATETIME_HOUR; idx < ELM_DATETIME_TYPE_COUNT; idx++)
+     {
+        field = sd->field_list + idx;
+        if ((field->fmt_exist) && (field->location < timepicker_start_idx))
+          timepicker_start_idx = field->location;
+     }
+   snprintf(buf, sizeof(buf), EDC_PART_TIMEPICKER_STARTING_FIELD_STR,
+            timepicker_start_idx);
+   elm_layout_signal_emit(obj, buf, "elm");
 
    elm_layout_sizing_eval(obj);
    _field_list_display(obj);
@@ -385,8 +410,8 @@ _reload_format(Evas_Object *obj)
           }
      }
 
-   edje_object_message_signal_process(ELM_WIDGET_DATA(sd)->resize_obj);
    _field_list_arrange(obj);
+   edje_object_message_signal_process(ELM_WIDGET_DATA(sd)->resize_obj);
 }
 
 static Eina_Bool

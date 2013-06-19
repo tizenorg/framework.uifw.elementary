@@ -6,5 +6,6 @@ test_entry \
 test_map \
 test_map_engine \
 access_output \
+datetime_input_popup \
 datetime_input_ctxpopup \
 ctxpopup_copypasteUI
