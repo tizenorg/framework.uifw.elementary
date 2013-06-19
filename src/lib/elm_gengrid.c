@@ -2700,6 +2700,7 @@ _elm_gengrid_clear(Evas_Object *obj,
         ecore_job_del(sd->calc_job);
         sd->calc_job = NULL;
      }
+   if (sd->focused) sd->focused = NULL;
    if (sd->selected) sd->selected = eina_list_free(sd->selected);
    if (sd->clear_cb) sd->clear_cb(sd);
    sd->pan_x = 0;
