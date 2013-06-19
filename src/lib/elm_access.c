@@ -30,9 +30,10 @@ static Eina_Bool invalid_mouse_in = EINA_FALSE;
 static Evas_Coord_Point offset;
 static Evas_Object *s_parent; /* scrollable parent */
 static Elm_Access_Action_Type action_by = ELM_ACCESS_ACTION_FIRST;
+static Ecore_Timer *highlight_read_timer = NULL;
 
 static Evas_Object * _elm_access_add(Evas_Object *parent);
-static Eina_Bool _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir);
+static Eina_Bool _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir, Eina_Bool delay);
 
 static void
 _elm_access_smart_add(Evas_Object *obj)
@@ -288,17 +289,19 @@ _access_highlight_read(Elm_Access_Info *ac, Evas_Object *obj)
    free(txt);
 }
 
-static void
-_access_highlight_read_job(void *data)
+static Eina_Bool
+_highlight_read_timeout_cb(void *data)
 {
    Elm_Access_Info *ac;
 
    ac = evas_object_data_get(data, "_elm_access");
-   if (!ac) return;
+   if (!ac) return EINA_FALSE;
 
-   ac->highlight_read_job = NULL;
+   highlight_read_timer = NULL;
 
    _access_highlight_read(ac, data);
+
+   return EINA_FALSE;
 }
 
 static void
@@ -321,13 +324,13 @@ _access_obj_mouse_in_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSE
         ho = _access_highlight_object_get(data);
         if (ho == data) return;
 
-        if (ac->highlight_read_job)
+        if (highlight_read_timer)
           {
-             ecore_job_del(ac->highlight_read_job);
-             ac->highlight_read_job = NULL;
+             ecore_timer_del(highlight_read_timer);
+             highlight_read_timer = NULL;
           }
 
-        /* could not call ecore_job_add(); here, because the callback for READ
+        /* could not call ecore_timer_add(); here, because the callback for READ
            action. The callback for READ action should be called even though an
            object has a highlight. elm_win calls _access_action_callback_call()
            for READ action. */
@@ -557,11 +560,11 @@ _elm_access_highlight_object_scroll(Evas_Object *obj, int type, int x, int y)
 
              if (hx + (hw / 2) < sx || hy + (hh / 2) < sy)
                {
-                  _access_highlight_next_get(obj, ELM_FOCUS_NEXT);
+                  _access_highlight_next_get(obj, ELM_FOCUS_NEXT, EINA_FALSE);
                }
              if (hx + (hw / 2) > sx + sw || hy + (hh / 2) > sy + sh)
                {
-                  _access_highlight_next_get(obj, ELM_FOCUS_PREVIOUS);
+                  _access_highlight_next_get(obj, ELM_FOCUS_PREVIOUS, EINA_FALSE);
                }
           }
         evas_event_feed_mouse_move(evas, x - offset.x, y - offset.y, 0, NULL);
@@ -658,11 +661,14 @@ _elm_access_highlight_object_mouse(Evas_Object *obj, int type, int x, int y)
 }
 
 static Eina_Bool
-_access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir)
+_access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir, Eina_Bool delay)
 {
    int type;
    Evas_Object *ho, *parent, *target;
    Eina_Bool ret;
+   Evas *evas;
+   Elm_Access_Info *ac;
+   Evas_Coord_Point ho_point = { 0, 0 };
 
    target = NULL;
    ret = EINA_FALSE;
@@ -704,7 +710,30 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir)
                 to inform the target object of how to get highlight */
              action_by = type;
 
-             _elm_access_highlight_set(target);
+             if (delay)
+               _elm_access_highlight_set(target);
+             else
+               {
+                  ac = evas_object_data_get(target, "_elm_access");
+                  if (!ac) return ret;
+
+                  if (highlight_read_timer)
+                    {
+                       ecore_timer_del(highlight_read_timer);
+                       highlight_read_timer = NULL;
+                    }
+
+                  _access_highlight_read(ac, target);
+
+                  evas = evas_object_evas_get(target);
+                  if (!evas) return ret;
+
+                  /* move mouse position to inside of highlight object. if an object has a
+                     highlight by highlight_cycle();, the mouse still positions at previous
+                     position which would be made by MOUSE_IN event. */
+                  evas_object_geometry_get(target, &ho_point.x, &ho_point.y, 0, 0);
+                  evas_event_feed_mouse_move(evas, ho_point.x, ho_point.y, 0, NULL);
+               }
 
              action_by = ELM_ACCESS_ACTION_FIRST;
           }
@@ -730,7 +759,7 @@ static void
 _access_all_read_done(void *data)
 {
    Eina_Bool ret;
-   ret = _access_highlight_next_get(data, ELM_FOCUS_NEXT);
+   ret = _access_highlight_next_get(data, ELM_FOCUS_NEXT, EINA_FALSE);
 
    if (!ret) _elm_access_all_read_stop();
 }
@@ -811,14 +840,14 @@ _elm_access_highlight_set(Evas_Object* obj)
    ac = evas_object_data_get(obj, "_elm_access");
    if (!ac) return;
 
-   if (ac->highlight_read_job)
+   if (highlight_read_timer)
      {
-        ecore_job_del(ac->highlight_read_job);
-        ac->highlight_read_job = NULL;
+        ecore_timer_del(highlight_read_timer);
+        highlight_read_timer = NULL;
      }
-   /* use ecore_job_add(); here, an object could have a highlight even though
+   /* use ecore_timer_add(); here, an object could have a highlight even though
       its text is not yet translated in case of the naviframe title */
-   ac->highlight_read_job = ecore_job_add(_access_highlight_read_job, obj);
+   highlight_read_timer = ecore_timer_add(0.1, _highlight_read_timeout_cb, obj);
 
    evas = evas_object_evas_get(obj);
    if (!evas) return;
@@ -836,12 +865,6 @@ _elm_access_clear(Elm_Access_Info *ac)
    Elm_Access_Item *ai;
 
    if (!ac) return;
-
-   if (ac->highlight_read_job)
-     {
-        ecore_job_del(ac->highlight_read_job);
-        ac->highlight_read_job = NULL;
-     }
 
    EINA_LIST_FREE(ac->items, ai)
      {
@@ -1049,7 +1072,7 @@ _elm_access_say(const char *txt)
 }
 
 EAPI void
-_elm_access_highlight_object_read(const Evas_Object *obj)
+_elm_access_highlight_object_read(Evas_Object *obj)
 {
    Elm_Access_Info *ac;
    Evas_Object *ho;
@@ -1062,15 +1085,15 @@ _elm_access_highlight_object_read(const Evas_Object *obj)
    ac = evas_object_data_get(ho, "_elm_access");
    if (!ac) return;
 
-   if (ac->highlight_read_job)
+   if (highlight_read_timer)
      {
-        ecore_job_del(ac->highlight_read_job);
-        ac->highlight_read_job = NULL;
+        ecore_timer_del(highlight_read_timer);
+        highlight_read_timer = NULL;
      }
 
-   /* use ecore_job_add(); here, an object could have a highlight even though
+   /* use ecore_timer_add(); here, an object could have a highlight even though
       its text is not yet translated in case of the naviframe title */
-   ac->highlight_read_job = ecore_job_add(_access_highlight_read_job, ho);
+   highlight_read_timer = ecore_timer_add(0.1, _highlight_read_timeout_cb, ho);
 }
 
 EAPI Elm_Access_Info *
@@ -1630,14 +1653,14 @@ elm_access_action(Evas_Object *obj, const Elm_Access_Action_Type type, void *act
         if (a->highlight_cycle)
           _elm_access_highlight_cycle(obj, ELM_FOCUS_NEXT);
         else
-          return _access_highlight_next_get(obj, ELM_FOCUS_NEXT);
+          return _access_highlight_next_get(obj, ELM_FOCUS_NEXT, EINA_TRUE);
         break;
 
       case ELM_ACCESS_ACTION_HIGHLIGHT_PREV:
         if (a->highlight_cycle)
           _elm_access_highlight_cycle(obj, ELM_FOCUS_PREVIOUS);
         else
-          return _access_highlight_next_get(obj, ELM_FOCUS_PREVIOUS);
+          return _access_highlight_next_get(obj, ELM_FOCUS_PREVIOUS, EINA_TRUE);
         break;
 
       case ELM_ACCESS_ACTION_ACTIVATE:
