@@ -67,10 +67,7 @@ _prev_page_focus_recover(Elm_Naviframe_Item *it)
 
    newest = elm_widget_newest_focus_order_get(VIEW(it), &order, EINA_TRUE);
    if (newest)
-   {
      elm_object_focus_set(newest, EINA_TRUE);
-     _elm_access_highlight_set(newest);
-   }
    else
      {
         if (_elm_config->access_mode)

@@ -1370,7 +1370,6 @@ _on_show(void *data __UNUSED__,
    Eina_List *elist;
    Elm_Ctxpopup_Item *item;
    int idx = 0;
-   Evas_Object *ao;
 
    ELM_CTXPOPUP_DATA_GET(obj, sd);
    ELM_WIDGET_DATA_GET(obj, wsd);
@@ -1417,12 +1416,6 @@ _on_show(void *data __UNUSED__,
    elm_layout_sizing_eval(obj);
 
    elm_object_focus_set(obj, EINA_TRUE);
-
-   if (_elm_config->access_mode)
-     {
-        ao = _access_object_get(obj, ACCESS_OUTLINE_PART);
-        _elm_access_highlight_set(ao);
-     }
 }
 
 static void
