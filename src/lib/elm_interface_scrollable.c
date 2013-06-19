@@ -4026,6 +4026,12 @@ _elm_scroll_page_show(Evas_Object *obj,
    _elm_scroll_content_viewport_size_get(sid->obj, &w, &h);
    if (pagenumber_h >= 0) x = sid->pagesize_h * pagenumber_h;
    if (pagenumber_v >= 0) y = sid->pagesize_v * pagenumber_v;
+
+   sid->wx = x;
+   sid->wy = y;
+   sid->ww = w;
+   sid->wh = h;
+
    if (_elm_scroll_content_region_show_internal(obj, &x, &y, w, h))
      _elm_scroll_content_pos_set(obj, x, y, EINA_TRUE);
 }

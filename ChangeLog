@@ -1026,3 +1026,63 @@
 2013-05-27 Seunggyun Kim
         * Add elm_config_glayer_long_tap_start_timeout_set/get,
         elm_config_glayer_double_tap_timeout_set/get
+
+2013-05-30  ChunEon Park
+
+        * Fix the mapbuf to be enabled before it's content is entirely rendered
+        once.
+
+2013-06-05  Ryuan Choi (ryuan)
+
+        * Fix elm_colorselector does not update color bar when picker changed color.
+
+2013-06-05  ChunEon Park (Hermet)
+
+        * Fix navifame to recover the focus for the prev page when top item is deleted.
+
+2013-06-06  Ryuan Choi (ryuan)
+
+        * Up/down step of hour decimal of elm_clock is changed to 12 not to touch hour unit at editing mode.
+
+2013-06-07  Thiep Ha
+
+        * Add magnifier to entry.
+
+2013-06-10  ChunEon Park (Hermet)
+
+        * Remove the keyboard area in the conformant if the keyboard state is off.
+
+2013-06-10  Daniel Juyung Seo (SeoZ)
+
+        * Add "focused" and "unfocused" smart callback for panel, video, web,
+        web2, genlist, hover, index, list, map, photocam, progressbar, radio,
+        scroller, slider, slideshow, spinner, toolbar, win, calendar, check,
+        clock, colorselector, datetime, diskselector, flipselector, gengrid,
+        ctxpopup, fileselector_button, naviframe, player, popup, bubble, button.
+
+2013-06-05  Ryuan Choi (ryuan)
+
+        * Fix colorselector send "changed" signal twice when pressed color bar.
+
+2013-06-11  ChunEon Park (Hermet)
+
+        * Keep the smart members of the naviframe views whenever resize object is changed.
+		  This prevents the dangling view objects of the naviframe and keep the layer
+		  consistency.
+
+2013-06-13  Ryuan Choi (ryuan)
+
+        * Replace uri to url from elm_web_uri_get, elm_web_uri_set and "uri,changed" signal.
+        Previous APIs and signal are deprecated.
+
+2013-06-16  ChunEon Park (Hermet)
+
+        * Naviframe: Dont' be popped if the event is freezed and popping is going on.
+
+2013-06-18  Jaehwan Kim
+
+        * In case of scroll in scroll, the child scroller have to bounce if parents don't have a bounce.
+
+2013-06-19  Jaehwan Kim
+
+        * Fix elm_scroller_page_show bug. It have to save the wanted values to show the wanted page.

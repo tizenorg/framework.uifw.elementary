@@ -102,6 +102,38 @@ Fixes :
    * Fix small memory leak in elm_map error path
    * Focus highlight should not be shown on (0, 0).
    * Fix the elm_shutdown bug in _elm_shutdown_config.
+   * Fix box layout bug when items with max size force sizes below minimum.
+   * Fix ctxpopup geometry when parent is an elm_win.
+   * Quit the scroll animator if the scroller don't have a bounce and reach a edge.
+   * Fix the scroller show by a page if the page size is set and the region_bring_in or region_show is called.
+   * Fix elc_player crash issue.
+   * Fix the region_show/region_bring_in don't have a limit at a paging movement.
+   * Fix the calculation double type number.
+   * Fix the policy is not changed when the theme is changed.
+   * When entry is disabled, scrolling is also disabled.
+   * Make access object unfocusable when Aaccessibility is disabled.
+   * Fix the scrolled entry in scroller is located wrong position when the cursor is changed.
+   * Fix null pointer access on naviframe item deletion.
+   * Fix the toolbar item clipped problem on reordering items.
+   * Fix elm_object_cursor_theme_search_enabled_set to do as it's name described.
+   * Elm_entry_filter_accept_set function now can recognize tags.
+   * Don't be dead even if a ctxpopup item callback is null.
+   * Fix gengrid does not work under the accessibility.
+   * Fix do not append NULL to genlist focus list.
+   * Fix elm_clock_first_interval_set writes wrong value.
+   * Fix remained ecore timer issue when gesture layer was deleted.
+   * Fix ctxpopup can't be called again in the mobile mode entry.
+   * Fix colorselector color change but when palette item is selected.
+   * Fix elm_colorselector does not emit "changed" when clicked color palatte.
+   * Fix elm_mapbuf to be enabled before it's content is entirely rendered once.     this will reduce the cases that content is not updated in the screen.
+   * Fix elm_colorselector does not update color bar when picker changed color.
+   * Fix navifame to recover the focus for the prev page when top item is deleted.
+   * Up/down step of hour decimal of elm_clock is changed to 12 not to touch hour unit at editing mode.
+   * Remove the keyboard area in the conformant if the keyboard state is off.
+   * Fix colorselector send "changed" signal twice when pressed color bar.
+   * Keep the smart members of the naviframe views whenever resize object is changed. This prevents the dangling view objects of the naviframe and keep the layer consistency.
+   * In case of scroll in scroll, the child scroller have to bounce if parents don't have a bounce.
+   * Fix elm_scroller_page_show bug. It have to save the wanted values to show the wanted page.
 
 Removals:
 
