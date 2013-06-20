@@ -1086,3 +1086,7 @@
 2013-06-19  Jaehwan Kim
 
         * Fix elm_scroller_page_show bug. It have to save the wanted values to show the wanted page.
+
+2013-06-20  Youngbok Shin
+
+        * Fix non-scrollable entry did not comply focus_highlight data.

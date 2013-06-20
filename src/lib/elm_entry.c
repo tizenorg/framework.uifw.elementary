@@ -1114,6 +1114,7 @@ _elm_entry_smart_disable(Evas_Object *obj)
 static Eina_Bool
 _elm_entry_smart_theme(Evas_Object *obj)
 {
+   const char *str;
    const char *t;
    Elm_Widget_Smart_Class *parent_parent =
      (Elm_Widget_Smart_Class *)((Evas_Smart_Class *)
@@ -1191,19 +1192,22 @@ _elm_entry_smart_theme(Evas_Object *obj)
 
    if (sd->scroll)
      {
-        const char *str;
-
         sd->s_iface->mirrored_set(obj, elm_widget_mirrored_get(obj));
 
         elm_widget_theme_object_set
           (obj, sd->scr_edje, "scroller", "entry", elm_widget_style_get(obj));
 
         str = edje_object_data_get(sd->scr_edje, "focus_highlight");
-        if ((str) && (!strcmp(str, "on")))
-          elm_widget_highlight_in_theme_set(obj, EINA_TRUE);
-        else
-          elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
      }
+   else
+     {
+        str = edje_object_data_get(sd->entry_edje, "focus_highlight");
+     }
+
+   if ((str) && (!strcmp(str, "on")))
+     elm_widget_highlight_in_theme_set(obj, EINA_TRUE);
+   else
+     elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
 
    elm_layout_sizing_eval(obj);
 
