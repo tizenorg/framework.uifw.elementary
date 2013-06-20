@@ -1126,6 +1126,7 @@ _elm_toolbar_smart_theme(Evas_Object *obj)
 {
    Elm_Toolbar_Item *it;
    double scale = 0;
+   const char *str;
 
    ELM_TOOLBAR_DATA_GET(obj, sd);
 
@@ -1138,6 +1139,12 @@ _elm_toolbar_smart_theme(Evas_Object *obj)
    elm_widget_theme_object_set
      (obj, ELM_WIDGET_DATA(sd)->resize_obj, "toolbar", "base",
      elm_widget_style_get(obj));
+
+   str = edje_object_data_get(ELM_WIDGET_DATA(sd)->resize_obj, "focus_highlight");
+   if ((str) && (!strcmp(str, "on")))
+     elm_widget_highlight_in_theme_set(obj, EINA_TRUE);
+   else
+     elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
 
    elm_layout_theme_set
      (sd->more, "toolbar", "more", elm_widget_style_get(obj));
