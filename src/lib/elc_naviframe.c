@@ -1779,12 +1779,12 @@ elm_naviframe_item_pop(Evas_Object *obj)
         if (!it->pop_cb(it->pop_data, (Elm_Object_Item *)it))
           {
              it->ref--;
+             it->popping = EINA_FALSE;
              if (it->delete_me)
                {
                   _item_del_pre_hook(it);
                   _elm_widget_item_free(it);
                }
-             it->popping = EINA_FALSE;
              evas_object_unref(obj);
 
              return NULL;

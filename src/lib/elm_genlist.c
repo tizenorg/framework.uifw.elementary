@@ -3603,11 +3603,9 @@ _multi_cancel(void *data)
 {
    Elm_Genlist_Smart_Data *sd = data;
 
-   if (!sd)
-     {
-        sd->multi_timer = NULL;
-        return ECORE_CALLBACK_CANCEL;
-     }
+   if (!sd) return ECORE_CALLBACK_CANCEL;
+
+   sd->multi_timer = NULL;
    sd->multi_timeout = EINA_TRUE;
 
    return ECORE_CALLBACK_RENEW;
@@ -4427,8 +4425,8 @@ _scroll_hold_timer_cb(void *data)
 {
    Elm_Genlist_Smart_Data *sd = data;
 
+   if (!sd) return ECORE_CALLBACK_CANCEL;
    sd->scr_hold_timer = NULL;
-   if (!data) return ECORE_CALLBACK_CANCEL;
 
    sd->s_iface->hold_set(ELM_WIDGET_DATA(sd)->obj, EINA_FALSE);
 
