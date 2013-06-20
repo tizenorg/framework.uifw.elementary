@@ -4574,6 +4574,71 @@ _item_block_recalc(Item_Block *itb,
    return show_me;
 }
 
+static void _item_update(Elm_Gen_Item *it)
+{
+   if (!it->realized) return;
+
+   if (it->texts) elm_widget_stringlist_free(it->texts);
+   it->texts = NULL;
+   if (it->states) elm_widget_stringlist_free(it->states);
+   it->states = NULL;
+   // unrealization
+   it->content_objs = _item_content_unrealize(it, VIEW(it),
+                                              &it->contents, NULL);
+   it->item->deco_all_content_objs =
+      _item_mode_content_unrealize
+      (it, it->deco_all_view, &it->item->deco_all_contents, NULL,
+       &it->item->deco_all_content_objs);
+
+   it->item->deco_it_content_objs =
+      _item_mode_content_unrealize(it, it->item->deco_it_view,
+                                   &it->item->deco_it_contents, NULL,
+                                   &it->item->deco_it_content_objs);
+
+   it->item->flip_content_objs =
+      _item_mode_content_unrealize(it, VIEW(it),
+                                   &it->item->flip_contents, NULL,
+                                   &it->item->flip_content_objs);
+
+   // realization
+   _item_text_realize(it, VIEW(it), &it->texts, NULL);
+   _item_state_realize(it, VIEW(it), &it->states, NULL);
+   it->content_objs = _item_content_realize(it, VIEW(it),
+                                            &it->contents, NULL);
+   if (GL_IT(it)->wsd->decorate_all_mode)
+     {
+        it->item->deco_all_content_objs =
+           _item_mode_content_realize(it, it->deco_all_view,
+                                      &it->item->deco_all_contents, NULL,
+                                      &it->item->deco_all_content_objs);
+     }
+
+   if (it->item->deco_it_view)
+     {
+        it->item->deco_it_content_objs =
+           _item_mode_content_realize(it, it->item->deco_it_view,
+                                      &it->item->deco_it_contents, NULL,
+                                      &it->item->deco_it_content_objs);
+     }
+
+   if (it->flipped)
+     {
+        edje_object_signal_emit
+           (VIEW(it), "elm,state,flip,enabled", "elm");
+        // This is needed before contents are swallowed
+        edje_object_message_signal_process(VIEW(it));
+
+        if (!(it->item->flip_contents))
+           it->item->flip_contents = elm_widget_stringlist_get
+              (edje_object_data_get(VIEW(it), "flips"));
+        it->item->flip_content_objs = _item_mode_content_realize
+           (it, VIEW(it), &it->item->flip_contents, NULL,
+            &it->item->flip_content_objs);
+     }
+   _item_min_calc(it, NULL, NULL);
+
+}
+
 static void
 _update_job(void *data)
 {
@@ -4611,8 +4676,7 @@ _update_job(void *data)
                   it->item->updateme = EINA_FALSE;
                   if (it->realized)
                     {
-                       _item_unrealize(it, EINA_FALSE);
-                       _item_realize(it, num, EINA_FALSE);
+                       _item_update(it);
                        position = EINA_TRUE;
                     }
                   else
