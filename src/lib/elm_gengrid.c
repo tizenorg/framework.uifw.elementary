@@ -2394,15 +2394,6 @@ _elm_gengrid_item_del_common(Elm_Gen_Item *it)
 static void
 _elm_gengrid_item_del_serious(Elm_Gen_Item *it)
 {
-#if GENGRID_FX_SUPPORT
-   if ((!GG_IT(it)->wsd->fx_mode) || (GG_IT(it)->wsd->gengrid_clearing))
-#endif
-     {
-        GG_IT(it)->wsd->items = eina_inlist_remove
-           (GG_IT(it)->wsd->items, EINA_INLIST_GET(it));
-
-     }
-
    _elm_gengrid_item_del_common(it);
 
    if ((it == GG_IT(it)->wsd->bring_in_it) && (GG_IT(it)->wsd->bring_in == EINA_TRUE))
