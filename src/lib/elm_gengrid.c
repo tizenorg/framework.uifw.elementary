@@ -4439,6 +4439,7 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
    Proxy_Item *pi = NULL;
    Eina_List *l;
    Elm_Gengrid_Smart_Data *sd;
+   Eina_Bool has_del_it = EINA_FALSE;
 
    if ((!fx_done_it) || (!fx_done_it->it)) return;
 
@@ -4460,6 +4461,7 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
           {
              _item_del(it);
              _elm_widget_item_free((Elm_Widget_Item *)it);
+             has_del_it = EINA_TRUE;
           }
         EINA_LIST_FOREACH(sd->capture_before_items, l, pi)
            evas_object_hide(pi->proxy);
@@ -4471,7 +4473,7 @@ _item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
         evas_object_hide(sd->alpha_bg);
 
         sd->pan_changed = EINA_TRUE;
-        evas_object_smart_changed(sd->pan_obj);
+        if (!has_del_it) evas_object_smart_changed(sd->pan_obj);
      }
 }
 
