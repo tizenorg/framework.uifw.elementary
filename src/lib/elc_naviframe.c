@@ -915,20 +915,23 @@ static void
 _elm_naviframe_smart_sizing_eval(Evas_Object *obj)
 {
    Evas_Coord minw = -1, minh = -1;
-   Elm_Naviframe_Item *it;
+   Elm_Naviframe_Item *it, *top;
    Evas_Coord x, y, w, h;
 
    ELM_NAVIFRAME_DATA_GET(obj, sd);
 
    if (sd->on_deletion) return;
 
+   if (!sd->stack) return;
+
+   top = (EINA_INLIST_CONTAINER_GET(sd->stack->last, Elm_Naviframe_Item));
    evas_object_geometry_get(obj, &x, &y, &w, &h);
    EINA_INLIST_FOREACH(sd->stack, it)
      {
         evas_object_move(VIEW(it), x, y);
         evas_object_resize(VIEW(it), w, h);
 
-        if (it == sd->stack->last)
+        if (it == top)
           {
              edje_object_size_min_calc(elm_layout_edje_get(VIEW(it)),
                                        &it->minw, &it->minh);
