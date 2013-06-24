@@ -232,8 +232,8 @@ _guide_set(Evas_Object *obj,
      {
         if (sd->editable)
           {
-             evas_object_hide(sd->entry);
              elm_box_unpack(sd->box, sd->entry);
+             evas_object_hide(sd->entry);
           }
 
         elm_box_pack_end(sd->box, sd->guide);
@@ -264,8 +264,8 @@ _label_set(Evas_Object *obj,
      }
    else if (!strlen(text) && _label_packed(obj))
      {
-        evas_object_hide(sd->label);
         elm_box_unpack(sd->box, sd->label);
+        evas_object_hide(sd->label);
      }
 
    // ACCESS
@@ -463,8 +463,8 @@ _item_adding_effect_add(Evas_Object *obj,
                }
              else
                {
-                  evas_object_hide(VIEW(last_it));
                   elm_box_unpack(sd->box, VIEW(last_it));
+                  evas_object_hide(VIEW(last_it));
                }
           }
 
@@ -648,8 +648,8 @@ _item_deleting_effect_add(Evas_Object *obj,
                elm_box_unpack(sd->box, VIEW(it));
              else
                {
-                  evas_object_hide(VIEW(last_it));
                   elm_box_unpack(sd->box, VIEW(last_it));
+                  evas_object_hide(VIEW(last_it));
                }
           }
 
@@ -957,8 +957,8 @@ _layout_shrink(Evas_Object *obj,
 
              if (sd->editable)
                {
-                  evas_object_hide(sd->entry);
                   elm_box_unpack(sd->box, sd->entry);
+                  evas_object_hide(sd->entry);
                }
           }
         else
@@ -1002,8 +1002,8 @@ _layout_shrink(Evas_Object *obj,
                {
                   if (child != sd->label)
                     {
-                       evas_object_hide(child);
                        elm_box_unpack(sd->box, child);
+                       evas_object_hide(child);
                     }
                }
 
@@ -1051,6 +1051,7 @@ _layout_shrink(Evas_Object *obj,
                   linew += mnw;
                   if (linew > (w * (2 / 3)))
                     {
+                       elm_object_focus_set(sd->entry, EINA_FALSE);
                        evas_object_hide(sd->entry);
                        elm_box_unpack(sd->box, sd->entry);
                        sd->expanded_state = EINA_FALSE;
@@ -1086,8 +1087,8 @@ _layout_shrink(Evas_Object *obj,
                {
                   if (child != sd->label)
                     {
-                       evas_object_hide(child);
                        elm_box_unpack(sd->box, child);
+                       evas_object_hide(child);
                     }
                }
 
@@ -1670,8 +1671,8 @@ _item_del_pre_hook(Elm_Object_Item *it)
      {
         if (sd->editable)
           {
-             evas_object_hide(sd->entry);
              elm_box_unpack(sd->box, sd->entry);
+             evas_object_hide(sd->entry);
           }
 
         elm_box_pack_end(sd->box, sd->guide);
@@ -1861,54 +1862,6 @@ _on_entry_unfocused(void *data,
    free(str);
 }
 
-// handles semicolon, comma (before inserting them to the entry)
-static void
-_entry_filter(void *data,
-              Evas_Object *entry,
-              char **text)
-{
-   char *str;
-
-   ELM_MULTIBUTTONENTRY_DATA_GET(data, sd);
-
-   if (!*text || !strlen(*text)) return;
-
-   // cancels item_be_selected when text inserting is started
-   if (strcmp(*text, ";") && strcmp(*text, ","))
-     {
-        sd->item_be_selected = EINA_FALSE;
-        return;
-     }
-
-   str = elm_entry_markup_to_utf8(elm_object_text_get(entry));
-   if (strlen(str))
-     {
-        Elm_Multibuttonentry_Item *it;
-
-        it = _item_new(data, str, NULL, NULL);
-        if (!it)
-          {
-             free(str);
-             return;
-          }
-
-        sd->items = eina_list_append(sd->items, it);
-#ifdef _VI_EFFECT
-        _item_adding_effect_add(data, it);
-#else
-        elm_box_pack_before(sd->box, VIEW(it), entry);
-        evas_object_show(VIEW(it));
-        evas_object_smart_callback_call(data, SIG_ITEM_ADDED, it);
-#endif
-
-        elm_object_text_set(entry, "");
-     }
-   free(str);
-
-   free(*text);
-   *text = NULL;
-}
-
 // handles enter key
 static void
 _on_entry_key_down(void *data,
@@ -2042,8 +1995,8 @@ _elm_multibuttonentry_smart_on_focus(Evas_Object *obj)
 
         if (sd->guide && _guide_packed(obj))
           {
-             evas_object_hide(sd->guide);
              elm_box_unpack(sd->box, sd->guide);
+             evas_object_hide(sd->guide);
 
              if (sd->editable)
                {
@@ -2069,8 +2022,8 @@ _elm_multibuttonentry_smart_on_focus(Evas_Object *obj)
           {
              if (sd->editable)
                {
-                  evas_object_hide(sd->entry);
                   elm_box_unpack(sd->box, sd->entry);
+                  evas_object_hide(sd->entry);
                }
 
              elm_box_pack_end(sd->box, sd->guide);
@@ -2219,7 +2172,6 @@ _elm_multibuttonentry_smart_add(Evas_Object *obj)
       (priv->entry, EVAS_CALLBACK_KEY_DOWN, _on_entry_key_down, obj);
    evas_object_smart_callback_add
       (priv->entry, "unfocused", _on_entry_unfocused, obj);
-   elm_entry_markup_filter_append(priv->entry, _entry_filter, obj);
    elm_box_pack_end(priv->box, priv->entry);
    evas_object_show(priv->entry);
 
@@ -2519,8 +2471,8 @@ elm_multibuttonentry_item_prepend(Evas_Object *obj,
    // if guide text was shown, hide it
    if (sd->guide && _guide_packed(obj))
      {
-        evas_object_hide(sd->guide);
         elm_box_unpack(sd->box, sd->guide);
+        evas_object_hide(sd->guide);
 
         if (sd->editable)
           {
@@ -2589,8 +2541,8 @@ elm_multibuttonentry_item_append(Evas_Object *obj,
    // if guide text was shown, hide it
    if (sd->guide && _guide_packed(obj))
      {
-        evas_object_hide(sd->guide);
         elm_box_unpack(sd->box, sd->guide);
+        evas_object_hide(sd->guide);
 
         if (sd->editable)
           {
