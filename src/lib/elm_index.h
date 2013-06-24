@@ -433,5 +433,21 @@ EAPI void                      elm_index_omit_enabled_set(Evas_Object *obj, Eina
 EAPI Eina_Bool                 elm_index_omit_enabled_get(const Evas_Object *obj);
 
 /**
+ * Set priority of an item.
+ *
+ * @param The index item
+ * @param priority
+ *
+ * @note priority is -1 by default, which means the item doesn't belong to a group.
+ *
+ * The value of the priority starts from 0.
+ * In elm_index_level_go, the items are sorted in ascending order according to priority.
+ * Items of the same priority make a group and the primary group is shown by default.
+ *
+ * @ingroup Index
+ */
+EAPI void                      elm_index_item_priority_set(Elm_Object_Item *it, int priority);
+
+/**
  * @}
  */

@@ -126,23 +126,15 @@ static void
 _omit_calc(void *data, int num_of_items, int max_num_of_items)
 {
    Elm_Index_Smart_Data *sd = data;
-   int max_group_num, num_of_extra_items, i, g, size, sum, *group_pos, *omit_info;
+   int max_group_num, num_of_extra_items, i, g, size, sum, start;
+   int *group_pos, *omit_info;
    Elm_Index_Omit *o;
-   Elm_Index_Item *it;
-   Eina_List *l;
-
-   EINA_LIST_FREE(sd->omit, o)
-     free(o);
-
-   EINA_LIST_FOREACH(sd->items, l, it)
-     {
-        if (it->omitted)
-          it->omitted = eina_list_free(it->omitted);
-        if (it->head) it->head = NULL;
-     }
 
    if ((max_num_of_items < 3) || (num_of_items <= max_num_of_items)) return;
 
+   if (sd->group_num > 0)
+     start = sd->group_num + sd->default_num - 1;
+   else start = 0;
    max_group_num = (max_num_of_items - 1) / 2;
    num_of_extra_items = num_of_items - max_num_of_items;
 
@@ -179,7 +171,7 @@ _omit_calc(void *data, int num_of_items, int max_num_of_items)
         if (omit_info[i] > 1)
           {
              o = (Elm_Index_Omit *)malloc(sizeof(Elm_Index_Omit));
-             o->offset = sum;
+             o->offset = sum + start;
              o->count = omit_info[i];
              sd->omit = eina_list_append(sd->omit, o);
           }
@@ -199,7 +191,7 @@ _index_box_auto_fill(Evas_Object *obj,
    int i = 0, max_num_of_items = 0, num_of_items = 0, g = 0, skip = 0;
    Eina_List *l;
    Eina_Bool rtl;
-   Elm_Index_Item *it, *head = NULL;
+   Elm_Index_Item *it, *head = NULL, *last_it = NULL;
    Evas_Coord mw, mh, ih;
    Evas_Object *o;
    Elm_Index_Omit *om;
@@ -212,6 +204,16 @@ _index_box_auto_fill(Evas_Object *obj,
 
    rtl = elm_widget_mirrored_get(obj);
 
+   EINA_LIST_FREE(sd->omit, om)
+     free(om);
+
+   EINA_LIST_FOREACH(sd->items, l, it)
+     {
+        if (it->omitted)
+          it->omitted = eina_list_free(it->omitted);
+        if (it->head) it->head = NULL;
+     }
+
    if (sd->omit_enabled)
      {
         o = edje_object_add(evas_object_evas_get(obj));
@@ -222,20 +224,27 @@ _index_box_auto_fill(Evas_Object *obj,
         edje_object_size_min_restricted_calc(o, NULL, &mh, 0, 0);
 
         EINA_LIST_FOREACH(sd->items, l, it)
-           if (it->level == level) num_of_items++;
+           if (it->level == level && it->priority == sd->show_group)
+             num_of_items++;
 
         if (mh != 0)
           max_num_of_items = ih / mh;
+        if (sd->group_num)
+          max_num_of_items -= (sd->group_num + sd->default_num - 1);
 
         _omit_calc(sd, num_of_items, max_num_of_items);
      }
 
+   int current_priority = -1;
    om = eina_list_nth(sd->omit, g);
    EINA_LIST_FOREACH(sd->items, l, it)
      {
         const char *stacking;
 
         if (it->level != level) continue;
+
+        if ((current_priority != -1) && (current_priority == it->priority)
+            && (it->priority != sd->show_group)) continue;
 
         if ((om) && (i == om->offset))
           {
@@ -308,21 +317,75 @@ _index_box_auto_fill(Evas_Object *obj,
 
         i++;
 
+        if (current_priority != it->priority) current_priority = it->priority;
+        last_it = it;
+
         // ACCESS
         if ((it->level == 0) && (_elm_config->access_mode))
           _access_widget_item_register(it);
      }
 
    // TIZEN ONLY adjust the last item's theme according to winset gui
-   if (sd->items)
-     {
-        it = eina_list_nth(sd->items, i - 1);
-        edje_object_signal_emit(VIEW(it), "elm,last,item", "elm");
-     }
+   if (last_it)
+     edje_object_signal_emit(VIEW(last_it), "elm,last,item", "elm");
    // TIZEN ONLY
 
    evas_object_smart_calculate(box);
    sd->level_active[level] = 1;
+}
+
+static void
+_priority_change_job(void *data)
+{
+   ELM_INDEX_DATA_GET(data, sd);
+   Elm_Object_Item *selected_it;
+
+   sd->priority_change = NULL;
+   sd->show_group = sd->next_group;
+   _index_box_clear(data, sd->bx[0], 0);
+   _index_box_auto_fill(data, sd->bx[0], 0);
+
+   selected_it = elm_index_selected_item_get(data, sd->level);
+   if (selected_it) elm_index_item_selected_set(selected_it, EINA_FALSE);
+}
+
+static Eina_Bool
+_priority_up_cb(void *data)
+{
+   _priority_change_job(data);
+   elm_layout_signal_emit(data, "elm,priority,up", "elm");
+
+   return ECORE_CALLBACK_CANCEL;
+}
+
+static Eina_Bool
+_priority_down_cb(void *data)
+{
+   _priority_change_job(data);
+   elm_layout_signal_emit(data, "elm,priority,down", "elm");
+
+   return ECORE_CALLBACK_CANCEL;
+}
+
+static void
+_index_priority_change(void *data, Elm_Index_Item *it)
+{
+   ELM_INDEX_DATA_GET(data, sd);
+
+   if (sd->priority_change)
+     {
+        ecore_timer_del(sd->priority_change);
+        sd->priority_change = NULL;
+     }
+
+   if ((it->priority != -1) && (it->priority != sd->show_group))
+     {
+        sd->next_group = it->priority;
+        if (it->priority < sd->show_group)
+          sd->priority_change = ecore_timer_add(0.3, _priority_up_cb, data);
+        else
+          sd->priority_change = ecore_timer_add(0.3, _priority_down_cb, data);
+     }
 }
 
 static void
@@ -496,6 +559,7 @@ _item_new(Evas_Object *obj,
    it->func = func;
    it->base.data = data;
    it->level = sd->level;
+   it->priority = -1;
 
    return it;
 }
@@ -524,7 +588,11 @@ _delay_change_cb(void *data)
 
    sd->delay = NULL;
    item = elm_index_selected_item_get(data, sd->level);
-   if (item) evas_object_smart_callback_call(data, SIG_DELAY_CHANGED, item);
+   if (item)
+     {
+        evas_object_smart_callback_call(data, SIG_DELAY_CHANGED, item);
+        _index_priority_change(data, (Elm_Index_Item *)item);
+     }
 
    return ECORE_CALLBACK_CANCEL;
 }
@@ -1393,12 +1461,41 @@ elm_index_item_clear(Evas_Object *obj)
      elm_widget_item_del(it);
 }
 
+int
+_sort_cb(const void *d1, const void *d2)
+{
+   Elm_Index_Item *it1 = d1, *it2 = d2;
+   if (it1->priority <= it2->priority) return -1;
+   else return 1;
+}
+
 EAPI void
 elm_index_level_go(Evas_Object *obj,
                    int level __UNUSED__)
 {
    ELM_INDEX_CHECK(obj);
    ELM_INDEX_DATA_GET(obj, sd);
+
+   Elm_Index_Item *it;
+   Eina_List *l;
+   int prev;
+
+   sd->items = eina_list_sort(sd->items, 0, EINA_COMPARE_CB(_sort_cb));
+
+   sd->default_num = 0;
+   sd->group_num = 0;
+   sd->show_group = -1;
+   prev = -1;
+   EINA_LIST_FOREACH(sd->items, l, it)
+     {
+        if (it->priority == -1) sd->default_num++;
+        if (it->priority != prev)
+          {
+             if (prev == -1) sd->show_group = it->priority;
+             sd->group_num++;
+             prev = it->priority;
+          }
+     }
 
    _index_box_clear(obj, sd->bx[0], 0);
    _index_box_auto_fill(obj, sd->bx[0], 0);
@@ -1515,4 +1612,16 @@ elm_index_omit_enabled_get(const Evas_Object *obj)
    ELM_INDEX_DATA_GET(obj, sd);
 
    return sd->omit_enabled;
+}
+
+EAPI void
+elm_index_item_priority_set(Elm_Object_Item *it, int priority)
+{
+   ELM_INDEX_ITEM_CHECK(it);
+   if (priority < -1)
+     {
+        WRN("priority value should be greater than or equal to -1.");
+        return;
+     }
+   ((Elm_Index_Item *)it)->priority = priority;
 }

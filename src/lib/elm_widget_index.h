@@ -136,6 +136,10 @@ struct _Elm_Index_Smart_Data
    double                delay_change_time;
    Eina_Bool             level_active[2];
 
+   int                   group_num, default_num;
+   int                   show_group, next_group;
+   Ecore_Timer          *priority_change;
+
    Eina_Bool             down : 1;
    Eina_Bool             horizontal : 1;
    Eina_Bool             autohide_disabled : 1;
@@ -155,6 +159,8 @@ struct _Elm_Index_Item
 
    Eina_List    *omitted;
    Elm_Index_Item       *head;
+
+   int           priority;
 
    Eina_Bool     selected : 1;
 };
