@@ -4935,6 +4935,7 @@ _decorate_item_set(Elm_Gen_Item *it)
 
    snprintf(buf, sizeof(buf), "elm,state,%s,active", sd->decorate_it_type);
    edje_object_signal_emit(it->item->deco_it_view, buf, "elm");
+   edje_object_signal_emit(VIEW(it), buf, "elm");
 }
 
 static void
@@ -4952,6 +4953,7 @@ _decorate_item_unset(Elm_Genlist_Smart_Data *sd)
    snprintf(buf2, sizeof(buf2), "elm,state,%s,passive,finished",
             sd->decorate_it_type);
    edje_object_signal_emit(it->item->deco_it_view, buf, "elm");
+   edje_object_signal_emit(VIEW(it), buf, "elm");
    edje_object_signal_callback_add
      (it->item->deco_it_view, buf2, "elm", _decorate_item_finished_signal_cb,
      it);
