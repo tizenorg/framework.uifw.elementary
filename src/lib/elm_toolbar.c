@@ -7,12 +7,22 @@ EAPI const char ELM_TOOLBAR_SMART_NAME[] = "elm_toolbar";
 #define ELM_TOOLBAR_ITEM_FROM_INLIST(item) \
   ((item) ? EINA_INLIST_CONTAINER_GET(item, Elm_Toolbar_Item) : NULL)
 
+static const char SIG_SCROLL[] = "scroll";
+static const char SIG_SCROLL_ANIM_START[] = "scroll,anim,start";
+static const char SIG_SCROLL_ANIM_STOP[] = "scroll,anim,stop";
+static const char SIG_SCROLL_DRAG_START[] = "scroll,drag,start";
+static const char SIG_SCROLL_DRAG_STOP[] = "scroll,drag,stop";
 static const char SIG_CLICKED[] = "clicked";
 static const char SIG_LONGPRESSED[] = "longpressed";
 static const char SIG_CLICKED_DOUBLE[] = "clicked,double";
 static const char SIG_LANG_CHANGED[] = "language,changed";
 static const char SIG_ACCESS_CHANGED[] = "access,changed";
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
+   {SIG_SCROLL, ""},
+   {SIG_SCROLL_ANIM_START, ""},
+   {SIG_SCROLL_ANIM_STOP, ""},
+   {SIG_SCROLL_DRAG_START, ""},
+   {SIG_SCROLL_DRAG_STOP, ""},
    {SIG_CLICKED, ""},
    {SIG_LONGPRESSED, ""},
    {SIG_CLICKED_DOUBLE, ""},
@@ -1798,18 +1808,6 @@ _long_press_cb(void *data)
 }
 
 static void
-_drag_start_cb(Evas_Object *obj, void *data __UNUSED__)
-{
-   ELM_TOOLBAR_DATA_GET(obj, sd);
-
-   if (sd->long_timer)
-     {
-        ecore_timer_del(sd->long_timer);
-        sd->long_timer = NULL;
-     }
-}
-
-static void
 _mouse_move_cb(Elm_Toolbar_Item *it,
                Evas *evas __UNUSED__,
                Evas_Object *obj __UNUSED__,
@@ -1893,6 +1891,49 @@ _mouse_out_cb(void *data,
 
    edje_object_signal_emit(VIEW(it), "elm,state,unhighlighted", "elm");
    elm_widget_signal_emit(it->icon, "elm,state,unhighlighted", "elm");
+}
+
+static void
+_scroll_cb(Evas_Object *obj,
+           void *data __UNUSED__)
+{
+   evas_object_smart_callback_call(obj, SIG_SCROLL, NULL);
+}
+
+static void
+_scroll_anim_start_cb(Evas_Object *obj,
+                      void *data __UNUSED__)
+{
+   evas_object_smart_callback_call(obj, SIG_SCROLL_ANIM_START, NULL);
+}
+
+static void
+_scroll_anim_stop_cb(Evas_Object *obj,
+                     void *data __UNUSED__)
+{
+   evas_object_smart_callback_call(obj, SIG_SCROLL_ANIM_STOP, NULL);
+}
+
+static void
+_scroll_drag_start_cb(Evas_Object *obj,
+                      void *data __UNUSED__)
+{
+  ELM_TOOLBAR_DATA_GET(obj, sd);
+
+   if (sd->long_timer)
+     {
+        ecore_timer_del(sd->long_timer);
+        sd->long_timer = NULL;
+     }
+
+   evas_object_smart_callback_call(obj, SIG_SCROLL_DRAG_START, NULL);
+}
+
+static void
+_scroll_drag_stop_cb(Evas_Object *obj,
+                     void *data __UNUSED__)
+{
+   evas_object_smart_callback_call(obj, SIG_SCROLL_DRAG_STOP, NULL);
 }
 
 static void
@@ -2452,7 +2493,11 @@ _elm_toolbar_smart_add(Evas_Object *obj)
      (obj, _elm_config->thumbscroll_bounce_enable, EINA_FALSE);
    priv->s_iface->policy_set
      (obj, ELM_SCROLLER_POLICY_AUTO, ELM_SCROLLER_POLICY_OFF);
-   priv->s_iface->drag_start_cb_set(obj, _drag_start_cb);
+   priv->s_iface->scroll_cb_set(obj, _scroll_cb);
+   priv->s_iface->animate_start_cb_set(obj, _scroll_anim_start_cb);
+   priv->s_iface->animate_stop_cb_set(obj, _scroll_anim_stop_cb);
+   priv->s_iface->drag_start_cb_set(obj, _scroll_drag_start_cb);
+   priv->s_iface->drag_stop_cb_set(obj, _scroll_drag_stop_cb);
 
    edje_object_signal_callback_add
      (ELM_WIDGET_DATA(priv)->resize_obj, "elm,action,left", "elm",
