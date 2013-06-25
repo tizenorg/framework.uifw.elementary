@@ -385,6 +385,7 @@ struct _Elm_Gesture_Layer_Smart_Data
    Eina_List            *touched; /* Information  of touched devices */
 
    /* Taps Gestures */
+   Evas_Coord           tap_finger_size;    /* Default from Config */
    Ecore_Timer          *gest_taps_timeout; /* When this expires, dbl
                                              * click/taps ABORTed  */
 
@@ -1390,9 +1391,11 @@ static Eina_Bool
 _inside(Evas_Coord xx1,
         Evas_Coord yy1,
         Evas_Coord xx2,
-        Evas_Coord yy2)
+        Evas_Coord yy2,
+        Evas_Coord w)
 {
-   int w = elm_config_finger_size_get();
+   if (!w)  /* use system default instead */
+     w = elm_config_finger_size_get();
    /* Tizen only: comment out below, TODO: make configuable */
    //int w = elm_config_finger_size_get();>> 1; /* Finger size devided by 2 */
 
@@ -1545,25 +1548,24 @@ _rotate_test_reset(Gesture_Info *gesture)
    st->rotate_angular_tolerance = sd->rotate_angular_tolerance;
 }
 
-static int
-_match_fingers_compare(const void *data1,
-                       const void *data2)
+static Eina_List *
+_match_fingers_compare(Eina_List *list,
+      Pointer_Event *pe1,
+      Evas_Coord w)
 {
    /* Compare coords of first item in list to cur coords */
-   const Pointer_Event *pe1 = eina_list_data_get(data1);
-   const Pointer_Event *pe2 = data2;
+   Eina_List *pe_list;
+   Eina_List *l;
 
-   if (_inside(pe1->x, pe1->y, pe2->x, pe2->y))
-     return 0;
-   else if (pe1->x < pe2->x)
-     return -1;
-   else
+   EINA_LIST_FOREACH(list, l, pe_list)
      {
-        if (pe1->x == pe2->x)
-          return pe1->y - pe2->y;
-        else
-          return 1;
+        Pointer_Event *pe2 = eina_list_data_get(pe_list);
+
+        if (_inside(pe1->x, pe1->y, pe2->x, pe2->y, w))
+           return pe_list;
      }
+
+   return NULL;
 }
 
 static int
@@ -1672,7 +1674,7 @@ _taps_rect_get(Eina_List *taps, int idx, Evas_Coord_Rectangle *r)
  * @ingroup Elm_Gesture_Layer
  */
 static Eina_Bool
-_tap_gesture_check_finish(Gesture_Info *gesture)
+_tap_gesture_check_finish(Gesture_Info *gesture, Evas_Coord tap_finger_size)
 {
    /* Here we check if taps-gesture was completed successfuly */
    /* Count how many taps were recieved on each device then   */
@@ -1683,7 +1685,6 @@ _tap_gesture_check_finish(Gesture_Info *gesture)
    Eina_List *pe_list;
    Evas_Coord_Rectangle base;
    Evas_Coord_Rectangle tmp;
-   Evas_Coord tap_finger_size = elm_config_finger_size_get();
 
    if (!st->l) return EINA_FALSE;
    EINA_LIST_FOREACH(st->l, l, pe_list)
@@ -1694,6 +1695,9 @@ _tap_gesture_check_finish(Gesture_Info *gesture)
              return EINA_FALSE;
           }
      }
+
+   if (!tap_finger_size)  /* Use system default if not set by user */
+     tap_finger_size = elm_config_finger_size_get();
 
    /* Now bound each tap touches in a rect, compare diff within tolerance */
    /* Get rect based on first DOWN events for all devices */
@@ -1731,14 +1735,14 @@ _tap_gesture_check_finish(Gesture_Info *gesture)
  * @ingroup Elm_Gesture_Layer
  */
 static void
-_tap_gesture_finish(void *data)
+_tap_gesture_finish(void *data, Evas_Coord tap_finger_size)
 {
    /* This function will test each tap gesture when timer expires */
    Elm_Gesture_State s = ELM_GESTURE_STATE_ABORT;
    Gesture_Info *gesture = data;
    Taps_Type *st = gesture->data;
 
-   if (_tap_gesture_check_finish(gesture))
+   if (_tap_gesture_check_finish(gesture, tap_finger_size))
      {
         s = ELM_GESTURE_STATE_END;
      }
@@ -1764,13 +1768,16 @@ _multi_tap_timeout(void *data)
    ELM_GESTURE_LAYER_DATA_GET(data, sd);
 
    if (IS_TESTED(ELM_GESTURE_N_TAPS))
-     _tap_gesture_finish(sd->gesture[ELM_GESTURE_N_TAPS]);
+     _tap_gesture_finish(sd->gesture[ELM_GESTURE_N_TAPS],
+           sd->tap_finger_size);
 
    if (IS_TESTED(ELM_GESTURE_N_DOUBLE_TAPS))
-     _tap_gesture_finish(sd->gesture[ELM_GESTURE_N_DOUBLE_TAPS]);
+     _tap_gesture_finish(sd->gesture[ELM_GESTURE_N_DOUBLE_TAPS],
+           sd->tap_finger_size);
 
    if (IS_TESTED(ELM_GESTURE_N_TRIPLE_TAPS))
-     _tap_gesture_finish(sd->gesture[ELM_GESTURE_N_TRIPLE_TAPS]);
+     _tap_gesture_finish(sd->gesture[ELM_GESTURE_N_TRIPLE_TAPS],
+           sd->tap_finger_size);
 
    _clear_if_finished(data);
    sd->gest_taps_timeout = NULL;
@@ -1873,7 +1880,7 @@ _tap_gesture_test(Evas_Object *obj,
          if (pe_list)
            {  /* This device touched before, verify that this tap is on  */
               /* top of a previous tap (including a tap of other device) */
-              if (!eina_list_search_unsorted(st->l, _match_fingers_compare, pe))
+              if (!_match_fingers_compare(st->l, pe, sd->tap_finger_size))
                 {  /* New DOWN event is not on top of any prev touch     */
                    ev_flag = _state_set(gesture, ELM_GESTURE_STATE_ABORT,
                          &st->info, EINA_FALSE);
@@ -1931,9 +1938,9 @@ _tap_gesture_test(Evas_Object *obj,
                ((gesture->g_type == ELM_GESTURE_N_DOUBLE_TAPS) &&
                 !IS_TESTED(ELM_GESTURE_N_TRIPLE_TAPS)))
            {  /* Test for finish immidiatly, not waiting for timeout */
-              if (_tap_gesture_check_finish(gesture))
+              if (_tap_gesture_check_finish(gesture, sd->tap_finger_size))
                 {
-                   _tap_gesture_finish(gesture);
+                   _tap_gesture_finish(gesture, sd->tap_finger_size);
                    return;
                 }
            }
@@ -1954,7 +1961,8 @@ _tap_gesture_test(Evas_Object *obj,
               if ((pe_last->event_type == EVAS_CALLBACK_MOUSE_DOWN) ||
                     (pe_last->event_type == EVAS_CALLBACK_MULTI_DOWN))
                 {  /* Test only MOVE events that come after DOWN event */
-                   if (!_inside(pe_last->x, pe_last->y, pe->x, pe->y))
+                   if (!_inside(pe_last->x, pe_last->y, pe->x, pe->y,
+                            sd->tap_finger_size))
                      {
                         ev_flag = _state_set(gesture, ELM_GESTURE_STATE_ABORT,
                               &st->info, EINA_FALSE);
@@ -2121,7 +2129,8 @@ _n_long_tap_test(Evas_Object *obj,
 
              _compute_taps_center(st, &x, &y, pe);
              /* ABORT if user moved fingers out of tap area */
-             if (!_inside(x, y, st->center_x, st->center_y))
+             if (!_inside(x, y, st->center_x, st->center_y,
++                      sd->tap_finger_size))
                {
                   if (st->timeout)
                     {
@@ -4066,3 +4075,25 @@ elm_gesture_layer_double_tap_timeout_get(const Evas_Object *obj)
    ELM_GESTURE_LAYER_DATA_GET(obj, sd);
    return sd->double_tap_timeout;
 }
+
+EAPI void
+elm_gesture_layer_tap_finger_size_set(Evas_Object *obj,
+      Evas_Coord sz)
+{
+   ELM_GESTURE_LAYER_CHECK(obj);
+   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
+
+   if (sz < 0)
+     sz = 0;  /* Should not be negative, will reset to system value */
+
+   sd->tap_finger_size = sz;
+}
+
+EAPI Evas_Coord
+elm_gesture_layer_tap_finger_size_get(const Evas_Object *obj)
+{
+   ELM_GESTURE_LAYER_CHECK(obj) elm_config_finger_size_get();
+   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
+   return sd->tap_finger_size;
+}
+
