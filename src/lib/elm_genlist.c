@@ -4204,7 +4204,6 @@ _item_queue(Elm_Genlist_Smart_Data *sd,
             Eina_Bool direct)
 {
    Evas_Coord vh;
-
    if (it->item->queued) return;
 
    if (sd->queue_idle_enterer)
@@ -4217,18 +4216,19 @@ _item_queue(Elm_Genlist_Smart_Data *sd,
    sd->calc_job = ecore_job_add(_calc_job, sd);
 
    sd->s_iface->content_viewport_size_get(ELM_WIDGET_DATA(sd)->obj, NULL, &vh);
-   if (direct && sd->prev_viewport_w && (sd->processed_sizes < vh))
+   if (!sd->queue && direct && sd->prev_viewport_w &&
+       (sd->processed_sizes < vh))
      {
         _item_process(sd, it);
         sd->processed_sizes += it->item->minh;
         return;
      }
+
    it->item->queued = EINA_TRUE;
    if (cb && !sd->requeued)
      sd->queue = eina_list_sorted_insert(sd->queue, cb, it);
    else
      sd->queue = eina_list_append(sd->queue, it);
-
 }
 
 /* If the application wants to know the relative item, use
