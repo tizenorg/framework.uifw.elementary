@@ -1869,54 +1869,6 @@ _on_entry_unfocused(void *data,
    free(str);
 }
 
-// handles semicolon, comma (before inserting them to the entry)
-static void
-_entry_filter(void *data,
-              Evas_Object *entry,
-              char **text)
-{
-   char *str;
-
-   ELM_MULTIBUTTONENTRY_DATA_GET(data, sd);
-
-   if (!*text || !strlen(*text)) return;
-
-   // cancels item_be_selected when text inserting is started
-   if (strcmp(*text, ";") && strcmp(*text, ","))
-     {
-        sd->item_be_selected = EINA_FALSE;
-        return;
-     }
-
-   str = elm_entry_markup_to_utf8(elm_object_text_get(entry));
-   if (strlen(str))
-     {
-        Elm_Multibuttonentry_Item *it;
-
-        it = _item_new(data, str, NULL, NULL);
-        if (!it)
-          {
-             free(str);
-             return;
-          }
-
-        sd->items = eina_list_append(sd->items, it);
-#ifdef _VI_EFFECT
-        _item_adding_effect_add(data, it);
-#else
-        elm_box_pack_before(sd->box, VIEW(it), entry);
-        evas_object_show(VIEW(it));
-        evas_object_smart_callback_call(data, SIG_ITEM_ADDED, it);
-#endif
-
-        elm_object_text_set(entry, "");
-     }
-   free(str);
-
-   free(*text);
-   *text = NULL;
-}
-
 // handles enter key
 static void
 _on_entry_key_down(void *data,
@@ -2227,7 +2179,6 @@ _elm_multibuttonentry_smart_add(Evas_Object *obj)
       (priv->entry, EVAS_CALLBACK_KEY_DOWN, _on_entry_key_down, obj);
    evas_object_smart_callback_add
       (priv->entry, "unfocused", _on_entry_unfocused, obj);
-   elm_entry_markup_filter_append(priv->entry, _entry_filter, obj);
    elm_box_pack_end(priv->box, priv->entry);
    evas_object_show(priv->entry);
 
