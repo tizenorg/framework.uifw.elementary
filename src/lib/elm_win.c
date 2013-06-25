@@ -862,7 +862,7 @@ _elm_win_focus_in(Ecore_Evas *ee)
    Elm_Win_Smart_Data *sd = _elm_win_associate_get(ee);
    Evas_Object *obj;
    unsigned int order = 0;
-   Evas_Object *access_highlight, *highlight_target;
+   Evas_Object *access_highlight;
 
    EINA_SAFETY_ON_NULL_RETURN(sd);
 
