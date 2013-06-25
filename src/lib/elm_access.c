@@ -273,7 +273,7 @@ _access_highlight_read(Elm_Access_Info *ac, Evas_Object *obj)
              if (txt && (strlen(txt) > 0))
                {
                   if (eina_strbuf_length_get(strbuf) > 0)
-                    eina_strbuf_append_printf(strbuf, ", %s", txt);
+                    eina_strbuf_append_printf(strbuf, " %s", txt);
                   else
                     eina_strbuf_append(strbuf, txt);
 
