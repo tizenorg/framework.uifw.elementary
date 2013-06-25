@@ -2638,8 +2638,11 @@ _item_select(Elm_Gen_Item *it)
 
    // Do not check selected because always select mode can be used
    _item_highlight(it);
-   it->selected = EINA_TRUE;
-   sd->selected = eina_list_append(sd->selected, it);
+   if (!it->selected)
+     {
+        it->selected = EINA_TRUE;
+        sd->selected = eina_list_append(sd->selected, it);
+     }
    sd->last_selected_item = (Elm_Object_Item *)it;
    _item_focused(it);
 
@@ -5414,7 +5417,11 @@ _item_free_common(Elm_Gen_Item *it)
    it->item->unrealize_disabled = EINA_FALSE;
 #endif
 
-   if (it->selected) sd->selected = eina_list_remove(sd->selected, it);
+   if (it->selected)
+      {
+         sd->selected = eina_list_remove(sd->selected, it);
+         it->selected = EINA_FALSE;
+      }
    if (sd->show_item == it) sd->show_item = NULL;
    if (sd->anchor_item == it)
      {
@@ -6029,8 +6036,11 @@ elm_genlist_clear(Evas_Object *obj)
    _item_cache_all_free(sd);
 
    sd->pan_changed = EINA_TRUE;
-   if (sd->selected) sd->selected = eina_list_free(sd->selected);
-   sd->selected = NULL;
+   if (sd->selected)
+     {
+        sd->selected = eina_list_free(sd->selected);
+        sd->selected = NULL;
+     }
 
    sd->anchor_item = NULL;
    sd->show_item = NULL;
