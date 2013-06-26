@@ -1642,7 +1642,7 @@ elm_naviframe_item_push(Evas_Object *obj,
 
    if (prev_it) elm_widget_focused_object_clear(VIEW(prev_it));
    _resize_object_reset(obj, it, prev_it,
-                        (prev_it ? : EINA_FALSE, EINA_TRUE));
+                        (prev_it ? EINA_FALSE : EINA_TRUE));
    if (prev_it)
      {
         if (sd->freeze_events)
