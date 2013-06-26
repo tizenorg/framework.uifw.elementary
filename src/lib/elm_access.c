@@ -973,11 +973,11 @@ _elm_access_highlight_cycle(Evas_Object *obj, Elm_Focus_Direction dir)
         Evas_Object *comming = NULL;
         if (type == ELM_ACCESS_ACTION_HIGHLIGHT_NEXT)
           {
-             if (info->next) comming = info->next;
+             if ((info) && (info->next)) comming = info->next;
           }
         else
           {
-             if (info->prev) comming = info->prev;
+             if ((info) && (info->prev)) comming = info->prev;
           }
         if (comming)
           {
