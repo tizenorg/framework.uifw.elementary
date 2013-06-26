@@ -25,6 +25,11 @@ struct _Elm_Entry_Extension_data
 	Eina_Bool context_menu : 1;
 	Elm_Cnp_Mode cnp_mode : 2;
         Eina_Bool popup_showing : 1;
+        Eina_Bool mouse_up : 1;
+        Eina_Bool mouse_down : 1;
+        Eina_Bool entry_move : 1;
+        Evas_Object *ctx_par;
+        Ecore_Timer *show_timer;
 };
 
 void elm_entry_extension_module_data_get(Evas_Object *obj,Elm_Entry_Extension_data *ext_mod);

@@ -2792,8 +2792,6 @@ _entry_mouse_down_signal_cb(void *data,
    // TIZEN ONLY
    ELM_ENTRY_DATA_GET(data, sd);
    sd->double_clicked = EINA_FALSE;
-   if ((sd->api) && (sd->api->obj_hidemenu))
-     sd->api->obj_hidemenu(data);
    /////////
    evas_object_smart_callback_call(data, SIG_PRESS, NULL);
 }

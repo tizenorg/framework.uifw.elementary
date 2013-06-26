@@ -31,6 +31,8 @@ struct _Elm_Entry_Context_Menu_Item
 
 static void _ctxpopup_hide(Evas_Object *popup);
 static void _ctxpopup_position(Evas_Object *obj);
+static void _ctxpopup_dismissed_cb(void *data, Evas_Object *obj, void *event_info);
+void obj_longpress(Evas_Object *obj);
 
 static char *
 _remove_tags(const char *str)
@@ -80,11 +82,29 @@ _remove_tags(const char *str)
 }
 
 static void
+_parent_mouse_down_cb(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+{
+   if ((!ext_mod) || (!ext_mod->popup))
+     return;
+   evas_object_hide(ext_mod->popup);
+   ext_mod->mouse_up = EINA_FALSE;
+   ext_mod->entry_move = EINA_FALSE;
+}
+
+static void
 _entry_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
-   _ctxpopup_hide(data);
-   evas_object_del(data);
-   data = NULL;
+   if (data)
+     {
+        if (ext_mod)
+          {
+             evas_object_event_callback_del(ext_mod->ctx_par, EVAS_CALLBACK_MOUSE_DOWN,
+                                            _parent_mouse_down_cb);
+          }
+        _ctxpopup_hide(data);
+        evas_object_del(data);
+        data = NULL;
+     }
 }
 
 static void
@@ -94,23 +114,56 @@ _entry_hide_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void
 }
 
 static void
-_entry_move_cb(void *data, Evas *e, Evas_Object *obj, void *event_info __UNUSED__)
+_entry_mouse_down_cb(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
-   if (evas_pointer_button_down_mask_get(e))
-     _ctxpopup_hide(data);
-   else
+   if ((!ext_mod) || (!ext_mod->popup))
+     return;
+   ext_mod->mouse_up = EINA_FALSE;
+   ext_mod->mouse_down = EINA_TRUE;
+}
+
+static Eina_Bool
+_ctx_show(void *data)
+{
+   ext_mod->show_timer = NULL;
+   if (!data) return ECORE_CALLBACK_CANCEL;
+   if (elm_entry_selection_get(data))
      {
-        /*update*/
-        elm_entry_extension_module_data_get(obj, ext_mod);
-        _ctxpopup_position(data);
+        if (ext_mod->popup_showing)
+          {
+             obj_longpress(data);
+          }
      }
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static void
-_entry_resize_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_entry_mouse_up_cb(void *data  __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
-   /* comment to support feature: keep ctx when entry resizes */
-   //_ctxpopup_hide(data);
+   if (!ext_mod)
+     return;
+   if (ext_mod->mouse_down && ext_mod->entry_move)
+     {
+        evas_object_smart_callback_del(ext_mod->popup, "dismissed", _ctxpopup_dismissed_cb);
+        if (ext_mod->show_timer) ecore_timer_del(ext_mod->show_timer);
+        ext_mod->show_timer = ecore_timer_add(0.1, _ctx_show, obj);
+     }
+   ext_mod->mouse_up = EINA_TRUE;
+   ext_mod->mouse_down = EINA_FALSE;
+}
+
+static void
+_entry_move_cb(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+{
+   if (!ext_mod)
+     return;
+   ext_mod->entry_move = EINA_TRUE;
+   if (ext_mod->mouse_up)
+     {
+        evas_object_smart_callback_del(ext_mod->popup, "dismissed", _ctxpopup_dismissed_cb);
+        if (ext_mod->show_timer) ecore_timer_del(ext_mod->show_timer);
+        ext_mod->show_timer = ecore_timer_add(0.1, _ctx_show, obj);
+     }
 }
 
 static void
@@ -121,7 +174,39 @@ _ctxpopup_hide(Evas_Object *popup)
    evas_object_event_callback_del(ext_mod->caller, EVAS_CALLBACK_DEL, _entry_del_cb);
    evas_object_event_callback_del(ext_mod->caller, EVAS_CALLBACK_HIDE, _entry_hide_cb);
    evas_object_event_callback_del(ext_mod->caller, EVAS_CALLBACK_MOVE, _entry_move_cb);
-   evas_object_event_callback_del(ext_mod->caller, EVAS_CALLBACK_RESIZE, _entry_resize_cb);
+}
+
+static Eina_Bool
+_selection_in_viewport_check()
+{
+   if (!ext_mod) return EINA_FALSE;
+
+   Evas_Coord sx, sy, sw, sh;
+   if (edje_object_part_text_selection_geometry_get(ext_mod->ent, "elm.text", &sx, &sy, &sw, &sh))
+     {
+        if ((ext_mod->viewport_rect.x != -1) || (ext_mod->viewport_rect.y != -1) ||
+            (ext_mod->viewport_rect.w != -1) || (ext_mod->viewport_rect.h != -1))
+          {
+             Eina_Rectangle vp;
+             Eina_Rectangle sel;
+
+             vp.x = ext_mod->viewport_rect.x;
+             vp.y = ext_mod->viewport_rect.y;
+             vp.w = ext_mod->viewport_rect.w;
+             vp.h = ext_mod->viewport_rect.h;
+             sel.x = sx;
+             sel.y = sy;
+             sel.w = sw;
+             sel.h = sh;
+             if (eina_rectangle_intersection(&sel, &vp))
+               {
+                  return EINA_TRUE;
+               }
+             return EINA_FALSE;
+          }
+        return EINA_TRUE;
+     }
+   return EINA_TRUE;
 }
 
 static void
@@ -423,8 +508,6 @@ _cut(void *data, Evas_Object *obj, void *event_info)
 
    ext_mod->cut(data, obj, event_info);
    _ctxpopup_hide(obj);
-
-   //elm_object_scroll_freeze_pop(ext_mod->popup);
 }
 
 static void
@@ -434,8 +517,6 @@ _copy(void *data, Evas_Object *obj, void *event_info)
 
    ext_mod->copy(data, obj, event_info);
    _ctxpopup_hide(obj);
-
-   //elm_object_scroll_freeze_pop(ext_mod->popup);
 }
 
 static void
@@ -445,7 +526,6 @@ _cancel(void *data, Evas_Object *obj, void *event_info)
 
    ext_mod->cancel(data, obj, event_info);
    _ctxpopup_hide(obj);
-   //elm_object_scroll_freeze_pop(ext_mod->popup);
 }
 
 static void
@@ -518,17 +598,31 @@ _ctxpopup_dismissed_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__
    //clear selection if ctxpopup is dismissed by clicking (not parent resizing)
    if (dir != ELM_CTXPOPUP_DIRECTION_UNKNOWN)
      {
-        elm_entry_select_none(data);
-        ext_mod->popup_showing = EINA_FALSE;
+        if (ext_mod->mouse_up)
+          {
+             _ctxpopup_position(obj);
+             evas_object_show(ext_mod->popup);
+             _ctxpopup_position(obj);
+          }
+        else
+          {
+             elm_entry_select_none(data);
+             ext_mod->popup_showing = EINA_FALSE;
+          }
      }
    else if (ext_mod->popup_showing)
      {
-        _ctxpopup_position(obj);
-        evas_object_show(ext_mod->popup);
-        _ctxpopup_position(obj);
-     }
+        if (_selection_in_viewport_check())
+          {
+             if (ext_mod->show_timer) ecore_timer_del(ext_mod->show_timer);
+             ext_mod->show_timer = ecore_timer_add(0.1, _ctx_show, data);
 
-   //elm_object_scroll_freeze_pop(ext_mod->popup);
+             _ctxpopup_position(obj);
+             evas_object_show(ext_mod->popup);
+             _ctxpopup_position(obj);
+          }
+     }
+   ext_mod->mouse_up = EINA_FALSE;
 }
 
 // module api funcs needed
@@ -556,6 +650,9 @@ obj_hook(Evas_Object *obj)
         ext_mod = ELM_NEW(Elm_Entry_Extension_data);
         if (!ext_mod) return;
         elm_entry_extension_module_data_get(obj, ext_mod);
+        ext_mod->mouse_up = EINA_FALSE;
+        ext_mod->mouse_down = EINA_FALSE;
+        ext_mod->entry_move = EINA_FALSE;
      }
 }
 
@@ -567,6 +664,13 @@ obj_unhook(Evas_Object *obj __UNUSED__)
 
    if(ext_mod)
      {
+        evas_object_event_callback_del(ext_mod->ctx_par, EVAS_CALLBACK_MOUSE_DOWN,
+                                       _parent_mouse_down_cb);
+        if (ext_mod->show_timer)
+          {
+             ecore_timer_del(ext_mod->show_timer);
+             ext_mod->show_timer = NULL;
+          }
         if (ext_mod->popup)
           {
              evas_object_del(ext_mod->popup);
@@ -600,10 +704,16 @@ obj_longpress(Evas_Object *obj)
 #endif
         if (ext_mod->popup)
           {
+             evas_object_event_callback_del(obj, EVAS_CALLBACK_DEL, _entry_del_cb);
+             evas_object_event_callback_del(obj, EVAS_CALLBACK_HIDE, _entry_hide_cb);
+             evas_object_event_callback_del(obj, EVAS_CALLBACK_MOVE, _entry_move_cb);
+             evas_object_event_callback_del(obj, EVAS_CALLBACK_MOUSE_DOWN, _entry_mouse_down_cb);
+             evas_object_event_callback_del(obj, EVAS_CALLBACK_MOUSE_UP, _entry_mouse_up_cb);
+             evas_object_event_callback_del(ext_mod->ctx_par, EVAS_CALLBACK_MOUSE_DOWN,
+                                            _parent_mouse_down_cb);
              evas_object_del(ext_mod->popup);
              ext_mod->popup = NULL;
           }
-        //else elm_widget_scroll_freeze_push(obj);
         ctxparent = elm_widget_top_get(obj);
         evas_smart_objects_calculate(evas_object_evas_get(obj));
         parent = elm_widget_parent_get(obj);
@@ -621,6 +731,7 @@ obj_longpress(Evas_Object *obj)
                   parent = elm_widget_parent_get(parent);
                }
           }
+        ext_mod->ctx_par = ctxparent;
 
         if(ctxparent)
           {
@@ -752,14 +863,22 @@ obj_longpress(Evas_Object *obj)
           }
         if (ext_mod->popup && added_item)
           {
-             //elm_object_scroll_freeze_push(ext_mod->popup);
-             _ctxpopup_position(obj);
-             evas_object_show(ext_mod->popup);
-             ext_mod->popup_showing = EINA_TRUE;
-             _ctxpopup_position(obj);
+             if (_selection_in_viewport_check())
+               {
+                  _ctxpopup_position(obj);
+                  evas_object_show(ext_mod->popup);
+                  ext_mod->popup_showing = EINA_TRUE;
+                  _ctxpopup_position(obj);
+               }
+
              ext_mod->caller = obj;
              evas_object_event_callback_add(obj, EVAS_CALLBACK_MOVE, _entry_move_cb, ext_mod->popup);
-             evas_object_event_callback_add(obj, EVAS_CALLBACK_RESIZE, _entry_resize_cb, ext_mod->popup);
+             evas_object_event_callback_add(obj, EVAS_CALLBACK_MOUSE_DOWN,
+                                            _entry_mouse_down_cb, ext_mod->popup);
+             evas_object_event_callback_add(obj, EVAS_CALLBACK_MOUSE_UP,
+                                            _entry_mouse_up_cb, ext_mod->popup);
+             evas_object_event_callback_add(ext_mod->ctx_par, EVAS_CALLBACK_MOUSE_DOWN,
+                                            _parent_mouse_down_cb, ext_mod->popup);
           }
         else
           ext_mod->caller = NULL;
