@@ -3302,7 +3302,6 @@ _decorate_all_item_unrealize(Elm_Gen_Item *it)
    edje_object_signal_emit
      (VIEW(it), "elm,state,decorate,disabled", "elm");
    edje_object_message_signal_process(VIEW(it));
-   _elm_genlist_item_state_update(it);
 
    evas_object_del(it->deco_all_view);
    it->deco_all_view = NULL;
