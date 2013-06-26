@@ -1204,6 +1204,7 @@ elm_scroller_loop_set(Evas_Object *obj,
    s_iface->loop_set(obj, loop_h, loop_v);
 
    if (sd->content)
+     {
      if (sd->loop_h || sd->loop_v)
        {
           sd->s_iface->content_set(obj, NULL);
@@ -1221,6 +1222,7 @@ elm_scroller_loop_set(Evas_Object *obj,
           sd->s_iface->content_set(obj, NULL);
           sd->s_iface->content_set(obj, sd->content);
        }
+     }
    elm_layout_sizing_eval(obj);
 }
 
