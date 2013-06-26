@@ -5,8 +5,10 @@
 EAPI const char ELM_BUTTON_SMART_NAME[] = "elm_button";
 
 static const char SIG_CLICKED[] = "clicked";
+static const char SIG_FOCUSED[] = "focused";
 static const char SIG_REPEATED[] = "repeated";
 static const char SIG_PRESSED[] = "pressed";
+static const char SIG_UNFOCUSED[] = "unfocused";
 static const char SIG_UNPRESSED[] = "unpressed";
 
 static const Elm_Layout_Part_Alias_Description _content_aliases[] =
@@ -25,8 +27,10 @@ static const Elm_Layout_Part_Alias_Description _text_aliases[] =
  * coming from elm layout): */
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CLICKED, ""},
+   {SIG_FOCUSED, ""},
    {SIG_REPEATED, ""},
    {SIG_PRESSED, ""},
+   {SIG_UNFOCUSED, ""},
    {SIG_UNPRESSED, ""},
    {NULL, NULL}
 };
@@ -128,6 +132,18 @@ _elm_button_smart_sub_object_del(Evas_Object *obj,
 
    return EINA_TRUE;
 }
+
+// TIZEN_ONLY : This function will be removed just after supporting "focused/unfocused" to whole widgets.
+static Eina_Bool
+_elm_button_smart_on_focus(Evas_Object *obj)
+{
+   if (elm_widget_focus_get(obj))
+     evas_object_smart_callback_call(obj, SIG_FOCUSED, NULL);
+   else
+     evas_object_smart_callback_call(obj, SIG_UNFOCUSED, NULL);
+   return EINA_TRUE;
+}
+////////////////////////////
 
 /* FIXME: replicated from elm_layout just because button's icon spot
  * is elm.swallow.content, not elm.swallow.icon. Fix that whenever we
@@ -306,6 +322,9 @@ _elm_button_smart_set_user(Elm_Button_Smart_Class *sc)
    ELM_WIDGET_CLASS(sc)->event = _elm_button_smart_event;
    ELM_WIDGET_CLASS(sc)->theme = _elm_button_smart_theme;
    ELM_WIDGET_CLASS(sc)->sub_object_del = _elm_button_smart_sub_object_del;
+   // TIZEN_ONLY : This function will be removed just after supporting "focused/unfocused" to whole widgets.
+   ELM_WIDGET_CLASS(sc)->on_focus = _elm_button_smart_on_focus;
+   //
 
    /* not a 'focus chain manager' */
    ELM_WIDGET_CLASS(sc)->focus_next = NULL;
