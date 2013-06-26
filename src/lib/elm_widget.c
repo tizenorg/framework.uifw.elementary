@@ -1822,7 +1822,7 @@ elm_widget_focus_cycle(Evas_Object *obj,
              if (!_elm_access_auto_highlight_get())
                elm_widget_focus_steal(target);
 
-             _elm_access_highlight_set(target);
+             _elm_access_highlight_set(target, EINA_TRUE);
              _elm_widget_focus_region_show(target);
           }
         else elm_widget_focus_steal(target);

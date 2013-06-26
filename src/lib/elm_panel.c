@@ -143,7 +143,7 @@ _elm_panel_smart_focus_next(const Evas_Object *obj,
         po = (Evas_Object *)edje_object_part_object_get
                (ELM_WIDGET_DATA(sd)->resize_obj, "btn_icon");
         ao = evas_object_data_get(po, "_part_access_obj");
-        _elm_access_highlight_set(ao);
+        _elm_access_highlight_set(ao, EINA_FALSE);
      }
 
    /* Return */

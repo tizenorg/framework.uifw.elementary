@@ -663,8 +663,8 @@ _elm_access_highlight_object_mouse(Evas_Object *obj, int type, int x, int y)
 static Eina_Bool
 _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir, Eina_Bool delay)
 {
-   int type;
    Evas_Object *ho, *parent, *target;
+   int type;
    Eina_Bool ret;
    Evas *evas;
    Elm_Access_Info *ac;
@@ -673,15 +673,12 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir, Eina_Bool 
    target = NULL;
    ret = EINA_FALSE;
 
-   if (!elm_widget_is(obj)) return ret;
-
    ho = _access_highlight_object_get(obj);
-   if (!ho) ho = obj;
 
    parent = ho;
 
    /* find highlight root */
-   do
+   while (parent)
      {
         ELM_WIDGET_DATA_GET(parent, sd);
         if (sd->highlight_root)
@@ -692,52 +689,43 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir, Eina_Bool 
           }
         parent = elm_widget_parent_get(parent);
      }
-   while (parent);
 
    _elm_access_auto_highlight_set(EINA_TRUE);
 
-   ret = elm_widget_focus_next_get(obj, dir, &target);
-   if (ret && target)
+   if (dir == ELM_FOCUS_NEXT)
+     type = ELM_ACCESS_ACTION_HIGHLIGHT_NEXT;
+   else
+     type = ELM_ACCESS_ACTION_HIGHLIGHT_PREV;
+
+   /* this value is used in _elm_access_object_highlight();
+      to inform the target object of how to get highlight */
+   action_by = type;
+
+   if (!_access_action_callback_call(ho, type, NULL))
      {
-        if (dir == ELM_FOCUS_NEXT)
-          type = ELM_ACCESS_ACTION_HIGHLIGHT_NEXT;
-        else
-          type = ELM_ACCESS_ACTION_HIGHLIGHT_PREV;
-
-        if (!_access_action_callback_call(ho, type, NULL))
+        if (ho)
           {
-             /* this value is used in _elm_access_object_highlight();
-                to inform the target object of how to get highlight */
-             action_by = type;
+             Elm_Access_Info *info = _elm_access_object_get(ho);
+             if (type == ELM_ACCESS_ACTION_HIGHLIGHT_NEXT && info->next)
+               target = info->next;
+             else if (type == ELM_ACCESS_ACTION_HIGHLIGHT_PREV && info->prev)
+               target = info->prev;
+          }
 
-             if (delay)
-               _elm_access_highlight_set(target);
-             else
-               {
-                  ac = evas_object_data_get(target, "_elm_access");
-                  if (!ac) return ret;
-
-                  if (highlight_read_timer)
-                    {
-                       ecore_timer_del(highlight_read_timer);
-                       highlight_read_timer = NULL;
-                    }
-
-                  _access_highlight_read(ac, target);
-
-                  evas = evas_object_evas_get(target);
-                  if (!evas) return ret;
-
-                  /* move mouse position to inside of highlight object. if an object has a
-                     highlight by highlight_cycle();, the mouse still positions at previous
-                     position which would be made by MOUSE_IN event. */
-                  evas_object_geometry_get(target, &ho_point.x, &ho_point.y, 0, 0);
-                  evas_event_feed_mouse_move(evas, ho_point.x, ho_point.y, 0, NULL);
-               }
-
-             action_by = ELM_ACCESS_ACTION_FIRST;
+        if (target)
+          {
+             _elm_access_highlight_set(target, delay);
+             elm_widget_focus_region_show(target);
+             ret = EINA_TRUE;
+          }
+        else
+          {
+             ret = elm_widget_focus_next_get(obj, dir, &target);
+             if (ret && target)
+               _elm_access_highlight_set(target, delay);
           }
      }
+   action_by = ELM_ACCESS_ACTION_FIRST;
 
    _elm_access_auto_highlight_set(EINA_FALSE);
 
@@ -812,7 +800,7 @@ _elm_access_all_read_start(Evas_Object *obj)
                 to inform the target object of how to get highlight */
              action_by = type;
 
-             _elm_access_highlight_set(target);
+             _elm_access_highlight_set(target, EINA_FALSE);
 
              action_by = ELM_ACCESS_ACTION_FIRST;
           }
@@ -825,7 +813,7 @@ _elm_access_all_read_start(Evas_Object *obj)
 
 //-------------------------------------------------------------------------//
 EAPI void
-_elm_access_highlight_set(Evas_Object* obj)
+_elm_access_highlight_set(Evas_Object* obj, Eina_Bool delay)
 {
    Evas *evas;
    Elm_Access_Info *ac;
@@ -847,7 +835,10 @@ _elm_access_highlight_set(Evas_Object* obj)
      }
    /* use ecore_timer_add(); here, an object could have a highlight even though
       its text is not yet translated in case of the naviframe title */
-   highlight_read_timer = ecore_timer_add(0.1, _highlight_read_timeout_cb, obj);
+   if (delay)
+     highlight_read_timer = ecore_timer_add(0.1, _highlight_read_timeout_cb, obj);
+   else
+     _access_highlight_read(ac, obj);
 
    evas = evas_object_evas_get(obj);
    if (!evas) return;
@@ -990,7 +981,7 @@ _elm_access_highlight_cycle(Evas_Object *obj, Elm_Focus_Direction dir)
           }
         if (comming)
           {
-             elm_access_highlight_set(comming);
+             _elm_access_highlight_set(comming, EINA_FALSE);
              elm_widget_focus_region_show(comming);
           }
         else
@@ -1605,7 +1596,7 @@ elm_access_say(const char *text)
 EAPI void
 elm_access_highlight_set(Evas_Object* obj)
 {
-   _elm_access_highlight_set(obj);
+   _elm_access_highlight_set(obj, EINA_FALSE);
 }
 
 EAPI Eina_Bool

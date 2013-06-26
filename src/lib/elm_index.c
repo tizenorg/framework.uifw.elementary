@@ -406,7 +406,7 @@ _access_activate_cb(void *data,
    ELM_INDEX_DATA_GET(data, sd);
 
    it = eina_list_nth(sd->items, 0);
-   _elm_access_highlight_set(it->base.access_obj);
+   _elm_access_highlight_set(it->base.access_obj, EINA_FALSE);
    sd->index_focus = EINA_TRUE;
 }
 

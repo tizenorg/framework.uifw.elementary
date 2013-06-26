@@ -614,7 +614,7 @@ EAPI void             _elm_access_object_hilight_disable(Evas *e);
 EAPI void             _elm_access_object_register(Evas_Object *obj, Evas_Object *hoverobj);
 EAPI void             _elm_access_object_unregister(Evas_Object *obj, Evas_Object *hoverobj);
 EAPI Eina_Bool        _elm_access_2nd_click_timeout(Evas_Object *obj);
-EAPI void             _elm_access_highlight_set(Evas_Object* obj);
+EAPI void             _elm_access_highlight_set(Evas_Object *obj, Eina_Bool delay);
 EAPI Evas_Object *    _elm_access_edje_object_part_object_register(Evas_Object *obj, const Evas_Object *partobj, const char* part);
 EAPI void             _elm_access_edje_object_part_object_unregister(Evas_Object* obj, const Evas_Object *eobj, const char* part);
 EAPI void             _elm_access_widget_item_register(Elm_Widget_Item *item);

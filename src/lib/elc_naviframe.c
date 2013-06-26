@@ -272,7 +272,7 @@ _access_focus_set(Elm_Naviframe_Item *it)
    ao = ((Elm_Widget_Item *)it)->access_obj;
 
    if (ao && it->title_visible)
-     _elm_access_highlight_set(ao);
+     _elm_access_highlight_set(ao, EINA_TRUE);
    else
      {
         if (!elm_widget_highlight_get(it->content))
@@ -491,7 +491,7 @@ _item_text_set_hook(Elm_Object_Item *it,
         _access_obj_process(nit, EINA_TRUE);
 
         ao = ((Elm_Widget_Item *)nit)->access_obj;
-        if (!elm_widget_highlight_get(ao)) _elm_access_highlight_set(ao);
+        if (!elm_widget_highlight_get(ao)) _elm_access_highlight_set(ao, EINA_TRUE);
      }
 
    elm_layout_sizing_eval(WIDGET(nit));
