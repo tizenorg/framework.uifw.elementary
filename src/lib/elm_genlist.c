@@ -287,8 +287,6 @@ _item_cache_push(Elm_Gen_Item *it)
    ic->expanded = it->item->expanded;
    if (it->item->type & ELM_GENLIST_ITEM_TREE) ic->tree = 1;
    ic->multiline = it->item->multiline;
-
-   edje_object_signal_emit(ic->base_view, "elm,state,unselected", "elm");
    evas_object_hide(ic->base_view);
 
    sd->item_cache = eina_inlist_prepend(sd->item_cache, EINA_INLIST_GET(ic));
@@ -992,23 +990,6 @@ _item_order_update(const Eina_Inlist *l,
 static void
 _elm_genlist_item_state_update(Elm_Gen_Item *it)
 {
-   if (it->selected)
-     {
-        edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
-        if (it->deco_all_view)
-           edje_object_signal_emit
-              (it->deco_all_view, "elm,state,selected", "elm");
-        evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
-     }
-   else
-     {
-        edje_object_signal_emit(VIEW(it), "elm,state,unselected", "elm");
-        if (it->deco_all_view)
-           edje_object_signal_emit
-              (it->deco_all_view, "elm,state,unselected", "elm");
-        evas_object_smart_callback_call(WIDGET(it), SIG_UNHIGHLIGHTED, it);
-     }
-
    if (elm_widget_item_disabled_get(it))
      {
         edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
@@ -1016,12 +997,13 @@ _elm_genlist_item_state_update(Elm_Gen_Item *it)
            edje_object_signal_emit
               (it->deco_all_view, "elm,state,disabled", "elm");
      }
-   else
+   if (it->selected)
      {
-        edje_object_signal_emit(VIEW(it), "elm,state,enabled", "elm");
+        edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
         if (it->deco_all_view)
            edje_object_signal_emit
-              (it->deco_all_view, "elm,state,enabled", "elm");
+              (it->deco_all_view, "elm,state,selected", "elm");
+        evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
      }
    if (it->item->expanded)
      {
@@ -3316,11 +3298,11 @@ _decorate_all_item_unrealize(Elm_Gen_Item *it)
    evas_object_smart_member_add(VIEW(it), GL_IT(it)->wsd->pan_obj);
    elm_widget_sub_object_add(WIDGET(it), VIEW(it));
    _elm_genlist_item_odd_even_update(it);
-   _elm_genlist_item_state_update(it);
 
    edje_object_signal_emit
      (VIEW(it), "elm,state,decorate,disabled", "elm");
    edje_object_message_signal_process(VIEW(it));
+   _elm_genlist_item_state_update(it);
 
    evas_object_del(it->deco_all_view);
    it->deco_all_view = NULL;
