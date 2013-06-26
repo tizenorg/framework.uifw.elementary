@@ -656,12 +656,6 @@ _item_unrealize(Elm_Gen_Item *it,
    _decorate_item_unrealize(it);
    _decorate_all_item_unrealize(it);
 
-   edje_object_signal_emit
-     (VIEW(it), "elm,state,decorate,disabled", "elm");
-   edje_object_signal_emit
-     (VIEW(it), "elm,state,reorder,mode_unset", "elm");
-   edje_object_message_signal_process(VIEW(it));
-
    it->realized = EINA_FALSE;
    _item_cache_push(it);
 
@@ -1288,9 +1282,6 @@ _decorate_all_item_realize(Elm_Gen_Item *it,
    if (GL_IT(it)->wsd->reorder_mode)
      edje_object_signal_emit
        (it->deco_all_view, "elm,state,reorder,mode_set", "elm");
-   else
-     edje_object_signal_emit
-       (it->deco_all_view, "elm,state,reorder,mode_unset", "elm");
 #endif
    if (effect_on)
      {
@@ -1767,8 +1758,6 @@ _item_realize(Elm_Gen_Item *it,
    if (_elm_config->access_mode) _access_widget_item_register(it);
 
    _item_order_update(EINA_INLIST_GET(it), in);
-   _elm_genlist_item_state_update(it);
-   _elm_genlist_item_index_update(it);
 
 #if 1 // FIXME: difference from upstream
    if (it->item->type != ELM_GENLIST_ITEM_GROUP)
@@ -1776,11 +1765,11 @@ _item_realize(Elm_Gen_Item *it,
         if (GL_IT(it)->wsd->reorder_mode)
           edje_object_signal_emit
             (VIEW(it), "elm,state,reorder,mode_set", "elm");
-        else
-          edje_object_signal_emit
-            (VIEW(it), "elm,state,reorder,mode_unset", "elm");
     }
 #endif
+   _elm_genlist_item_state_update(it);
+   _elm_genlist_item_index_update(it);
+
    treesize = edje_object_data_get(VIEW(it), "treesize");
    if (treesize) tsize = atoi(treesize);
    if (it->parent && GL_IT(it->parent)->type == ELM_GENLIST_ITEM_TREE &&
@@ -3330,13 +3319,8 @@ _decorate_all_item_unrealize(Elm_Gen_Item *it)
    _elm_genlist_item_state_update(it);
 
    edje_object_signal_emit
-     (it->deco_all_view, "elm,state,decorate,disabled", "elm");
-   edje_object_signal_emit
      (VIEW(it), "elm,state,decorate,disabled", "elm");
-   edje_object_signal_emit
-     (it->deco_all_view, "elm,state,reorder,mode_unset", "elm");
    edje_object_message_signal_process(VIEW(it));
-   edje_object_message_signal_process(it->deco_all_view);
 
    evas_object_del(it->deco_all_view);
    it->deco_all_view = NULL;
@@ -7123,6 +7107,7 @@ elm_genlist_decorate_mode_set(Evas_Object *obj,
                }
           }
      }
+   eina_list_free(list);
 #if GENLIST_FX_SUPPORT
      _elm_genlist_fx_clear(ELM_WIDGET_DATA(sd)->obj, EINA_FALSE);
 #endif
@@ -7147,21 +7132,21 @@ elm_genlist_reorder_mode_set(Evas_Object *obj,
    list = elm_genlist_realized_items_get(obj);
    EINA_LIST_FOREACH(list, l, it)
      {
-        if (it->item->type != ELM_GENLIST_ITEM_GROUP)
+        if (reorder_mode)
           {
-             if (sd->reorder_mode)
-               edje_object_signal_emit
-                 (VIEW(it), "elm,state,reorder,mode_set", "elm");
-             else
-               edje_object_signal_emit
-                 (VIEW(it), "elm,state,reorder,mode_unset", "elm");
+             if (it->item->type != ELM_GENLIST_ITEM_GROUP)
+                edje_object_signal_emit
+                   (VIEW(it), "elm,state,reorder,mode_set", "elm");
+             if (sd->decorate_all_mode)
+                edje_object_signal_emit
+                   (it->deco_all_view, "elm,state,reorder,mode_set", "elm");
           }
-        if (sd->decorate_all_mode)
+        else
           {
-             if (sd->reorder_mode)
-               edje_object_signal_emit
-                  (it->deco_all_view, "elm,state,reorder,mode_set", "elm");
-             else
+             if (it->item->type != ELM_GENLIST_ITEM_GROUP)
+                edje_object_signal_emit
+                   (VIEW(it), "elm,state,reorder,mode_unset", "elm");
+             if (sd->decorate_all_mode)
                edje_object_signal_emit
                   (it->deco_all_view, "elm,state,reorder,mode_unset", "elm");
           }
