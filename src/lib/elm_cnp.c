@@ -2879,10 +2879,13 @@ elm_drop_item_container_add(Evas_Object *obj,
    if (elm_drop_item_container_del_internal(obj, EINA_FALSE))
      {  /* Updating info of existing obj */
         st = eina_list_search_unsorted(cont_drop_tg, _drop_item_container_cmp, obj);
+        if (!st) return EINA_FALSE;
      }
    else
      {
         st = calloc(1, sizeof(*st));
+        if (!st) return EINA_FALSE;
+
         st->obj = obj;
         cont_drop_tg = eina_list_append(cont_drop_tg, st);
      }
@@ -3224,10 +3227,13 @@ elm_drag_item_container_add(
    if (elm_drag_item_container_del_internal(obj, EINA_FALSE))
      {  /* Updating info of existing obj */
         st = eina_list_search_unsorted(cont_drag_tg, _drag_item_container_cmp, obj);
+        if (!st) return EINA_FALSE;
      }
    else
      {
         st = calloc(1, sizeof(*st));
+        if (!st) return EINA_FALSE;
+
         st->obj = obj;
         cont_drag_tg = eina_list_append(cont_drag_tg, st);
 
