@@ -4542,39 +4542,100 @@ _item_block_recalc(Item_Block *itb,
    return show_me;
 }
 
-static void _item_update(Elm_Gen_Item *it)
+static void
+_item_update(Elm_Gen_Item *it)
 {
+   Evas_Object *obj;
+   Eina_List *l;
+   const char *part;
    if (!it->realized) return;
 
+   // Unrealization for VIEW(it)
+   // FIXME: it->texts is NULL!! Where?
+   if (!it->texts) it->texts =
+      elm_widget_stringlist_get(edje_object_data_get(VIEW(it), "texts"));
+   EINA_LIST_FOREACH(it->texts, l, part)
+     edje_object_part_text_set(VIEW(it), part, NULL);
+   EINA_LIST_FOREACH(it->content_objs, l, obj)
+     {
+        // FIXME: If parent-child relationship was broken before 'ic'
+        // // is deleted, freeze_pop will not be called. ex) elm_slider
+        // // If layout is used instead of edje, this problme can be
+        // solved.
+        if (0 != elm_widget_scroll_freeze_get(obj))
+           elm_widget_scroll_freeze_pop(obj);
+        evas_object_del(obj);
+     }
    if (it->texts) elm_widget_stringlist_free(it->texts);
    it->texts = NULL;
+   if (it->contents) elm_widget_stringlist_free(it->contents);
+   it->contents = NULL;
    if (it->states) elm_widget_stringlist_free(it->states);
    it->states = NULL;
-   // unrealization
-   it->content_objs = _item_content_unrealize(it, VIEW(it),
-                                              &it->contents, NULL);
-   it->item->deco_all_content_objs =
-      _item_mode_content_unrealize
-      (it, it->deco_all_view, &it->item->deco_all_contents, NULL,
-       &it->item->deco_all_content_objs);
 
-   it->item->deco_it_content_objs =
-      _item_mode_content_unrealize(it, it->item->deco_it_view,
-                                   &it->item->deco_it_contents, NULL,
-                                   &it->item->deco_it_content_objs);
+   // Unrealization for flip
+   EINA_LIST_FOREACH(it->item->flip_content_objs, l, obj)
+     evas_object_del(obj);
+   if (it->item->flip_contents)
+      elm_widget_stringlist_free(it->item->flip_contents);
+   it->item->flip_contents = NULL;
 
-   it->item->flip_content_objs =
-      _item_mode_content_unrealize(it, VIEW(it),
-                                   &it->item->flip_contents, NULL,
-                                   &it->item->flip_content_objs);
+   // Unrealization for decorate all item
+   if (!it->item->deco_all_texts) it->item->deco_all_texts =
+      elm_widget_stringlist_get(edje_object_data_get(it->deco_all_view, "texts"));
+   EINA_LIST_FOREACH(it->item->deco_all_texts, l, part)
+     edje_object_part_text_set(it->deco_all_view, part, NULL);
+   EINA_LIST_FREE (it->item->deco_all_content_objs, obj)
+     evas_object_del(obj);
+   if (it->item->deco_all_texts)
+      elm_widget_stringlist_free(it->item->deco_all_texts);
+   it->item->deco_all_texts = NULL;
+   if (it->item->deco_all_contents)
+      elm_widget_stringlist_free(it->item->deco_all_contents);
+   it->item->deco_all_contents = NULL;
+   if (it->item->deco_all_states)
+      elm_widget_stringlist_free(it->item->deco_all_states);
+   it->item->deco_all_states = NULL;
 
-   // realization
+   // Unrealization for decorate item
+   if (!it->item->deco_it_texts) it->item->deco_it_texts =
+      elm_widget_stringlist_get
+         (edje_object_data_get(it->item->deco_it_view, "texts"));
+   EINA_LIST_FOREACH(it->item->deco_it_texts, l, part)
+     edje_object_part_text_set(it->item->deco_it_view, part, NULL);
+   EINA_LIST_FREE (it->item->deco_it_content_objs, obj)
+     evas_object_del(obj);
+   if (it->item->deco_it_texts)
+      elm_widget_stringlist_free(it->item->deco_it_texts);
+   it->item->deco_it_texts = NULL;
+   if (it->item->deco_it_contents)
+      elm_widget_stringlist_free(it->item->deco_it_contents);
+   it->item->deco_it_contents = NULL;
+   if (it->item->deco_it_states) elm_widget_stringlist_free(it->item->deco_it_states);
+   it->item->deco_it_states = NULL;
+
+   // Realization for VIEW(it)
    _item_text_realize(it, VIEW(it), &it->texts, NULL);
    _item_state_realize(it, VIEW(it), &it->states, NULL);
    it->content_objs = _item_content_realize(it, VIEW(it),
                                             &it->contents, NULL);
-   if (GL_IT(it)->wsd->decorate_all_mode)
+   // Realization for flip
+   if (it->flipped)
      {
+        edje_object_signal_emit
+           (VIEW(it), "elm,state,flip,enabled", "elm");
+        // This is needed before contents are swallowed
+        edje_object_message_signal_process(VIEW(it));
+        it->item->flip_contents = elm_widget_stringlist_get
+           (edje_object_data_get(VIEW(it), "flips"));
+        it->item->flip_content_objs = _item_mode_content_realize
+           (it, VIEW(it), &it->item->flip_contents, NULL,
+            &it->item->flip_content_objs);
+     }
+   if (GL_IT(it)->wsd->decorate_all_mode && it->itc->decorate_all_item_style)
+     {
+        _item_text_realize(it, it->deco_all_view, &it->item->deco_all_texts, NULL);
+        _item_state_realize(it, it->deco_all_view, &it->item->deco_all_states, NULL);
         it->item->deco_all_content_objs =
            _item_mode_content_realize(it, it->deco_all_view,
                                       &it->item->deco_all_contents, NULL,
@@ -4583,28 +4644,13 @@ static void _item_update(Elm_Gen_Item *it)
 
    if (it->item->deco_it_view)
      {
+        _item_text_realize(it, it->item->deco_it_view, &it->item->deco_it_texts, NULL);
+        _item_state_realize(it, it->item->deco_it_view, &it->item->deco_it_states, NULL);
         it->item->deco_it_content_objs =
            _item_mode_content_realize(it, it->item->deco_it_view,
                                       &it->item->deco_it_contents, NULL,
                                       &it->item->deco_it_content_objs);
      }
-
-   if (it->flipped)
-     {
-        edje_object_signal_emit
-           (VIEW(it), "elm,state,flip,enabled", "elm");
-        // This is needed before contents are swallowed
-        edje_object_message_signal_process(VIEW(it));
-
-        if (!(it->item->flip_contents))
-           it->item->flip_contents = elm_widget_stringlist_get
-              (edje_object_data_get(VIEW(it), "flips"));
-        it->item->flip_content_objs = _item_mode_content_realize
-           (it, VIEW(it), &it->item->flip_contents, NULL,
-            &it->item->flip_content_objs);
-     }
-   _item_min_calc(it, NULL, NULL);
-
 }
 
 static void
