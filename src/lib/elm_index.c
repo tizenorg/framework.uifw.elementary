@@ -133,7 +133,7 @@ _omit_calc(void *data, int num_of_items, int max_num_of_items)
    if ((max_num_of_items < 3) || (num_of_items <= max_num_of_items)) return;
 
    if (sd->group_num > 0)
-     start = sd->group_num + sd->default_num - 1;
+     start = sd->show_group + sd->default_num;
    else start = 0;
    max_group_num = (max_num_of_items - 1) / 2;
    num_of_extra_items = num_of_items - max_num_of_items;
@@ -191,7 +191,7 @@ _index_box_auto_fill(Evas_Object *obj,
    int i = 0, max_num_of_items = 0, num_of_items = 0, g = 0, skip = 0;
    Eina_List *l;
    Eina_Bool rtl;
-   Elm_Index_Item *it, *head = NULL, *last_it = NULL;
+   Elm_Index_Item *it, *head = NULL, *last_it = NULL, *next_it = NULL;
    Evas_Coord mw, mh, ih;
    Evas_Object *o;
    Elm_Index_Omit *om;
@@ -235,7 +235,6 @@ _index_box_auto_fill(Evas_Object *obj,
         _omit_calc(sd, num_of_items, max_num_of_items);
      }
 
-   int current_priority = -1;
    om = eina_list_nth(sd->omit, g);
    EINA_LIST_FOREACH(sd->items, l, it)
      {
@@ -243,8 +242,28 @@ _index_box_auto_fill(Evas_Object *obj,
 
         if (it->level != level) continue;
 
-        if ((current_priority != -1) && (current_priority == it->priority)
-            && (it->priority != sd->show_group)) continue;
+        /** when index has more than one group,
+          * one group is shown completely and other groups are represented by one item
+          */
+        if (it->priority != -1)
+          {
+             // for groups of higher priority, the first item represents the group
+             if (it->priority < sd->show_group)
+               {
+                  if (last_it && (last_it->priority == it->priority)) continue;
+               }
+             // for groups of lower priority, the last item represents the group
+             else if (it->priority > sd->show_group)
+               {
+                  l = eina_list_next(l);
+                  if (l)
+                    {
+                       next_it = eina_list_data_get(l);
+                       l = eina_list_prev(l);
+                       if (next_it->priority == it->priority) continue;
+                    }
+               }
+          }
 
         if ((om) && (i == om->offset))
           {
@@ -317,12 +336,11 @@ _index_box_auto_fill(Evas_Object *obj,
 
         i++;
 
-        if (current_priority != it->priority) current_priority = it->priority;
-        last_it = it;
-
         // ACCESS
         if ((it->level == 0) && (_elm_config->access_mode))
           _access_widget_item_register(it);
+
+        last_it = it;
      }
 
    // TIZEN ONLY adjust the last item's theme according to winset gui
