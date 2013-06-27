@@ -2030,7 +2030,6 @@ _elm_win_client_message(void *data,
                         void *event)
 {
    Elm_Access_Action_Info *a;
-   Ecore_X_Atom atom_scroll, atom_back, atom_control_panel_open;
    Elm_Win_Smart_Data *sd = data;
    Ecore_X_Event_Client_Message *e = event;
 
@@ -2068,14 +2067,6 @@ _elm_win_client_message(void *data,
      {
         if ((unsigned int)e->data.l[0] == sd->x.xwin)
           {
-             atom_scroll = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_SCROLL_");
-             atom_back = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_BACK_");
-             atom_control_panel_open = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_CONTROL_PANEL_OPEN_");
-             if ((unsigned int)e->data.l[1] != atom_control_panel_open)
-               {
-                  _elm_access_all_read_stop();
-               }
-
              if ((unsigned int)e->data.l[1] ==
                  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_NEXT)
                {
@@ -2155,16 +2146,6 @@ _elm_win_client_message(void *data,
                   elm_access_action(ELM_WIDGET_DATA(sd)->obj,
                                     ELM_ACCESS_ACTION_MOUSE, a);
                   free(a);
-               }
-             else if ((unsigned int)e->data.l[1] ==
-                      ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_BACK)
-               {
-                  _elm_access_highlight_object_activate
-                    (ELM_WIDGET_DATA(sd)->obj, ELM_ACTIVATE_BACK);
-               }
-             else if ((unsigned int)e->data.l[1] == atom_control_panel_open)
-               {
-                  _elm_access_all_read_start(ELM_WIDGET_DATA(sd)->obj);
                }
           }
      }
