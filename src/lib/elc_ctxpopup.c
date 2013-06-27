@@ -85,6 +85,9 @@ _elm_ctxpopup_smart_focus_next(const Evas_Object *obj,
              elm_widget_focus_next_get(sd->box, dir, next);
              return EINA_TRUE;
           }
+
+        return elm_widget_focus_list_next_get
+                 (obj, items, eina_list_data_get, dir, next);
      }
 }
 
