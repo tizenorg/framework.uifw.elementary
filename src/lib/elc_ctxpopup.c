@@ -1048,14 +1048,16 @@ _elm_ctxpopup_smart_event(Evas_Object *obj,
         return EINA_TRUE;
      }
 
-   // TIZEN ONLY : 20130530
+   // TIZEN ONLY : 20130530 : ctxpopup will be dismissed by user
    //if (strcmp(ev->keyname, "Escape")) return EINA_FALSE;
    return EINA_FALSE;
 
+/*
    _hide_signals_emit(obj, sd->dir);
 
    ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
    return EINA_TRUE;
+*/
 }
 
 //FIXME: lost the content size when theme hook is called.
