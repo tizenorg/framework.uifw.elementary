@@ -1995,6 +1995,9 @@ _elm_multibuttonentry_smart_on_focus(Evas_Object *obj)
    if (!ELM_WIDGET_CLASS(_elm_multibuttonentry_parent_sc)->on_focus(obj))
      return EINA_FALSE;
 
+   Eina_List *l;
+   Elm_Multibuttonentry_Item *it;
+
    if (elm_object_focus_get(obj))
      {
         // ACCESS
@@ -2019,6 +2022,12 @@ _elm_multibuttonentry_smart_on_focus(Evas_Object *obj)
           {
              elm_layout_signal_emit(obj, "elm,state,event,allow", "");
              elm_object_focus_set(sd->entry, EINA_TRUE);
+          }
+
+        EINA_LIST_FOREACH(sd->items, l, it)
+          {
+             elm_layout_signal_emit(VIEW(it), "default", "");
+             edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
           }
 
         evas_object_smart_callback_call(obj, SIG_FOCUSED, NULL);
@@ -2046,6 +2055,12 @@ _elm_multibuttonentry_smart_on_focus(Evas_Object *obj)
         if (sd->selected_item)
           evas_object_focus_set
              (elm_layout_edje_get(VIEW(sd->selected_item)), EINA_FALSE);
+
+        EINA_LIST_FOREACH(sd->items, l, it)
+          {
+             elm_layout_signal_emit(VIEW(it), "lose_focus", "");
+             edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
+          }
 
         evas_object_smart_callback_call(obj, SIG_UNFOCUSED, NULL);
      }
@@ -2469,6 +2484,7 @@ elm_multibuttonentry_item_prepend(Evas_Object *obj,
                                   const void *data)
 {
    Elm_Multibuttonentry_Item *it;
+   Eina_List *l;
 
    ELM_MULTIBUTTONENTRY_CHECK(obj) NULL;
    ELM_MULTIBUTTONENTRY_DATA_GET(obj, sd);
@@ -2522,6 +2538,15 @@ elm_multibuttonentry_item_prepend(Evas_Object *obj,
 #endif
      }
 
+   if (!elm_object_focus_get(obj))
+     {
+        EINA_LIST_FOREACH(sd->items, l, it)
+          {
+             elm_layout_signal_emit(VIEW(it), "lose_focus", "");
+             edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
+          }
+     }
+
 #ifdef _VI_EFFECT
    if (!sd->boxh || !sd->boxw)
      evas_object_smart_callback_call(obj, SIG_ITEM_ADDED, it);
@@ -2539,6 +2564,7 @@ elm_multibuttonentry_item_append(Evas_Object *obj,
                                  const void *data)
 {
    Elm_Multibuttonentry_Item *it;
+   Eina_List *l;
 
    ELM_MULTIBUTTONENTRY_CHECK(obj) NULL;
    ELM_MULTIBUTTONENTRY_DATA_GET(obj, sd);
@@ -2592,6 +2618,15 @@ elm_multibuttonentry_item_append(Evas_Object *obj,
 #endif
      }
 
+   if (!elm_object_focus_get(obj))
+     {
+        EINA_LIST_FOREACH(sd->items, l, it)
+          {
+             elm_layout_signal_emit(VIEW(it), "lose_focus", "");
+             edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
+          }
+     }
+
 #ifdef _VI_EFFECT
    if (!sd->boxh || !sd->boxw)
      evas_object_smart_callback_call(obj, SIG_ITEM_ADDED, it);
@@ -2610,6 +2645,7 @@ elm_multibuttonentry_item_insert_before(Evas_Object *obj,
                                         const void *data)
 {
    Elm_Multibuttonentry_Item *it;
+   Eina_List *l;
 
    ELM_MULTIBUTTONENTRY_CHECK(obj) NULL;
    ELM_MULTIBUTTONENTRY_DATA_GET(obj, sd);
@@ -2645,6 +2681,15 @@ elm_multibuttonentry_item_insert_before(Evas_Object *obj,
 #endif
      }
 
+   if (!elm_object_focus_get(obj))
+     {
+        EINA_LIST_FOREACH(sd->items, l, it)
+          {
+             elm_layout_signal_emit(VIEW(it), "lose_focus", "");
+             edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
+          }
+     }
+
 #ifdef _VI_EFFECT
    if (!sd->boxh || !sd->boxw)
      evas_object_smart_callback_call(obj, SIG_ITEM_ADDED, it);
@@ -2663,6 +2708,7 @@ elm_multibuttonentry_item_insert_after(Evas_Object *obj,
                                        const void *data)
 {
    Elm_Multibuttonentry_Item *it;
+   Eina_List *l;
 
    ELM_MULTIBUTTONENTRY_CHECK(obj) NULL;
    ELM_MULTIBUTTONENTRY_DATA_GET(obj, sd);
@@ -2696,6 +2742,15 @@ elm_multibuttonentry_item_insert_after(Evas_Object *obj,
         elm_box_pack_after(sd->box, VIEW(it), VIEW(after));
         evas_object_show(VIEW(it));
 #endif
+     }
+
+   if (!elm_object_focus_get(obj))
+     {
+        EINA_LIST_FOREACH(sd->items, l, it)
+          {
+             elm_layout_signal_emit(VIEW(it), "lose_focus", "");
+             edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
+          }
      }
 
 #ifdef _VI_EFFECT
