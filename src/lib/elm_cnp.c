@@ -2065,6 +2065,10 @@ _x11_elm_drag_start(Evas_Object *obj, Elm_Sel_Format format, const char *data,
    elm_win_alpha_set(dragwin, EINA_TRUE);
    elm_win_override_set(dragwin, EINA_TRUE);
 
+   Evas_Object *win = elm_widget_top_get(obj);
+   if (win && !strcmp(evas_object_type_get(win), "elm_win"))
+      elm_win_rotation_set(dragwin, elm_win_rotation_get(win));
+
    if (createicon)
      {
         Evas_Coord xoff = 0, yoff = 0;
