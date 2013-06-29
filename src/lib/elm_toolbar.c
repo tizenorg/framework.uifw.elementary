@@ -42,7 +42,9 @@ EVAS_SMART_SUBCLASS_IFACE_NEW
   _smart_interfaces);
 
 static void _item_select(Elm_Toolbar_Item *it);
-
+static Elm_Toolbar_Item *_highlight_next_item_get(Evas_Object *obj,
+                                                  Evas_Object *box,
+                                                  Eina_Bool reverse);
 static int
 _toolbar_item_prio_compare_cb(const void *i1,
                               const void *i2)
@@ -594,13 +596,53 @@ _resize_job(void *data)
    _mirrored_set(obj, elm_widget_mirrored_get(obj));
 }
 
+// FIXME: There are applications which do not use elm_win as top widget.
+// This is workaround! Those could not use focus!
+static Eina_Bool _focus_enabled(Evas_Object *obj)
+{
+   if (!elm_widget_focus_get(obj)) return EINA_FALSE;
+
+   const Evas_Object *win = elm_widget_top_get(obj);
+   const char *type = evas_object_type_get(win);
+
+   if (type && !strcmp(type, "elm_win"))
+     {
+        return elm_win_focus_highlight_enabled_get(win);
+     }
+   return EINA_FALSE;
+}
+
 static Eina_Bool
 _elm_toolbar_smart_on_focus(Evas_Object *obj)
 {
+   Elm_Toolbar_Item *it = NULL;
+   Evas_Coord x, y, w, h;
+
    ELM_TOOLBAR_DATA_GET(obj, sd);
 
    if (elm_widget_focus_get(obj))
-     evas_object_focus_set(ELM_WIDGET_DATA(sd)->resize_obj, EINA_TRUE);
+     {
+        evas_object_focus_set(ELM_WIDGET_DATA(sd)->resize_obj, EINA_TRUE);
+        // FIXME: There are applications which do not use elm_win as top widget.
+        // This is workaround! Those could not use focus!
+        if (_focus_enabled(obj))
+          {
+             it = _highlight_next_item_get(obj, sd->bx, EINA_FALSE);
+
+             if(!it)
+               return EINA_FALSE;
+
+             if (sd->highlighted_item)
+               edje_object_signal_emit(VIEW(sd->highlighted_item), "elm,highlight,off", "elm");
+
+             sd->highlighted_item = it;
+             edje_object_signal_emit(VIEW(sd->highlighted_item), "elm,highlight,on", "elm");
+
+             if (_elm_toolbar_item_coordinates_calc(
+                   sd->highlighted_item, ELM_TOOLBAR_ITEM_SCROLLTO_IN, &x, &y, &w, &h))
+               sd->s_iface->region_bring_in(obj, x, y, w, h);
+          }
+     }
    else
      {
         if (sd->highlighted_item)
@@ -1403,6 +1445,20 @@ _move_cb(void *data,
    ELM_TOOLBAR_DATA_GET(data, sd);
    evas_object_geometry_get(data, &x, &y, NULL, &h);
    evas_object_move(sd->more, x, y + h);
+}
+
+// FIXME: There are applications which do not use elm_win as top widget.
+// This is workaround! Those could not use focus!
+static void
+_highlight_off_cb(void *data,
+         Evas *e __UNUSED__,
+         Evas_Object *obj __UNUSED__,
+         void *event_info __UNUSED__)
+{
+   ELM_TOOLBAR_DATA_GET(obj, sd);
+
+   if (sd->highlighted_item)
+     edje_object_signal_emit(VIEW(sd->highlighted_item), "elm,highlight,off", "elm");
 }
 
 static void
@@ -2552,6 +2608,9 @@ _elm_toolbar_smart_add(Evas_Object *obj)
    elm_toolbar_shrink_mode_set(obj, _elm_config->toolbar_shrink_mode);
    evas_object_event_callback_add(obj, EVAS_CALLBACK_RESIZE, _resize_cb, obj);
    evas_object_event_callback_add(obj, EVAS_CALLBACK_MOVE, _move_cb, obj);
+   // FIXME: There are applications which do not use elm_win as top widget.
+   // This is workaround! Those could not use focus!
+   evas_object_event_callback_add(obj, EVAS_CALLBACK_MOUSE_DOWN, _highlight_off_cb, obj);
    evas_object_event_callback_add
      (priv->bx, EVAS_CALLBACK_RESIZE, _resize_cb, obj);
    elm_toolbar_icon_order_lookup_set(obj, ELM_ICON_LOOKUP_THEME_FDO);
