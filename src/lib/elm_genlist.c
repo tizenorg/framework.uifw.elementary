@@ -4690,7 +4690,11 @@ _update_job(void *data)
                   it->item->updateme = EINA_FALSE;
                   if (it->realized)
                     {
-                       _item_update(it);
+                       _item_unrealize(it, EINA_FALSE);
+                       _item_realize(it, num, EINA_FALSE);
+                       // FIXME: Disable temporarily because of setting
+                       // side effects
+                       //_item_update(it);
                        position = EINA_TRUE;
                     }
                   else
