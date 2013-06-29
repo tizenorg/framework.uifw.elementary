@@ -2817,10 +2817,11 @@ _entry_mouse_double_signal_cb(void *data,
    sd->double_clicked = EINA_TRUE;
    if (!sd->sel_allow) return;
 
-   edje_object_part_text_select_word(sd->entry_edje, "elm.text");
    if (!_elm_config->desktop_entry)
      edje_object_part_text_select_allow_set
         (sd->entry_edje, "elm.text", EINA_TRUE);
+   _magnifier_hide(data);
+   _menu_call(data);
    /////
    evas_object_smart_callback_call(data, SIG_CLICKED_DOUBLE, NULL);
 }
@@ -2831,6 +2832,18 @@ _entry_mouse_triple_signal_cb(void *data,
                               const char *emission __UNUSED__,
                               const char *source __UNUSED__)
 {
+   // TIZEN ONLY
+   ELM_ENTRY_DATA_GET(data, sd);
+   if (sd->disabled) return;
+   sd->double_clicked = EINA_TRUE;
+   if (!sd->sel_allow) return;
+
+   if (!_elm_config->desktop_entry)
+     edje_object_part_text_select_allow_set
+        (sd->entry_edje, "elm.text", EINA_TRUE);
+   _magnifier_hide(data);
+   _menu_call(data);
+   /////
    evas_object_smart_callback_call(data, SIG_CLICKED_TRIPLE, NULL);
 }
 
