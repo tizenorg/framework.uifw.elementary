@@ -3342,6 +3342,22 @@ _elm_scroll_pan_changed_cb(void *data,
 }
 
 static void
+_elm_scroll_pan_resized_cb(void *data,
+                          Evas *e __UNUSED__,
+                          Evas_Object *obj __UNUSED__,
+                          void *event_info __UNUSED__)
+{
+   Evas_Coord w, h;
+   Elm_Scrollable_Smart_Interface_Data *sid = data;
+
+   if (sid->cb_func.content_viewport_resize)
+     {
+        _elm_scroll_content_viewport_size_get(sid->obj, &w, &h);
+        sid->cb_func.content_viewport_resize(sid->obj, w, h);
+     }
+}
+
+static void
 _elm_scroll_content_del_cb(void *data,
                            Evas *e __UNUSED__,
                            Evas_Object *obj __UNUSED__,
@@ -3385,6 +3401,8 @@ _elm_scroll_content_set(Evas_Object *obj,
         sid->pan_obj = o;
         evas_object_smart_callback_add
           (o, SIG_CHANGED, _elm_scroll_pan_changed_cb, sid);
+        evas_object_event_callback_add(o, EVAS_CALLBACK_RESIZE,
+                                       _elm_scroll_pan_resized_cb, sid);
         edje_object_part_swallow(sid->edje_obj, "elm.swallow.content", o);
      }
 
@@ -3416,6 +3434,8 @@ _elm_scroll_extern_pan_set(Evas_Object *obj,
      {
         evas_object_smart_callback_del
           (sid->pan_obj, SIG_CHANGED, _elm_scroll_pan_changed_cb);
+        evas_object_event_callback_del(sid->pan_obj, EVAS_CALLBACK_RESIZE,
+                                       _elm_scroll_pan_resized_cb);
      }
 
    if (sid->extern_pan)
@@ -3446,6 +3466,8 @@ _elm_scroll_extern_pan_set(Evas_Object *obj,
    sid->extern_pan = EINA_TRUE;
    evas_object_smart_callback_add
      (sid->pan_obj, SIG_CHANGED, _elm_scroll_pan_changed_cb, sid);
+   evas_object_event_callback_add(sid->pan_obj, EVAS_CALLBACK_RESIZE,
+                                  _elm_scroll_pan_resized_cb, sid);
    edje_object_part_swallow
      (sid->edje_obj, "elm.swallow.content", sid->pan_obj);
 }
@@ -3649,6 +3671,17 @@ _elm_scroll_content_min_limit_cb_set(Evas_Object *obj,
    ELM_SCROLL_IFACE_DATA_GET_OR_RETURN(obj, sid);
 
    sid->cb_func.content_min_limit = c_min_limit_cb;
+}
+
+static void
+_elm_scroll_content_viewport_resize_cb_set(Evas_Object *obj,
+                                 void (*c_viewport_resize_cb)(Evas_Object *obj,
+                                                              Evas_Coord w,
+                                                              Evas_Coord h))
+{
+   ELM_SCROLL_IFACE_DATA_GET_OR_RETURN(obj, sid);
+
+   sid->cb_func.content_viewport_resize = c_viewport_resize_cb;
 }
 
 static Eina_Bool
@@ -4237,6 +4270,7 @@ EAPI const Elm_Scrollable_Smart_Interface ELM_SCROLLABLE_IFACE =
    _elm_scroll_hbar_press_cb_set,
    _elm_scroll_hbar_unpress_cb_set,
    _elm_scroll_content_min_limit_cb_set,
+   _elm_scroll_content_viewport_resize_cb_set,
    _elm_scroll_content_pos_set,
    _elm_scroll_content_pos_get,
    _elm_scroll_content_region_show,

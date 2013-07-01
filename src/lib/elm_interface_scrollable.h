@@ -293,6 +293,9 @@ struct _Elm_Scrollable_Smart_Interface_Data
       void (*content_min_limit)(Evas_Object *obj,
                                 Eina_Bool w,
                                 Eina_Bool h);
+      void (*content_viewport_resize)(Evas_Object *obj,
+                                      Evas_Coord w,
+                                      Evas_Coord h);
    } cb_func;
 
    struct
@@ -408,6 +411,10 @@ struct _Elm_Scrollable_Smart_Interface
                                           void (*c_limit_cb)(Evas_Object *obj,
                                                              Eina_Bool w,
                                                              Eina_Bool h));
+   void       (*content_viewport_resize_cb_set)(Evas_Object *obj,
+                                void (*c_viewport_resize_cb)(Evas_Object *obj,
+                                                             Evas_Coord w,
+                                                             Evas_Coord h));
 
    /* set the position of content object inside the scrolling region,
     * immediately */

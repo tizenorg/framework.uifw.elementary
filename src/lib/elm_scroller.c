@@ -763,6 +763,14 @@ _elm_scroller_content_min_limit_cb(Evas_Object *obj,
 }
 
 static void
+_elm_scroller_content_viewport_resize_cb(Evas_Object *obj,
+                                         Evas_Coord w __UNUSED__,
+                                         Evas_Coord h __UNUSED__)
+{
+   elm_layout_sizing_eval(obj);
+}
+
+static void
 _elm_scroller_smart_add(Evas_Object *obj)
 {
    Evas_Coord minw, minh;
@@ -818,6 +826,8 @@ _elm_scroller_smart_add(Evas_Object *obj)
 
    priv->s_iface->content_min_limit_cb_set
      (obj, _elm_scroller_content_min_limit_cb);
+   priv->s_iface->content_viewport_resize_cb_set
+     (obj, _elm_scroller_content_viewport_resize_cb);
 }
 
 static void
