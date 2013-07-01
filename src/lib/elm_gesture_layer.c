@@ -3746,16 +3746,7 @@ _elm_gesture_layer_smart_del(Evas_Object *obj)
 
    ELM_GESTURE_LAYER_DATA_GET(obj, sd);
 
-   _event_history_clear(obj);
-   eina_list_free(sd->pending);
-
-   EINA_LIST_FREE (sd->touched, data)
-     free(data);
-
-   if (!elm_widget_disabled_get(obj))
-     _callbacks_unregister(obj);
-
-   /* Free all gestures internal data structures */
+   /* First Free all gestures internal data structures */
    for (i = 0; i < ELM_GESTURE_LAST; i++)
      if (sd->gesture[i])
        {
@@ -3763,12 +3754,23 @@ _elm_gesture_layer_smart_del(Evas_Object *obj)
             free(sd->gesture[i]->data);
 
           free(sd->gesture[i]);
+          sd->gesture[i] = NULL; /* Referenced by _event_history_clear */
        }
    if (sd->gest_taps_timeout)
      {
         ecore_timer_del(sd->gest_taps_timeout);
         sd->gest_taps_timeout = NULL;
      }
+
+   /* Then take care of clearing events */
+   _event_history_clear(obj);
+   sd->pending = eina_list_free(sd->pending);
+
+   EINA_LIST_FREE(sd->touched, data)
+     free(data);
+
+   if (!elm_widget_disabled_get(obj))
+     _callbacks_unregister(obj);
 
    _elm_gesture_layer_parent_sc->base.del(obj); /* handles freeing sd */
 }
@@ -3778,7 +3780,6 @@ _elm_gesture_layer_smart_set_user(Elm_Widget_Smart_Class *sc)
 {
    sc->base.add = _elm_gesture_layer_smart_add;
    sc->base.del = _elm_gesture_layer_smart_del;
-
    sc->disable = _elm_gesture_layer_smart_disable;
 }
 
