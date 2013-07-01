@@ -279,6 +279,9 @@ _item_cache_push(Elm_Gen_Item *it)
      }
    _item_event_del(it);
 
+   // set item's state as default before pushing item into cache.
+   edje_object_signal_emit(VIEW(it),"elm,state,default", "elm");
+
    ic->base_view = VIEW(it);
    ic->spacer = it->spacer;
    ic->item_style = eina_stringshare_add(it->itc->item_style);
@@ -335,11 +338,6 @@ _item_cache_pop(Elm_Gen_Item *it)
              it->spacer = ic->spacer;
              it->item->multiline = ic->multiline;
 
-#if 1 // FIXME: different from upstream
-             // Because of item cache, set state as default after cache item
-             // is popped.
-             edje_object_signal_emit(VIEW(it),"elm,state,default", "elm");
-#endif
              edje_object_signal_callback_add
                 (VIEW(it), "elm,action,expand,toggle", "elm",
                  _expand_toggle_signal_cb, it);
@@ -1747,7 +1745,7 @@ _item_realize(Elm_Gen_Item *it,
         if (GL_IT(it)->wsd->reorder_mode)
           edje_object_signal_emit
             (VIEW(it), "elm,state,reorder,mode_set", "elm");
-    }
+     }
 #endif
    _elm_genlist_item_state_update(it);
    _elm_genlist_item_index_update(it);
