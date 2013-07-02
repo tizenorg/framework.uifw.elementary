@@ -3901,6 +3901,9 @@ _elm_entry_smart_del(Evas_Object *obj)
         if (sd->auto_save) _save_do(obj);
      }
 
+   if (sd->scroll)
+     sd->s_iface->content_viewport_resize_cb_set(obj, NULL);
+
    elm_entry_anchor_hover_end(obj);
    elm_entry_anchor_hover_parent_set(obj, NULL);
 
@@ -5164,6 +5167,40 @@ elm_entry_cnp_mode_get(const Evas_Object *obj)
    return sd->cnp_mode;
 }
 
+static void
+_elm_entry_content_viewport_resize_cb(Evas_Object *obj,
+                                      Evas_Coord w __UNUSED__, Evas_Coord h __UNUSED__)
+{
+   ELM_ENTRY_DATA_GET(obj, sd);
+
+   if (sd->line_wrap)
+     {
+        elm_layout_sizing_eval(obj);
+     }
+   else if (sd->scroll)
+     {
+        Evas_Coord vw = 0, vh = 0;
+
+        sd->s_iface->content_viewport_size_get(obj, &vw, &vh);
+        if (vw < sd->ent_mw) vw = sd->ent_mw;
+        if (vh < sd->ent_mh) vh = sd->ent_mh;
+        evas_object_resize(sd->entry_edje, vw, vh);
+     }
+
+   if (sd->hoversel) _hoversel_position(obj);
+
+   // TIZEN ONLY
+   if (!_elm_config->desktop_entry)
+     {
+        if (sd->region_get_job) ecore_job_del(sd->region_get_job);
+        sd->region_get_job = ecore_job_add(_region_get_job, obj);
+
+        if (sd->magnifier_showing)
+          _magnifier_content_resize(obj);
+     }
+   //
+}
+
 EAPI void
 elm_entry_scrollable_set(Evas_Object *obj,
                          Eina_Bool scroll)
@@ -5210,6 +5247,7 @@ elm_entry_scrollable_set(Evas_Object *obj,
         else
           sd->s_iface->policy_set(obj, sd->policy_h, sd->policy_v);
         sd->s_iface->content_set(obj, sd->entry_edje);
+        sd->s_iface->content_viewport_resize_cb_set(obj, _elm_entry_content_viewport_resize_cb);
         elm_widget_on_show_region_hook_set(obj, _show_region_hook, obj);
      }
    else
