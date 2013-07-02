@@ -2264,9 +2264,28 @@ _elm_scroll_mouse_up_event_cb(void *data,
                        if ((_elm_config->thumbscroll_friction > 0.0) &&
                            (vel > _elm_config->thumbscroll_momentum_threshold))
                          {
-                            sid->down.dx = ((double)dx / at);
-                            sid->down.dy = ((double)dy / at);
+                            Evas_Coord vw, vh, aw, ah;
+                            int minx, miny, mx, my, px, py;
+                            double tt = 0.0, dtt = 0.0;
                             sid->down.extra_time = 0.0;
+
+                            psd->api->pos_min_get
+                              (sid->pan_obj, &minx, &miny);
+                            psd->api->pos_max_get(sid->pan_obj, &mx, &my);
+                            psd->api->pos_get(sid->pan_obj, &px, &py);
+                            _elm_scroll_content_viewport_size_get(sid->obj, &vw, &vh);
+                            if (dx > 0)
+                              sid->down.dx = (sin((M_PI * (double)dx / vw)
+                                                  - (M_PI / 2)) + 1) * vw / at;
+                            else
+                              sid->down.dx = (sin((M_PI * (double)dx / vw)
+                                                  + (M_PI / 2)) - 1) * vw / at;
+                            if (dy > 0)
+                              sid->down.dy = (sin((M_PI * (double)dy / vh)
+                                                  - (M_PI / 2)) + 1) * vh / at;
+                            else
+                              sid->down.dy = (sin((M_PI * (double)dy / vh)
+                                                  + (M_PI / 2)) - 1) * vh / at;
                             sid->down.pdx = sid->down.dx;
                             sid->down.pdy = sid->down.dy;
                             ox = -sid->down.dx;
