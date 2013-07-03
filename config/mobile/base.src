@@ -33,7 +33,7 @@ group "Elm_Config" struct {
   value "edje_collection_cache" int: 64;
   value "finger_size" int: 60;
   value "fps" double: 60.0;
-  value "theme" string: "tizen-hd";
+  value "theme" string: "tizen-HD-dark";
   value "modules" string: "ctxpopup_copypasteUI>entry/api:datetime_input_popup>datetime/api:access_output_tts>access/api";
   value "tooltip_delay" double: 1.0;
   value "cursor_engine_only" uchar: 1;
