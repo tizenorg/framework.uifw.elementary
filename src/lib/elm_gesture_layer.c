@@ -3746,6 +3746,18 @@ _elm_gesture_layer_smart_del(Evas_Object *obj)
 
    ELM_GESTURE_LAYER_DATA_GET(obj, sd);
 
+   /* Clear all gestures intermediate data, stop any timers */
+   {
+      /* FIXME: +1 because of the mistake in the enum. */
+      Gesture_Info **gitr = sd->gesture + 1;
+      Tests_Array_Funcs *fitr = _glayer_tests_array + 1;
+      for (; fitr->reset; fitr++, gitr++)
+        {
+           if (IS_TESTED_GESTURE(*gitr))
+             fitr->reset(*gitr);
+        }
+   }
+
    /* First Free all gestures internal data structures */
    for (i = 0; i < ELM_GESTURE_LAST; i++)
      if (sd->gesture[i])
@@ -3891,6 +3903,10 @@ elm_gesture_layer_cb_set(Evas_Object *obj,
    ELM_GESTURE_LAYER_CHECK(obj);
    ELM_GESTURE_LAYER_DATA_GET(obj, sd);
 
+   /* Clear gesture intermediate data, stop any timers */
+   if (IS_TESTED_GESTURE(sd->gesture[idx]))
+     _glayer_tests_array[idx].reset(sd->gesture[idx]);
+
    if (!sd->gesture[idx])
      sd->gesture[idx] = calloc(1, sizeof(Gesture_Info));
    if (!sd->gesture[idx]) return;
@@ -3903,7 +3919,6 @@ elm_gesture_layer_cb_set(Evas_Object *obj,
    p->state = ELM_GESTURE_STATE_UNDEFINED;
    SET_TEST_BIT(p);
 }
-
 
 EAPI void
 elm_gesture_layer_line_min_length_set(Evas_Object *obj, int line_min_length)
