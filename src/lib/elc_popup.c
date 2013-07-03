@@ -346,10 +346,8 @@ static Eina_Bool
 _elm_popup_smart_theme(Evas_Object *obj)
 {
    Elm_Popup_Item *item;
-   unsigned int i = 0;
    Eina_List *elist;
    char buf[128];
-   int rotation = -1;
 
    ELM_POPUP_DATA_GET(obj, sd);
 
@@ -1450,7 +1448,7 @@ _elm_popup_smart_focus_next(const Evas_Object *obj,
      return elm_widget_focus_list_next_get(obj, items, eina_list_data_get, dir, next);
 
    if (!elm_widget_focus_list_next_get(obj, items, eina_list_data_get, dir, next))
-     *next = obj;
+     *next = (Evas_Object *)obj;
 
    return EINA_TRUE;
 }
@@ -1553,7 +1551,7 @@ _elm_popup_smart_add(Evas_Object *obj)
    elm_layout_theme_set(obj, "popup", "base", elm_widget_style_get(obj));
 
    priv->notify = elm_notify_add(obj);
-   elm_notify_orient_set(priv->notify, ELM_NOTIFY_ORIENT_CENTER);
+   elm_notify_align_set(priv->notify, 0.5, 0.5);
    elm_notify_allow_events_set(priv->notify, EINA_FALSE);
    evas_object_size_hint_weight_set
      (priv->notify, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -1787,7 +1785,50 @@ elm_popup_orient_set(Evas_Object *obj,
    ELM_POPUP_DATA_GET(obj, sd);
 
    if (orient >= ELM_POPUP_ORIENT_LAST) return;
-   elm_notify_orient_set(sd->notify, (Elm_Notify_Orient)orient);
+   double horizontal = 0, vertical = 0;
+
+      switch (orient)
+        {
+         case ELM_POPUP_ORIENT_TOP:
+            horizontal = 0.5; vertical = 0.0;
+           break;
+
+         case ELM_POPUP_ORIENT_CENTER:
+            horizontal = 0.5; vertical = 0.5;
+           break;
+
+         case ELM_POPUP_ORIENT_BOTTOM:
+            horizontal = 0.5; vertical = 1.0;
+           break;
+
+         case ELM_POPUP_ORIENT_LEFT:
+            horizontal = 0.0; vertical = 0.5;
+           break;
+
+         case ELM_POPUP_ORIENT_RIGHT:
+            horizontal = 1.0; vertical = 0.5;
+           break;
+
+         case ELM_POPUP_ORIENT_TOP_LEFT:
+            horizontal = 0.0; vertical = 0.0;
+           break;
+
+         case ELM_POPUP_ORIENT_TOP_RIGHT:
+            horizontal = 1.0; vertical = 0.0;
+           break;
+
+         case ELM_POPUP_ORIENT_BOTTOM_LEFT:
+            horizontal = 0.0; vertical = 1.0;
+           break;
+
+         case ELM_POPUP_ORIENT_BOTTOM_RIGHT:
+            horizontal = 1.0; vertical = 1.0;
+           break;
+
+         case ELM_POPUP_ORIENT_LAST:
+           break;
+        }
+   elm_notify_align_set(sd->notify, horizontal, vertical);
 }
 
 EAPI Elm_Popup_Orient

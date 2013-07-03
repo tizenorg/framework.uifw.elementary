@@ -395,7 +395,7 @@ static const char PLUG_KEY[] = "__Plug_Ecore_Evas";
 #define MSG_ID_INDICATOR_TYPE 0X1005
 
 static void
-_plug_msg_handle(void *data, Evas_Object *obj, void *event_info)
+_plug_msg_handle(void *data, Evas_Object *obj __UNUSED__, void *event_info)
 {
    Evas_Object *conformant = data;
    Elm_Plug_Message *pm = event_info;
@@ -470,7 +470,7 @@ _create_portrait_indicator(Evas_Object *obj)
      }
 
    //callback to deal with extn socket message
-   evas_object_smart_callback_add(port_indicator, "message.received", _plug_msg_handle, obj);
+   evas_object_smart_callback_add(port_indicator, "message.received", (Evas_Smart_Cb)_plug_msg_handle, obj);
 
    DBG("[INDICATOR]Send msg to portrait indicator: rot(%d), opacity(%d)", sd->rot, sd->ind_o_mode);
    elm_plug_msg_send(port_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
@@ -517,7 +517,7 @@ _create_landscape_indicator(Evas_Object *obj)
      }
 
    //callback to deal with extn socket message
-   evas_object_smart_callback_add(land_indicator, "message.received", _plug_msg_handle, obj);
+   evas_object_smart_callback_add(land_indicator, "message.received", (Evas_Smart_Cb)_plug_msg_handle, obj);
 
    DBG("[INDICATOR]Send msg to landscape indicator: rot(%d), opacity(%d)", sd->rot, sd->ind_o_mode);
    elm_plug_msg_send(land_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
@@ -698,12 +698,9 @@ _on_rotation_changed(void *data,
 
 static void
 _on_iconified(void *data,
-              Evas_Object *obj,
+              Evas_Object *obj __UNUSED__,
               void *event_info __UNUSED__)
 {
-   Evas_Object *win = obj;
-   Evas_Object *conformant = data;
-
    ELM_CONFORMANT_DATA_GET(data, sd);
    DBG("[INDICATOR]Window is iconified rot=%d indmode=%d ind_o_mode=%d", sd->rot, sd->indmode, sd->ind_o_mode);
    //TODO: send message related with iconified.
@@ -712,12 +709,9 @@ _on_iconified(void *data,
 
 static void
 _on_normal(void *data,
-           Evas_Object *obj,
+           Evas_Object *obj __UNUSED__,
            void *event_info __UNUSED__)
 {
-   Evas_Object *win = obj;
-   Evas_Object *conformant = data;
-
    ELM_CONFORMANT_DATA_GET(data, sd);
    DBG("[INDICATOR]Window is normal rot=%d indmode=%d ind_o_mode=%d", sd->rot, sd->indmode, sd->ind_o_mode);
    //TODO: send message related with iconified.
@@ -1120,23 +1114,23 @@ _elm_conformant_smart_del(Evas_Object *obj)
    if (sd->land_indi_timer) ecore_timer_del(sd->land_indi_timer);
    if (sd->portrait_indicator)
      {
-        evas_object_smart_callback_del(sd->portrait_indicator, "message.received", _plug_msg_handle);
+        evas_object_smart_callback_del(sd->portrait_indicator, "message.received", (Evas_Smart_Cb)_plug_msg_handle);
         evas_object_del(sd->portrait_indicator);
      }
    if (sd->landscape_indicator)
      {
-        evas_object_smart_callback_del(sd->landscape_indicator, "message.received", _plug_msg_handle);
+        evas_object_smart_callback_del(sd->landscape_indicator, "message.received", (Evas_Smart_Cb)_plug_msg_handle);
         evas_object_del(sd->landscape_indicator);
      }
    top = sd->win;
    evas_object_data_set(top, "\377 elm,conformant", NULL);
 
    evas_object_smart_callback_del(top, "indicator,prop,changed",
-                                  _on_indicator_mode_changed);
+                                  (Evas_Smart_Cb)_on_indicator_mode_changed);
    evas_object_smart_callback_del(top, "rotation,changed",
-                                  _on_rotation_changed);
-   evas_object_smart_callback_del(top, "iconified", _on_iconified);
-   evas_object_smart_callback_del(top, "normal", _on_normal);
+                                  (Evas_Smart_Cb)_on_rotation_changed);
+   evas_object_smart_callback_del(top, "iconified", (Evas_Smart_Cb)_on_iconified);
+   evas_object_smart_callback_del(top, "normal", (Evas_Smart_Cb)_on_normal);
 
    ELM_WIDGET_CLASS(_elm_conformant_parent_sc)->base.del(obj);
 }
@@ -1238,13 +1232,13 @@ elm_conformant_add(Evas_Object *parent)
    evas_object_data_set(top, "\377 elm,conformant", obj);
 
    evas_object_smart_callback_add
-     (top, "indicator,prop,changed", _on_indicator_mode_changed, obj);
+     (top, "indicator,prop,changed", (Evas_Smart_Cb)_on_indicator_mode_changed, obj);
    evas_object_smart_callback_add
-     (top, "rotation,changed", _on_rotation_changed, obj);
+     (top, "rotation,changed", (Evas_Smart_Cb)_on_rotation_changed, obj);
    evas_object_smart_callback_add
-     (top, "iconified", _on_iconified, obj);
+     (top, "iconified", (Evas_Smart_Cb)_on_iconified, obj);
    evas_object_smart_callback_add
-     (top, "normal", _on_normal, obj);
+     (top, "normal", (Evas_Smart_Cb)_on_normal, obj);
 
    sd->win = top;
 

@@ -2282,7 +2282,7 @@ _elm_gengrid_smart_event(Evas_Object *obj,
           (!strcmp(ev->keyname, "space"))) &&
           sd->focused)
      {
-        it = sd->focused;
+        it = (Elm_Object_Item *)sd->focused;
         elm_gengrid_item_selected_set(it, EINA_TRUE);
         evas_object_smart_callback_call(WIDGET(it), SIG_ACTIVATED, it);
         return EINA_TRUE;
@@ -2595,8 +2595,6 @@ _item_disable_hook(Elm_Object_Item *item)
 static void
 _item_del_pre_fx_process(Elm_Gen_Item *it)
 {
-   Evas_Object *obj = WIDGET(it);
-
    _elm_gengrid_fx_capture(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj, 0);
    if (!eina_list_data_find(GG_IT(it)->wsd->pending_del_items, it))
      GG_IT(it)->wsd->pending_del_items = eina_list_append(GG_IT(it)->wsd->pending_del_items, it);

@@ -1557,7 +1557,7 @@ _overlay_default_class_content_update(Overlay_Default *ovl,
 }
 
 static Evas_Object*
-_img_from_icon(Evas *e, Evas_Object *icon)
+_img_from_icon(Evas *e __UNUSED__, Evas_Object *icon)
 {
    char *icon_file = NULL;
    Evas_Object *img;
@@ -1573,7 +1573,7 @@ _img_from_icon(Evas *e, Evas_Object *icon)
 
 static void
 _overlay_engine_icon_create(Elm_Map_Overlay *overlay,
-                             Evas_Object *icon)
+                            Evas_Object *icon)
 {
    char *imgbuffer = NULL;
    int w = 0;

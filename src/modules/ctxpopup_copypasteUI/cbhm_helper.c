@@ -134,7 +134,7 @@ _cbhm_reply_get(Ecore_X_Window xwin, Ecore_X_Atom property, Ecore_X_Atom *x_data
 #endif
 
 int
-_cbhm_item_count_get(Evas_Object *obj)
+_cbhm_item_count_get(Evas_Object *obj __UNUSED__)
 {
 #ifdef HAVE_ELEMENTARY_X
    char *ret, count;
@@ -183,7 +183,7 @@ _cbhm_item_count_get(Evas_Object *obj)
 
 #ifdef HAVE_ELEMENTARY_X
 Eina_Bool
-_cbhm_item_get(Evas_Object *obj, int index, Ecore_X_Atom *data_type, char **buf)
+_cbhm_item_get(Evas_Object *obj __UNUSED__, int index, Ecore_X_Atom *data_type, char **buf)
 #else
 Eina_Bool
 _cbhm_item_get(Evas_Object *obj, int index, void *data_type, char **buf)

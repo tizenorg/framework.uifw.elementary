@@ -1450,7 +1450,7 @@ _move_cb(void *data,
 // FIXME: There are applications which do not use elm_win as top widget.
 // This is workaround! Those could not use focus!
 static void
-_highlight_off_cb(void *data,
+_highlight_off_cb(void *data __UNUSED__,
          Evas *e __UNUSED__,
          Evas_Object *obj __UNUSED__,
          void *event_info __UNUSED__)

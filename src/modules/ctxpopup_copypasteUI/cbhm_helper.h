@@ -15,9 +15,9 @@
 #endif
 
 Eina_Bool _cbhm_msg_send(Evas_Object* obj, char *msg);
-int _cbhm_item_count_get(Evas_Object *obj);
+int _cbhm_item_count_get(Evas_Object *obj __UNUSED__);
 #ifdef HAVE_ELEMENTARY_X
-Eina_Bool _cbhm_item_get(Evas_Object *obj, int index, Ecore_X_Atom *data_type, char **buf);
+Eina_Bool _cbhm_item_get(Evas_Object *obj __UNUSED__, int index, Ecore_X_Atom *data_type, char **buf);
 #else
 Eina_Bool _cbhm_item_get(Evas_Object *obj, int index, void *data_type, char **buf);
 #endif

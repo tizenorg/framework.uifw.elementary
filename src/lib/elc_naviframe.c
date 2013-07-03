@@ -585,10 +585,8 @@ _item_content_set(Elm_Naviframe_Item *it,
 }
 
 char *
-_access_prev_btn_info_cb(void *data, Evas_Object *obj __UNUSED__)
+_access_prev_btn_info_cb(void *data __UNUSED__ , Evas_Object *obj __UNUSED__)
 {
-   Elm_Naviframe_Item *it = (Elm_Naviframe_Item *)data;
-
    return strdup(E_("Back"));
 }
 
@@ -614,7 +612,7 @@ _item_title_prev_btn_set(Elm_Naviframe_Item *it,
 
     _elm_access_callback_set
       (_elm_access_object_get(btn), ELM_ACCESS_INFO,
-       _access_prev_btn_info_cb, it);
+       (Elm_Access_Info_Cb)_access_prev_btn_info_cb, it);
 }
 
 static void
@@ -1280,7 +1278,6 @@ _elm_naviframe_mouse_up_cb(void *data __UNUSED__, Evas *e __UNUSED__,
 {
    Elm_Naviframe_Item *it;
    Evas_Event_Mouse_Up *ev = event_info;
-   ELM_NAVIFRAME_DATA_GET(obj, sd);
 
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
    if (elm_widget_disabled_get(obj)) return;
@@ -1781,8 +1778,8 @@ elm_naviframe_item_pop(Evas_Object *obj)
              it->popping = EINA_FALSE;
              if (it->delete_me)
                {
-                  _item_del_pre_hook(it);
-                  _elm_widget_item_free(it);
+                  _item_del_pre_hook((Elm_Object_Item*)it);
+                  _elm_widget_item_free((Elm_Widget_Item*)it);
                }
              evas_object_unref(obj);
 

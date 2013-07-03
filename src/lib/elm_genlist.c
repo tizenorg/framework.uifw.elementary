@@ -2047,7 +2047,7 @@ _fx_job(void *data)
    sd->fx_job = NULL;
 }
 
-static void
+/*static void
 _item_block_calc(Item_Block *itb)
 {
    const Eina_List *l;
@@ -2073,7 +2073,7 @@ _item_block_calc(Item_Block *itb)
    itb->minh = minh;
    itb->changed = EINA_FALSE;
    itb->position_update = EINA_FALSE;
-}
+}*/
 
 static void
 _elm_genlist_pan_smart_calculate(Evas_Object *obj)

@@ -77,7 +77,7 @@ _elm_multibuttonentry_smart_focus_next(const Evas_Object *obj,
 
    if (!elm_widget_highlight_get(obj))
      {
-        *next = obj;
+        *next = (Evas_Object *)obj;
         return EINA_TRUE;
      }
 
@@ -882,13 +882,13 @@ _layout_shrink(Evas_Object *obj,
              evas_object_size_hint_min_get(sd->label, &labelw, NULL);
              if (itemw > w - (labelw + hpad + mnw + hpad))
                {
-                  evas_object_data_set(VIEW(item), "shrinked_item", itemw);
+                  evas_object_data_set(VIEW(item), "shrinked_item", (void *)itemw);
                   itemw = w - (labelw + hpad + mnw + hpad);
                }
           }
         else if (itemw > w - (mnw + hpad))
           {
-             evas_object_data_set(VIEW(item), "shrinked_item", itemw);
+             evas_object_data_set(VIEW(item), "shrinked_item", (void *)itemw);
              itemw = w - (mnw + hpad);
           }
         linew += itemw;
@@ -1294,7 +1294,7 @@ _box_layout(Evas_Object *o,
 
         if ((cnt == 0) && !sd->label && sd->end)
           {
-             evas_object_data_set(obj, "maximum_width", mnw);
+             evas_object_data_set(obj, "maximum_width", (void *)mnw);
              evas_object_size_hint_min_get(sd->end, &endw, NULL);
              if (mnw > w - (endw + priv->pad.h))
                mnw = w - (endw + priv->pad.h);
@@ -1312,7 +1312,7 @@ _box_layout(Evas_Object *o,
                }
              else
                {
-                  evas_object_data_set(obj, "maximum_width", mnw);
+                  evas_object_data_set(obj, "maximum_width", (void *)mnw);
                   itemw = (Evas_Coord)evas_object_data_get(obj, "shrinked_item");
                   if (itemw)
                     mnw = itemw;
@@ -1463,7 +1463,7 @@ _on_box_resize(void *data,
 #endif
                               }
                          }
-                       evas_object_data_set(VIEW(it), "maximum_width", mnw);
+                       evas_object_data_set(VIEW(it), "maximum_width", (void *)mnw);
                     }
                   if (mnw > w)
                     {

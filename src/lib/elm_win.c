@@ -1193,7 +1193,7 @@ static Eina_Bool
 _elm_win_smart_event(Evas_Object *obj,
                      Evas_Object *src __UNUSED__,
                      Evas_Callback_Type type,
-                     void *event_info)
+                     void *event_info __UNUSED__)
 {
    Evas_Event_Key_Down *ev = event_info;
    Evas_Object *current_focused;

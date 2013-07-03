@@ -518,7 +518,7 @@ field_create(Elm_Datetime_Module_Data *module_data, Elm_Datetime_Field_Type  fie
    evas_object_data_set(field_obj, "_field_type", (void *)field_type);
 
    // ACCESS
-   _access_set(field_obj, field_type, ctx_mod);
+   _access_set(field_obj, field_type, (Elm_Datetime_Module_Data *)ctx_mod);
 
    return field_obj;
 }

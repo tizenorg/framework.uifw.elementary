@@ -150,7 +150,7 @@ _add_multibuttonentry(Evas_Object *parent)
    elm_object_content_set(scr, mbe);
 
    // Add item verify callback to Multibuttonentry
-   elm_multibuttonentry_item_filter_append(mbe, _item_filter_cb, data);
+   elm_multibuttonentry_item_filter_append(mbe, (Elm_Multibuttonentry_Item_Filter_Cb)_item_filter_cb, data);
 
    // Add "item,selected","item,added", "item,deleted", "clicked", "unfocused",
    // "expanded", "contracted" and "contracted,state,changed" smart callback

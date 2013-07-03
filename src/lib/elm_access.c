@@ -657,10 +657,6 @@ _access_highlight_next_get(Evas_Object *obj, Elm_Focus_Direction dir, Eina_Bool 
    Evas_Object *ho, *parent, *target;
    int type;
    Eina_Bool ret;
-   Evas *evas;
-   Elm_Access_Info *ac;
-   Evas_Coord_Point ho_point = { 0, 0 };
-
    target = NULL;
    ret = EINA_FALSE;
 
