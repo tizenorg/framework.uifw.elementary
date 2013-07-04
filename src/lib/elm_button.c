@@ -137,6 +137,9 @@ _elm_button_smart_sub_object_del(Evas_Object *obj,
 static Eina_Bool
 _elm_button_smart_on_focus(Evas_Object *obj)
 {
+   if (!ELM_WIDGET_CLASS(_elm_button_parent_sc)->on_focus(obj))
+     return EINA_FALSE;
+
    if (elm_widget_focus_get(obj))
      evas_object_smart_callback_call(obj, SIG_FOCUSED, NULL);
    else
