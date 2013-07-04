@@ -531,7 +531,8 @@ _set_spinner_special_values(Popup_Module_Data *popup_mod)
                                    month + 1, month_arr[month]);
 
    fmt = popup_mod->mod_data.field_format_get(popup_mod->mod_data.base, ELM_DATETIME_AMPM);
-   if (fmt)
+   // if AM/PM format exists, set its string as spinner special value.
+   if (fmt && strcmp(fmt, "%"))
      {
         curr_time.tm_hour = 0;
         strftime(am_str, BUFF_SIZE, fmt, &curr_time);
