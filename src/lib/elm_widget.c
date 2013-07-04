@@ -2342,10 +2342,19 @@ elm_widget_focus_next_get(const Evas_Object *obj,
    API_ENTRY return EINA_FALSE;
 
    /* Ignore if disabled */
-   if ((!evas_object_visible_get(obj))
-       || (elm_widget_disabled_get(obj))
-       || (elm_widget_tree_unfocusable_get(obj)))
-     return EINA_FALSE;
+   if (_elm_config->access_mode && _elm_access_auto_highlight_get())
+     {
+        if (!evas_object_visible_get(obj)
+            || (elm_widget_tree_unfocusable_get(obj)))
+          return EINA_FALSE;
+     }
+   else
+     {
+        if ((!evas_object_visible_get(obj))
+            || (elm_widget_disabled_get(obj))
+            || (elm_widget_tree_unfocusable_get(obj)))
+          return EINA_FALSE;
+     }
 
    if (!sd->api) return EINA_FALSE;
 
@@ -2379,21 +2388,19 @@ elm_widget_focus_next_get(const Evas_Object *obj,
         return ret;
      }
 
-   if (!elm_widget_can_focus_get(obj))
-     return EINA_FALSE;
-
-   /* focusable object but does not have access info */
-   if (_elm_config->access_mode)
+   /* access object does not check sd->can_focus, because an object could
+      have highlight even though the object is not focusable. */
+   if (_elm_config->access_mode && _elm_access_auto_highlight_get())
      {
         ac = _elm_access_object_get(obj);
         if (!ac) return EINA_FALSE;
 
         /* check whether the hover object is visible or not */
-        if (!evas_object_visible_get(ac->hoverobj)
-            || (elm_widget_disabled_get(ac->hoverobj))
-            || (elm_widget_tree_unfocusable_get(ac->hoverobj)))
+        if (!evas_object_visible_get(ac->hoverobj))
           return EINA_FALSE;
      }
+   else if (!elm_widget_can_focus_get(obj))
+     return EINA_FALSE;
 
    if (elm_widget_focus_get(obj))
      {

@@ -482,6 +482,9 @@ _create_portrait_indicator(Evas_Object *obj)
    evas_object_size_hint_min_set(port_indicator, -1, 0);
    evas_object_size_hint_max_set(port_indicator, -1, 0);
 
+   /* access - would use tree_highlight_allow_set(); */
+   elm_widget_tree_unfocusable_set(port_indicator, EINA_TRUE);
+
    return port_indicator;
 }
 
@@ -525,6 +528,10 @@ _create_landscape_indicator(Evas_Object *obj)
 
    evas_object_size_hint_min_set(land_indicator, -1, 0);
    evas_object_size_hint_max_set(land_indicator, -1, 0);
+
+   /* access - would use tree_highlight_allow_set(); */
+   elm_widget_tree_unfocusable_set(land_indicator, EINA_TRUE);
+
    return land_indicator;
 }
 
