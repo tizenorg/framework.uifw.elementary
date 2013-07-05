@@ -170,7 +170,6 @@ static void _item_select(Elm_Gen_Item *it);
 static void     _expand_toggle_signal_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__);
 static void     _expand_signal_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__);
 static void     _contract_signal_cb(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__);
-static void _elm_genlist_item_state_update(Elm_Gen_Item *it);
 static void _decorate_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_all_item_unrealize(Elm_Gen_Item *it);
 static void _decorate_item_set(Elm_Gen_Item *it);
@@ -623,6 +622,22 @@ _changed_size_hints(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__,
 }
 #endif
 
+// FIXME: There are applications which do not use elm_win as top widget.
+// This is workaround! Those could not use focus!
+static Eina_Bool _focus_enabled(Evas_Object *obj)
+{
+   if (!elm_widget_focus_get(obj)) return EINA_FALSE;
+
+   const Evas_Object *win = elm_widget_top_get(obj);
+   const char *type = evas_object_type_get(win);
+
+   if (type && !strcmp(type, "elm_win"))
+     {
+        return elm_win_focus_highlight_enabled_get(win);
+     }
+   return EINA_FALSE;
+}
+
 static Eina_List *
 _item_content_realize(Elm_Gen_Item *it,
                       Evas_Object *target,
@@ -824,43 +839,154 @@ _view_clear(Evas_Object *view, Eina_List **contents)
 }
 
 static void
-_flip_enable(Elm_Gen_Item *it)
+_item_min_calc(Elm_Gen_Item *it, Eina_Bool *width_changed, Eina_Bool *height_changed)
 {
-   if (!it->flipped) return;
-   edje_object_signal_emit
-      (VIEW(it), "elm,state,flip,enabled", "elm");
-   if (GL_IT(it)->wsd->decorate_all_mode)
-      edje_object_signal_emit
-         (it->deco_all_view, "elm,state,flip,enabled", "elm");
-   else if (it->item->deco_it_view)
-      edje_object_signal_emit
-         (it->item->deco_it_view, "elm,state,flip,enabled", "elm");
-#if 1
-   // This is needed before contents are swallowed
-   edje_object_message_signal_process(VIEW(it));
-#endif
-   it->item->flip_content_objs =
-     _item_content_realize(it, VIEW(it), "flips", NULL);
+   if (it->item->mincalcd) return;
+
+   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
+   Evas_Coord mw = 0, mh = 0;
+   Size_Cache *size = NULL;
+
+   if (sd->homogeneous)
+     size = eina_hash_find(GL_IT(it)->wsd->size_caches,
+                           it->itc->item_style);
+
+   if (size)
+     {
+        mw = size->minw;
+        mh = size->minh;
+     }
+   else
+     {
+        if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
+          {
+             mw = sd->finger_minw;
+             mh = sd->finger_minh;
+          }
+        if ((sd->mode == ELM_LIST_COMPRESS) && (sd->prev_viewport_w != 0) &&
+          (mw < sd->prev_viewport_w))
+          mw = sd->prev_viewport_w;
+        edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
+
+         if (sd->homogeneous)
+          {
+             size = ELM_NEW(Size_Cache);
+             size->minw = mw;
+             size->minh = mh;
+             eina_hash_add(sd->size_caches, it->itc->item_style, size);
+          }
+     }
+
+   if (it->item->minw != mw)
+     {
+        // update block size
+        if (it->item->block->minw > mw)
+          it->item->block->minw = it->item->block->w = mw;
+
+        it->item->w = it->item->minw = mw;
+        if (width_changed) *width_changed = EINA_TRUE;
+     }
+   if (it->item->minh != mh)
+     {
+        // update block size
+        it->item->block->minh += (mh - it->item->minh);
+
+        it->item->h = it->item->minh = mh;
+        it->item->block->changed = EINA_TRUE;
+        if (height_changed) *height_changed = EINA_TRUE;
+     }
+   it->item->mincalcd = EINA_TRUE;
 }
 
 static void
-_flip_disable(Elm_Gen_Item *it)
+_elm_genlist_item_decorate_state_update(Elm_Gen_Item *it)
 {
-   if (it->flipped) return;
-   Evas_Object *c;
-   EINA_LIST_FREE(it->item->flip_content_objs, c)
-    evas_object_del(c);
-
-   edje_object_signal_emit
-      (VIEW(it), "elm,state,flip,disabled", "elm");
    if (GL_IT(it)->wsd->decorate_all_mode)
-      edje_object_signal_emit
-         (it->deco_all_view, "elm,state,flip,disabled", "elm");
-   else if (it->item->deco_it_view)
-      edje_object_signal_emit
-         (it->item->deco_it_view, "elm,state,flip,disabled", "elm");
-   edje_object_message_signal_process(VIEW(it));
+     {
+        edje_object_signal_emit
+           (VIEW(it), "elm,state,decorate,enabled", "elm");
+        if (it->deco_all_view)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,decorate,enabled", "elm");
+     }
 }
+
+static void
+_elm_genlist_item_reorder_state_update(Elm_Gen_Item *it)
+{
+   if (GL_IT(it)->wsd->reorder_mode)
+     {
+        edje_object_signal_emit
+          (VIEW(it), "elm,state,reorder,mode_set", "elm");
+        if (it->deco_all_view)
+          edje_object_signal_emit
+            (it->deco_all_view, "elm,state,reorder,mode_set", "elm");
+     }
+}
+
+static void
+_elm_genlist_item_normal_state_update(Elm_Gen_Item *it)
+{
+   if (elm_widget_item_disabled_get(it))
+     {
+        edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
+        if (it->deco_all_view)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,disabled", "elm");
+     }
+   if (it->selected)
+     {
+        edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
+        if (it->deco_all_view)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,selected", "elm");
+        evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
+     }
+   if (it->item->expanded)
+     {
+        edje_object_signal_emit(VIEW(it), "elm,state,expanded", "elm");
+        if (it->deco_all_view)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,expanded", "elm");
+     }
+   if (it->flipped)
+     {
+        edje_object_signal_emit(VIEW(it), "elm,state,flip,enabled", "elm");
+        if (GL_IT(it)->wsd->decorate_all_mode)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,flip,enabled", "elm");
+        else if (it->item->deco_it_view)
+           edje_object_signal_emit
+              (it->item->deco_it_view, "elm,state,flip,enabled", "elm");
+     }
+   if (it->item->expanded_depth > 0)
+     edje_object_signal_emit(VIEW(it), "bg_color_change", "elm");
+
+   if (_focus_enabled(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj) &&
+       (it == GL_IT(it)->wsd->focused))
+     {
+        edje_object_signal_emit(VIEW(it), "elm,state,focused", "elm");
+     }
+}
+
+static void
+_elm_genlist_item_state_update(Elm_Gen_Item *it)
+{
+   _elm_genlist_item_decorate_state_update(it);
+   _elm_genlist_item_reorder_state_update(it);
+   _elm_genlist_item_normal_state_update(it);
+}
+
+static void
+_elm_genlist_item_index_update(Elm_Gen_Item *it)
+{
+   if (it->position_update || it->item->block->position_update)
+     {
+        evas_object_smart_callback_call(WIDGET(it), SIG_INDEX_UPDATE, it);
+        it->position_update = EINA_FALSE;
+     }
+}
+
 static void
 _item_unrealize(Elm_Gen_Item *it,
                 Eina_Bool calc)
@@ -887,13 +1013,11 @@ _item_unrealize(Elm_Gen_Item *it,
      }
 #endif
 
-   //evas_event_freeze(evas_object_evas_get(WIDGET(it)));
    if (!calc)
      evas_object_smart_callback_call(WIDGET(it), SIG_UNREALIZED, it);
 
    _item_event_del(it);
    _view_clear(VIEW(it), &(it->content_objs));
-   // Free flip contents
    EINA_LIST_FREE(it->item->flip_content_objs, content)
     evas_object_del(content);
 
@@ -906,14 +1030,11 @@ _item_unrealize(Elm_Gen_Item *it,
 
    _item_cache_push(it);
    it->realized = EINA_FALSE;
+   it->want_unrealize = EINA_FALSE;
 
 #if GENLIST_ENTRY_SUPPORT
    it->item->unrealize_disabled = EINA_FALSE;
 #endif
-   it->want_unrealize = EINA_FALSE;
-
-   //evas_event_thaw(evas_object_evas_get(WIDGET(it)));
-   //evas_event_thaw_eval(evas_object_evas_get(WIDGET(it)));
 }
 
 static void
@@ -1234,43 +1355,6 @@ _item_order_update(const Eina_Inlist *l,
 }
 
 static void
-_elm_genlist_item_state_update(Elm_Gen_Item *it)
-{
-   if (elm_widget_item_disabled_get(it))
-     {
-        edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
-        if (it->deco_all_view)
-           edje_object_signal_emit
-              (it->deco_all_view, "elm,state,disabled", "elm");
-     }
-   if (it->selected)
-     {
-        edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
-        if (it->deco_all_view)
-           edje_object_signal_emit
-              (it->deco_all_view, "elm,state,selected", "elm");
-        evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
-     }
-   if (it->item->expanded)
-     {
-        edje_object_signal_emit(VIEW(it), "elm,state,expanded", "elm");
-        if (it->deco_all_view)
-           edje_object_signal_emit
-              (it->deco_all_view, "elm,state,expanded", "elm");
-     }
-}
-
-static void
-_elm_genlist_item_index_update(Elm_Gen_Item *it)
-{
-   if (it->position_update || it->item->block->position_update)
-     {
-        evas_object_smart_callback_call(WIDGET(it), SIG_INDEX_UPDATE, it);
-        it->position_update = EINA_FALSE;
-     }
-}
-
-static void
 _decorate_item_unrealize(Elm_Gen_Item *it)
 {
    if (!it->item->deco_it_view) return;
@@ -1286,10 +1370,9 @@ _decorate_item_unrealize(Elm_Gen_Item *it)
 }
 
 static void
-_decorate_all_item_realize(Elm_Gen_Item *it,
-                           Eina_Bool effect_on)
+_decorate_all_item_realize(Elm_Gen_Item *it)
 {
-   if (it->deco_all_view) return;
+   if (it->deco_all_view || !it->itc->decorate_all_item_style) return;
 
    _view_create(it, &(it->deco_all_view), it->itc->decorate_all_item_style);
    _view_inflate(it->deco_all_view, it, &(it->item->deco_all_contents));
@@ -1300,29 +1383,10 @@ _decorate_all_item_realize(Elm_Gen_Item *it,
    edje_object_part_swallow
       (it->deco_all_view, "elm.swallow.decorate.content", VIEW(it));
 
-   if (effect_on)
-     {
-        edje_object_signal_emit
-           (it->deco_all_view, "elm,state,decorate,enabled,effect", "elm");
-        edje_object_signal_emit
-           (VIEW(it), "elm,state,decorate,enabled,effect", "elm");
-     }
-   else
-     {
-        edje_object_signal_emit
-           (it->deco_all_view, "elm,state,decorate,enabled", "elm");
-        edje_object_signal_emit
-           (VIEW(it), "elm,state,decorate,enabled", "elm");
-     }
-   if (GL_IT(it)->wsd->reorder_mode)
-     edje_object_signal_emit
-       (it->deco_all_view, "elm,state,reorder,mode_set", "elm");
-
    it->want_unrealize = EINA_FALSE;
 
    // FIXME: Belows are needed? _decorate_item_realize do not
    _elm_genlist_item_odd_even_update(it);
-   _elm_genlist_item_state_update(it);
    _item_position(it, it->deco_all_view, it->item->scrl_x, it->item->scrl_y);
    evas_object_show(it->deco_all_view);
 }
@@ -1454,82 +1518,6 @@ _access_widget_item_register(Elm_Gen_Item *it)
 }
 
 static void
-_item_min_calc(Elm_Gen_Item *it, Eina_Bool *width_changed, Eina_Bool *height_changed)
-{
-   if (it->item->mincalcd) return;
-
-   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
-   Evas_Coord mw = 0, mh = 0;
-   Size_Cache *size = NULL;
-
-   if (sd->homogeneous)
-     size = eina_hash_find(GL_IT(it)->wsd->size_caches,
-                           it->itc->item_style);
-
-   if (size)
-     {
-        mw = size->minw;
-        mh = size->minh;
-     }
-   else
-     {
-        if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
-          {
-             mw = sd->finger_minw;
-             mh = sd->finger_minh;
-          }
-        if ((sd->mode == ELM_LIST_COMPRESS) && (sd->prev_viewport_w != 0) &&
-          (mw < sd->prev_viewport_w))
-          mw = sd->prev_viewport_w;
-        edje_object_size_min_restricted_calc(VIEW(it), &mw, &mh, mw, mh);
-
-         if (sd->homogeneous)
-          {
-             size = ELM_NEW(Size_Cache);
-             size->minw = mw;
-             size->minh = mh;
-             eina_hash_add(sd->size_caches, it->itc->item_style, size);
-          }
-     }
-
-   if (it->item->minw != mw)
-     {
-        // update block size
-        if (it->item->block->minw > mw)
-          it->item->block->minw = it->item->block->w = mw;
-
-        it->item->w = it->item->minw = mw;
-        if (width_changed) *width_changed = EINA_TRUE;
-     }
-   if (it->item->minh != mh)
-     {
-        // update block size
-        it->item->block->minh += (mh - it->item->minh);
-
-        it->item->h = it->item->minh = mh;
-        it->item->block->changed = EINA_TRUE;
-        if (height_changed) *height_changed = EINA_TRUE;
-     }
-   it->item->mincalcd = EINA_TRUE;
-}
-
-// FIXME: There are applications which do not use elm_win as top widget.
-// This is workaround! Those could not use focus!
-static Eina_Bool _focus_enabled(Evas_Object *obj)
-{
-   if (!elm_widget_focus_get(obj)) return EINA_FALSE;
-
-   const Evas_Object *win = elm_widget_top_get(obj);
-   const char *type = evas_object_type_get(win);
-
-   if (type && !strcmp(type, "elm_win"))
-     {
-        return elm_win_focus_highlight_enabled_get(win);
-     }
-   return EINA_FALSE;
-}
-
-static void
 _item_realize(Elm_Gen_Item *it,
               int in,
               Eina_Bool calc)
@@ -1569,21 +1557,7 @@ _item_realize(Elm_Gen_Item *it,
    if (_elm_config->access_mode) _access_widget_item_register(it);
 
    _item_order_update(EINA_INLIST_GET(it), in);
-
-#if 1 // FIXME: difference from upstream
-   if (it->item->type != ELM_GENLIST_ITEM_GROUP)
-     {
-        if (GL_IT(it)->wsd->reorder_mode)
-          edje_object_signal_emit
-            (VIEW(it), "elm,state,reorder,mode_set", "elm");
-     }
-#endif
-   _elm_genlist_item_state_update(it);
    _elm_genlist_item_index_update(it);
-#if 1 // FIXME: difference from upstream
-        if (it->item->expanded_depth > 0)
-          edje_object_signal_emit(VIEW(it), "bg_color_change", "elm");
-#endif
 
    treesize = edje_object_data_get(VIEW(it), "treesize");
    if (treesize) tsize = atoi(treesize);
@@ -1610,17 +1584,19 @@ _item_realize(Elm_Gen_Item *it,
             it->itc->decorate_all_item_style)
           {
              if (!it->deco_all_view)
-               _decorate_all_item_realize(it, EINA_FALSE);
-             edje_object_message_signal_process(it->deco_all_view);
+               _decorate_all_item_realize(it);
           }
 
         if (it->decorate_it_set && it->itc->decorate_item_style)
           {
              if (!it->item->deco_it_view)
                _decorate_item_set(it);
-             edje_object_message_signal_process(it->item->deco_it_view);
           }
-        _flip_enable(it);
+        if (it->flipped)
+          {
+             it->item->flip_content_objs =
+                _item_content_realize(it, VIEW(it), "flips", NULL);
+          }
 
         /* access: unregister item which have no text and content */
         Eina_List *texts  = elm_widget_stringlist_get
@@ -1636,6 +1612,7 @@ _item_realize(Elm_Gen_Item *it,
         evas_object_show(VIEW(it));
      }
    _item_min_calc(it, NULL, NULL);
+   _elm_genlist_item_state_update(it);
 
    if (it->tooltip.content_cb)
      {
@@ -1653,15 +1630,6 @@ _item_realize(Elm_Gen_Item *it,
 
    if (!calc || it->item->unrealize_disabled)
      evas_object_smart_callback_call(WIDGET(it), SIG_REALIZED, it);
-
-   if (_focus_enabled(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj) &&
-       (it == GL_IT(it)->wsd->focused))
-     {
-        if (GL_IT(it)->wsd->focused)
-           edje_object_signal_emit
-              (VIEW(GL_IT(it)->wsd->focused), "elm,state,focused", "elm");
-     }
-   edje_object_message_signal_process(VIEW(it));
 }
 
 #if GENLIST_PINCH_ZOOM_SUPPORT
@@ -3146,27 +3114,6 @@ _decorate_all_item_unrealize(Elm_Gen_Item *it)
      }
 #endif
 
-   // FIXME: effect?
-   Eina_Bool effect_on = EINA_FALSE;
-   if (effect_on)
-     {
-        edje_object_signal_emit
-           (it->deco_all_view, "elm,state,decorate,disabled,effect", "elm");
-        edje_object_signal_emit
-           (VIEW(it), "elm,state,decorate,disabled,effect", "elm");
-     }
-   else
-     {
-        edje_object_signal_emit
-           (it->deco_all_view, "elm,state,decorate,disabled", "elm");
-        edje_object_signal_emit
-           (VIEW(it), "elm,state,decorate,disabled", "elm");
-     }
-   if (GL_IT(it)->wsd->reorder_mode)
-     edje_object_signal_emit
-       (it->deco_all_view, "elm,state,reorder,mode_unset", "elm");
-   edje_object_message_signal_process(VIEW(it));
-
    edje_object_part_unswallow(it->deco_all_view, VIEW(it));
    evas_object_smart_member_add(VIEW(it), GL_IT(it)->wsd->pan_obj);
    _item_mouse_callbacks_add(it, VIEW(it));
@@ -3178,7 +3125,6 @@ _decorate_all_item_unrealize(Elm_Gen_Item *it)
 
    // FIXME: Belows are needed? _decorate_item_realize do not
    _elm_genlist_item_odd_even_update(it);
-   _elm_genlist_item_state_update(it);
 }
 
 
@@ -4349,19 +4295,24 @@ _item_block_recalc(Item_Block *itb,
 static void
 _item_update(Elm_Gen_Item *it)
 {
+   Evas_Object *c;
    if (!it->realized) return;
 
    _view_clear(VIEW(it), &(it->content_objs));
    _view_clear(it->item->deco_it_view, &(it->item->deco_it_contents));
    _view_clear(it->deco_all_view, &(it->item->deco_all_contents));
-   _flip_disable(it);
+   EINA_LIST_FREE(it->item->flip_content_objs, c)
+     evas_object_del(c);
 
    _view_inflate(VIEW(it), it, &(it->content_objs));
    if (GL_IT(it)->wsd->decorate_all_mode)
      _view_inflate(it->deco_all_view, it, &(it->item->deco_all_contents));
    else if (it->item->deco_it_view)
      _view_inflate(it->item->deco_it_view, it, &(it->item->deco_it_contents));
-   _flip_enable(it);
+   it->item->flip_content_objs =
+     _item_content_realize(it, VIEW(it), "flips", NULL);
+
+   _elm_genlist_item_state_update(it);
 }
 
 static void
@@ -6713,7 +6664,7 @@ elm_genlist_decorate_mode_set(Evas_Object *obj,
                               Eina_Bool decorated)
 {
    Elm_Gen_Item *it;
-   Eina_List *list, *l;
+   Eina_List *list;
 
    ELM_GENLIST_CHECK(obj);
    ELM_GENLIST_DATA_GET(obj, sd);
@@ -6726,27 +6677,29 @@ elm_genlist_decorate_mode_set(Evas_Object *obj,
    sd->decorate_all_mode = decorated;
 
    list = elm_genlist_realized_items_get(obj);
-   if (!sd->decorate_all_mode)
+   EINA_LIST_FREE(list, it)
      {
-        EINA_LIST_FOREACH(list, l, it)
+        if (!sd->decorate_all_mode)
           {
-             if (it->item->type != ELM_GENLIST_ITEM_GROUP)
-               _decorate_all_item_unrealize(it);
+             _decorate_all_item_unrealize(it);
+             edje_object_signal_emit
+               (it->deco_all_view, "elm,state,decorate,disabled", "elm");
+             edje_object_signal_emit
+               (VIEW(it), "elm,state,decorate,disabled", "elm");
           }
-        _item_cache_all_free(sd);
-     }
-   else
-     {
-        EINA_LIST_FOREACH(list, l, it)
+        else
           {
-             if (it->item->type != ELM_GENLIST_ITEM_GROUP)
-               {
-                  if (it->itc->decorate_all_item_style)
-                    _decorate_all_item_realize(it, EINA_TRUE);
-               }
+             _decorate_all_item_realize(it);
+             edje_object_signal_emit
+               (it->deco_all_view, "elm,state,decorate,enabled,effect", "elm");
+             edje_object_signal_emit
+               (VIEW(it),"elm,state,decorate,enabled,effect", "elm");
           }
+        _item_min_calc(it, NULL, NULL);
+        _elm_genlist_item_reorder_state_update(it);
+        _elm_genlist_item_normal_state_update(it);
      }
-   eina_list_free(list);
+
 #if GENLIST_FX_SUPPORT
      _elm_genlist_fx_clear(ELM_WIDGET_DATA(sd)->obj, EINA_FALSE);
 #endif
@@ -6758,7 +6711,7 @@ EAPI void
 elm_genlist_reorder_mode_set(Evas_Object *obj,
                              Eina_Bool reorder_mode)
 {
-   Eina_List *list, *l;
+   Eina_List *list;
    Elm_Gen_Item *it;
    ELM_GENLIST_CHECK(obj);
    ELM_GENLIST_DATA_GET(obj, sd);
@@ -6767,28 +6720,27 @@ elm_genlist_reorder_mode_set(Evas_Object *obj,
    sd->reorder_mode = !!reorder_mode;
 
    list = elm_genlist_realized_items_get(obj);
-   EINA_LIST_FOREACH(list, l, it)
+   EINA_LIST_FREE(list, it)
      {
-        if (reorder_mode)
+        if (sd->reorder_mode)
           {
-             if (it->item->type != ELM_GENLIST_ITEM_GROUP)
-                edje_object_signal_emit
-                   (VIEW(it), "elm,state,reorder,mode_set", "elm");
-             if (sd->decorate_all_mode)
+             edje_object_signal_emit
+                (VIEW(it), "elm,state,reorder,mode_set", "elm");
+             if (it->deco_all_view)
                 edje_object_signal_emit
                    (it->deco_all_view, "elm,state,reorder,mode_set", "elm");
           }
         else
           {
-             if (it->item->type != ELM_GENLIST_ITEM_GROUP)
+             edje_object_signal_emit
+                (VIEW(it), "elm,state,reorder,mode_unset", "elm");
+             if (it->deco_all_view)
                 edje_object_signal_emit
-                   (VIEW(it), "elm,state,reorder,mode_unset", "elm");
-             if (sd->decorate_all_mode)
-               edje_object_signal_emit
-                  (it->deco_all_view, "elm,state,reorder,mode_unset", "elm");
+                   (it->deco_all_view, "elm,state,reorder,mode_unset", "elm");
           }
+        _elm_genlist_item_decorate_state_update(it);
+        _elm_genlist_item_normal_state_update(it);
      }
-   eina_list_free(list);
 }
 
 EAPI Eina_Bool
@@ -6865,27 +6817,41 @@ elm_genlist_item_flip_set(Elm_Object_Item *item,
 {
    Elm_Gen_Item *it = (Elm_Gen_Item *)item;
    ELM_GENLIST_ITEM_CHECK_OR_RETURN(item);
-   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
 
    flip = !!flip;
    if (it->flipped == flip) return;
+   it->flipped = flip;
 
-   it->item->unrealize_disabled = EINA_FALSE;
-   if (flip)
+   if (it->flipped)
      {
-        _item_unselect(it);
-        _item_unrealize(it, EINA_FALSE);
-        it->flipped = EINA_TRUE;
-        it->item->nocache = EINA_TRUE;
+        edje_object_signal_emit(VIEW(it), "elm,state,flip,enabled", "elm");
+        if (GL_IT(it)->wsd->decorate_all_mode)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,flip,enabled", "elm");
+        else if (it->item->deco_it_view)
+           edje_object_signal_emit
+              (it->item->deco_it_view, "elm,state,flip,enabled", "elm");
+
+        it->item->flip_content_objs =
+           _item_content_realize(it, VIEW(it), "flips", NULL);
      }
    else
      {
-        _item_unrealize(it, EINA_FALSE);
-        it->flipped = EINA_FALSE;
-        it->item->nocache = EINA_FALSE;
+        Evas_Object *c;
+        edje_object_signal_emit(VIEW(it), "elm,state,flip,disabled", "elm");
+        if (GL_IT(it)->wsd->decorate_all_mode)
+           edje_object_signal_emit
+              (it->deco_all_view, "elm,state,flip,disabled", "elm");
+        else if (it->item->deco_it_view)
+           edje_object_signal_emit
+              (it->item->deco_it_view, "elm,state,flip,disabled", "elm");
+
+        EINA_LIST_FREE(it->item->flip_content_objs, c)
+           evas_object_del(c);
+
+        // FIXME: update texts should be done by app?
+        _item_text_realize(it, VIEW(it), NULL);
      }
-   if (sd->calc_job) ecore_job_del(sd->calc_job);
-   sd->calc_job = ecore_job_add(_calc_job, sd);
 }
 
 EAPI Eina_Bool
