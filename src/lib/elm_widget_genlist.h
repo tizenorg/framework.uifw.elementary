@@ -354,6 +354,7 @@ struct Elm_Gen_Item_Type
 #if GENLIST_FX_SUPPORT
    Eina_Bool               has_proxy_it : 1;
 #endif
+   Ecore_Timer                          *highlight_timer;
 };
 
 struct _Item_Block

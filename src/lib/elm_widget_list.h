@@ -183,6 +183,8 @@ struct _Elm_List_Item
    Eina_Bool            is_even : 1;
    Eina_Bool            fixed : 1;
    Eina_Bool            even : 1;
+
+   Ecore_Timer                          *highlight_timer;
 };
 
 /**

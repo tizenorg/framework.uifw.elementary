@@ -2,6 +2,8 @@
 #include "elm_priv.h"
 #include "elm_widget_list.h"
 
+#define ITEM_HIGHLIGHT_TIMER 0.1
+
 EAPI const char ELM_LIST_SMART_NAME[] = "elm_list";
 
 static const char SIG_ACTIVATED[] = "activated";
@@ -56,7 +58,7 @@ static void _mouse_move_cb(void *, Evas *, Evas_Object *, void *);
 static void _items_fix(Evas_Object *);
 static void _item_select(Elm_List_Item *it);
 static void _item_unselect(Elm_List_Item *it);
-
+static void _highlight_timer_disable(Elm_List_Item *it);
 
 
 EVAS_SMART_SUBCLASS_IFACE_NEW
@@ -73,6 +75,9 @@ _elm_list_item_free(Elm_List_Item *it)
      (VIEW(it), EVAS_CALLBACK_MOUSE_UP, _mouse_up_cb, it);
    evas_object_event_callback_del_full
      (VIEW(it), EVAS_CALLBACK_MOUSE_MOVE, _mouse_move_cb, it);
+
+   _highlight_timer_disable(it);
+   if ((Elm_List_Item *)it->sd->focused == it) it->sd->focused = NULL;
 
    edje_object_message_signal_process(VIEW(it));
 
@@ -1235,6 +1240,7 @@ _swipe_do(Elm_List_Item *it)
    int i, sum = 0;
 
    ELM_LIST_ITEM_CHECK_OR_RETURN(it);
+
    ELM_LIST_DATA_GET(WIDGET(it), sd);
 
    sd->swipe = EINA_FALSE;
@@ -1250,6 +1256,81 @@ _swipe_do(Elm_List_Item *it)
    evas_object_smart_callback_call(WIDGET(it), SIG_SWIPE, it);
 }
 
+static Eina_Bool
+_highlight_timer(void *data)
+{
+   Elm_List_Item *it = data;
+   it->highlight_timer = NULL;
+   _item_highlight(it);
+
+   return EINA_FALSE;
+}
+
+static void
+_highlight_timer_disable(Elm_List_Item *it)
+{
+   if (it->highlight_timer)
+     {
+        ecore_timer_del(it->highlight_timer);
+        it->highlight_timer = NULL;
+     }
+}
+
+static void
+_highlight_timer_enable(Elm_List_Item *it)
+{
+   if (it->highlight_timer) ecore_timer_del(it->highlight_timer);
+   it->highlight_timer =
+      ecore_timer_add(ITEM_HIGHLIGHT_TIMER, _highlight_timer, it);
+}
+
+static Eina_Bool
+_unhighlight_timer(void *data)
+{
+   Elm_List_Item *it = data;
+   it->highlight_timer = NULL;
+
+   if (it->sd->multi)
+     {
+        if (!it->selected)
+          {
+             _item_highlight(it);
+             _item_select(it);
+          }
+        else _item_unselect(it);
+     }
+   else
+     {
+        if (!it->selected)
+          {
+             while (it->sd->selected)
+               _item_unselect(it->sd->selected->data);
+             _item_highlight(it);
+             _item_select(it);
+          }
+        else
+          {
+             const Eina_List *l, *l_next;
+             Elm_List_Item *it2;
+
+             EINA_LIST_FOREACH_SAFE(it->sd->selected, l, l_next, it2)
+               if (it2 != it) _item_unselect(it2);
+             _item_highlight(it);
+             _item_select(it);
+          }
+     }
+
+   return EINA_FALSE;
+}
+
+static void
+_unhighlight_timer_enable(Elm_List_Item *it)
+{
+   if (it->highlight_timer) ecore_timer_del(it->highlight_timer);
+   it->highlight_timer =
+     ecore_timer_add(ITEM_HIGHLIGHT_TIMER, _unhighlight_timer, it);
+}
+
 static void
 _mouse_move_cb(void *data,
                Evas *evas __UNUSED__,
@@ -1263,6 +1344,10 @@ _mouse_move_cb(void *data,
    ELM_LIST_ITEM_CHECK_OR_RETURN(it);
    obj = WIDGET(it);
    ELM_LIST_DATA_GET(obj, sd);
+
+   _item_unselect((Elm_List_Item *)it);
+   // FIXME: It needs to do disable only when item down is called like genlist
+   _highlight_timer_disable((Elm_List_Item *)it);
 
    evas_object_ref(obj);
    _elm_list_walk(sd);
@@ -1320,7 +1405,8 @@ _mouse_down_cb(void *data,
    evas_object_ref(obj);
    _elm_list_walk(sd);
 
-   _item_highlight(it);
+   _highlight_timer_enable(it);
+
    sd->longpressed = EINA_FALSE;
    if (it->long_timer) ecore_timer_del(it->long_timer);
    it->long_timer = ecore_timer_add
@@ -1359,6 +1445,8 @@ _mouse_up_cb(void *data,
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) sd->on_hold = EINA_TRUE;
    else sd->on_hold = EINA_FALSE;
    sd->longpressed = EINA_FALSE;
+
+   _highlight_timer_disable((Elm_List_Item *)it);
    if (it->long_timer)
      {
         ecore_timer_del(it->long_timer);
@@ -1389,35 +1477,8 @@ _mouse_up_cb(void *data,
    evas_object_ref(obj);
    _elm_list_walk(sd);
 
-   if (sd->multi)
-     {
-        if (!it->selected)
-          {
-             _item_highlight(it);
-             _item_select(it);
-          }
-        else _item_unselect(it);
-     }
-   else
-     {
-        if (!it->selected)
-          {
-             while (sd->selected)
-               _item_unselect(sd->selected->data);
-             _item_highlight(it);
-             _item_select(it);
-          }
-        else
-          {
-             const Eina_List *l, *l_next;
-             Elm_List_Item *it2;
-
-             EINA_LIST_FOREACH_SAFE(sd->selected, l, l_next, it2)
-               if (it2 != it) _item_unselect(it2);
-             _item_highlight(it);
-             _item_select(it);
-          }
-     }
+   _item_highlight((Elm_List_Item *)it);
+   _unhighlight_timer_enable((Elm_List_Item *)it);
 
    _elm_list_unwalk(sd);
    evas_object_unref(obj);
@@ -1427,6 +1488,8 @@ static void
 _item_disable_hook(Elm_Object_Item *it)
 {
    Elm_List_Item *item = (Elm_List_Item *)it;
+
+   if (it == item->sd->focused) _item_unfocused(item);
 
    if (item->base.disabled)
      edje_object_signal_emit(VIEW(item), "elm,state,disabled", "elm");
@@ -1552,6 +1615,8 @@ _item_del_pre_hook(Elm_Object_Item *it)
    ELM_LIST_DATA_GET(obj, sd);
 
    if (item->selected) _item_unselect(item);
+   if (sd->focused == it) sd->focused = NULL;
+   _highlight_timer_disable((Elm_List_Item *)it);
 
    if (sd->walking > 0)
      {

@@ -252,6 +252,8 @@ struct Elm_Gen_Item_Type
 #endif
    Eina_Bool               group_realized : 1;
    Eina_Bool               moving : 1;
+
+   Ecore_Timer                          *highlight_timer;
 };
 
 typedef struct _Elm_Gengrid_Pan_Smart_Class

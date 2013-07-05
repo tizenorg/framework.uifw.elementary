@@ -13,6 +13,7 @@
 #define FX_MOVE_TIME 0.5
 #define FX_TRANSIT_FOCAL 2000
 #define FX_ZOOM_TOLERANCE 0.4
+#define ITEM_HIGHLIGHT_TIMER 0.1
 
 EAPI const char ELM_GENLIST_SMART_NAME[] = "elm_genlist";
 EAPI const char ELM_GENLIST_PAN_SMART_NAME[] = "elm_genlist_pan";
@@ -2226,6 +2227,53 @@ _item_single_select_down(Elm_Genlist_Smart_Data *sd)
    return EINA_TRUE;
 }
 
+static void _item_unfocused(Elm_Gen_Item *it)
+{
+   if (!it) return;
+   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
+   if (!sd->focused) return;
+
+   if (sd->focused_content)
+     {
+        elm_object_focus_set(ELM_WIDGET_DATA(sd)->obj, EINA_FALSE);
+        elm_object_focus_set(ELM_WIDGET_DATA(sd)->obj, EINA_TRUE);
+        sd->focused_content = NULL;
+     }
+   edje_object_signal_emit
+      (VIEW(sd->focused), "elm,state,unfocused", "elm");
+   if (sd->focused->deco_all_view)
+      edje_object_signal_emit
+         (sd->focused->deco_all_view, "elm,state,unfocused", "elm");
+   if (it == sd->focused) sd->focused = NULL;
+}
+
+static void _item_focused(Elm_Gen_Item *it)
+{
+   if (!it) return;
+   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
+   Evas_Coord x, y, w, h, sx, sy, sw, sh;
+
+   if (sd->focused && (it != sd->focused)) _item_unfocused(sd->focused);
+   evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
+   evas_object_geometry_get(ELM_WIDGET_DATA(sd)->obj, &sx, &sy, &sw, &sh);
+   if ((x < sx) || (y < sy) || ((x + w) > (sx + sw)) || ((y + h) > (sy + sh)))
+     {
+        elm_genlist_item_bring_in((Elm_Object_Item *)it,
+                                  ELM_GENLIST_ITEM_SCROLLTO_IN);
+     }
+
+   if (_focus_enabled(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj))
+     {
+        if (it->deco_all_view)
+          edje_object_signal_emit
+            (it->deco_all_view, "elm,state,focused", "elm");
+        else
+          edje_object_signal_emit
+            (VIEW(it), "elm,state,focused", "elm");
+     }
+   sd->focused = it;
+}
+
 static void
 _item_highlight(Elm_Gen_Item *it)
 {
@@ -2331,53 +2379,6 @@ _item_unhighlight(Elm_Gen_Item *it)
    evas_object_smart_callback_call(WIDGET(it), SIG_UNHIGHLIGHTED, it);
 }
 
-static void _item_unfocused(Elm_Gen_Item *it)
-{
-   if (!it) return;
-   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
-   if (!sd->focused) return;
-
-   if (sd->focused_content)
-     {
-        elm_object_focus_set(ELM_WIDGET_DATA(sd)->obj, EINA_FALSE);
-        elm_object_focus_set(ELM_WIDGET_DATA(sd)->obj, EINA_TRUE);
-        sd->focused_content = NULL;
-     }
-   edje_object_signal_emit
-      (VIEW(sd->focused), "elm,state,unfocused", "elm");
-   if (sd->focused->deco_all_view)
-      edje_object_signal_emit
-         (sd->focused->deco_all_view, "elm,state,unfocused", "elm");
-   if (it == sd->focused) sd->focused = NULL;
-}
-
-static void _item_focused(Elm_Gen_Item *it)
-{
-   if (!it) return;
-   Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
-   Evas_Coord x, y, w, h, sx, sy, sw, sh;
-
-   if (sd->focused && (it != sd->focused)) _item_unfocused(sd->focused);
-   evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
-   evas_object_geometry_get(ELM_WIDGET_DATA(sd)->obj, &sx, &sy, &sw, &sh);
-   if ((x < sx) || (y < sy) || ((x + w) > (sx + sw)) || ((y + h) > (sy + sh)))
-     {
-        elm_genlist_item_bring_in((Elm_Object_Item *)it,
-                                  ELM_GENLIST_ITEM_SCROLLTO_IN);
-     }
-
-   if (_focus_enabled(ELM_WIDGET_DATA(GL_IT(it)->wsd)->obj))
-     {
-        if (it->deco_all_view)
-          edje_object_signal_emit
-            (it->deco_all_view, "elm,state,focused", "elm");
-        else
-          edje_object_signal_emit
-            (VIEW(it), "elm,state,focused", "elm");
-     }
-   sd->focused = it;
-}
-
 static void
 _item_unselect(Elm_Gen_Item *it)
 {
@@ -2409,14 +2410,6 @@ _item_select(Elm_Gen_Item *it)
         elm_genlist_item_show((Elm_Object_Item *)it, ELM_GENLIST_ITEM_SCROLLTO_TOP);
         return;
      }
-#endif
-
-#if 0
-   // FIXME: difference from upstream
-   if ((GL_IT(it)->wsd->last_selected_item) &&
-       (it != (Elm_Gen_Item *) GL_IT(it)->wsd->last_selected_item))
-     _item_unfocusable_set
-       ((Elm_Gen_Item *)GL_IT(it)->wsd->last_selected_item, EINA_TRUE);
 #endif
 
    // Do not check selected because always select mode can be used
@@ -2454,6 +2447,55 @@ _item_select_unselect(Elm_Gen_Item *it, Eina_Bool selected)
    if (selected) _item_select(it);
    else _item_unselect(it);
    evas_object_unref(obj);
+}
+
+static Eina_Bool
+_highlight_timer(void *data)
+{
+   Elm_Gen_Item *it = data;
+   it->item->highlight_timer = NULL;
+   _item_highlight(it);
+   return EINA_FALSE;
+}
+
+static void
+_highlight_timer_disable(Elm_Gen_Item *it)
+{
+   if (it->item->highlight_timer)
+     {
+        ecore_timer_del(it->item->highlight_timer);
+        it->item->highlight_timer = NULL;
+     }
+}
+
+static void
+_highlight_timer_enable(Elm_Gen_Item *it)
+{
+   if (it->item->highlight_timer) ecore_timer_del(it->item->highlight_timer);
+   it->item->highlight_timer =
+     ecore_timer_add(ITEM_HIGHLIGHT_TIMER, _highlight_timer, it);
+}
+
+static Eina_Bool
+_unhighlight_timer(void *data)
+{
+   Elm_Gen_Item *it = data;
+   it->item->highlight_timer = NULL;
+
+   if ((GL_IT(it)->wsd->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS) ||
+       (it->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS))
+      _item_select_unselect(it, EINA_TRUE);
+   else _item_select_unselect(it, !it->selected);
+
+   return EINA_FALSE;
+}
+
+static void
+_unhighlight_timer_enable(Elm_Gen_Item *it)
+{
+   if (it->item->highlight_timer) ecore_timer_del(it->item->highlight_timer);
+   it->item->highlight_timer =
+     ecore_timer_add(ITEM_HIGHLIGHT_TIMER, _unhighlight_timer, it);
 }
 
 static Elm_Gen_Item *_item_focusable_search(Elm_Gen_Item *it, int dir)
@@ -3155,6 +3197,7 @@ _item_mouse_move_cb(void *data,
 
    sd = GL_IT(it)->wsd;
 
+   if (it->down) _highlight_timer_disable(it);
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
      {
         if (!sd->on_hold) _item_unselect(it);
@@ -3532,9 +3575,7 @@ _item_mouse_down_cb(void *data,
    Evas_Coord x, y;
 
    if (ev->button != 1) return;
-#if 0
-   _item_unfocusable_set(it, EINA_FALSE);
-#endif
+
    it->down = EINA_TRUE;
    it->dragging = EINA_FALSE;
    evas_object_geometry_get(obj, &x, &y, NULL, NULL);
@@ -3556,7 +3597,9 @@ _item_mouse_down_cb(void *data,
         return;
      }
    else sd->on_hold = EINA_FALSE;
-   _item_highlight(it);
+
+   _highlight_timer_enable(it);
+
    if (ev->flags & EVAS_BUTTON_DOUBLE_CLICK)
      if ((!elm_widget_item_disabled_get(it)) &&
          (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY))
@@ -4066,12 +4109,15 @@ _item_mouse_up_cb(void *data,
    it->down = EINA_FALSE;
    sd = GL_IT(it)->wsd;
 
+   _highlight_timer_disable(it);
    sd->mouse_down = EINA_FALSE;
    evas_object_smart_callback_call(WIDGET(it), SIG_RELEASED, it);
    if (sd->multi_touched)
      {
-        if ((!sd->multi) && (!it->selected) && (it->highlighted))
-          _item_unhighlight(it);
+        if ((!sd->multi) && (!it->selected))
+          {
+             _item_unhighlight(it);
+          }
         if (sd->multi_down) return;
         _multi_touch_gesture_eval(data);
         return;
@@ -4132,13 +4178,15 @@ _item_mouse_up_cb(void *data,
         return;
      }
 
-   if (!sd->longpressed)
-     if ((sd->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS) ||
-              (it->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS))
-              _item_select_unselect(it, EINA_TRUE);
-     else _item_select_unselect(it, !it->selected);
+   if (sd->longpressed)
+     {
+        _item_unhighlight(it);
+     }
    else
-     _item_unhighlight(it);
+    {
+        _item_highlight(it);
+        _unhighlight_timer_enable(it);
+     }
 }
 
 static void
@@ -4994,10 +5042,8 @@ _item_disable_hook(Elm_Object_Item *item)
      {
         _item_select_unselect(it, EINA_FALSE);
      }
-   if (it == GL_IT(it)->wsd->focused)
-     {
-        _item_unfocused(it);
-     }
+   if (it == GL_IT(it)->wsd->focused) _item_unfocused(it);
+   _highlight_timer_disable(it);
 
    if (it->realized)
      {
@@ -5066,7 +5112,8 @@ _item_free_common(Elm_Gen_Item *it)
    if (sd->last_selected_item == (Elm_Object_Item *)it)
      sd->last_selected_item = NULL;
 
-   if (sd->focused == it) sd->focused = NULL;
+   if (it == GL_IT(it)->wsd->focused) _item_unfocused(it);
+   _highlight_timer_disable(it);
 
    _item_event_del(it);
 

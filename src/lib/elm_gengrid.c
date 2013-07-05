@@ -14,6 +14,8 @@
 #define PRELOAD             1
 #define REORDER_EFFECT_TIME 0.5
 #define FX_MOVE_TIME 0.5
+#define ITEM_HIGHLIGHT_TIMER 0.1
+
 typedef enum
 {
    FOCUS_DIR_UP = 0,
@@ -327,6 +329,92 @@ _item_unselect(Elm_Gen_Item *it)
 }
 
 static void
+_item_highlight(Elm_Gen_Item *it)
+{
+   if ((GG_IT(it)->wsd->select_mode == ELM_OBJECT_SELECT_MODE_NONE)
+       || (!GG_IT(it)->wsd->highlight) || (it->highlighted) ||
+       (it->generation < GG_IT(it)->wsd->generation))
+     return;
+
+   edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
+   evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
+   it->highlighted = EINA_TRUE;
+}
+
+static Eina_Bool
+_highlight_timer(void *data)
+{
+   Elm_Gen_Item *it = data;
+   it->item->highlight_timer = NULL;
+   _item_highlight(it);
+   return EINA_FALSE;
+}
+
+static void
+_highlight_timer_disable(Elm_Gen_Item *it)
+{
+   if (it->item->highlight_timer)
+     {
+        ecore_timer_del(it->item->highlight_timer);
+        it->item->highlight_timer = NULL;
+     }
+}
+
+static void
+_highlight_timer_enable(Elm_Gen_Item *it)
+{
+   if (it->item->highlight_timer)
+      ecore_timer_del(it->item->highlight_timer);
+   it->item->highlight_timer =
+     ecore_timer_add(ITEM_HIGHLIGHT_TIMER, _highlight_timer, it);
+}
+
+static Eina_Bool
+_unhighlight_timer(void *data)
+{
+   Elm_Gen_Item *it = data;
+   it->item->highlight_timer = NULL;
+
+   if (GG_IT(it)->wsd->multi)
+     {
+        if (!it->selected)
+          {
+             _item_highlight(it);
+             it->sel_cb(it);
+          }
+        else _item_unselect(it);
+     }
+   else
+     {
+        if (!it->selected)
+          {
+             while (GG_IT(it)->wsd->selected)
+               _item_unselect(GG_IT(it)->wsd->selected->data);
+          }
+        else
+          {
+             const Eina_List *l, *l_next;
+             Elm_Gen_Item *item2;
+
+             EINA_LIST_FOREACH_SAFE(GG_IT(it)->wsd->selected, l, l_next, item2)
+               if (item2 != it) _item_unselect(item2);
+          }
+        _item_highlight(it);
+        it->sel_cb(it);
+     }
+
+   return EINA_FALSE;
+}
+
+static void
+_unhighlight_timer_enable(Elm_Gen_Item *it)
+{
+   if (it->item->highlight_timer) ecore_timer_del(it->item->highlight_timer);
+   it->item->highlight_timer =
+     ecore_timer_add(ITEM_HIGHLIGHT_TIMER, _unhighlight_timer, it);
+}
+
+static void
 _item_mouse_move_cb(void *data,
                     Evas *evas __UNUSED__,
                     Evas_Object *obj,
@@ -337,6 +425,7 @@ _item_mouse_move_cb(void *data,
    Evas_Coord ox, oy, ow, oh, it_scrl_x, it_scrl_y;
    Evas_Coord minw = 0, minh = 0, x, y, dx, dy, adx, ady;
 
+   if (it->down) _highlight_timer_disable(it);
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
      {
         if (!GG_IT(it)->wsd->on_hold)
@@ -494,19 +583,6 @@ _long_press_cb(void *data)
 }
 
 static void
-_item_highlight(Elm_Gen_Item *it)
-{
-   if ((GG_IT(it)->wsd->select_mode == ELM_OBJECT_SELECT_MODE_NONE)
-       || (!GG_IT(it)->wsd->highlight) || (it->highlighted) ||
-       (it->generation < GG_IT(it)->wsd->generation))
-     return;
-
-   edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
-   evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
-   it->highlighted = EINA_TRUE;
-}
-
-static void
 _item_mouse_down_cb(void *data,
                     Evas *evas __UNUSED__,
                     Evas_Object *obj,
@@ -532,7 +608,9 @@ _item_mouse_down_cb(void *data,
    if (GG_IT(it)->wsd->on_hold) return;
 
    GG_IT(it)->wsd->was_selected = it->selected;
-   _item_highlight(it);
+
+   _highlight_timer_enable(it);
+
    if (ev->flags & EVAS_BUTTON_DOUBLE_CLICK)
      {
         evas_object_smart_callback_call(WIDGET(it), SIG_CLICKED_DOUBLE, it);
@@ -606,6 +684,7 @@ _item_mouse_up_cb(void *data,
 
    sd = GG_IT(it)->wsd;
 
+   _highlight_timer_disable(it);
    it->down = EINA_FALSE;
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
      sd->on_hold = EINA_TRUE;
@@ -661,33 +740,9 @@ _item_mouse_up_cb(void *data,
           _elm_gengrid_item_unrealize(it, EINA_FALSE);
      }
    if (elm_widget_item_disabled_get(it) || (dragged)) return;
-   if (sd->multi)
-     {
-        if (!it->selected)
-          {
-             _item_highlight(it);
-             it->sel_cb(it);
-          }
-        else _item_unselect(it);
-     }
-   else
-     {
-        if (!it->selected)
-          {
-             while (sd->selected)
-               _item_unselect(sd->selected->data);
-          }
-        else
-          {
-             const Eina_List *l, *l_next;
-             Elm_Gen_Item *item2;
 
-             EINA_LIST_FOREACH_SAFE(sd->selected, l, l_next, item2)
-               if (item2 != it) _item_unselect(item2);
-          }
-        _item_highlight(it);
-        it->sel_cb(it);
-     }
+   _item_highlight(it);
+   _unhighlight_timer_enable(it);
 }
 
 static void
@@ -2368,6 +2423,10 @@ _elm_gengrid_item_del_common(Elm_Gen_Item *it)
    if (it->tooltip.del_cb)
      it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
    GG_IT(it)->wsd->walking -= it->walking;
+
+   _highlight_timer_disable(it);
+   if (GG_IT(it)->wsd->focused == it) GG_IT(it)->wsd->focused = NULL;
+
    if (it->long_timer)
      {
         ecore_timer_del(it->long_timer);
@@ -2520,7 +2579,9 @@ _item_disable_hook(Elm_Object_Item *item)
 
    if (it->generation < GG_IT(it)->wsd->generation) return;
 
+   _highlight_timer_disable(it);
    if (it == GG_IT(it)->wsd->focused) _gengrid_item_unfocused(it);
+
    if (it->realized)
      {
         if (elm_widget_item_disabled_get(it))
@@ -2547,7 +2608,8 @@ _item_del_pre_fx_process(Elm_Gen_Item *it)
    evas_object_event_callback_del_full
       (VIEW(it), EVAS_CALLBACK_MOUSE_MOVE, _item_mouse_move_cb, it);
 
-   if (GG_IT(it)->wsd->focused == (Elm_Object_Item *)it)
+   _highlight_timer_disable(it);
+   if (GG_IT(it)->wsd->focused == it)
      GG_IT(it)->wsd->focused = NULL;
 
    GG_IT(it)->wsd->items = eina_inlist_remove
@@ -2691,6 +2753,7 @@ _elm_gengrid_clear(Evas_Object *obj,
         ecore_job_del(sd->calc_job);
         sd->calc_job = NULL;
      }
+
    if (sd->focused) sd->focused = NULL;
    if (sd->selected) sd->selected = eina_list_free(sd->selected);
    if (sd->clear_cb) sd->clear_cb(sd);
