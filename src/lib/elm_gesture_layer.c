@@ -3332,7 +3332,7 @@ _zoom_test(Evas_Object *obj,
         /* if non-continues mode and gesture NOT started, ignore MOVE */
         if ((!sd->glayer_continues_enable) &&
             (!st->zoom_st.timestamp))
-          return;
+          break;
 
       case EVAS_CALLBACK_MOUSE_DOWN:
       case EVAS_CALLBACK_MULTI_DOWN:
@@ -3349,7 +3349,7 @@ _zoom_test(Evas_Object *obj,
                  EINA_FALSE);
              _event_consume(sd, event_info, event_type, ev_flag);
 
-             return;
+             break;
           }
 
         if (!st->zoom_st.timestamp) /* Now scan touched-devices list
@@ -3362,7 +3362,7 @@ _zoom_test(Evas_Object *obj,
                }
 
              if (!p) /* Single finger on touch */
-               return;
+               break;
 
              /* Record down fingers */
              _event_consume(sd, event_info, event_type, ev_flag);
@@ -3393,7 +3393,7 @@ _zoom_test(Evas_Object *obj,
                   _event_consume(sd, event_info, event_type, ev_flag);
                }
 
-             return; /* Zoom started */
+             break; /* Zoom started */
           } /* End of ZOOM_START handling */
 
         /* if we got here, we have (exacally) two fingers on surfce */
@@ -3428,7 +3428,7 @@ _zoom_test(Evas_Object *obj,
                }
           } /* End of ZOOM_MOVE handling */
 
-        return;
+        break;
       }
 
       case EVAS_CALLBACK_MOUSE_UP:
@@ -3443,7 +3443,7 @@ _zoom_test(Evas_Object *obj,
                                   &st->info, EINA_FALSE);
              _event_consume(sd, event_info, event_type, ev_flag);
 
-             return;
+             break;
           }
 
         /* if we got here not a ZOOM */
@@ -3458,10 +3458,10 @@ _zoom_test(Evas_Object *obj,
 
         _zoom_test_reset(gesture_zoom);
 
-        return;
+        break;
 
       default:
-        return;
+        break;
      }
 }
 
@@ -3578,7 +3578,7 @@ _rotate_test(Evas_Object *obj,
         /* if non-continues mode and gesture NOT started, ignore MOVE */
         if ((!sd->glayer_continues_enable) &&
             (!st->rotate_st.timestamp))
-          return;
+          break;
 
       case EVAS_CALLBACK_MOUSE_DOWN:
       case EVAS_CALLBACK_MULTI_DOWN:
@@ -3594,7 +3594,7 @@ _rotate_test(Evas_Object *obj,
                  (gesture, ELM_GESTURE_STATE_ABORT, &st->info, EINA_FALSE);
              _event_consume(sd, event_info, event_type, ev_flag);
 
-             return;
+             break;
           }
 
         if (!st->rotate_st.timestamp) /* Now scan touched-devices list
@@ -3607,7 +3607,7 @@ _rotate_test(Evas_Object *obj,
                }
 
              if (!p)
-               return;  /* Single finger on touch */
+               break;  /* Single finger on touch */
 
              /* Record down fingers */
              _event_consume(sd, event_info, event_type, ev_flag);
@@ -3630,7 +3630,7 @@ _rotate_test(Evas_Object *obj,
                                   &st->info, EINA_FALSE);
              _event_consume(sd, event_info, event_type, ev_flag);
 
-             return; /* Rotate started */
+             break; /* Rotate started */
           } /* End of ROTATE_START handling */
 
         /* if we got here, we have (exacally) two fingers on surfce */
@@ -3665,7 +3665,7 @@ _rotate_test(Evas_Object *obj,
                }
           } /* End of ROTATE_MOVE handling */
 
-        return;
+        break;
       }
 
       case EVAS_CALLBACK_MOUSE_UP:
@@ -3679,7 +3679,7 @@ _rotate_test(Evas_Object *obj,
                                   &st->info, EINA_FALSE);
              _event_consume(sd, event_info, event_type, ev_flag);
 
-             return;
+             break;
           }
 
         /* Must be != undefined, if gesture started */
@@ -3691,10 +3691,10 @@ _rotate_test(Evas_Object *obj,
           }
 
         _rotate_test_reset(gesture);
-        return;
+        break;
 
       default:
-        return;
+        break;
      }
 }
 
