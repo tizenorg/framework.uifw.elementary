@@ -641,11 +641,16 @@ static Eina_Bool _focus_enabled(Evas_Object *obj)
 static Eina_List *
 _item_content_realize(Elm_Gen_Item *it,
                       Evas_Object *target,
+                      Eina_List *contents,
                       const char *src,
                       const char *parts)
 {
-   Eina_List *contents = NULL;
-
+   if (!parts)
+     {
+        Evas_Object *c;
+        EINA_LIST_FREE(contents, c)
+          evas_object_del(c);
+     }
    if (it->itc->func.content_get)
      {
         const char *key;
@@ -665,9 +670,12 @@ _item_content_realize(Elm_Gen_Item *it,
                    ((void *)it->base.data, WIDGET(it), key);
              if (ic)
                {
-                  Evas_Object *content =
-                     edje_object_part_swallow_get(target, key);
-                  if (content) evas_object_del(content);
+                  Evas_Object *c = edje_object_part_swallow_get(target, key);
+                  if (c)
+                    {
+                       contents = eina_list_remove(contents, c);
+                       evas_object_del(c);
+                    }
 
                   if (!edje_object_part_swallow(target, key, ic))
                     {
@@ -809,7 +817,8 @@ _view_inflate(Evas_Object *view, Elm_Gen_Item *it, Eina_List **contents)
    if (!view) return;
    _item_text_realize(it, view, NULL);
    _item_state_realize(it, view, NULL);
-   *contents = _item_content_realize(it, view, "contents", NULL);
+   *contents = _item_content_realize(it, view, *contents,
+                                     "contents", NULL);
    _item_state_realize(it, view, NULL);
 }
 
@@ -1595,7 +1604,8 @@ _item_realize(Elm_Gen_Item *it,
         if (it->flipped)
           {
              it->item->flip_content_objs =
-                _item_content_realize(it, VIEW(it), "flips", NULL);
+                _item_content_realize(it, VIEW(it), it->item->flip_content_objs,
+                                      "flips", NULL);
           }
 
         /* access: unregister item which have no text and content */
@@ -4309,8 +4319,12 @@ _item_update(Elm_Gen_Item *it)
      _view_inflate(it->deco_all_view, it, &(it->item->deco_all_contents));
    else if (it->item->deco_it_view)
      _view_inflate(it->item->deco_it_view, it, &(it->item->deco_it_contents));
-   it->item->flip_content_objs =
-     _item_content_realize(it, VIEW(it), "flips", NULL);
+   if (it->flipped)
+     {
+        it->item->flip_content_objs =
+           _item_content_realize(it, VIEW(it), it->item->flip_content_objs,
+                                 "flips", NULL);
+     }
 
    _elm_genlist_item_state_update(it);
 }
@@ -6200,22 +6214,26 @@ elm_genlist_item_fields_update(Elm_Object_Item *item,
    if ((!itf) || (itf & ELM_GENLIST_ITEM_FIELD_CONTENT))
      {
         it->content_objs = _item_content_realize
-           (it, VIEW(it), "contents", parts);
+           (it, VIEW(it), it->content_objs, "contents", parts);
         if (it->flipped)
           {
              it->item->flip_content_objs =
-               _item_content_realize(it, VIEW(it), "flips", parts);
+               _item_content_realize(it, VIEW(it), it->item->flip_content_objs,
+                                     "flips", parts);
           }
         if (it->item->deco_it_view)
           {
              it->item->deco_it_contents =
                _item_content_realize(it, it->item->deco_it_view,
+                                     it->item->deco_it_contents,
                                      "contents", parts);
           }
         if (GL_IT(it)->wsd->decorate_all_mode)
           {
              it->item->deco_all_contents =
-               _item_content_realize(it, it->deco_all_view, "contents", parts);
+               _item_content_realize(it, it->deco_all_view,
+                                     it->item->deco_all_contents,
+                                     "contents", parts);
           }
      }
 
@@ -6833,7 +6851,8 @@ elm_genlist_item_flip_set(Elm_Object_Item *item,
               (it->item->deco_it_view, "elm,state,flip,enabled", "elm");
 
         it->item->flip_content_objs =
-           _item_content_realize(it, VIEW(it), "flips", NULL);
+           _item_content_realize(it, VIEW(it), it->item->flip_content_objs,
+                                 "flips", NULL);
      }
    else
      {
