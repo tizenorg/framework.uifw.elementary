@@ -1350,7 +1350,10 @@ _event_process(void *data,
 
    /* Start testing candidate gesture from here */
    if (!_pointer_event_make(data, event_info, event_type, &_pe))
-     return;
+     {
+        evas_object_unref(data);
+        return;
+     }
 
    pe = &_pe;
 
