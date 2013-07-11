@@ -1721,7 +1721,7 @@ _item_realize(Elm_Gen_Item *it,
            (edje_object_data_get(VIEW(it), "contents"));
         if (_elm_config->access_mode && !texts && !contents)
           _elm_access_widget_item_unregister((Elm_Widget_Item *)it);
-        else 
+        else
            if (_elm_config->access_mode) _access_widget_item_register(it);
         eina_list_free(texts);
         eina_list_free(contents);
@@ -3483,9 +3483,6 @@ _multi_cancel(void *data)
 {
    Elm_Genlist_Smart_Data *sd = data;
 
-   if (!sd) return ECORE_CALLBACK_CANCEL;
-
-   sd->multi_timer = NULL;
    sd->multi_timeout = EINA_TRUE;
 
    return ECORE_CALLBACK_RENEW;
@@ -4535,7 +4532,7 @@ _scroll_animate_stop_cb(Evas_Object *obj,
              else if (idx > idx2) _item_access_highlight(it2);
           }
 		sd->access_unrealize_it = NULL;
-     }   
+     }
    if (!sd->queue_idle_enterer)
      sd->queue_idle_enterer = ecore_idle_enterer_add(_item_idle_enterer, sd);
    evas_object_smart_callback_call(obj, SIG_SCROLL_ANIM_STOP, NULL);
