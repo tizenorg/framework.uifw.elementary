@@ -136,7 +136,7 @@ _item_show_region(void *data)
    Elm_Gengrid_Smart_Data *sd = data;
    Evas_Coord cvw, cvh, it_xpos = 0, it_ypos = 0, col = 0, row = 0, minx = 0, miny = 0;
    Evas_Coord vw = 0, vh = 0;
-   Elm_Gen_Item *it;
+   Elm_Gen_Item *it = NULL;
 
 #if GENGRID_FX_SUPPORT
    if (sd->fx_first_captured) return;

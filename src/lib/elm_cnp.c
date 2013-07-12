@@ -2853,8 +2853,8 @@ elm_drop_item_container_del_internal(Evas_Object *obj, Eina_Bool full)
 
         if (full)
           {
-             free(st);
              cont_drop_tg = eina_list_remove(cont_drop_tg, st);
+             free(st);
           }
 
         return EINA_TRUE;

@@ -434,8 +434,8 @@ _elm_genlist_pan_smart_pos_min_get(const Evas_Object *obj __UNUSED__,
                                    Evas_Coord *x,
                                    Evas_Coord *y)
 {
-   if (x) *x = 0;
-   if (y) *y = 0;
+   *x = 0;
+   *y = 0;
 }
 
 static void

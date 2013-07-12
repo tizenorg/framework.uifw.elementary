@@ -592,11 +592,11 @@ _elm_layout_smart_callback_del(Evas_Object *obj,
              eina_stringshare_del(esd->emission);
              eina_stringshare_del(esd->source);
              data = esd->data;
-             free(esd);
 
              edje_object_signal_callback_del_full
                (ELM_WIDGET_DATA(sd)->resize_obj, emission, source,
                _edje_signal_callback, esd);
+             free(esd);
 
              return data; /* stop at 1st match */
           }
