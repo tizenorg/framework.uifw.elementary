@@ -299,6 +299,9 @@ struct _Elm_Genlist_Smart_Data
    Eina_Bool                             sorting : 1;
    Evas_Coord                            finger_minw, finger_minh;
    int                                   processed_sizes;
+   Elm_Gen_Item                          *access_it;
+   Elm_Gen_Item                          *access_bring_it;
+   Elm_Gen_Item                          *access_unrealize_it;
 };
 
 typedef struct _Item_Block Item_Block;
