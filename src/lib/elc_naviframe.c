@@ -1495,7 +1495,6 @@ _elm_naviframe_smart_event(Evas_Object *obj,
 {
    Elm_Naviframe_Item *it;
    Evas_Event_Key_Down *ev = event_info;
-   ELM_NAVIFRAME_DATA_GET(obj, sd);
 
    if (elm_widget_disabled_get(obj)) return EINA_FALSE;
    if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
