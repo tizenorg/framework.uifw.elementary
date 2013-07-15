@@ -5201,7 +5201,8 @@ _item_free_common(Elm_Gen_Item *it)
    if (sd->last_selected_item == (Elm_Object_Item *)it)
      sd->last_selected_item = NULL;
 
-   if (it == GL_IT(it)->wsd->focused) _item_unfocused(it);
+   if (sd->mode_item) sd->mode_item = NULL;
+   if (it == sd->focused) _item_unfocused(it);
    if (it == sd->access_it) sd->access_it = NULL;
    if (it == sd->access_bring_it) sd->access_bring_it = NULL;
    if (it == sd->access_unrealize_it) sd->access_unrealize_it = NULL;
@@ -5767,6 +5768,7 @@ elm_genlist_clear(Evas_Object *obj)
 
    eina_hash_free_buckets(sd->size_caches);
    _item_unfocused(sd->focused);
+   if (sd->mode_item) sd->mode_item = NULL;
    if (sd->access_it) sd->access_it = NULL;
    if (sd->access_bring_it) sd->access_bring_it = NULL;
    if (sd->access_unrealize_it) sd->access_unrealize_it = NULL;
