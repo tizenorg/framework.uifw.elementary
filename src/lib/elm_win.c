@@ -877,8 +877,11 @@ _elm_win_focus_in(Ecore_Evas *ee)
    else
      elm_widget_focus_restore(obj);
    evas_object_smart_callback_call(obj, SIG_FOCUS_IN, NULL);
+   // TIZEN_ONLY (20130713) : For supporting Focused UI of TIZEN.
+   /*
    sd->focus_highlight.cur.visible = EINA_TRUE;
    _elm_win_focus_highlight_reconfigure_job_start(sd);
+   */
    if (sd->frame_obj)
      {
         edje_object_signal_emit(sd->frame_obj, "elm,action,focus", "elm");
@@ -915,6 +918,9 @@ _elm_win_focus_out(Ecore_Evas *ee)
    _elm_widget_top_win_focused_set(obj, EINA_FALSE);
    evas_object_smart_callback_call(obj, SIG_FOCUS_OUT, NULL);
    sd->focus_highlight.cur.visible = EINA_FALSE;
+   // TIZEN_ONLY (20130713) : For supporting Focused UI of TIZEN.
+   elm_win_focus_highlight_enabled_set(obj, EINA_FALSE);
+   //
    _elm_win_focus_highlight_reconfigure_job_start(sd);
    if (sd->frame_obj)
      {
@@ -1197,6 +1203,11 @@ _elm_win_smart_event(Evas_Object *obj,
    if (type != EVAS_CALLBACK_KEY_DOWN)
      return EINA_FALSE;
 
+   // TIZEN_ONLY (20130713) : For supporting Focused UI of TIZEN.
+   if (!elm_win_focus_highlight_enabled_get(obj))
+     return EINA_FALSE;
+   ////
+
    current_focused = elm_widget_focused_object_get(obj);
    if ((!strcmp(ev->keyname, "Tab")) ||
        (!strcmp(ev->keyname, "ISO_Left_Tab")))
@@ -1452,6 +1463,8 @@ _elm_win_focus_highlight_shutdown(Elm_Win_Smart_Data *sd)
    _elm_win_focus_highlight_reconfigure_job_stop(sd);
    if (sd->focus_highlight.cur.target)
      {
+        elm_widget_signal_emit(sd->focus_highlight.cur.target,
+                               "elm,action,focus_highlight,hide", "elm");
         _elm_win_focus_target_callbacks_del(sd);
         sd->focus_highlight.cur.target = NULL;
      }
@@ -2237,12 +2250,16 @@ _elm_win_key_down(void *data,
         if (val != 0)
           {
              sd->keyboard_attached = EINA_TRUE;
+             sd->focus_highlight.cur.visible = EINA_TRUE;
              elm_win_focus_highlight_enabled_set(sd->obj, EINA_TRUE);
           }
         sd->first_key_down = EINA_TRUE;
      }
    else if (sd->keyboard_attached)
-     elm_win_focus_highlight_enabled_set(sd->obj, EINA_TRUE);
+     {
+        sd->focus_highlight.cur.visible = EINA_TRUE;
+        elm_win_focus_highlight_enabled_set(sd->obj, EINA_TRUE);
+     }
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -2278,7 +2295,12 @@ _elm_win_focus_highlight_init(Elm_Win_Smart_Data *sd)
                            EVAS_CALLBACK_CANVAS_OBJECT_FOCUS_OUT,
                            _elm_win_object_focus_out, sd);
 
-   sd->focus_highlight.cur.target = evas_focus_get(sd->evas);
+   // TIZEN_ONLY (20130713) : For supporting Focused UI of TIZEN.
+   //sd->focus_highlight.cur.target = evas_focus_get(sd->evas);
+   sd->focus_highlight.cur.target = _elm_win_focus_target_get(evas_focus_get(sd->evas));
+   if (elm_widget_highlight_in_theme_get(sd->focus_highlight.cur.target))
+     sd->focus_highlight.cur.handled = EINA_TRUE;
+   //////
 
    sd->focus_highlight.top = edje_object_add(sd->evas);
    sd->focus_highlight.changed_theme = EINA_TRUE;

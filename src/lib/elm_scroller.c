@@ -75,6 +75,16 @@ _elm_scroller_smart_event(Evas_Object *obj,
    Evas_Coord step_x = 0;
    Evas_Coord step_y = 0;
    Evas_Event_Key_Down *ev = event_info;
+   // TIZEN_ONLY (20130713) : For supporting Focused UI of TIZEN.
+   const Evas_Object  *win = elm_widget_top_get(obj);
+   const char *top_type = elm_widget_type_get(win);
+
+   if (top_type && !strcmp(top_type, "elm_win"))
+     {
+        if (!elm_win_focus_highlight_enabled_get(win))
+          return EINA_FALSE;
+     }
+   ///////////////////
 
    ELM_SCROLLER_DATA_GET(obj, sd);
 
