@@ -317,6 +317,7 @@ _month_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 
    insert = *text;
    strncpy(new_str, insert, BUFF_SIZE);
+   new_str[BUFF_SIZE - 1] = '\0';
    if (new_str[0]) val = atoi(new_str) - 1; //tm struct accepts month values from 0 while ISE output starts from 1.
 
    popup_mod->mod_data.field_limit_get(popup_mod->mod_data.base, ELM_DATETIME_MONTH, &min, &max);
