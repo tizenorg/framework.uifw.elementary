@@ -434,6 +434,7 @@ _minute_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 
    curr_str = elm_object_text_get(obj);
    if (curr_str) strncpy(new_str, curr_str, BUFF_SIZE);
+   new_str[BUFF_SIZE - 1] = '\0';
    strncat(new_str, insert, 1);
    if (new_str[0]) val = atoi(new_str);
 
