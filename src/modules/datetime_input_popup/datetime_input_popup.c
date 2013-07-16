@@ -225,6 +225,13 @@ _entry_focused_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
    popup_mod = (Popup_Module_Data *)data;
    if (!popup_mod) return;
 
+   entry = elm_object_part_content_get(popup_mod->popup_field[ELM_DATETIME_MONTH],
+                                       "elm.swallow.entry");
+   if (obj == entry)
+     {
+        value = (int)elm_spinner_value_get(popup_mod->popup_field[ELM_DATETIME_MONTH]) - 1;
+        elm_object_text_set(obj, month_arr[value]);
+     }
    for (idx = 0; idx < DATETIME_FIELD_COUNT -1; idx++)
      {
         entry = elm_object_part_content_get(popup_mod->popup_field[idx], "elm.swallow.entry");
@@ -235,13 +242,7 @@ _entry_focused_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
              return;
           }
      }
-   entry = elm_object_part_content_get(popup_mod->popup_field[ELM_DATETIME_MONTH],
-                                       "elm.swallow.entry");
-   if (obj == entry)
-     {
-        value = (int)elm_spinner_value_get(popup_mod->popup_field[ELM_DATETIME_MONTH]) - 1;
-        elm_object_text_set(obj, month_arr[value]);
-     }
+
    elm_entry_select_all(obj);
 }
 
@@ -993,6 +994,13 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
         else strcpy(buf, E_("PM"));
      }
    elm_object_text_set(obj, buf);
+
+   if (field_type == ELM_DATETIME_DATE)
+     {
+        mktime(&curr_time);
+        strftime(buf, sizeof(buf), "%a", &curr_time);
+        elm_layout_text_set(popup_mod->mod_data.base, "elm.text.weekday", buf);
+     }
 }
 
 EAPI Evas_Object *

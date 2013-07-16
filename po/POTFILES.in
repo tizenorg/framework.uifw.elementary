@@ -152,3 +152,4 @@
 ./src/lib/els_tooltip.c
 ./src/modules/test_entry/mod.c
 ./src/modules/test_map/mod.c
+./src/modules/datetime_input_popup/datetime_input_popup.c

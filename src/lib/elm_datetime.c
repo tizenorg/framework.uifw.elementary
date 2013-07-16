@@ -256,6 +256,7 @@ _field_list_arrange(Evas_Object *obj)
             timepicker_start_idx);
    elm_layout_signal_emit(obj, buf, "elm");
 
+   elm_layout_signal_emit(obj, "datetime,weekday,hide", "elm");
    elm_layout_sizing_eval(obj);
    _field_list_display(obj);
 }
