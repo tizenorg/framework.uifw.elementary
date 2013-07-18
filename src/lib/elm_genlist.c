@@ -1738,6 +1738,7 @@ _item_realize(Elm_Gen_Item *it,
         _item_access_highlight(it);
         GL_IT(it)->wsd->access_bring_it = NULL;
      }
+   edje_object_message_signal_process(VIEW(it));
 }
 
 #if GENLIST_PINCH_ZOOM_SUPPORT
