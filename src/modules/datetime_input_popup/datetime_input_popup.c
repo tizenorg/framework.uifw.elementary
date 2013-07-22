@@ -211,8 +211,6 @@ _entry_clicked_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 
    popup_mod = (Popup_Module_Data *)data;
    if (!popup_mod || !obj) return;
-
-   elm_entry_cursor_end_set(obj);
 }
 
 static void
