@@ -535,7 +535,7 @@ _set_datepicker_entry_filter(Popup_Module_Data *popup_mod)
        if (idx == ELM_DATETIME_MONTH)
          elm_entry_input_panel_layout_set(entry, ELM_INPUT_PANEL_LAYOUT_MONTH);
        else
-         elm_entry_input_panel_layout_set(entry, ELM_INPUT_PANEL_LAYOUT_NUMBERONLY);
+         elm_entry_input_panel_layout_set(entry, ELM_INPUT_PANEL_LAYOUT_DATETIME);
 
        if (idx == ELM_DATETIME_YEAR)
          limit_filter_data.max_char_count = 4;
@@ -584,7 +584,7 @@ _set_timepicker_entry_filter(Popup_Module_Data *popup_mod)
        elm_object_style_set(entry, buf);
        elm_entry_magnifier_disabled_set(entry, EINA_TRUE);
        elm_entry_context_menu_disabled_set(entry, EINA_TRUE);
-       elm_entry_input_panel_layout_set(entry, ELM_INPUT_PANEL_LAYOUT_NUMBERONLY);
+       elm_entry_input_panel_layout_set(entry, ELM_INPUT_PANEL_LAYOUT_DATETIME);
        elm_entry_markup_filter_append(entry, elm_entry_filter_accept_set, &digits_filter_data);
 
        limit_filter_data.max_char_count = 2;
