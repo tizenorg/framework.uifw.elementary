@@ -780,17 +780,17 @@ _create_datetime_popup(Popup_Module_Data *popup_mod)
                            EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(popup_mod->popup, EVAS_HINT_FILL, 0.5);
 
-   set_btn = elm_button_add(popup_mod->popup);
-   elm_object_style_set(set_btn, "popup_button/default");
-   elm_object_text_set(set_btn, E_("Set"));
-   elm_object_part_content_set(popup_mod->popup, "button1", set_btn);
-   evas_object_smart_callback_add(set_btn, "clicked", _popup_set_btn_clicked_cb, popup_mod);
-
    cancel_btn = elm_button_add(popup_mod->popup);
    elm_object_style_set(cancel_btn, "popup_button/default");
    elm_object_text_set(cancel_btn, E_("Cancel"));
-   elm_object_part_content_set(popup_mod->popup, "button2", cancel_btn);
+   elm_object_part_content_set(popup_mod->popup, "button1", cancel_btn);
    evas_object_smart_callback_add(cancel_btn, "clicked", _popup_cancel_btn_clicked_cb, popup_mod);
+
+   set_btn = elm_button_add(popup_mod->popup);
+   elm_object_style_set(set_btn, "popup_button/default");
+   elm_object_text_set(set_btn, E_("Set"));
+   elm_object_part_content_set(popup_mod->popup, "button2", set_btn);
+   evas_object_smart_callback_add(set_btn, "clicked", _popup_set_btn_clicked_cb, popup_mod);
 }
 
 static void
