@@ -354,24 +354,29 @@ _month_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 {
    Popup_Module_Data *popup_mod;
    Evas_Object *entry;
+   char new_str[BUFF_SIZE] = {0,};
+   int min, max, val = 0, len;
    char *insert;
-   int min, max, val = 0;
-   char new_str[BUFF_SIZE];
+   const char *curr_str;
 
    EINA_SAFETY_ON_NULL_RETURN(text);
    popup_mod = (Popup_Module_Data *)data;
    if (!popup_mod) return;
 
    insert = *text;
-   strncpy(new_str, insert, BUFF_SIZE);
-   new_str[BUFF_SIZE - 1] = '\0';
-   if (new_str[0]) val = atoi(new_str) - 1; //tm struct accepts month values from 0 while ISE output starts from 1.
+   len = strlen(elm_object_text_get(obj));
+   if (len < 1) return;
+
+   curr_str = elm_object_text_get(obj);
+   if (curr_str) strncpy(new_str, curr_str, BUFF_SIZE);
+   strncat(new_str, insert, 1);
+   if (new_str[0]) val = atoi(new_str);
 
    popup_mod->mod_data.field_limit_get(popup_mod->mod_data.base, ELM_DATETIME_MONTH, &min, &max);
 
    if ((val >= min) && (val <= max))
      {
-       elm_spinner_value_set(popup_mod->popup_field[ELM_DATETIME_MONTH], val+1);
+       elm_spinner_value_set(popup_mod->popup_field[ELM_DATETIME_MONTH], val);
        elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_MONTH],
                              "elm,action,entry,toggle", "elm");
        elm_object_focus_set(obj, EINA_FALSE);
@@ -532,10 +537,7 @@ _set_datepicker_entry_filter(Popup_Module_Data *popup_mod)
 
        elm_entry_markup_filter_append(entry, elm_entry_filter_accept_set, &digits_filter_data);
 
-       if (idx == ELM_DATETIME_MONTH)
-         elm_entry_input_panel_layout_set(entry, ELM_INPUT_PANEL_LAYOUT_MONTH);
-       else
-         elm_entry_input_panel_layout_set(entry, ELM_INPUT_PANEL_LAYOUT_DATETIME);
+       elm_entry_input_panel_layout_set(entry, ELM_INPUT_PANEL_LAYOUT_DATETIME);
 
        if (idx == ELM_DATETIME_YEAR)
          limit_filter_data.max_char_count = 4;
