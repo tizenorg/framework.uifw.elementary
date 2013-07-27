@@ -133,7 +133,10 @@ _popup_cancel_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *even
              entry = elm_object_part_content_get(spinner, "elm.swallow.entry");
              if (!entry) continue;
              if (elm_object_focus_get(entry))
-               elm_object_focus_set(entry, EINA_FALSE);
+               {
+                  elm_object_focus_set(entry, EINA_FALSE);
+                  elm_layout_signal_emit(spinner, "elm,action,entry,toggle", "elm");
+               }
           }
      }
    else if (content == popup_mod->timepicker_layout)
@@ -144,7 +147,10 @@ _popup_cancel_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *even
              entry = elm_object_part_content_get(spinner, "elm.swallow.entry");
              if (!entry) continue;
              if (elm_object_focus_get(entry))
-               elm_object_focus_set(entry, EINA_FALSE);
+               {
+                  elm_object_focus_set(entry, EINA_FALSE);
+                  elm_layout_signal_emit(spinner, "elm,action,entry,toggle", "elm");
+               }
           }
      }
 }
@@ -939,6 +945,28 @@ _create_timepicker_layout(Popup_Module_Data *popup_mod)
 }
 
 static void
+_module_format_change(Popup_Module_Data *popup_mod)
+{
+   Evas_Object *datetime;
+   int idx;
+   Eina_Bool datepicker_bg_hide = EINA_FALSE;
+   Eina_Bool timepicker_bg_hide = EINA_FALSE;
+
+   if (!popup_mod) return;
+
+   datetime = popup_mod->mod_data.base;
+   for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
+     datepicker_bg_hide |= popup_mod->mod_data.field_location_get(datetime, idx, NULL);
+   if (datepicker_bg_hide)
+     elm_layout_signal_emit(datetime, "datetime,datepicker,bg,hide", "elm");
+
+   for (idx = ELM_DATETIME_HOUR; idx < ELM_DATETIME_AMPM; idx++)
+     timepicker_bg_hide |= popup_mod->mod_data.field_location_get(datetime, idx, NULL);
+   if (timepicker_bg_hide)
+     elm_layout_signal_emit(datetime, "datetime,timepicker,bg,hide", "elm");
+}
+
+static void
 _datepicker_show_cb(void *data,
                    Evas_Object *obj __UNUSED__,
                    const char *emission __UNUSED__,
@@ -978,6 +1006,21 @@ _timepicker_show_cb(void *data,
 
    _show_timepicker_layout(popup_mod);
    evas_object_show(popup_mod->popup);
+}
+
+static void
+_module_language_changed_cb(void *data,
+                           Evas_Object *obj __UNUSED__,
+                           const char *emission __UNUSED__,
+                           const char *source __UNUSED__)
+{
+   Popup_Module_Data *popup_mod;
+
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod || popup_mod->popup) return;
+
+   _set_month_special_values(popup_mod);
+   _set_ampm_special_values(popup_mod);
 }
 
 static void
@@ -1090,6 +1133,8 @@ obj_hook(Evas_Object *obj __UNUSED__)
                                   _timepicker_show_cb, popup_mod);
    elm_object_signal_callback_add(obj, "datetime,timepicker,hide", "",
                                   _timepicker_hide_cb, popup_mod);
+   elm_object_signal_callback_add(obj, "language,changed", "",
+                                  _module_language_changed_cb, popup_mod);
 
    popup_mod->popup = NULL;
    popup_mod->datepicker_layout = NULL;
@@ -1119,19 +1164,29 @@ obj_unhook(Elm_Datetime_Module_Data *module_data)
 }
 
 EAPI void
-obj_language_change(Elm_Datetime_Module_Data *module_data __UNUSED__)
+obj_format_hook(Elm_Datetime_Module_Data *module_data)
 {
    Popup_Module_Data *popup_mod;
 
    popup_mod = (Popup_Module_Data *)module_data;
-   if (!popup_mod || popup_mod->popup) return;
+   if (!popup_mod) return;
 
-   _set_month_special_values(popup_mod);
-   _set_ampm_special_values(popup_mod);
+   _module_format_change(popup_mod);
 }
 
 EAPI void
-obj_hide(Elm_Datetime_Module_Data *module_data __UNUSED__)
+obj_theme_hook(Elm_Datetime_Module_Data *module_data)
+{
+   Popup_Module_Data *popup_mod;
+
+   popup_mod = (Popup_Module_Data *)module_data;
+   if (!popup_mod) return;
+
+   // TODO: function can be improved to provide different popup styles.
+}
+
+EAPI void
+obj_focus_hook(Elm_Datetime_Module_Data *module_data __UNUSED__)
 {
    // TODO: Default focus - enhance this func. for obj_show/obj_hide like below
 #if 0

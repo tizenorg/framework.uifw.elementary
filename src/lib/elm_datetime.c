@@ -83,6 +83,12 @@ _dt_mod_init()
      _elm_module_symbol_get(mod, "obj_hook");
    ((Datetime_Mod_Api *)(mod->api))->obj_unhook =
      _elm_module_symbol_get(mod, "obj_unhook");
+   ((Datetime_Mod_Api *)(mod->api))->obj_theme_hook =
+     _elm_module_symbol_get(mod, "obj_theme_hook");
+   ((Datetime_Mod_Api *)(mod->api))->obj_focus_hook =
+     _elm_module_symbol_get(mod, "obj_focus_hook");
+   ((Datetime_Mod_Api *)(mod->api))->obj_format_hook =
+     _elm_module_symbol_get(mod, "obj_format_hook");
    ((Datetime_Mod_Api *)(mod->api))->obj_hide =
      _elm_module_symbol_get(mod, "obj_hide");
    ((Datetime_Mod_Api *)(mod->api))->field_create =
@@ -413,6 +419,9 @@ _reload_format(Evas_Object *obj)
 
    _field_list_arrange(obj);
    edje_object_message_signal_process(ELM_WIDGET_DATA(sd)->resize_obj);
+
+   if ((dt_mod) && (dt_mod->obj_format_hook))
+     dt_mod->obj_format_hook(sd->mod_data);
 }
 
 static Eina_Bool
@@ -484,7 +493,7 @@ _elm_datetime_smart_focus_next(const Evas_Object *obj,
         list_free = eina_list_free;
         if (!items) return EINA_FALSE;
      }
-printf("count = %d\n", eina_list_count(items));
+
    ret = elm_widget_focus_list_next_get(obj, items, list_data_get, dir, next);
    if (list_free) list_free((Eina_List *)items);
 
@@ -494,10 +503,13 @@ printf("count = %d\n", eina_list_count(items));
 static Eina_Bool
 _elm_datetime_smart_on_focus(Evas_Object *obj)
 {
+  ELM_DATETIME_DATA_GET(obj, sd);
+
+  if ((dt_mod) && (dt_mod->obj_focus_hook))
+    dt_mod->obj_focus_hook(sd->mod_data);
+
    if (!elm_widget_focus_get(obj))
      {
-        ELM_DATETIME_DATA_GET(obj, sd);
-
         if ((dt_mod) && (dt_mod->obj_hide))
           dt_mod->obj_hide(sd->mod_data);
      }
@@ -580,6 +592,9 @@ _elm_datetime_smart_theme(Evas_Object *obj)
 
    edje_object_message_signal_process(ELM_WIDGET_DATA(sd)->resize_obj);
    elm_layout_sizing_eval(obj);
+
+   if ((dt_mod) && (dt_mod->obj_theme_hook))
+     dt_mod->obj_theme_hook(sd->mod_data);
 
    return EINA_TRUE;
 }
@@ -717,6 +732,22 @@ _field_format_get(Evas_Object *obj,
    return field->fmt;
 }
 
+static Eina_Bool
+_field_location_get(Evas_Object *obj, Elm_Datetime_Field_Type field_type,
+                    int *loc)
+{
+   Datetime_Field *field;
+
+   ELM_DATETIME_DATA_GET(obj, sd);
+
+   field = sd->field_list + field_type;
+   if (!field) return EINA_FALSE;
+
+   if (loc) *loc = field->location;
+
+   return (field->fmt_exist && field->visible);
+}
+
 static void
 _field_limit_get(Evas_Object *obj,
                  Elm_Datetime_Field_Type field_type,
@@ -755,6 +786,52 @@ _field_limit_get(Evas_Object *obj,
 
    *range_min = min;
    *range_max = max;
+}
+
+static void
+_fields_min_max_get(Evas_Object *obj, struct tm *set_value,
+                    struct tm *min_value, struct tm *max_value)
+{
+   int value, min, max, max_days;
+   Datetime_Field *field;
+   unsigned int i, idx;
+
+   ELM_DATETIME_DATA_GET(obj, sd);
+
+   if (!set_value || min_value || !max_value) return;
+
+   DATETIME_TM_ARRAY(mod_set_timearr, set_value);
+   DATETIME_TM_ARRAY(mod_min_timearr, min_value);
+   DATETIME_TM_ARRAY(mod_max_timearr, max_value);
+
+   DATETIME_TM_ARRAY(min_timearr, &sd->min_limit);
+   DATETIME_TM_ARRAY(max_timearr, &sd->max_limit);
+
+   for (idx = 0; idx < ELM_DATETIME_AMPM; idx++)
+     {
+        field = sd->field_list + idx;
+        min = field->min;
+        max = field->max;
+
+        for (i = 0; i < idx; i++)
+          if (*mod_set_timearr[i] > *min_timearr[i]) break;
+        if ((i == idx) && (min < *min_timearr[idx]))
+          min = *min_timearr[idx];
+
+        if (idx == ELM_DATETIME_DATE)
+          {
+             max_days = _max_days_get(mod_set_timearr[ELM_DATETIME_YEAR],
+                                      mod_set_timearr[ELM_DATETIME_MONTH]);
+             if (max > max_days) max = max_days;
+          }
+        for (i = 0; i < idx; i++)
+          if (*mod_set_timearr[i] < *max_timearr[i]) break;
+        if ((i == idx) && (max > *max_timearr[idx]))
+          max = *max_timearr[idx];
+
+        *mod_min_timearr[idx] = min;
+        *mod_max_timearr[idx] = max;
+     }
 }
 
 static void
@@ -829,8 +906,10 @@ _elm_datetime_smart_add(Evas_Object *obj)
    if (priv->mod_data)
      {
         priv->mod_data->base = obj;
-        priv->mod_data->field_limit_get = _field_limit_get;
         priv->mod_data->field_format_get = _field_format_get;
+        priv->mod_data->field_location_get = _field_location_get;
+        priv->mod_data->field_limit_get = _field_limit_get;
+        priv->mod_data->fields_min_max_get = _fields_min_max_get;
      }
 
    _field_list_init(obj);

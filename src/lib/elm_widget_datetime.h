@@ -146,6 +146,9 @@ struct _Datetime_Mod_Api
 {
    Elm_Datetime_Module_Data *(*obj_hook)(Evas_Object * obj);
    void                      (*obj_unhook)(Elm_Datetime_Module_Data *mdata);
+   void                      (*obj_theme_hook)(Elm_Datetime_Module_Data *mdata);
+   void                      (*obj_focus_hook)(Elm_Datetime_Module_Data *mdata);
+   void                      (*obj_format_hook)(Elm_Datetime_Module_Data *mdata);
    void                      (*obj_hide)(Elm_Datetime_Module_Data *mdata);
    Evas_Object              *(*field_create)(Elm_Datetime_Module_Data * mdata,
                                              Elm_Datetime_Field_Type ftype);

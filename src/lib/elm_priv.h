@@ -264,12 +264,19 @@ struct _Elm_Module
 struct _Elm_Datetime_Module_Data
 {
    Evas_Object *base;
+   const char  *(*field_format_get)(Evas_Object * obj,
+                                    Elm_Datetime_Field_Type field_type);
+   Eina_Bool    (*field_location_get)(Evas_Object *obj,
+                                      Elm_Datetime_Field_Type field_type,
+                                      int *loc);
    void         (*field_limit_get)(Evas_Object *obj,
                                    Elm_Datetime_Field_Type field_type,
                                    int *range_min,
                                    int *range_max);
-   const char  *(*field_format_get)(Evas_Object * obj,
-                                    Elm_Datetime_Field_Type field_type);
+   void         (*fields_min_max_get)(Evas_Object *obj,
+                                      struct tm *set_value,
+                                      struct tm *min_value,
+                                      struct tm *max_value);
 };
 
 void                 _elm_emotion_init(void);
