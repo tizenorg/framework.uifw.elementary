@@ -2356,7 +2356,6 @@ static void _item_focused(Elm_Gen_Item *it)
 static void
 _item_highlight(Elm_Gen_Item *it)
 {
-   const char *selectraise;
    Elm_Genlist_Smart_Data *sd = GL_IT(it)->wsd;
 
    if (elm_widget_item_disabled_get(it)) return;
@@ -2371,14 +2370,6 @@ _item_highlight(Elm_Gen_Item *it)
    if (sd->pinch_zoom_mode) return;
 #endif
 
-   selectraise = edje_object_data_get(VIEW(it), "selectraise");
-   if ((selectraise) && (!strcmp(selectraise, "on")))
-     {
-        if (it->deco_all_view) evas_object_raise(it->deco_all_view);
-        else evas_object_raise(VIEW(it));
-        if ((it->item->group_item) && (it->item->group_item->realized))
-          evas_object_raise(it->item->VIEW(group_item));
-     }
    it->highlighted = EINA_TRUE;
 
    if (it->deco_all_view)
@@ -2500,6 +2491,17 @@ _item_select(Elm_Gen_Item *it)
      }
    sd->last_selected_item = (Elm_Object_Item *)it;
    _item_focused(it);
+
+   // FIXME: after evas_object_raise, mouse event callbacks(ex, UP, DOWN)
+   // can be called again eventhough already received it.
+   const char *selectraise = edje_object_data_get(VIEW(it), "selectraise");
+   if ((selectraise) && (!strcmp(selectraise, "on")))
+     {
+        if (it->deco_all_view) evas_object_raise(it->deco_all_view);
+        else evas_object_raise(VIEW(it));
+        if ((it->item->group_item) && (it->item->group_item->realized))
+          evas_object_raise(it->item->VIEW(group_item));
+     }
 
    if (it->func.func) it->func.func((void *)it->func.data, obj, it);
    if (!EINA_MAGIC_CHECK((Elm_Widget_Item *)it, ELM_WIDGET_ITEM_MAGIC))
