@@ -665,18 +665,18 @@ _item_content_realize(Elm_Gen_Item *it,
              if (parts && fnmatch(parts, key, FNM_PERIOD))
                continue;
 
+             Evas_Object *old = edje_object_part_swallow_get(target, key);
+             if (old)
+               {
+                  contents = eina_list_remove(contents, old);
+                  evas_object_del(old);
+               }
+
              if (it->itc->func.content_get)
                ic = it->itc->func.content_get
                    ((void *)it->base.data, WIDGET(it), key);
              if (ic)
                {
-                  Evas_Object *c = edje_object_part_swallow_get(target, key);
-                  if (c)
-                    {
-                       contents = eina_list_remove(contents, c);
-                       evas_object_del(c);
-                    }
-
                   if (!edje_object_part_swallow(target, key, ic))
                     {
                       WRN("%s (%p) can not be swallowed into %s",
