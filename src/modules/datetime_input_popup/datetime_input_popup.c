@@ -949,20 +949,20 @@ _module_format_change(Popup_Module_Data *popup_mod)
 {
    Evas_Object *datetime;
    int idx;
-   Eina_Bool datepicker_bg_hide = EINA_FALSE;
-   Eina_Bool timepicker_bg_hide = EINA_FALSE;
+   Eina_Bool datepicker_bg_show = EINA_FALSE;
+   Eina_Bool timepicker_bg_show = EINA_FALSE;
 
    if (!popup_mod) return;
 
    datetime = popup_mod->mod_data.base;
    for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
-     datepicker_bg_hide |= popup_mod->mod_data.field_location_get(datetime, idx, NULL);
-   if (datepicker_bg_hide)
+     datepicker_bg_show |= popup_mod->mod_data.field_location_get(datetime, idx, NULL);
+   if (!datepicker_bg_show)
      elm_layout_signal_emit(datetime, "datetime,datepicker,bg,hide", "elm");
 
    for (idx = ELM_DATETIME_HOUR; idx < ELM_DATETIME_AMPM; idx++)
-     timepicker_bg_hide |= popup_mod->mod_data.field_location_get(datetime, idx, NULL);
-   if (timepicker_bg_hide)
+     timepicker_bg_show |= popup_mod->mod_data.field_location_get(datetime, idx, NULL);
+   if (!timepicker_bg_show)
      elm_layout_signal_emit(datetime, "datetime,timepicker,bg,hide", "elm");
 }
 
