@@ -95,7 +95,6 @@ _popup_set_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *event_i
              if (!entry) continue;
              if (elm_object_focus_get(entry))
                {
-                  elm_object_focus_set(entry, EINA_FALSE);
                   elm_layout_signal_emit(spinner, "elm,action,entry,toggle", "elm");
                   edje_object_message_signal_process(elm_layout_edje_get(spinner));
                }
@@ -111,7 +110,6 @@ _popup_set_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *event_i
              if (!entry) continue;
              if (elm_object_focus_get(entry))
                {
-                  elm_object_focus_set(entry, EINA_FALSE);
                   elm_layout_signal_emit(spinner, "elm,action,entry,toggle", "elm");
                   edje_object_message_signal_process(elm_layout_edje_get(spinner));
                }
@@ -142,7 +140,6 @@ _popup_cancel_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *even
              if (!entry) continue;
              if (elm_object_focus_get(entry))
                {
-                  elm_object_focus_set(entry, EINA_FALSE);
                   elm_layout_signal_emit(spinner, "elm,action,entry,toggle", "elm");
                }
           }
@@ -156,7 +153,6 @@ _popup_cancel_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *even
              if (!entry) continue;
              if (elm_object_focus_get(entry))
                {
-                  elm_object_focus_set(entry, EINA_FALSE);
                   elm_layout_signal_emit(spinner, "elm,action,entry,toggle", "elm");
                }
           }
@@ -199,7 +195,6 @@ _entry_activated_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
    popup_mod = (Popup_Module_Data *)data;
    if (!popup_mod) return;
 
-   elm_object_focus_set(obj, EINA_FALSE);
    for (idx = 0; idx < ELM_DATETIME_DATE; idx++)
      {
         entry = elm_object_part_content_get(popup_mod->popup_field[idx], "elm.swallow.entry");
@@ -208,7 +203,6 @@ _entry_activated_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
              idx++;
              en = elm_object_part_content_get(popup_mod->popup_field[idx], "elm.swallow.entry");
              elm_layout_signal_emit(popup_mod->popup_field[idx], "elm,action,entry,toggle", "elm");
-             elm_object_focus_set(en, EINA_TRUE);
              return;
           }
      }
@@ -218,7 +212,6 @@ _entry_activated_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
         en = elm_object_part_content_get(popup_mod->popup_field[ELM_DATETIME_MINUTE], "elm.swallow.entry");
         elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_MINUTE],
                                "elm,action,entry,toggle", "elm");
-        elm_object_focus_set(en, EINA_TRUE);
      }
 }
 
@@ -253,13 +246,11 @@ _entry_focused_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
         entry = elm_object_part_content_get(popup_mod->popup_field[idx], "elm.swallow.entry");
         if ((obj != entry) && elm_object_focus_get(entry))
           {
-             elm_object_focus_set(entry, EINA_FALSE);
-             elm_entry_input_panel_hide(obj);
+             elm_layout_signal_emit(popup_mod->popup_field[idx],
+                                    "elm,action,entry,toggle", "elm");
              return;
           }
      }
-
-   elm_entry_select_all(obj);
 }
 
 static void
@@ -432,12 +423,30 @@ _ampm_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNU
    _set_timepicker_popup_title_text(popup_mod);
 }
 
+const char *
+_text_insert(const char *text, char *input, int pos)
+{
+   char *result;
+   int text_len, input_len;
+
+   text_len = strlen(text);
+   input_len = strlen(input);
+   result = (char *)malloc(sizeof(char) * (text_len + input_len) + 1);
+   memset(result, 0, sizeof(char) * (text_len + input_len) + 1);
+
+   strncpy(result, text, pos);
+   strcpy(result + pos, input);
+   strcpy(result + pos + input_len, text + pos);
+
+   return (const char *)result;
+}
+
 static void
 _year_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 {
    Popup_Module_Data *popup_mod;
    Evas_Object *entry;
-   char new_str[BUFF_SIZE] = {0,};
+   const char *new_str = NULL;
    int min, max, val = 0, len;
    char *insert;
    const char *curr_str;
@@ -451,9 +460,8 @@ _year_validity_checking_filter(void *data, Evas_Object *obj, char **text)
    if (len < 3) return;
 
    curr_str = elm_object_text_get(obj);
-   if (curr_str) strncpy(new_str, curr_str, BUFF_SIZE);
-   strncat(new_str, insert, 1);
-   if (new_str[0]) val = atoi(new_str);
+   if (curr_str) new_str = _text_insert(curr_str, insert, elm_entry_cursor_pos_get(obj));
+   if (new_str) val = atoi(new_str);
 
    popup_mod->mod_data.field_limit_get(popup_mod->mod_data.base, ELM_DATETIME_YEAR, &min, &max);
    min += STRUCT_TM_YEAR_BASE_VALUE;
@@ -461,10 +469,9 @@ _year_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 
    if (val <= max)
      {
-       elm_spinner_value_set(popup_mod->popup_field[ELM_DATETIME_YEAR], val);
+       elm_entry_entry_set(obj, new_str);
        elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_YEAR],
                               "elm,action,entry,toggle", "elm");
-       elm_object_focus_set(obj, EINA_FALSE);
 
        entry = elm_object_part_content_get(popup_mod->popup_field[ELM_DATETIME_MONTH],
                                            "elm.swallow.entry");
@@ -472,11 +479,12 @@ _year_validity_checking_filter(void *data, Evas_Object *obj, char **text)
          {
             elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_MONTH],
                                    "elm,action,entry,toggle", "elm");
-            elm_object_focus_set(entry, EINA_TRUE);
          }
      }
 
    *insert = 0;
+   free((void *)new_str);
+   new_str = NULL;
 }
 
 static void
@@ -484,7 +492,7 @@ _month_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 {
    Popup_Module_Data *popup_mod;
    Evas_Object *entry;
-   char new_str[BUFF_SIZE] = {0,};
+   const char *new_str = NULL;
    int min, max, val = 0, len;
    char *insert;
    const char *curr_str;
@@ -498,18 +506,16 @@ _month_validity_checking_filter(void *data, Evas_Object *obj, char **text)
    if (len < 1) return;
 
    curr_str = elm_object_text_get(obj);
-   if (curr_str) strncpy(new_str, curr_str, BUFF_SIZE);
-   strncat(new_str, insert, 1);
-   if (new_str[0]) val = atoi(new_str) - 1;
+   if (curr_str) new_str = _text_insert(curr_str, insert, elm_entry_cursor_pos_get(obj));
+   if (new_str) val = atoi(new_str) - 1;
 
    popup_mod->mod_data.field_limit_get(popup_mod->mod_data.base, ELM_DATETIME_MONTH, &min, &max);
 
    if ((val >= min) && (val <= max))
      {
-       elm_spinner_value_set(popup_mod->popup_field[ELM_DATETIME_MONTH], val + 1);
+       elm_entry_entry_set(obj, new_str);
        elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_MONTH],
                              "elm,action,entry,toggle", "elm");
-       elm_object_focus_set(obj, EINA_FALSE);
 
        entry = elm_object_part_content_get(popup_mod->popup_field[ELM_DATETIME_DATE],
                                          "elm.swallow.entry");
@@ -517,10 +523,11 @@ _month_validity_checking_filter(void *data, Evas_Object *obj, char **text)
          {
             elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_DATE],
                                  "elm,action,entry,toggle", "elm");
-            elm_object_focus_set(entry, EINA_TRUE);
          }
      }
    *insert = 0;
+   free((void *)new_str);
+   new_str = NULL;
 }
 
 static void
@@ -528,7 +535,7 @@ _hour_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 {
    Popup_Module_Data *popup_mod;
    Evas_Object *entry;
-   char new_str[BUFF_SIZE] = {0,};
+   const char *new_str = NULL;
    int val = 0, len;
    char *insert;
    const char *curr_str;
@@ -543,22 +550,26 @@ _hour_validity_checking_filter(void *data, Evas_Object *obj, char **text)
    if (len < 1) return;
 
    curr_str = elm_object_text_get(obj);
-   if (curr_str) strncpy(new_str, curr_str, BUFF_SIZE);
-   strncat(new_str, insert, 1);
-   if (new_str[0]) val = atoi(new_str);
+   if (curr_str) new_str = _text_insert(curr_str, insert, elm_entry_cursor_pos_get(obj));
+   if (new_str) val = atoi(new_str);
+
    if (!popup_mod->time_24hr && val > STRUCT_TM_TIME_12HRS_MAX_VALUE)
      {
         *insert = 0;
+        free((void *)new_str);
+        new_str = NULL;
         return;
      }
    else if (popup_mod->time_24hr && val > STRUCT_TM_TIME_24HRS_MAX_VALUE)
      {
         *insert = 0;
+        free((void *)new_str);
+        new_str = NULL;
         return;
      }
-    elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_HOUR],
-                                    "elm,action,entry,toggle", "elm");
-    elm_object_focus_set(obj, EINA_FALSE);
+   elm_entry_entry_set(obj, new_str);
+   elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_HOUR],
+                          "elm,action,entry,toggle", "elm");
 
     entry = elm_object_part_content_get(popup_mod->popup_field[ELM_DATETIME_MINUTE],
                                                  "elm.swallow.entry");
@@ -566,15 +577,17 @@ _hour_validity_checking_filter(void *data, Evas_Object *obj, char **text)
       {
          elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_MINUTE],
                                          "elm,action,entry,toggle", "elm");
-         elm_object_focus_set(entry, EINA_TRUE);
       }
+    *insert = 0;
+    free((void *)new_str);
+    new_str = NULL;
 }
 
 static void
 _date_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 {
    Popup_Module_Data *popup_mod;
-   char new_str[BUFF_SIZE] = {0,};
+   const char *new_str = NULL;
    int min, max, val = 0, len;
    const char *curr_str;
    char *insert;
@@ -588,20 +601,25 @@ _date_validity_checking_filter(void *data, Evas_Object *obj, char **text)
    if (len < 1) return;
 
    curr_str = elm_object_text_get(obj);
-   if (curr_str) strncpy(new_str, curr_str, BUFF_SIZE);
-   strncat(new_str, insert, 1);
-   if (new_str[0]) val = atoi(new_str);
+   if (curr_str) new_str = _text_insert(curr_str, insert, elm_entry_cursor_pos_get(obj));
+   if (new_str) val = atoi(new_str);
    popup_mod->mod_data.field_limit_get(popup_mod->mod_data.base, ELM_DATETIME_DATE, &min, &max);
 
-   if ((val < min) || (val > max))
-     *insert = 0;
+   if ((val >= min) && (val <= max))
+     {
+       elm_entry_entry_set(obj, new_str);
+       elm_entry_cursor_end_set(obj);
+     }
+   *insert = 0;
+   free((void *)new_str);
+   new_str = NULL;
 }
 
 static void
 _minute_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 {
    Popup_Module_Data *popup_mod;
-   char new_str[BUFF_SIZE];
+   const char *new_str = NULL;
    int min, max, val = 0, len;
    char *insert;
    const char *curr_str;
@@ -615,15 +633,19 @@ _minute_validity_checking_filter(void *data, Evas_Object *obj, char **text)
    if (len < 1) return;
 
    curr_str = elm_object_text_get(obj);
-   if (curr_str) strncpy(new_str, curr_str, BUFF_SIZE);
-   new_str[BUFF_SIZE - 1] = '\0';
-   strncat(new_str, insert, 1);
-   if (new_str[0]) val = atoi(new_str);
+   if (curr_str) new_str = _text_insert(curr_str, insert, elm_entry_cursor_pos_get(obj));
+   if (new_str) val = atoi(new_str);
 
    popup_mod->mod_data.field_limit_get(popup_mod->mod_data.base, ELM_DATETIME_MINUTE, &min, &max);
 
-   if ((val < min) || (val > max))
-     *insert = 0;
+   if ((val >= min) && (val <= max))
+     {
+       elm_entry_entry_set(obj, new_str);
+       elm_entry_cursor_end_set(obj);
+     }
+   *insert = 0;
+   free((void *)new_str);
+   new_str = NULL;
 }
 
 static void

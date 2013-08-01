@@ -268,11 +268,21 @@ _entry_toggle_cb(void *data,
      {
         sd->orig_val = sd->val;
         elm_layout_signal_emit(data, "elm,state,active", "elm");
-        _entry_show(sd);
-        elm_entry_select_all(sd->ent);
-        elm_widget_focus_set(sd->ent, 1);
-        sd->entry_visible = EINA_TRUE;
      }
+}
+
+static void
+_entry_show_cb(void *data,
+               Evas *e __UNUSED__,
+               Evas_Object *obj,
+               void *event_info __UNUSED__)
+{
+   ELM_SPINNER_DATA_GET(data, sd);
+
+   _entry_show(sd);
+   elm_object_focus_set(obj, EINA_TRUE);
+   elm_entry_select_all(obj);
+   sd->entry_visible = EINA_TRUE;
 }
 
 static Eina_Bool
@@ -660,6 +670,8 @@ _elm_spinner_smart_add(Evas_Object *obj)
    elm_layout_content_set(obj, "elm.swallow.entry", priv->ent);
    elm_layout_signal_callback_add
      (obj, "elm,action,entry,toggle", "*", _entry_toggle_cb, obj);
+   evas_object_event_callback_add
+     (priv->ent, EVAS_CALLBACK_SHOW, _entry_show_cb, obj);
 
    _label_write(obj);
    elm_widget_can_focus_set(obj, EINA_TRUE);
