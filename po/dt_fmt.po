@@ -219,7 +219,7 @@ msgid "en_GB.UTF-8_DTFMT_12HR"
 msgstr "%d/%m/%Y%I:%M%p"
 
 msgid "en_US.UTF-8_DTFMT_12HR"
-msgstr "%d/%m/%Y%I:%M%p"
+msgstr "%m/%d/%Y%I:%M%p"
 
 msgid "en_ZW.UTF-8_DTFMT_12HR"
 msgstr "%d/%m/%Y%I:%M%p"
@@ -741,7 +741,7 @@ msgid "en_GB.UTF-8_DTFMT_24HR"
 msgstr "%d/%m/%Y%H:%M"
 
 msgid "en_US.UTF-8_DTFMT_24HR"
-msgstr "%d/%m/%Y%H:%M"
+msgstr "%m/%d/%Y%H:%M"
 
 msgid "en_ZW.UTF-8_DTFMT_24HR"
 msgstr "%d/%m/%Y%H:%M"

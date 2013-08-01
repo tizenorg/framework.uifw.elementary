@@ -798,7 +798,7 @@ _fields_min_max_get(Evas_Object *obj, struct tm *set_value,
 
    ELM_DATETIME_DATA_GET(obj, sd);
 
-   if (!set_value || min_value || !max_value) return;
+   if (!set_value || !min_value || !max_value) return;
 
    DATETIME_TM_ARRAY(mod_set_timearr, set_value);
    DATETIME_TM_ARRAY(mod_min_timearr, min_value);
@@ -820,8 +820,7 @@ _fields_min_max_get(Evas_Object *obj, struct tm *set_value,
 
         if (idx == ELM_DATETIME_DATE)
           {
-             max_days = _max_days_get(mod_set_timearr[ELM_DATETIME_YEAR],
-                                      mod_set_timearr[ELM_DATETIME_MONTH]);
+             max_days = _max_days_get(set_value->tm_year, set_value->tm_mon);
              if (max > max_days) max = max_days;
           }
         for (i = 0; i < idx; i++)
