@@ -925,6 +925,7 @@ elm_spinner_value_set(Evas_Object *obj,
    if (sd->val > sd->val_max) sd->val = sd->val_max;
    _val_set(obj);
    _label_write(obj);
+   evas_object_smart_callback_call(obj, SIG_CHANGED, NULL);
 }
 
 EAPI double
