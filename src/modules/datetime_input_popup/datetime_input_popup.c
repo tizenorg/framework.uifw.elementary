@@ -320,8 +320,6 @@ _datepicker_value_changed_cb(void *data, Evas_Object *obj, void *event_info __UN
    else
      *set_val_arr[field_idx] = (int)elm_spinner_value_get(obj);
 
-   elm_datetime_value_set(popup_mod->mod_data.base, &(popup_mod->set_time));
-
    popup_mod->mod_data.fields_min_max_get(popup_mod->mod_data.base,
                        &(popup_mod->set_time), &min_values, &max_values);
 
@@ -590,9 +588,10 @@ _date_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 {
    Popup_Module_Data *popup_mod;
    const char *new_str = NULL;
-   int min, max, val = 0, len;
+   int val = 0, len;
    const char *curr_str;
    char *insert;
+   double min, max;
 
    EINA_SAFETY_ON_NULL_RETURN(text);
    popup_mod = (Popup_Module_Data *)data;
@@ -605,7 +604,7 @@ _date_validity_checking_filter(void *data, Evas_Object *obj, char **text)
    curr_str = elm_object_text_get(obj);
    if (curr_str) new_str = _text_insert(curr_str, insert, elm_entry_cursor_pos_get(obj));
    if (new_str) val = atoi(new_str);
-   popup_mod->mod_data.field_limit_get(popup_mod->mod_data.base, ELM_DATETIME_DATE, &min, &max);
+   elm_spinner_min_max_get(popup_mod->popup_field[ELM_DATETIME_DATE], &min, &max);
 
    if ((val >= min) && (val <= max))
      {
