@@ -278,6 +278,20 @@ _popup_cancel_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *even
 }
 
 static void
+_picker_hide_cb(void *data,
+                   Evas_Object *obj __UNUSED__,
+                   const char *emission __UNUSED__,
+                   const char *source __UNUSED__)
+{
+   Popup_Module_Data *popup_mod;
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return;
+
+   evas_object_smart_callback_call(obj, SIG_EDIT_END, NULL);
+   evas_object_hide(popup_mod->popup);
+}
+
+static void
 _entry_activated_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 {
    Popup_Module_Data *popup_mod;
@@ -1471,7 +1485,7 @@ obj_hook(Evas_Object *obj)
                                   _timepicker_show_cb, popup_mod);
    elm_object_signal_callback_add(obj, "picker,hide", "",
                                   _picker_hide_cb, popup_mod);
-   evas_object_smart_callback_add(obj, "language,changed",
+   elm_object_signal_callback_add(obj, "language,changed", "",
                                   _module_language_changed_cb, popup_mod);
    elm_object_signal_callback_add(obj, "elm,action,press", "*",
                                   _datetime_press_cb, popup_mod);
