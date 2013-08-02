@@ -872,10 +872,12 @@ elm_spinner_min_max_set(Evas_Object *obj,
    if ((sd->val_min == min) && (sd->val_max == max)) return;
    sd->val_min = min;
    sd->val_max = max;
+   if (sd->val >= sd->val_min && sd->val <= sd->val_max) return;
    if (sd->val < sd->val_min) sd->val = sd->val_min;
    if (sd->val > sd->val_max) sd->val = sd->val_max;
    _val_set(obj);
    _label_write(obj);
+   evas_object_smart_callback_call(obj, SIG_CHANGED, NULL);
 }
 
 EAPI void
