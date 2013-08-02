@@ -26,6 +26,9 @@ static const char *field_styles[] = {
 
 static char month_arr[TOTAL_NUMBER_OF_MONTHS][MONTH_STRING_MAX_SIZE];
 
+static const char SIG_EDIT_START[] = "edit,start";
+static const char SIG_EDIT_END[] = "edit,end";
+
 typedef struct _Popup_Module_Data Popup_Module_Data;
 
 struct _Popup_Module_Data
@@ -78,12 +81,17 @@ static void
 _popup_set_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    Popup_Module_Data *popup_mod;
-   Evas_Object *content;
+   Evas_Object *content, *widget;
    int idx = 0;
    Evas_Object *spinner, *entry;
 
    popup_mod = (Popup_Module_Data *)data;
    if (!popup_mod) return;
+
+   widget = popup_mod->mod_data.base;
+   if (widget)
+     evas_object_smart_callback_call(widget, SIG_EDIT_END, NULL);
+
    evas_object_hide(popup_mod->popup);
    content = elm_object_content_get(popup_mod->popup);
    if (content == popup_mod->datepicker_layout)
@@ -122,12 +130,16 @@ static void
 _popup_cancel_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    Popup_Module_Data *popup_mod;
-   Evas_Object *content;
+   Evas_Object *content, *widget;
    int idx = 0;
    Evas_Object *spinner, *entry;
 
    popup_mod = (Popup_Module_Data *)data;
    if (!popup_mod) return;
+
+   widget = popup_mod->mod_data.base;
+   if (widget)
+     evas_object_smart_callback_call(widget, SIG_EDIT_END, NULL);
 
    evas_object_hide(popup_mod->popup);
    content = elm_object_content_get(popup_mod->popup);
@@ -160,7 +172,7 @@ _popup_cancel_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *even
 }
 
 static void
-_datepicker_hide_cb(void *data,
+_picker_hide_cb(void *data,
                    Evas_Object *obj __UNUSED__,
                    const char *emission __UNUSED__,
                    const char *source __UNUSED__)
@@ -169,19 +181,7 @@ _datepicker_hide_cb(void *data,
    popup_mod = (Popup_Module_Data *)data;
    if (!popup_mod) return;
 
-   evas_object_hide(popup_mod->popup);
-}
-
-static void
-_timepicker_hide_cb(void *data,
-                   Evas_Object *obj __UNUSED__,
-                   const char *emission __UNUSED__,
-                   const char *source __UNUSED__)
-{
-   Popup_Module_Data *popup_mod;
-   popup_mod = (Popup_Module_Data *)data;
-   if (!popup_mod) return;
-
+   evas_object_smart_callback_call(obj, SIG_EDIT_END, NULL);
    evas_object_hide(popup_mod->popup);
 }
 
@@ -917,7 +917,11 @@ _create_datetime_popup(Popup_Module_Data *popup_mod)
      {
         parent = elm_widget_parent_get(widget);
         widget_type = elm_widget_type_get(widget);
-        if (!strcmp(widget_type, "elm_conformant")) conformant = widget;
+        if (!strcmp(widget_type, "elm_conformant"))
+          {
+             conformant = widget;
+             break;
+          }
         widget = parent;
      }
    if (conformant)
@@ -1053,7 +1057,7 @@ _module_format_change(Popup_Module_Data *popup_mod)
 
 static void
 _datepicker_show_cb(void *data,
-                   Evas_Object *obj __UNUSED__,
+                   Evas_Object *obj,
                    const char *emission __UNUSED__,
                    const char *source __UNUSED__)
 {
@@ -1070,11 +1074,12 @@ _datepicker_show_cb(void *data,
 
    _show_datepicker_layout(popup_mod);
    evas_object_show(popup_mod->popup);
+   evas_object_smart_callback_call(obj, SIG_EDIT_START, NULL);
 }
 
 static void
 _timepicker_show_cb(void *data,
-                   Evas_Object *obj __UNUSED__,
+                   Evas_Object *obj,
                    const char *emission __UNUSED__,
                    const char *source __UNUSED__)
 {
@@ -1091,6 +1096,7 @@ _timepicker_show_cb(void *data,
 
    _show_timepicker_layout(popup_mod);
    evas_object_show(popup_mod->popup);
+   evas_object_smart_callback_call(obj, SIG_EDIT_START, NULL);
 }
 
 static void
@@ -1203,21 +1209,19 @@ field_create(Elm_Datetime_Module_Data *module_data, Elm_Datetime_Field_Type fiel
 }
 
 EAPI Elm_Datetime_Module_Data *
-obj_hook(Evas_Object *obj __UNUSED__)
+obj_hook(Evas_Object *obj)
 {
    Popup_Module_Data *popup_mod;
 
    popup_mod = ELM_NEW(Popup_Module_Data);
    if (!popup_mod) return NULL;
 
-   elm_object_signal_callback_add(obj, "datetime,datepicker,show", "",
+   elm_object_signal_callback_add(obj, "datepicker,show", "",
                                   _datepicker_show_cb, popup_mod);
-   elm_object_signal_callback_add(obj, "datetime,datepicker,hide", "",
-                                  _datepicker_hide_cb, popup_mod);
-   elm_object_signal_callback_add(obj, "datetime,timepicker,show", "",
+   elm_object_signal_callback_add(obj, "timepicker,show", "",
                                   _timepicker_show_cb, popup_mod);
-   elm_object_signal_callback_add(obj, "datetime,timepicker,hide", "",
-                                  _timepicker_hide_cb, popup_mod);
+   elm_object_signal_callback_add(obj, "picker,hide", "",
+                                  _picker_hide_cb, popup_mod);
    elm_object_signal_callback_add(obj, "language,changed", "",
                                   _module_language_changed_cb, popup_mod);
 
