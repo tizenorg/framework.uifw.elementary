@@ -333,10 +333,10 @@ msgid "gl_ES.UTF-8_DTFMT_12HR"
 msgstr "%d/%m/%Y%I:%M%p"
 
 msgid "ka_GE.UTF-8_DTFMT_12HR"
-msgstr "%Y/%d/%m%I:%M%p"
+msgstr "%Y/%m/%d%I:%M%p"
 
 msgid "de_AT.UTF-8_DTFMT_12HR"
-msgstr "%Y/%d/%m%I:%M%p"
+msgstr "%d/%m/%Y%I:%M%p"
 
 msgid "de_BE.UTF-8_DTFMT_12HR"
 msgstr "%Y/%d/%m%I:%M%p"
@@ -855,10 +855,10 @@ msgid "gl_ES.UTF-8_DTFMT_24HR"
 msgstr "%d/%m/%Y%H:%M"
 
 msgid "ka_GE.UTF-8_DTFMT_24HR"
-msgstr "%Y/%d/%m%H:%M"
+msgstr "%Y/%m/%d%H:%M"
 
 msgid "de_AT.UTF-8_DTFMT_24HR"
-msgstr "%Y/%d/%m%H:%M"
+msgstr "%d/%m/%Y%H:%M"
 
 msgid "de_BE.UTF-8_DTFMT_24HR"
 msgstr "%Y/%d/%m%H:%M"
