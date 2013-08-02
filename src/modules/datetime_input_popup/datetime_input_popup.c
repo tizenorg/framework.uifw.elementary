@@ -37,9 +37,72 @@ struct _Popup_Module_Data
    Evas_Object *popup;
    Evas_Object *datepicker_layout, *timepicker_layout;
    Evas_Object *popup_field[DATETIME_FIELD_COUNT];
+   Evas_Object *datetime_field[DATETIME_FIELD_COUNT];
    struct tm set_time;
    Eina_Bool time_24hr;
 };
+
+static void
+_picker_hide_cb(void *data,
+                Evas_Object *obj __UNUSED__,
+                const char *emission __UNUSED__,
+                const char *source __UNUSED__)
+{
+   Popup_Module_Data *popup_mod;
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return;
+
+   evas_object_smart_callback_call(obj, SIG_EDIT_END, NULL);
+   evas_object_hide(popup_mod->popup);
+}
+
+static void
+_datetime_press_cb(void *data,
+                   Evas_Object *obj __UNUSED__,
+                   const char *emission __UNUSED__,
+                   const char *source)
+{
+   Popup_Module_Data *popup_mod;
+   int idx;
+
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return;
+
+   if (!strcmp(source, "date.picker.bg"))
+     {
+        for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
+           elm_object_signal_emit(popup_mod->datetime_field[idx], "elm,state,select", "elm");
+     }
+   else if (!strcmp(source, "time.picker.bg"))
+     {
+        for (idx = ELM_DATETIME_HOUR; idx < DATETIME_FIELD_COUNT; idx++)
+           elm_object_signal_emit(popup_mod->datetime_field[idx], "elm,state,select", "elm");
+     }
+}
+
+static void
+_datetime_unpress_cb(void *data,
+                     Evas_Object *obj __UNUSED__,
+                     const char *emission __UNUSED__,
+                     const char *source)
+{
+   Popup_Module_Data *popup_mod;
+   int idx;
+
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return;
+
+   if (!strcmp(source, "date.picker.bg"))
+     {
+        for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
+           elm_object_signal_emit(popup_mod->datetime_field[idx], "elm,state,unselect", "elm");
+     }
+   else if (!strcmp(source, "time.picker.bg"))
+     {
+        for (idx = ELM_DATETIME_HOUR; idx < DATETIME_FIELD_COUNT; idx++)
+           elm_object_signal_emit(popup_mod->datetime_field[idx], "elm,state,unselect", "elm");
+     }
+}
 
 static void
 _set_datepicker_value(Popup_Module_Data *popup_mod)
@@ -169,20 +232,6 @@ _popup_cancel_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *even
                }
           }
      }
-}
-
-static void
-_picker_hide_cb(void *data,
-                   Evas_Object *obj __UNUSED__,
-                   const char *emission __UNUSED__,
-                   const char *source __UNUSED__)
-{
-   Popup_Module_Data *popup_mod;
-   popup_mod = (Popup_Module_Data *)data;
-   if (!popup_mod) return;
-
-   evas_object_smart_callback_call(obj, SIG_EDIT_END, NULL);
-   evas_object_hide(popup_mod->popup);
 }
 
 static void
@@ -1211,6 +1260,7 @@ field_create(Elm_Datetime_Module_Data *module_data, Elm_Datetime_Field_Type fiel
    snprintf(buf, sizeof(buf), "datetime/%s/default", field_styles[field_type]);
    elm_object_style_set(field_obj, buf);
    evas_object_data_set(field_obj, "_field_type", (void *)field_type);
+   popup_mod->datetime_field[field_type] = field_obj;
 
    _access_set(field_obj, field_type);
 
@@ -1233,6 +1283,10 @@ obj_hook(Evas_Object *obj)
                                   _picker_hide_cb, popup_mod);
    elm_object_signal_callback_add(obj, "language,changed", "",
                                   _module_language_changed_cb, popup_mod);
+   elm_object_signal_callback_add(obj, "elm,action,press", "*",
+                                  _datetime_press_cb, popup_mod);
+   elm_object_signal_callback_add(obj, "elm,action,unpress", "*",
+                                  _datetime_unpress_cb, popup_mod);
 
    popup_mod->popup = NULL;
    popup_mod->datepicker_layout = NULL;
