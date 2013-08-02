@@ -447,6 +447,8 @@ _datepicker_value_changed_cb(void *data, Evas_Object *obj, void *event_info __UN
    else
      *set_val_arr[field_idx] = (int)elm_spinner_value_get(obj);
 
+   elm_datetime_value_set(popup_mod->mod_data.base, &(popup_mod->set_time));
+
    popup_mod->mod_data.fields_min_max_get(popup_mod->mod_data.base,
                        &(popup_mod->set_time), &min_values, &max_values);
 
@@ -1070,28 +1072,25 @@ _create_datepicker_layout(Popup_Module_Data *popup_mod)
 
    for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
      {
-        spinner = elm_spinner_add(popup_mod->popup);
-        elm_spinner_editable_set(spinner, EINA_TRUE);
-        popup_mod->mod_data.field_location_get(popup_mod->mod_data.base, idx, &loc);
-        snprintf(buf, sizeof(buf), "datetime_popup/%s", field_styles[idx]);
-        elm_object_style_set(spinner, buf);
-        elm_spinner_step_set(spinner, 1);
-        elm_spinner_wrap_set(spinner, EINA_TRUE);
-        elm_spinner_label_format_set(spinner, "%02.0f");
-        if (loc > ELM_DATETIME_DATE) loc  = loc - PICKER_POPUP_FIELD_COUNT;
-        snprintf(buf, sizeof(buf), "field%d", loc);
-        popup_mod->field_location[loc] = idx;
-        elm_object_part_content_set(popup_mod->datepicker_layout, buf, spinner);
+       spinner = elm_spinner_add(popup_mod->popup);
+       elm_spinner_editable_set(spinner, EINA_TRUE);
+       snprintf(buf, sizeof(buf), "datetime_popup/%s", field_styles[idx]);
+       elm_object_style_set(spinner, buf);
+       elm_spinner_step_set(spinner, 1);
+       elm_spinner_wrap_set(spinner, EINA_TRUE);
+       elm_spinner_label_format_set(spinner, "%02.0f");
+       snprintf(buf, sizeof(buf), "field%d", idx);
+       elm_object_part_content_set(popup_mod->datepicker_layout, buf, spinner);
 
-        if (idx == ELM_DATETIME_YEAR)
-          elm_spinner_min_max_set(spinner, 1902, 2037);
-        else if (idx == ELM_DATETIME_MONTH)
-          elm_spinner_min_max_set(spinner, 1, 12);
-        else if (idx == ELM_DATETIME_DATE)
-          elm_spinner_min_max_set(spinner, 1, 31);
+       if (idx == ELM_DATETIME_YEAR)
+         elm_spinner_min_max_set(spinner, 1902, 2037);
+       else if (idx == ELM_DATETIME_MONTH)
+         elm_spinner_min_max_set(spinner, 1, 12);
+       else if (idx == ELM_DATETIME_DATE)
+         elm_spinner_min_max_set(spinner, 1, 31);
 
-        evas_object_smart_callback_add(spinner, "changed", _datepicker_value_changed_cb, popup_mod);
-        popup_mod->popup_field[idx] = spinner;
+       evas_object_smart_callback_add(spinner, "changed", _datepicker_value_changed_cb, popup_mod);
+       popup_mod->popup_field[idx] = spinner;
      }
 
    _set_month_special_values(popup_mod);
