@@ -447,8 +447,6 @@ _datepicker_value_changed_cb(void *data, Evas_Object *obj, void *event_info __UN
    else
      *set_val_arr[field_idx] = (int)elm_spinner_value_get(obj);
 
-   elm_datetime_value_set(popup_mod->mod_data.base, &(popup_mod->set_time));
-
    popup_mod->mod_data.fields_min_max_get(popup_mod->mod_data.base,
                        &(popup_mod->set_time), &min_values, &max_values);
 
@@ -727,7 +725,6 @@ _date_validity_checking_filter(void *data, Evas_Object *obj, char **text)
    const char *curr_str;
    char *insert;
    double min, max;
-   int next_idx = 0;
 
    EINA_SAFETY_ON_NULL_RETURN(text);
    popup_mod = (Popup_Module_Data *)data;
