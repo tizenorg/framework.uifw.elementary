@@ -493,7 +493,8 @@ _month_validity_checking_filter(void *data, Evas_Object *obj, char **text)
    Popup_Module_Data *popup_mod;
    Evas_Object *entry;
    const char *new_str = NULL;
-   int min, max, val = 0, len;
+   double min, max;
+   int val = 0, len, max_digits;
    char *insert;
    const char *curr_str;
 
@@ -503,13 +504,16 @@ _month_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 
    insert = *text;
    len = strlen(elm_object_text_get(obj));
-   if (len < 1) return;
-
    curr_str = elm_object_text_get(obj);
    if (curr_str) new_str = _text_insert(curr_str, insert, elm_entry_cursor_pos_get(obj));
    if (new_str) val = atoi(new_str) - 1;
 
-   popup_mod->mod_data.field_limit_get(popup_mod->mod_data.base, ELM_DATETIME_MONTH, &min, &max);
+   elm_spinner_min_max_get(popup_mod->popup_field[ELM_DATETIME_MONTH], &min, &max);
+   min -= 1;
+   max -= 1;
+
+   max_digits = (max >= 10 ? 2 : 1);
+   if (len < 1 && max_digits > 1 && val < 1) return;
 
    if ((val >= min) && (val <= max))
      {
