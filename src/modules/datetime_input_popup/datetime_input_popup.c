@@ -989,13 +989,13 @@ _create_datetime_popup(Popup_Module_Data *popup_mod)
 
    cancel_btn = elm_button_add(popup_mod->popup);
    elm_object_style_set(cancel_btn, "popup_button/default");
-   elm_object_text_set(cancel_btn, E_("Cancel"));
+   elm_object_domain_translatable_text_set(cancel_btn, PACKAGE, E_("Cancel"));
    elm_object_part_content_set(popup_mod->popup, "button1", cancel_btn);
    evas_object_smart_callback_add(cancel_btn, "clicked", _popup_cancel_btn_clicked_cb, popup_mod);
 
    set_btn = elm_button_add(popup_mod->popup);
    elm_object_style_set(set_btn, "popup_button/default");
-   elm_object_text_set(set_btn, E_("Set"));
+   elm_object_domain_translatable_text_set(set_btn, PACKAGE, E_("Set"));
    elm_object_part_content_set(popup_mod->popup, "button2", set_btn);
    evas_object_smart_callback_add(set_btn, "clicked", _popup_set_btn_clicked_cb, popup_mod);
 }
@@ -1159,17 +1159,21 @@ _timepicker_show_cb(void *data,
 
 static void
 _module_language_changed_cb(void *data,
-                           Evas_Object *obj __UNUSED__,
-                           const char *emission __UNUSED__,
-                           const char *source __UNUSED__)
+                            Evas_Object *obj __UNUSED__,
+                            void *event_info __UNUSED__)
 {
    Popup_Module_Data *popup_mod;
-
+   Evas_Object *content;
    popup_mod = (Popup_Module_Data *)data;
-   if (!popup_mod || popup_mod->popup) return;
+   if (!popup_mod || !popup_mod->popup) return;
 
    _set_month_special_values(popup_mod);
    _set_ampm_special_values(popup_mod);
+   content = elm_object_content_get(popup_mod->popup);
+   if (content == popup_mod->datepicker_layout)
+     _set_datepicker_popup_title_text(popup_mod);
+   else if (content == popup_mod->timepicker_layout)
+     _set_timepicker_popup_title_text(popup_mod);
 }
 
 static void
@@ -1281,7 +1285,7 @@ obj_hook(Evas_Object *obj)
                                   _timepicker_show_cb, popup_mod);
    elm_object_signal_callback_add(obj, "picker,hide", "",
                                   _picker_hide_cb, popup_mod);
-   elm_object_signal_callback_add(obj, "language,changed", "",
+   evas_object_smart_callback_add(obj, "language,changed",
                                   _module_language_changed_cb, popup_mod);
    elm_object_signal_callback_add(obj, "elm,action,press", "*",
                                   _datetime_press_cb, popup_mod);
