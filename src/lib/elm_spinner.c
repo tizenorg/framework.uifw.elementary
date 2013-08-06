@@ -490,11 +490,24 @@ _elm_spinner_smart_event(Evas_Object *obj,
 static Eina_Bool
 _elm_spinner_smart_on_focus(Evas_Object *obj)
 {
+   ELM_SPINNER_DATA_GET(obj, sd);
    if (!ELM_WIDGET_CLASS(_elm_spinner_parent_sc)->on_focus(obj))
      return EINA_FALSE;
 
    if (!elm_widget_focus_get(obj))
-     _entry_value_apply(obj);
+     {
+        if (sd->delay)
+          {
+             ecore_timer_del(sd->delay);
+             sd->delay = NULL;
+          }
+        if (sd->spin)
+          {
+             ecore_timer_del(sd->spin);
+             sd->spin = NULL;
+          }
+        _entry_value_apply(obj);
+     }
 
    return EINA_TRUE;
 }
