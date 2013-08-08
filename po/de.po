@@ -9,9 +9,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: elementary 0.7.0.57309\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2012-09-20 13:50+0900\n"
+"POT-Creation-Date: 2013-08-08 14:31+0000\n"
 "PO-Revision-Date: 2011-02-25 20:22+0100\n"
-"Last-Translator: Fabian Nowak <timystery@arcor.de>\n"
+"Last-Translator: Shilpa Singh <shilpa.singh@samsung.com>\n"
 "Language-Team: German\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
@@ -204,4 +204,8 @@ msgstr ""
 
 #: src/modules/datetime_input_popup/datetime_input_popup.c:786
 msgid "Set"
-msgstr ""
+msgstr "Einstellen"
+
+#: src/modules/ctxpopup_CopypasteUI/copypaste.c
+msgid "Translate"
+msgstr "Übersetzen"
