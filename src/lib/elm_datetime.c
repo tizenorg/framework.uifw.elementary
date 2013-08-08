@@ -611,9 +611,9 @@ _max_days_get(int year,
    localtime_r(&t, &time1);
    time1.tm_year = year;
    time1.tm_mon = month;
-   /* To restrict month wrapping because of day light saving mode in some locales,
-      set the time as 0 hr */
-   time1.tm_hour = 0;
+   /* FIXME: To restrict month wrapping because of summer time in some locales,
+    * disable day light saving mode. */
+   time1.tm_isdst = 0;
    for (day = MIN_DAYS_IN_MONTH; day <= mapping[ELM_DATETIME_DATE].def_max;
         day++)
      {

@@ -328,9 +328,11 @@ _set_datepicker_popup_title_text(Popup_Module_Data *popup_mod)
    set_time.tm_year = (popup_mod->set_time).tm_year;
    set_time.tm_mon = (popup_mod->set_time).tm_mon;
    set_time.tm_mday = (popup_mod->set_time).tm_mday;
-   set_time.tm_hour = 0;
+   /* FIXME: To restrict month wrapping because of summer time in some locales,
+    * disable day light saving mode. */
+   set_time.tm_isdst = 0;
    mktime(&set_time);
-   strftime(title, BUFF_SIZE, "%x, %a", &set_time);
+   strftime(title, BUFF_SIZE, "%a %x", &set_time);
    elm_object_part_text_set(popup_mod->popup, "title,text", title);
 }
 
