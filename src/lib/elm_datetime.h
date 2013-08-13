@@ -208,6 +208,7 @@ typedef enum _Elm_Datetime_Field_Type
    ELM_DATETIME_HOUR    = 3, /**< Indicates Hour field */
    ELM_DATETIME_MINUTE  = 4, /**< Indicates Minute field */
    ELM_DATETIME_AMPM    = 5, /**< Indicates AM/PM field */
+   ELM_DATETIME_LAST    = 6
 } Elm_Datetime_Field_Type;
 
 /**

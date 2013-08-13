@@ -8,6 +8,7 @@
 #define STRUCT_TM_YEAR_BASE_VALUE       1900
 #define STRUCT_TM_TIME_12HRS_MAX_VALUE  12
 #define STRUCT_TM_TIME_24HRS_MAX_VALUE  23
+#define PICKER_POPUP_FIELD_COUNT        3
 
 /* struct tm does not define the fields in the order year, month,
  * date, hour, minute. values are reassigned to an array for easy
@@ -37,6 +38,7 @@ struct _Popup_Module_Data
    Evas_Object *popup;
    Evas_Object *datepicker_layout, *timepicker_layout;
    Evas_Object *popup_field[DATETIME_FIELD_COUNT];
+   int field_location[PICKER_POPUP_FIELD_COUNT];
    Evas_Object *datetime_field[DATETIME_FIELD_COUNT];
    struct tm set_time;
    Eina_Bool time_12hr_fmt;
@@ -512,6 +514,38 @@ _text_insert(const char *text, char *input, int pos)
    return (const char *)result;
 }
 
+static int
+_picker_nextfield_location_get(void *data, int curr)
+{
+   int idx, next_idx;
+   Popup_Module_Data *popup_mod;
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return ELM_DATETIME_LAST;
+
+   for (idx = 0; idx < PICKER_POPUP_FIELD_COUNT; idx++)
+     if (popup_mod->field_location[idx] == curr) break;
+   if (idx < ELM_DATETIME_DATE)
+     {
+        next_idx = popup_mod->field_location[++idx];
+        return next_idx;
+     }
+   else return ELM_DATETIME_LAST;
+}
+
+static int
+_picker_field_location_get(void *data, int curr)
+{
+   int idx, next_idx;
+   Popup_Module_Data *popup_mod;
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return ELM_DATETIME_LAST;
+
+   for (idx = 0; idx < PICKER_POPUP_FIELD_COUNT; idx++)
+     if (popup_mod->field_location[idx] == curr) break;
+
+   return idx;
+}
+
 static void
 _year_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 {
@@ -521,6 +555,7 @@ _year_validity_checking_filter(void *data, Evas_Object *obj, char **text)
    int min, max, val = 0, len;
    char *insert;
    const char *curr_str;
+   int next_idx = 0;
 
    EINA_SAFETY_ON_NULL_RETURN(text);
    popup_mod = (Popup_Module_Data *)data;
@@ -540,16 +575,18 @@ _year_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 
    if (val <= max)
      {
-       elm_entry_entry_set(obj, new_str);
-       elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_YEAR],
-                              "elm,action,entry,toggle", "elm");
-
-       entry = elm_object_part_content_get(popup_mod->popup_field[ELM_DATETIME_MONTH],
-                                           "elm.swallow.entry");
-       if (!elm_object_focus_get(entry))
-         {
-            elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_MONTH],
-                                   "elm,action,entry,toggle", "elm");
+        elm_entry_entry_set(obj, new_str);
+        elm_entry_cursor_end_set(obj);
+        next_idx = _picker_nextfield_location_get(popup_mod, ELM_DATETIME_YEAR);
+        if (next_idx != ELM_DATETIME_LAST)
+          {
+             elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_YEAR],
+                                    "elm,action,entry,toggle", "elm");
+             entry = elm_object_part_content_get(popup_mod->popup_field[next_idx],
+                                                "elm.swallow.entry");
+             if (!elm_object_focus_get(entry))
+               elm_layout_signal_emit(popup_mod->popup_field[next_idx],
+                                      "elm,action,entry,toggle", "elm");
          }
      }
 
@@ -568,6 +605,7 @@ _month_validity_checking_filter(void *data, Evas_Object *obj, char **text)
    int val = 0, len, max_digits;
    char *insert;
    const char *curr_str;
+   int next_idx = 0;
 
    EINA_SAFETY_ON_NULL_RETURN(text);
    popup_mod = (Popup_Module_Data *)data;
@@ -588,16 +626,18 @@ _month_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 
    if ((val >= min) && (val <= max))
      {
-       elm_entry_entry_set(obj, new_str);
-       elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_MONTH],
-                             "elm,action,entry,toggle", "elm");
-
-       entry = elm_object_part_content_get(popup_mod->popup_field[ELM_DATETIME_DATE],
-                                         "elm.swallow.entry");
-       if (!elm_object_focus_get(entry))
-         {
-            elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_DATE],
-                                 "elm,action,entry,toggle", "elm");
+        elm_entry_entry_set(obj, new_str);
+        elm_entry_cursor_end_set(obj);
+        next_idx = _picker_nextfield_location_get(popup_mod, ELM_DATETIME_MONTH);
+        if (next_idx != DATETIME_FIELD_COUNT)
+          {
+             elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_MONTH],
+                                    "elm,action,entry,toggle", "elm");
+             entry = elm_object_part_content_get(popup_mod->popup_field[next_idx],
+                                                 "elm.swallow.entry");
+             if (!elm_object_focus_get(entry))
+               elm_layout_signal_emit(popup_mod->popup_field[next_idx],
+                                      "elm,action,entry,toggle", "elm");
          }
      }
    *insert = 0;
@@ -662,11 +702,13 @@ static void
 _date_validity_checking_filter(void *data, Evas_Object *obj, char **text)
 {
    Popup_Module_Data *popup_mod;
+   Evas_Object *entry;
    const char *new_str = NULL;
    int val = 0, len;
    const char *curr_str;
    char *insert;
    double min, max;
+   int next_idx = 0;
 
    EINA_SAFETY_ON_NULL_RETURN(text);
    popup_mod = (Popup_Module_Data *)data;
@@ -685,6 +727,17 @@ _date_validity_checking_filter(void *data, Evas_Object *obj, char **text)
      {
        elm_entry_entry_set(obj, new_str);
        elm_entry_cursor_end_set(obj);
+       next_idx = _picker_nextfield_location_get(popup_mod, ELM_DATETIME_DATE);
+       if (next_idx != ELM_DATETIME_LAST)
+         {
+            elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_DATE],
+                                   "elm,action,entry,toggle", "elm");
+            entry = elm_object_part_content_get(popup_mod->popup_field[next_idx],
+                                                "elm.swallow.entry");
+            if (!elm_object_focus_get(entry))
+              elm_layout_signal_emit(popup_mod->popup_field[next_idx],
+                                        "elm,action,entry,toggle", "elm");
+         }
      }
    *insert = 0;
    free((void *)new_str);
@@ -990,7 +1043,7 @@ _create_datepicker_layout(Popup_Module_Data *popup_mod)
 {
    Evas_Object *spinner;
    char buf[BUFF_SIZE];
-   int idx;
+   int idx, loc;
 
    if (!popup_mod) return;
 
@@ -999,25 +1052,28 @@ _create_datepicker_layout(Popup_Module_Data *popup_mod)
 
    for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
      {
-       spinner = elm_spinner_add(popup_mod->popup);
-       elm_spinner_editable_set(spinner, EINA_TRUE);
-       snprintf(buf, sizeof(buf), "datetime_popup/%s", field_styles[idx]);
-       elm_object_style_set(spinner, buf);
-       elm_spinner_step_set(spinner, 1);
-       elm_spinner_wrap_set(spinner, EINA_TRUE);
-       elm_spinner_label_format_set(spinner, "%02.0f");
-       snprintf(buf, sizeof(buf), "field%d", idx);
-       elm_object_part_content_set(popup_mod->datepicker_layout, buf, spinner);
+        spinner = elm_spinner_add(popup_mod->popup);
+        elm_spinner_editable_set(spinner, EINA_TRUE);
+        popup_mod->mod_data.field_location_get(popup_mod->mod_data.base, idx, &loc);
+        snprintf(buf, sizeof(buf), "datetime_popup/%s", field_styles[idx]);
+        elm_object_style_set(spinner, buf);
+        elm_spinner_step_set(spinner, 1);
+        elm_spinner_wrap_set(spinner, EINA_TRUE);
+        elm_spinner_label_format_set(spinner, "%02.0f");
+        if (loc > ELM_DATETIME_DATE) loc  = loc - PICKER_POPUP_FIELD_COUNT;
+        snprintf(buf, sizeof(buf), "field%d", loc);
+        popup_mod->field_location[loc] = idx;
+        elm_object_part_content_set(popup_mod->datepicker_layout, buf, spinner);
 
-       if (idx == ELM_DATETIME_YEAR)
-         elm_spinner_min_max_set(spinner, 1902, 2037);
-       else if (idx == ELM_DATETIME_MONTH)
-         elm_spinner_min_max_set(spinner, 1, 12);
-       else if (idx == ELM_DATETIME_DATE)
-         elm_spinner_min_max_set(spinner, 1, 31);
+        if (idx == ELM_DATETIME_YEAR)
+          elm_spinner_min_max_set(spinner, 1902, 2037);
+        else if (idx == ELM_DATETIME_MONTH)
+          elm_spinner_min_max_set(spinner, 1, 12);
+        else if (idx == ELM_DATETIME_DATE)
+          elm_spinner_min_max_set(spinner, 1, 31);
 
-       evas_object_smart_callback_add(spinner, "changed", _datepicker_value_changed_cb, popup_mod);
-       popup_mod->popup_field[idx] = spinner;
+        evas_object_smart_callback_add(spinner, "changed", _datepicker_value_changed_cb, popup_mod);
+        popup_mod->popup_field[idx] = spinner;
      }
 
    _set_month_special_values(popup_mod);
@@ -1078,9 +1134,11 @@ _create_timepicker_layout(Popup_Module_Data *popup_mod)
 static void
 _module_format_change(Popup_Module_Data *popup_mod)
 {
+   Evas_Object *field_loc[PICKER_POPUP_FIELD_COUNT];
+   Evas_Object *spinner_field[PICKER_POPUP_FIELD_COUNT];
    Evas_Object *datetime, *spinner;
    char buf[BUFF_SIZE];
-   int idx;
+   int idx, loc, prev_loc;
    Eina_Bool datepicker_bg_show = EINA_FALSE;
    Eina_Bool timepicker_bg_show = EINA_FALSE;
    Eina_Bool time_12hr;
@@ -1088,6 +1146,23 @@ _module_format_change(Popup_Module_Data *popup_mod)
    if (!popup_mod) return;
 
    datetime = popup_mod->mod_data.base;
+   if (popup_mod->datepicker_layout)
+     {
+        for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
+          {
+             popup_mod->mod_data.field_location_get(datetime, idx, &loc);
+             prev_loc = _picker_field_location_get(popup_mod, idx);
+             snprintf(buf, sizeof(buf), "field%d", prev_loc);
+             spinner_field[idx] = elm_object_part_content_unset(popup_mod->datepicker_layout, buf);
+             field_loc[idx] = loc;
+          }
+        for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
+          {
+             snprintf(buf, sizeof(buf), "field%d", field_loc[idx]);
+             elm_object_part_content_set(popup_mod->datepicker_layout, buf, spinner_field[idx]);
+             popup_mod->field_location[idx] = field_loc[idx];
+          }
+     }
    for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
      datepicker_bg_show |= popup_mod->mod_data.field_location_get(datetime, idx, NULL);
    if (!datepicker_bg_show)
