@@ -1101,7 +1101,7 @@ _module_format_change(Popup_Module_Data *popup_mod)
    time_12hr = popup_mod->mod_data.field_location_get(datetime, ELM_DATETIME_AMPM, NULL);
    if ((popup_mod->time_12hr_fmt != time_12hr) && (popup_mod->timepicker_layout))
      {
-       for (idx = ELM_DATETIME_DATE; idx <= ELM_DATETIME_AMPM; idx++)
+       for (idx = ELM_DATETIME_HOUR; idx <= ELM_DATETIME_AMPM; idx++)
          {
             snprintf(buf, sizeof(buf), "field%d", (idx - ELM_DATETIME_HOUR));
             spinner = elm_object_part_content_unset(popup_mod->timepicker_layout, buf);
@@ -1110,7 +1110,7 @@ _module_format_change(Popup_Module_Data *popup_mod)
         if (time_12hr)
           {
              elm_layout_theme_set(popup_mod->timepicker_layout, "layout", "datetime_popup", "time_layout");
-             for (idx = ELM_DATETIME_DATE; idx <= ELM_DATETIME_AMPM; idx++)
+             for (idx = ELM_DATETIME_HOUR; idx <= ELM_DATETIME_AMPM; idx++)
                {
                   snprintf(buf, sizeof(buf), "field%d", (idx - ELM_DATETIME_HOUR));
                   elm_object_part_content_set(popup_mod->timepicker_layout, buf, popup_mod->popup_field[idx]);
@@ -1119,7 +1119,7 @@ _module_format_change(Popup_Module_Data *popup_mod)
         else
           {
              elm_layout_theme_set(popup_mod->timepicker_layout, "layout", "datetime_popup", "time_layout_24hr");
-             for (idx = ELM_DATETIME_DATE; idx <= ELM_DATETIME_MINUTE; idx++)
+             for (idx = ELM_DATETIME_HOUR; idx <= ELM_DATETIME_MINUTE; idx++)
                {
                   snprintf(buf, sizeof(buf), "field%d", (idx - ELM_DATETIME_HOUR));
                   elm_object_part_content_set(popup_mod->timepicker_layout, buf, popup_mod->popup_field[idx]);
