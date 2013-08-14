@@ -331,8 +331,8 @@ _set_datepicker_popup_title_text(Popup_Module_Data *popup_mod)
    set_time.tm_mon = (popup_mod->set_time).tm_mon;
    set_time.tm_mday = (popup_mod->set_time).tm_mday;
    /* FIXME: To restrict month wrapping because of summer time in some locales,
-    * disable day light saving mode. */
-   set_time.tm_isdst = 0;
+    * ignore day light saving mode in mktime(). */
+   set_time.tm_isdst = -1;
    mktime(&set_time);
    strftime(title, BUFF_SIZE, "%a %x", &set_time);
    elm_object_part_text_set(popup_mod->popup, "title,text", title);
@@ -1339,6 +1339,9 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
 
    if (field_type == ELM_DATETIME_DATE)
      {
+        /* FIXME: To restrict month wrapping because of summer time in some locales,
+         * ignore day light saving mode in mktime(). */
+        curr_time.tm_isdst = -1;
         mktime(&curr_time);
         strftime(buf, sizeof(buf), "%a", &curr_time);
         elm_layout_text_set(popup_mod->mod_data.base, "elm.text.weekday", buf);
