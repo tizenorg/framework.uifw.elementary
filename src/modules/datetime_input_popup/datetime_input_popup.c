@@ -29,6 +29,7 @@ static char month_arr[TOTAL_NUMBER_OF_MONTHS][MONTH_STRING_MAX_SIZE];
 
 static const char SIG_EDIT_START[] = "edit,start";
 static const char SIG_EDIT_END[] = "edit,end";
+static const char SIG_PICKER_VALUE_SET[] = "picker,value,set";
 
 typedef struct _Popup_Module_Data Popup_Module_Data;
 
@@ -191,6 +192,8 @@ _popup_set_btn_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *event_i
           }
         _set_timepicker_value(popup_mod);
      }
+
+   evas_object_smart_callback_call(popup_mod->mod_data.base, SIG_PICKER_VALUE_SET, NULL);
 }
 
 static void
@@ -535,7 +538,7 @@ _picker_nextfield_location_get(void *data, int curr)
 static int
 _picker_field_location_get(void *data, int curr)
 {
-   int idx, next_idx;
+   int idx;
    Popup_Module_Data *popup_mod;
    popup_mod = (Popup_Module_Data *)data;
    if (!popup_mod) return ELM_DATETIME_LAST;
@@ -952,10 +955,6 @@ _show_timepicker_layout(Popup_Module_Data *popup_mod)
           hour -= STRUCT_TM_TIME_12HRS_MAX_VALUE;
         hour = (hour == 0) ? STRUCT_TM_TIME_12HRS_MAX_VALUE : hour;
      }
-    elm_spinner_value_set(popup_mod->popup_field[ELM_DATETIME_HOUR], hour);
-    elm_spinner_value_set(popup_mod->popup_field[ELM_DATETIME_MINUTE], curr_time.tm_min);
-    if (popup_mod->time_12hr_fmt)
-      _set_ampm_value(popup_mod);
 
     popup_mod->mod_data.fields_min_max_get(popup_mod->mod_data.base, &curr_time, &min_time, &max_time);
     hour_min = min_time.tm_hour;
@@ -971,6 +970,11 @@ _show_timepicker_layout(Popup_Module_Data *popup_mod)
     elm_spinner_min_max_set(popup_mod->popup_field[ELM_DATETIME_HOUR], hour_min, hour_max);
     elm_spinner_min_max_set(popup_mod->popup_field[ELM_DATETIME_MINUTE],
                             min_time.tm_min, max_time.tm_min);
+
+    elm_spinner_value_set(popup_mod->popup_field[ELM_DATETIME_HOUR], hour);
+    elm_spinner_value_set(popup_mod->popup_field[ELM_DATETIME_MINUTE], curr_time.tm_min);
+    if (popup_mod->time_12hr_fmt)
+      _set_ampm_value(popup_mod);
 }
 
 static void
@@ -1134,9 +1138,9 @@ _create_timepicker_layout(Popup_Module_Data *popup_mod)
 static void
 _module_format_change(Popup_Module_Data *popup_mod)
 {
-   Evas_Object *field_loc[PICKER_POPUP_FIELD_COUNT];
    Evas_Object *spinner_field[PICKER_POPUP_FIELD_COUNT];
    Evas_Object *datetime, *spinner;
+   int field_loc[PICKER_POPUP_FIELD_COUNT];
    char buf[BUFF_SIZE];
    int idx, loc, prev_loc;
    Eina_Bool datepicker_bg_show = EINA_FALSE;
