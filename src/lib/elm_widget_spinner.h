@@ -129,7 +129,7 @@ struct _Elm_Spinner_Smart_Data
 
    Evas_Object          *ent;
    const char           *label;
-   double                val, val_min, val_max, orig_val, step, val_base;
+   double                val, val_min, val_max, step, val_base;
    double                drag_start_pos, spin_speed, interval, first_interval;
    int                   round;
    Ecore_Timer          *delay, *spin;
@@ -139,6 +139,7 @@ struct _Elm_Spinner_Smart_Data
    Eina_Bool             dragging : 1;
    Eina_Bool             editable : 1;
    Eina_Bool             wrap : 1;
+   Eina_Bool             val_updated : 1;
 };
 
 typedef struct _Elm_Spinner_Special_Value Elm_Spinner_Special_Value;

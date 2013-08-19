@@ -221,15 +221,6 @@ _entry_hide(Evas_Object *obj)
 }
 
 static void
-_reset_value(Evas_Object *obj)
-{
-   ELM_SPINNER_DATA_GET(obj, sd);
-
-   _entry_hide(obj);
-   elm_spinner_value_set(obj, sd->orig_val);
-}
-
-static void
 _entry_value_apply(Evas_Object *obj)
 {
    const char *str;
@@ -265,10 +256,7 @@ _entry_toggle_cb(void *data,
    if (!sd->editable) return;
    if (sd->entry_visible) _entry_value_apply(data);
    else
-     {
-        sd->orig_val = sd->val;
-        elm_layout_signal_emit(data, "elm,state,active", "elm");
-     }
+     elm_layout_signal_emit(data, "elm,state,active", "elm");
 }
 
 static void
@@ -359,10 +347,12 @@ _button_inc_start_cb(void *data,
 {
    ELM_SPINNER_DATA_GET(data, sd);
 
+   /* FIXME: When entry is still visible and inc button is clicked
+    * commit entry text and then increment the committed text */
    if (sd->entry_visible)
      {
-        _reset_value(data);
-        return;
+        _entry_value_apply(obj);
+        if ((sd->val_updated) && (sd->val == sd->val_min)) return;
      }
    _val_inc_start(data);
 }
@@ -383,11 +373,12 @@ _button_dec_start_cb(void *data,
                      const char *source __UNUSED__)
 {
    ELM_SPINNER_DATA_GET(data, sd);
-
+   /* FIXME: When entry is still visible and inc button is clicked
+    * commit entry text and then increment the committed text */
    if (sd->entry_visible)
      {
-        _reset_value(data);
-        return;
+        _entry_value_apply(obj);
+        if ((sd->val_updated) && (sd->val == sd->val_max)) return;
      }
    _val_dec_start(data);
 }
@@ -936,8 +927,17 @@ elm_spinner_value_set(Evas_Object *obj,
 
    if (sd->val == val) return;
    sd->val = val;
-   if (sd->val < sd->val_min) sd->val = sd->val_min;
-   if (sd->val > sd->val_max) sd->val = sd->val_max;
+   sd->val_updated = EINA_FALSE;
+   if (sd->val < sd->val_min)
+     {
+        sd->val = sd->val_min;
+        sd->val_updated = EINA_TRUE;
+     }
+   if (sd->val > sd->val_max)
+     {
+        sd->val = sd->val_max;
+        sd->val_updated = EINA_TRUE;
+     }
    _val_set(obj);
    _label_write(obj);
    evas_object_smart_callback_call(obj, SIG_CHANGED, NULL);
