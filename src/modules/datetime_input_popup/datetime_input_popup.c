@@ -46,6 +46,38 @@ struct _Popup_Module_Data
    Eina_Bool is_pm;
 };
 
+static int
+_picker_nextfield_location_get(void *data, int curr)
+{
+   int idx, next_idx;
+   Popup_Module_Data *popup_mod;
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return ELM_DATETIME_LAST;
+
+   for (idx = 0; idx < PICKER_POPUP_FIELD_COUNT; idx++)
+     if (popup_mod->field_location[idx] == curr) break;
+   if (idx < ELM_DATETIME_DATE)
+     {
+        next_idx = popup_mod->field_location[++idx];
+        return next_idx;
+     }
+   else return ELM_DATETIME_LAST;
+}
+
+static int
+_picker_field_location_get(void *data, int curr)
+{
+   int idx;
+   Popup_Module_Data *popup_mod;
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return ELM_DATETIME_LAST;
+
+   for (idx = 0; idx < PICKER_POPUP_FIELD_COUNT; idx++)
+     if (popup_mod->field_location[idx] == curr) break;
+
+   return idx;
+}
+
 static void
 _picker_hide_cb(void *data,
                 Evas_Object *obj __UNUSED__,
@@ -246,19 +278,19 @@ _entry_activated_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 {
    Popup_Module_Data *popup_mod;
    Evas_Object *entry, *en;
-   int idx;
+   int idx, next_idx;
 
    popup_mod = (Popup_Module_Data *)data;
    if (!popup_mod) return;
 
-   for (idx = 0; idx < ELM_DATETIME_DATE; idx++)
+   for (idx = 0; idx < PICKER_POPUP_FIELD_COUNT; idx++)
      {
         entry = elm_object_part_content_get(popup_mod->popup_field[idx], "elm.swallow.entry");
         if (obj == entry)
           {
-             idx++;
-             en = elm_object_part_content_get(popup_mod->popup_field[idx], "elm.swallow.entry");
-             elm_layout_signal_emit(popup_mod->popup_field[idx], "elm,action,entry,toggle", "elm");
+             next_idx = _picker_nextfield_location_get(popup_mod, idx);
+             if (next_idx != ELM_DATETIME_LAST)
+               elm_layout_signal_emit(popup_mod->popup_field[next_idx], "elm,action,entry,toggle", "elm");
              return;
           }
      }
@@ -515,38 +547,6 @@ _text_insert(const char *text, char *input, int pos)
    strcpy(result + pos + input_len, text + pos);
 
    return (const char *)result;
-}
-
-static int
-_picker_nextfield_location_get(void *data, int curr)
-{
-   int idx, next_idx;
-   Popup_Module_Data *popup_mod;
-   popup_mod = (Popup_Module_Data *)data;
-   if (!popup_mod) return ELM_DATETIME_LAST;
-
-   for (idx = 0; idx < PICKER_POPUP_FIELD_COUNT; idx++)
-     if (popup_mod->field_location[idx] == curr) break;
-   if (idx < ELM_DATETIME_DATE)
-     {
-        next_idx = popup_mod->field_location[++idx];
-        return next_idx;
-     }
-   else return ELM_DATETIME_LAST;
-}
-
-static int
-_picker_field_location_get(void *data, int curr)
-{
-   int idx;
-   Popup_Module_Data *popup_mod;
-   popup_mod = (Popup_Module_Data *)data;
-   if (!popup_mod) return ELM_DATETIME_LAST;
-
-   for (idx = 0; idx < PICKER_POPUP_FIELD_COUNT; idx++)
-     if (popup_mod->field_location[idx] == curr) break;
-
-   return idx;
 }
 
 static void
