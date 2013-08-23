@@ -728,6 +728,36 @@ _on_normal(void *data,
         elm_plug_msg_send(sd->portrait_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_OPACITY, &(sd->ind_o_mode), sizeof(Elm_Win_Indicator_Opacity_Mode));
      }
 }
+
+static void
+_signals_emit(Evas_Object *obj)
+{
+   char buf[128];
+
+   ELM_CONFORMANT_DATA_GET(obj, sd);
+
+   //Indicator show/hide
+   if (sd->indmode == ELM_WIN_INDICATOR_SHOW)
+     {
+        elm_object_signal_emit(obj, "elm,state,indicator,show", "elm");
+        //Indicator opacity
+        if (sd->ind_o_mode == ELM_WIN_INDICATOR_TRANSLUCENT)
+          {
+             elm_object_signal_emit(obj, "elm,state,indicator,translucent", "elm");
+             elm_object_signal_emit(obj, "elm,state,indicator,overlap", "");
+          }
+        else if (sd->ind_o_mode == ELM_WIN_INDICATOR_TRANSPARENT)
+          {
+             elm_object_signal_emit(obj, "elm,state,indicator,transparent", "elm");
+             elm_object_signal_emit(obj, "elm,state,indicator,overlap", "");
+          }
+        else
+          elm_object_signal_emit(obj, "elm,state,indicator,opaque", "elm");
+     }
+   else
+     elm_object_signal_emit(obj, "elm,state,indicator,hide", "elm");
+}
+
 static Eina_Bool
 _elm_conformant_smart_theme(Evas_Object *obj)
 {
@@ -735,6 +765,7 @@ _elm_conformant_smart_theme(Evas_Object *obj)
      return EINA_FALSE;
 
    _conformant_parts_swallow(obj);
+   _signals_emit(obj);
 
    elm_layout_sizing_eval(obj);
 
