@@ -419,7 +419,7 @@ _plug_msg_handle(void *data, Evas_Object *obj __UNUSED__, void *event_info)
         if (msg_id == MSG_ID_INDICATOR_REPEAT_EVENT)
           {
               int *repeat = msg_data;
-              DBG("[INDICATOR]Receive repeat event change message:(%d)", *repeat);
+              DBG("[INDICATOR]Change repeat(message)=%d", *repeat);
               if (1 == *repeat)
                 {
                    evas_object_repeat_events_set(sd->landscape_indicator, EINA_TRUE);
@@ -485,6 +485,12 @@ _create_portrait_indicator(Evas_Object *obj)
    /* access - would use tree_highlight_allow_set(); */
    elm_widget_tree_unfocusable_set(port_indicator, EINA_TRUE);
 
+   if (sd->ind_o_mode == ELM_WIN_INDICATOR_TRANSPARENT)
+     {
+        DBG("[INDICATOR]Change repeat=1(port create, transparent)");
+        evas_object_repeat_events_set(port_indicator, EINA_TRUE);
+     }
+
    return port_indicator;
 }
 
@@ -531,6 +537,8 @@ _create_landscape_indicator(Evas_Object *obj)
 
    /* access - would use tree_highlight_allow_set(); */
    elm_widget_tree_unfocusable_set(land_indicator, EINA_TRUE);
+   DBG("[INDICATOR]Change repeat=1(land create)");
+   evas_object_repeat_events_set(land_indicator, EINA_TRUE);
 
    return land_indicator;
 }
@@ -606,6 +614,16 @@ _indicator_opacity_set(Evas_Object *conformant, Elm_Win_Indicator_Opacity_Mode i
    if (sd->portrait_indicator)
      {
         elm_plug_msg_send(sd->portrait_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_OPACITY, &(sd->ind_o_mode), sizeof(Elm_Win_Indicator_Opacity_Mode));
+        if (ind_o_mode == ELM_WIN_INDICATOR_TRANSPARENT)
+          {
+             DBG("[INDICATOR]Change repeat=1(opacity set, port, trans)");
+             evas_object_repeat_events_set(sd->portrait_indicator, EINA_TRUE);
+          }
+        else
+          {
+             DBG("[INDICATOR]Change repeat=0(opacity set, port, not trans)");
+             evas_object_repeat_events_set(sd->portrait_indicator, EINA_FALSE);
+          }
      }
    if (ind_o_mode == ELM_WIN_INDICATOR_TRANSLUCENT)
       elm_object_signal_emit(conformant, "elm,state,indicator,translucent", "elm");
