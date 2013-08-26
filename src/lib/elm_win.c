@@ -56,9 +56,6 @@ struct _Elm_Win_Smart_Data
    Ecore_Evas           *ee;
    Evas                 *evas;
    Evas_Object          *parent; /* parent *window* object*/
-   // TIZEN ONLY (20130422) : For automating default focused UI.
-   Evas_Object          *obj;
-   //
    Evas_Object          *img_obj, *frame_obj;
    Eina_List            *resize_objs; /* a window may have
                                        * *multiple* resize
@@ -1572,10 +1569,6 @@ _elm_win_smart_del(Evas_Object *obj)
 
    ELM_WIN_DATA_GET(obj, sd);
 
-   // TIZEN ONLY (20130422) : For automating default focused UI.
-   if (sd->obj) sd->obj = NULL;
-   //
-
    /* NB: child deletion handled by parent's smart del */
 
    if ((trap) && (trap->del))
@@ -2191,29 +2184,6 @@ _elm_win_property_change(void *data,
           }
      }
 
-   // TIZEN ONLY (20130422) : For automating default focused UI.
-   if (e->atom == keyboard_exist)
-     {
-        Ecore_X_Window rootwin_xid = 0;
-        unsigned int val = 0;
-
-        rootwin_xid = ecore_x_window_root_first_get();
-        if (rootwin_xid)
-          ecore_x_window_prop_card32_get(rootwin_xid, keyboard_exist, &val, 1);
-
-        if (val != 0)
-          {
-             sd->keyboard_attached = EINA_TRUE;
-             elm_win_focus_highlight_enabled_set(sd->obj, EINA_TRUE);
-          }
-        else
-          {
-             sd->keyboard_attached = EINA_FALSE;
-             elm_win_focus_highlight_enabled_set(sd->obj, EINA_FALSE);
-          }
-     }
-   //////////////////////
-
    return ECORE_CALLBACK_PASS_ON;
 }
 
@@ -2223,11 +2193,17 @@ _elm_win_mouse_button_down(void *data,
                            int type __UNUSED__,
                            void *event __UNUSED__)
 {
-   Elm_Win_Smart_Data *sd = data;
-   if (!sd) return ECORE_CALLBACK_PASS_ON;
+
+   ELM_WIN_DATA_GET_OR_RETURN_VAL(data, sd, ECORE_CALLBACK_PASS_ON);
 
    if (sd->keyboard_attached)
-     elm_win_focus_highlight_enabled_set(sd->obj, EINA_FALSE);
+     {
+        if (elm_win_focus_highlight_enabled_get(data))
+          {
+             elm_win_focus_highlight_enabled_set(data, EINA_FALSE);
+             sd->focus_highlight.prev.visible = EINA_FALSE;
+          }
+     }
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -2235,11 +2211,22 @@ _elm_win_mouse_button_down(void *data,
 static Eina_Bool
 _elm_win_key_down(void *data,
                   int type __UNUSED__,
-                  void *event __UNUSED__)
+                  void *event)
 {
-   Elm_Win_Smart_Data *sd = data;
+   ELM_WIN_DATA_GET_OR_RETURN_VAL(data, sd, ECORE_CALLBACK_PASS_ON);
+   Ecore_IMF_Event_Key_Down *ev = (Ecore_IMF_Event_Key_Down *)event;
 
-   if (!sd) return ECORE_CALLBACK_PASS_ON;
+   if (elm_win_focus_highlight_enabled_get(data))
+     return ECORE_CALLBACK_PASS_ON;
+
+   if (strcmp(ev->keyname, "Tab") && strcmp(ev->keyname, "ISO_Left_Tab") &&
+       strcmp(ev->keyname, "Left") && strcmp(ev->keyname, "KP_Left") &&
+       strcmp(ev->keyname, "Right") && strcmp(ev->keyname, "KP_Right") &&
+       strcmp(ev->keyname, "Up") && strcmp(ev->keyname, "KP_Up") &&
+       strcmp(ev->keyname, "Down") && strcmp(ev->keyname, "KP_Down") &&
+       strcmp(ev->keyname, "Return") && strcmp(ev->keyname, "KP_Enter") &&
+       strcmp(ev->keyname, "space"))
+     return ECORE_CALLBACK_PASS_ON;
 
    if (!sd->first_key_down)
      {
@@ -2253,14 +2240,14 @@ _elm_win_key_down(void *data,
           {
              sd->keyboard_attached = EINA_TRUE;
              sd->focus_highlight.cur.visible = EINA_TRUE;
-             elm_win_focus_highlight_enabled_set(sd->obj, EINA_TRUE);
+             elm_win_focus_highlight_enabled_set(data, EINA_TRUE);
           }
         sd->first_key_down = EINA_TRUE;
      }
    else if (sd->keyboard_attached)
      {
         sd->focus_highlight.cur.visible = EINA_TRUE;
-        elm_win_focus_highlight_enabled_set(sd->obj, EINA_TRUE);
+        elm_win_focus_highlight_enabled_set(data, EINA_TRUE);
      }
 
    return ECORE_CALLBACK_PASS_ON;
@@ -2976,7 +2963,6 @@ elm_win_add(Evas_Object *parent,
    ELM_WIN_DATA_GET(obj, sd);
 
    // TIZEN ONLY (20130422) : For automating default focused UI.
-   sd->obj = obj;
    sd->keyboard_attached = EINA_FALSE;
    sd->first_key_down = EINA_FALSE;
    //
@@ -3011,9 +2997,9 @@ elm_win_add(Evas_Object *parent,
         keyboard_exist = ecore_x_atom_get("X External Keyboard Exist");
 
         sd->x.mouse_down_handler = ecore_event_handler_add
-            (ECORE_EVENT_MOUSE_BUTTON_DOWN, _elm_win_mouse_button_down, sd);
+            (ECORE_EVENT_MOUSE_BUTTON_DOWN, _elm_win_mouse_button_down, obj);
         sd->x.key_down_handler = ecore_event_handler_add
-            (ECORE_EVENT_KEY_DOWN, _elm_win_key_down, sd);
+            (ECORE_EVENT_KEY_DOWN, _elm_win_key_down, obj);
         /////////////
         sd->x.client_message_handler = ecore_event_handler_add
             (ECORE_X_EVENT_CLIENT_MESSAGE, _elm_win_client_message, sd);

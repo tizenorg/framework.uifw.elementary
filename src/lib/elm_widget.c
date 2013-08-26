@@ -1621,6 +1621,18 @@ elm_widget_event_propagate(Evas_Object *obj,
    Elm_Event_Cb_Data *ecd;
    Eina_List *l, *l_prev;
 
+   if (type == EVAS_CALLBACK_KEY_DOWN)
+     {
+        const Evas_Object *win = elm_widget_top_get(obj);
+        const char *evas_type = evas_object_type_get(win);
+
+        if (type && !strcmp(evas_type, "elm_win"))
+          {
+             if (!elm_win_focus_highlight_enabled_get(win))
+               return EINA_FALSE;
+          }
+     }
+
    while (parent &&
           (!(event_flags && ((*event_flags) & EVAS_EVENT_FLAG_ON_HOLD))))
      {
