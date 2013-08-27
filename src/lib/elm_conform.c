@@ -23,6 +23,7 @@ static const char INDICATOR_PART[] = "elm.swallow.indicator";
 static const char VIRTUALKEYPAD_PART[] = "elm.swallow.virtualkeypad";
 static const char CLIPBOARD_PART[] = "elm.swallow.clipboard";
 static const char SOFTKEY_PART[] = "elm.swallow.softkey";
+static const char INDICATOR_EVENT_PART[] = "elm.swallow.indicator_event";
 
 static const char SIG_VIRTUALKEYPAD_STATE_ON[] = "virtualkeypad,state,on";
 static const char SIG_VIRTUALKEYPAD_STATE_OFF[] = "virtualkeypad,state,off";
@@ -222,6 +223,132 @@ _conformant_part_sizing_eval(Evas_Object *obj,
 }
 
 static void
+_indicator_type_set(Evas_Object *conformant)
+{
+  ELM_CONFORMANT_DATA_GET(conformant, sd);
+
+  if ((sd->indmode == ELM_WIN_INDICATOR_SHOW) &&
+      ((sd->rot == 0) || (sd->rot == 180)) &&
+      (sd->ind_o_mode != ELM_WIN_INDICATOR_TRANSPARENT))
+    elm_win_indicator_type_set(sd->win, ELM_WIN_INDICATOR_TYPE_1);
+  else
+    elm_win_indicator_type_set(sd->win, ELM_WIN_INDICATOR_TYPE_2);
+}
+
+static Eina_Bool
+_indicator_hide_effect(void *data)
+{
+   Evas_Object *conformant = data;
+
+   DBG("[INDICATOR]Hide effect ");
+   ELM_CONFORMANT_DATA_GET(conformant, sd);
+   sd->on_indicator_effect = EINA_FALSE;
+
+   if (sd->indicator_effect_timer)
+     {
+        ecore_timer_del(sd->indicator_effect_timer);
+        sd->indicator_effect_timer = NULL;
+     }
+   _indicator_type_set(conformant);
+
+   if(((sd->rot == 90) || (sd->rot == 270)) ||
+      (sd->ind_o_mode == ELM_WIN_INDICATOR_TRANSPARENT))
+     elm_object_signal_emit(conformant, "indicator,hide,effect", "elm");
+   return ECORE_CALLBACK_CANCEL;
+}
+
+
+static void
+_indicator_show_effect(Evas_Object *conformant, double duration)
+{
+   ELM_CONFORMANT_DATA_GET(conformant, sd);
+
+   sd->on_indicator_effect = EINA_TRUE;
+
+   elm_win_indicator_type_set(sd->win, ELM_WIN_INDICATOR_TYPE_1);
+   elm_object_signal_emit(conformant, "indicator,show,effect", "elm");
+
+   if (sd->indicator_effect_timer) ecore_timer_del(sd->indicator_effect_timer);
+   sd->indicator_effect_timer = ecore_timer_add(duration, _indicator_hide_effect, conformant);
+}
+
+static Eina_Bool
+_check_indicator_event(Evas_Object *conformant)
+{
+   ELM_CONFORMANT_DATA_GET(conformant, sd);
+   if (sd->ind_o_mode == ELM_WIN_INDICATOR_TRANSPARENT)
+     return EINA_TRUE;
+   else if ((sd->rot == 90) || (sd->rot == 270))
+     return EINA_TRUE;
+   else return EINA_FALSE;
+}
+
+static void
+_on_indicator_event_mouse_down(void *data,
+                               Evas *e __UNUSED__,
+                               Evas_Object *obj __UNUSED__,
+                               void *event_info)
+{
+   Evas_Event_Mouse_Down *ev = event_info;
+   Evas_Object *conformant = data;
+   ELM_CONFORMANT_DATA_GET(conformant, sd);
+
+   if (ev->button != 1) return;
+   if (_check_indicator_event(conformant))
+     {
+        sd->down_y = ev->canvas.y;
+        if (sd->on_indicator_effect && sd->indicator_effect_timer)
+          {
+             ecore_timer_del(sd->indicator_effect_timer);
+             sd->indicator_effect_timer = NULL;
+          }
+     }
+}
+
+static void
+_on_indicator_event_mouse_move(void *data,
+                               Evas *e __UNUSED__,
+                               Evas_Object *obj __UNUSED__,
+                               void *event_info)
+{
+   Evas_Event_Mouse_Move *ev = event_info;
+   Evas_Object *conformant = data;
+
+   ELM_CONFORMANT_DATA_GET(conformant, sd);
+
+   if (ev->buttons != 1) return;
+   if (sd->on_indicator_effect) return;
+
+   if (_check_indicator_event(conformant))
+     {
+        if ((ev->cur.canvas.y - sd->down_y) > 40)
+          {
+              _indicator_show_effect(conformant, 3);
+          }
+     }
+
+}
+
+static void
+_on_indicator_event_mouse_up(void *data,
+                               Evas *e __UNUSED__,
+                               Evas_Object *obj __UNUSED__,
+                               void *event_info)
+{
+   Evas_Event_Mouse_Up *ev = event_info;
+   Evas_Object *conformant = data;
+
+   ELM_CONFORMANT_DATA_GET(conformant, sd);
+   if (ev->button != 1) return;
+   if (_check_indicator_event(conformant))
+     {
+        sd->down_y = 0;
+        if (sd->on_indicator_effect && !sd->indicator_effect_timer)
+          _indicator_hide_effect(conformant);
+     }
+}
+
+static void
 _conformant_parts_swallow(Evas_Object *obj)
 {
    Evas *e;
@@ -296,6 +423,29 @@ _conformant_parts_swallow(Evas_Object *obj)
         evas_object_del(sd->softkey);
         sd->softkey = NULL;
      }
+
+   //Event indicator
+   if (edje_object_part_exists(wd->resize_obj, INDICATOR_EVENT_PART))
+     {
+        if (!sd->indicator_event)
+          {
+             sd->indicator_event = evas_object_rectangle_add(e);
+             evas_object_size_hint_min_set(sd->indicator_event, -1, 0);
+             evas_object_size_hint_max_set(sd->indicator_event, -1, 0);
+             evas_object_event_callback_add(sd->indicator_event, EVAS_CALLBACK_MOUSE_DOWN, _on_indicator_event_mouse_down, obj);
+             evas_object_event_callback_add(sd->indicator_event, EVAS_CALLBACK_MOUSE_MOVE, _on_indicator_event_mouse_move, obj);
+             evas_object_event_callback_add(sd->indicator_event, EVAS_CALLBACK_MOUSE_UP, _on_indicator_event_mouse_up, obj);
+             evas_object_color_set(sd->indicator_event, 0, 0, 0, 0);
+             evas_object_repeat_events_set(sd->indicator_event, EINA_TRUE);
+          }
+
+        elm_layout_content_set(obj, INDICATOR_EVENT_PART, sd->indicator_event);
+     }
+   else if (sd->indicator_event)
+     {
+        evas_object_del(sd->indicator_event);
+        sd->indicator_event = NULL;
+     }
 }
 
 static Eina_Bool
@@ -327,7 +477,6 @@ _port_indicator_connect_cb(void *data)
      }
    return ECORE_CALLBACK_RENEW;
 }
-
 
 static Eina_Bool
 _land_indicator_connect_cb(void *data)
@@ -393,6 +542,15 @@ static const char PLUG_KEY[] = "__Plug_Ecore_Evas";
 #define MSG_ID_INDICATOR_ROTATION 0x10003
 #define MSG_ID_INDICATOR_OPACITY 0X1004
 #define MSG_ID_INDICATOR_TYPE 0X1005
+#define MSG_ID_INDICATOR_START_ANIMATION 0X10006
+
+typedef struct _Indicator_Data_Animation Indicator_Data_Animation;
+
+struct _Indicator_Data_Animation
+{
+   Ecore_X_Window xwin;
+   double         duration;
+};
 
 static void
 _plug_msg_handle(void *data, Evas_Object *obj __UNUSED__, void *event_info)
@@ -416,27 +574,14 @@ _plug_msg_handle(void *data, Evas_Object *obj __UNUSED__, void *event_info)
    //get plug object form ee
    if (msg_domain == MSG_DOMAIN_CONTROL_INDICATOR)
      {
-        if (msg_id == MSG_ID_INDICATOR_REPEAT_EVENT)
+        if (msg_id == MSG_ID_INDICATOR_START_ANIMATION)
           {
-              int *repeat = msg_data;
-              DBG("[INDICATOR]Change repeat(message)=%d", *repeat);
-              if (1 == *repeat)
-                {
-                   evas_object_repeat_events_set(sd->landscape_indicator, EINA_TRUE);
-                   evas_object_repeat_events_set(sd->portrait_indicator, EINA_TRUE);
-                }
-              else
-                {
-                   evas_object_repeat_events_set(sd->landscape_indicator, EINA_FALSE);
-                   evas_object_repeat_events_set(sd->portrait_indicator, EINA_FALSE);
-                }
-          }
-        if (msg_id == MSG_ID_INDICATOR_TYPE)
-          {
-             Elm_Win_Indicator_Type_Mode *indi_t_mode = msg_data;
-             Evas_Object *win = elm_widget_top_get(conformant);
-             DBG("[INDICATOR]Receive indicator type change message:(%d)", *indi_t_mode);
-             elm_win_indicator_type_set(win, *indi_t_mode);
+             if (msg_data_size != (int)sizeof(Indicator_Data_Animation)) return;
+
+             Indicator_Data_Animation *anim_data = msg_data;
+             DBG("[INDICATOR]Receive indicator start animation:(app xwin=%x, msg data=%x) dur=%f", anim_data->xwin, elm_win_xwindow_get(sd->win), anim_data->duration);
+             if (anim_data->xwin == elm_win_xwindow_get(sd->win))
+               _indicator_show_effect(conformant, anim_data->duration);
           }
      }
 }
@@ -471,10 +616,6 @@ _create_portrait_indicator(Evas_Object *obj)
 
    //callback to deal with extn socket message
    evas_object_smart_callback_add(port_indicator, "message.received", (Evas_Smart_Cb)_plug_msg_handle, obj);
-
-   DBG("[INDICATOR]Send msg to portrait indicator: rot(%d), opacity(%d)", sd->rot, sd->ind_o_mode);
-   elm_plug_msg_send(port_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
-   elm_plug_msg_send(port_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_OPACITY, &(sd->ind_o_mode), sizeof(Elm_Win_Indicator_Opacity_Mode));
 
    elm_widget_sub_object_add(obj, port_indicator);
    evas_object_smart_callback_add(port_indicator, "image.deleted", _port_indicator_disconnected, obj);
@@ -525,10 +666,6 @@ _create_landscape_indicator(Evas_Object *obj)
    //callback to deal with extn socket message
    evas_object_smart_callback_add(land_indicator, "message.received", (Evas_Smart_Cb)_plug_msg_handle, obj);
 
-   DBG("[INDICATOR]Send msg to landscape indicator: rot(%d), opacity(%d)", sd->rot, sd->ind_o_mode);
-   elm_plug_msg_send(land_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
-   elm_plug_msg_send(land_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_OPACITY, &(sd->ind_o_mode), sizeof(Elm_Win_Indicator_Opacity_Mode));
-
    elm_widget_sub_object_add(obj, land_indicator);
    evas_object_smart_callback_add(land_indicator, "image.deleted",_land_indicator_disconnected, obj);
 
@@ -553,6 +690,7 @@ _indicator_mode_set(Evas_Object *conformant, Elm_Win_Indicator_Mode indmode)
 
    wd = ELM_WIDGET_DATA(sd);
 
+   DBG("[INDICATOR]The mode of indicator was changed:(%d->%d) rot=%d", sd->indmode, indmode, sd->rot);
    if (!edje_object_part_exists(wd->resize_obj, INDICATOR_PART))
      return;
 
@@ -586,6 +724,7 @@ _indicator_mode_set(Evas_Object *conformant, Elm_Win_Indicator_Mode indmode)
 
           }
         elm_object_signal_emit(conformant, "elm,state,indicator,show", "elm");
+        _indicator_type_set(conformant);
      }
    else
      {
@@ -595,6 +734,7 @@ _indicator_mode_set(Evas_Object *conformant, Elm_Win_Indicator_Mode indmode)
              evas_object_hide(old_indi);
           }
         elm_object_signal_emit(conformant, "elm,state,indicator,hide", "elm");
+        _indicator_type_set(conformant);
      }
 }
 
@@ -604,50 +744,30 @@ _indicator_opacity_set(Evas_Object *conformant, Elm_Win_Indicator_Opacity_Mode i
    ELM_CONFORMANT_DATA_GET(conformant, sd);
    sd->ind_o_mode = ind_o_mode;
    //TODO: opacity change
-   //send indicator information
-   DBG("[INDICATOR]The opacity mode of indicator was changed:(%d) rot=%d", ind_o_mode, sd->rot);
-   if (((sd->rot == 90) || (sd->rot == 270))
-        && sd->landscape_indicator)
-     {
-        elm_plug_msg_send(sd->landscape_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_OPACITY, &(sd->ind_o_mode), sizeof(Elm_Win_Indicator_Opacity_Mode));
-     }
-   if (sd->portrait_indicator)
-     {
-        elm_plug_msg_send(sd->portrait_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_OPACITY, &(sd->ind_o_mode), sizeof(Elm_Win_Indicator_Opacity_Mode));
-        if (ind_o_mode == ELM_WIN_INDICATOR_TRANSPARENT)
-          {
-             DBG("[INDICATOR]Change repeat=1(opacity set, port, trans)");
-             evas_object_repeat_events_set(sd->portrait_indicator, EINA_TRUE);
-          }
-        else
-          {
-             DBG("[INDICATOR]Change repeat=0(opacity set, port, not trans)");
-             evas_object_repeat_events_set(sd->portrait_indicator, EINA_FALSE);
-          }
-     }
+   DBG("[INDICATOR]The opacity mode of indicator was changed:(%d->%d) rot=%d", sd->ind_o_mode, ind_o_mode, sd->rot);
+   _indicator_type_set(conformant);
    if (ind_o_mode == ELM_WIN_INDICATOR_TRANSLUCENT)
-      elm_object_signal_emit(conformant, "elm,state,indicator,translucent", "elm");
+     elm_object_signal_emit(conformant, "elm,state,indicator,translucent", "elm");
    else if (ind_o_mode == ELM_WIN_INDICATOR_TRANSPARENT)
-      elm_object_signal_emit(conformant, "elm,state,indicator,transparent", "elm");
+     elm_object_signal_emit(conformant, "elm,state,indicator,transparent", "elm");
    else
-      elm_object_signal_emit(conformant, "elm,state,indicator,opaque", "elm");
+     elm_object_signal_emit(conformant, "elm,state,indicator,opaque", "elm");
 }
 
 static void
 _on_indicator_mode_changed(void *data,
-                    Evas_Object *obj,
+                    Evas_Object *obj __UNUSED__,
                     void *event_info __UNUSED__)
 {
    Evas_Object *conformant = data;
-   Evas_Object *win = obj;
 
    Elm_Win_Indicator_Mode indmode;
    Elm_Win_Indicator_Opacity_Mode ind_o_mode;
 
    ELM_CONFORMANT_DATA_GET(conformant, sd);
 
-   indmode = elm_win_indicator_mode_get(win);
-   ind_o_mode = elm_win_indicator_opacity_get(win);
+   indmode = elm_win_indicator_mode_get(sd->win);
+   ind_o_mode = elm_win_indicator_opacity_get(sd->win);
    if (indmode != sd->indmode)
      _indicator_mode_set(conformant, indmode);
    if (ind_o_mode != sd->ind_o_mode)
@@ -656,35 +776,22 @@ _on_indicator_mode_changed(void *data,
 
 static void
 _on_rotation_changed(void *data,
-              Evas_Object *obj,
+              Evas_Object *obj __UNUSED__,
               void *event_info __UNUSED__)
 {
    int rot = 0;
-   Evas_Object *win = obj;
    Evas_Object *conformant = data;
    Evas_Object *old_indi = NULL;
 
    ELM_CONFORMANT_DATA_GET(data, sd);
 
-   rot = elm_win_rotation_get(win);
+   rot = elm_win_rotation_get(sd->win);
+   DBG("[INDICATOR]The rotation of indicator was changed:(%d->%d)", sd->rot, rot);
 
    if (rot == sd->rot) return;
 
    sd->rot = rot;
 
-   //send indicator information
-   if (((rot == 90) || (rot == 270))
-       && sd->landscape_indicator)
-     {
-        DBG("[INDICATOR]The rotation value of landscape indicator was changed:(%d)", rot);
-        elm_plug_msg_send(sd->landscape_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
-     }
-   if (((rot == 0) || (rot == 180))
-       && sd->portrait_indicator)
-     {
-        DBG("[INDICATOR]The rotation value of portrait indicator was changed:(%d)", rot);
-        elm_plug_msg_send(sd->portrait_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
-     }
    old_indi = elm_layout_content_unset(conformant, INDICATOR_PART);
    /* this means ELM_WIN_INDICATOR_SHOW never be set.we don't need to change indicator type*/
    if (!old_indi) return;
@@ -712,46 +819,12 @@ _on_rotation_changed(void *data,
         evas_object_data_set(sd->portrait_indicator, CONFORMANT_KEY, (void *) rot);
         elm_layout_content_set(conformant, INDICATOR_PART, sd->portrait_indicator);
      }
-}
-
-static void
-_on_iconified(void *data,
-              Evas_Object *obj __UNUSED__,
-              void *event_info __UNUSED__)
-{
-   ELM_CONFORMANT_DATA_GET(data, sd);
-   DBG("[INDICATOR]Window is iconified rot=%d indmode=%d ind_o_mode=%d", sd->rot, sd->indmode, sd->ind_o_mode);
-   //TODO: send message related with iconified.
-
-}
-
-static void
-_on_normal(void *data,
-           Evas_Object *obj __UNUSED__,
-           void *event_info __UNUSED__)
-{
-   ELM_CONFORMANT_DATA_GET(data, sd);
-   DBG("[INDICATOR]Window is normal rot=%d indmode=%d ind_o_mode=%d", sd->rot, sd->indmode, sd->ind_o_mode);
-   //TODO: send message related with iconified.
-   if ((sd->rot == 90) || (sd->rot == 270))
-     {
-        if(!sd->landscape_indicator) return;
-        elm_plug_msg_send(sd->landscape_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
-        elm_plug_msg_send(sd->landscape_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_OPACITY, &(sd->ind_o_mode), sizeof(Elm_Win_Indicator_Opacity_Mode));
-     }
-   else
-     {
-        if(!sd->portrait_indicator) return;
-        elm_plug_msg_send(sd->portrait_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ROTATION, &(sd->rot), sizeof(int));
-        elm_plug_msg_send(sd->portrait_indicator, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_OPACITY, &(sd->ind_o_mode), sizeof(Elm_Win_Indicator_Opacity_Mode));
-     }
+   _indicator_type_set(conformant);
 }
 
 static void
 _signals_emit(Evas_Object *obj)
 {
-   char buf[128];
-
    ELM_CONFORMANT_DATA_GET(obj, sd);
 
    //Indicator show/hide
@@ -1171,6 +1244,15 @@ _elm_conformant_smart_del(Evas_Object *obj)
         evas_object_smart_callback_del(sd->landscape_indicator, "message.received", (Evas_Smart_Cb)_plug_msg_handle);
         evas_object_del(sd->landscape_indicator);
      }
+
+   if (sd->indicator_event)
+     {
+        evas_object_event_callback_del(sd->indicator_event, EVAS_CALLBACK_MOUSE_DOWN, _on_indicator_event_mouse_down);
+        evas_object_event_callback_del(sd->indicator_event, EVAS_CALLBACK_MOUSE_MOVE, _on_indicator_event_mouse_move);
+        evas_object_event_callback_del(sd->indicator_event, EVAS_CALLBACK_MOUSE_UP, _on_indicator_event_mouse_up);
+        evas_object_del(sd->indicator_event);
+     }
+
    top = sd->win;
    evas_object_data_set(top, "\377 elm,conformant", NULL);
 
@@ -1178,8 +1260,6 @@ _elm_conformant_smart_del(Evas_Object *obj)
                                   (Evas_Smart_Cb)_on_indicator_mode_changed);
    evas_object_smart_callback_del(top, "rotation,changed",
                                   (Evas_Smart_Cb)_on_rotation_changed);
-   evas_object_smart_callback_del(top, "iconified", (Evas_Smart_Cb)_on_iconified);
-   evas_object_smart_callback_del(top, "normal", (Evas_Smart_Cb)_on_normal);
 
    ELM_WIDGET_CLASS(_elm_conformant_parent_sc)->base.del(obj);
 }
@@ -1259,7 +1339,6 @@ EAPI Evas_Object *
 elm_conformant_add(Evas_Object *parent)
 {
    Evas_Object *obj;
-   Evas_Object *top;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
 
@@ -1271,25 +1350,21 @@ elm_conformant_add(Evas_Object *parent)
 
    ELM_CONFORMANT_DATA_GET(obj, sd);
 
-   top = elm_widget_top_get(obj);
-   _on_indicator_mode_changed(obj, top, NULL);
-   _on_rotation_changed(obj, top, NULL);
+   sd->win = elm_widget_top_get(obj);
 
-   sd->indmode = elm_win_indicator_mode_get(top);
-   sd->ind_o_mode = elm_win_indicator_opacity_get(top);
-   sd->rot = elm_win_rotation_get(top);
-   evas_object_data_set(top, "\377 elm,conformant", obj);
+   sd->indmode = elm_win_indicator_mode_get(sd->win);
+   sd->ind_o_mode = elm_win_indicator_opacity_get(sd->win);
+   sd->rot = elm_win_rotation_get(sd->win);
+
+   _indicator_mode_set(obj, sd->indmode);
+   _indicator_opacity_set(obj, sd->ind_o_mode);
+   _on_rotation_changed(obj, sd->win, NULL);
+   evas_object_data_set(sd->win, "\377 elm,conformant", obj);
 
    evas_object_smart_callback_add
-     (top, "indicator,prop,changed", (Evas_Smart_Cb)_on_indicator_mode_changed, obj);
+     (sd->win, "indicator,prop,changed", (Evas_Smart_Cb)_on_indicator_mode_changed, obj);
    evas_object_smart_callback_add
-     (top, "rotation,changed", (Evas_Smart_Cb)_on_rotation_changed, obj);
-   evas_object_smart_callback_add
-     (top, "iconified", (Evas_Smart_Cb)_on_iconified, obj);
-   evas_object_smart_callback_add
-     (top, "normal", (Evas_Smart_Cb)_on_normal, obj);
-
-   sd->win = top;
+     (sd->win, "rotation,changed", (Evas_Smart_Cb)_on_rotation_changed, obj);
 
    return obj;
 }

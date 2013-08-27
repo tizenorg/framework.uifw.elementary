@@ -124,6 +124,7 @@ struct _Elm_Conformant_Smart_Data
    Elm_Layout_Smart_Data          base;
    Evas_Object                   *portrait_indicator;
    Evas_Object                   *landscape_indicator;
+   Evas_Object                   *indicator_event;
    Evas_Object                   *softkey;
    Evas_Object                   *virtualkeypad;
    Evas_Object                   *clipboard;
@@ -146,8 +147,14 @@ struct _Elm_Conformant_Smart_Data
    Elm_Win_Indicator_Opacity_Mode ind_o_mode;
    Ecore_Timer                   *land_indi_timer;
    Ecore_Timer                   *port_indi_timer;
+   Ecore_Timer                   *indicator_effect_timer;
 
    int                            rot;
+
+   Evas_Coord                     down_y;
+   Eina_Bool                      on_indicator_effect : 1;
+   Eina_Bool                      keypad_disable;
+   Eina_Bool                      clipboard_disable;
 };
 
 /* Enum to identify conformant swallow parts */
