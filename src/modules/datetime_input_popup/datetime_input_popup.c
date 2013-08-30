@@ -44,7 +44,11 @@ struct _Popup_Module_Data
    struct tm set_time;
    Eina_Bool time_12hr_fmt;
    Eina_Bool is_pm;
+   Eina_Bool weekday_show;
+   Eina_Bool weekday_loc_first;
 };
+
+EAPI void field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj);
 
 static int
 _picker_nextfield_location_get(void *data, int curr)
@@ -1136,6 +1140,20 @@ _create_timepicker_layout(Popup_Module_Data *popup_mod)
 }
 
 static void
+_weekday_loc_update(Popup_Module_Data *popup_mod)
+{
+   char *fmt;
+
+   if (!popup_mod) return;
+
+   fmt = nl_langinfo(D_T_FMT);
+   if (!strncmp(fmt, "%a", 2) || !strncmp(fmt, "%A", 2))
+     popup_mod->weekday_loc_first = EINA_TRUE;
+   else
+     popup_mod->weekday_loc_first = EINA_FALSE;
+}
+
+static void
 _module_format_change(Popup_Module_Data *popup_mod)
 {
    Evas_Object *spinner_field[PICKER_POPUP_FIELD_COUNT];
@@ -1206,6 +1224,7 @@ _module_format_change(Popup_Module_Data *popup_mod)
           }
      }
    popup_mod->time_12hr_fmt = time_12hr;
+   _weekday_loc_update(popup_mod);
 }
 
 static void
@@ -1273,6 +1292,59 @@ _module_language_changed_cb(void *data,
 }
 
 static void
+_weekday_show_cb(void *data,
+                 Evas_Object *obj __UNUSED__,
+                 const char *emission __UNUSED__,
+                 const char *source __UNUSED__)
+{
+   Popup_Module_Data *popup_mod;
+   int idx, loc, weekday_loc;
+
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return;
+
+   popup_mod->weekday_show = EINA_TRUE;
+
+   weekday_loc = (popup_mod->weekday_loc_first) ? 0 : 2;
+   for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
+     {
+        popup_mod->mod_data.field_location_get(popup_mod->mod_data.base, idx, &loc);
+        if (loc == weekday_loc)
+         {
+            field_value_display((Elm_Datetime_Module_Data *)popup_mod,
+                                popup_mod->datetime_field[idx]);
+            break;
+         }
+     }
+}
+
+static void
+_weekday_hide_cb(void *data,
+                 Evas_Object *obj __UNUSED__,
+                 const char *emission __UNUSED__,
+                 const char *source __UNUSED__)
+{
+   Popup_Module_Data *popup_mod;
+   int idx, loc, weekday_loc;
+
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return;
+
+   popup_mod->weekday_show = EINA_FALSE;
+   weekday_loc = (popup_mod->weekday_loc_first) ? 0 : 2;
+   for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
+     {
+        popup_mod->mod_data.field_location_get(popup_mod->mod_data.base, idx, &loc);
+        if (loc == weekday_loc)
+         {
+            field_value_display((Elm_Datetime_Module_Data *)popup_mod,
+                                popup_mod->datetime_field[idx]);
+            break;
+         }
+     }
+}
+
+static void
 _access_set(Evas_Object *obj, Elm_Datetime_Field_Type field_type)
 {
    const char* type = NULL;
@@ -1321,7 +1393,10 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
    Elm_Datetime_Field_Type  field_type;
    struct tm curr_time;
    char buf[BUFF_SIZE] = {0,};
+   char weekday[BUFF_SIZE], label[BUFF_SIZE];
+   int loc, weekday_loc;
    const char *fmt;
+   Eina_Bool is_weekday_shown;
 
    popup_mod = (Popup_Module_Data *)module_data;
    if (!popup_mod || !obj) return;
@@ -1338,17 +1413,30 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
         else
           elm_object_domain_translatable_text_set(obj, PACKAGE, E_("PM"));
      }
-   else
+   else if (!popup_mod->weekday_show)
      elm_object_text_set(obj, buf);
-
-   if (field_type == ELM_DATETIME_DATE)
+   else
      {
         /* FIXME: To restrict month wrapping because of summer time in some locales,
          * ignore day light saving mode in mktime(). */
         curr_time.tm_isdst = -1;
         mktime(&curr_time);
-        strftime(buf, sizeof(buf), "%a", &curr_time);
-        elm_layout_text_set(popup_mod->mod_data.base, "elm.text.weekday", buf);
+        strftime(weekday, sizeof(weekday), "%a", &curr_time);
+        weekday_loc = (popup_mod->weekday_loc_first) ? 0 : 2;
+        is_weekday_shown = popup_mod->mod_data.field_location_get(
+                           popup_mod->mod_data.base, field_type, &loc);
+        if (!is_weekday_shown || (loc != weekday_loc))
+          elm_object_text_set(obj, buf);
+        else if (loc == 0)
+          {
+             snprintf(label, sizeof(label), "%s %s", weekday, buf);
+             elm_object_text_set(obj, label);
+          }
+        else
+          {
+             snprintf(label, sizeof(label), "%s %s", buf, weekday);
+             elm_object_text_set(obj, label);
+          }
      }
 }
 
@@ -1393,10 +1481,16 @@ obj_hook(Evas_Object *obj)
                                   _datetime_press_cb, popup_mod);
    elm_object_signal_callback_add(obj, "elm,action,unpress", "*",
                                   _datetime_unpress_cb, popup_mod);
+   elm_object_signal_callback_add(obj, "weekday,show", "",
+                                  _weekday_show_cb, popup_mod);
+   elm_object_signal_callback_add(obj, "weekday,hide", "",
+                                  _weekday_hide_cb, popup_mod);
 
    popup_mod->popup = NULL;
    popup_mod->datepicker_layout = NULL;
    popup_mod->timepicker_layout = NULL;
+   popup_mod->weekday_show = EINA_FALSE;
+   popup_mod->weekday_loc_first = EINA_TRUE;
 
    return ((Elm_Datetime_Module_Data*)popup_mod);
 }
