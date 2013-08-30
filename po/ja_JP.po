@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
 "POT-Creation-Date: 2013-07-20 15:21+0000\n"
 "PO-Revision-Date: 2010-12-26 10:05+0200\n"
-"Last-Translator: Sumanth Krishna <sumanth.m@samsung.com>\n"
+"Last-Translator: Shilpa Singh <shilpa.singh@samsung.com>\n"
 "Language-Team: General\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -237,3 +237,15 @@ msgstr "PM"
 #: src/modules/datetime_input_popup/datetime_input_popup.c:786
 msgid "Set"
 msgstr "設定"
+
+#: src/modules/ctxpopup_copypasteUI/copypaste.c:
+msgid "Translate"
+msgstr "翻訳"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:375
+msgid "Set date"
+msgstr "日付を設定"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:384
+msgid "Set time"
+msgstr "時刻を設定"

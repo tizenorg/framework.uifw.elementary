@@ -240,3 +240,11 @@ msgstr ""
 #: src/modules/datetime_input_popup/datetime_input_popup.c:983
 msgid "Set"
 msgstr "Ustaw"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:375
+msgid "Set date"
+msgstr "Ustaw datę"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:384
+msgid "Set time"
+msgstr "Ustaw godzinę"

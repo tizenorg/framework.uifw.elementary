@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
 "POT-Creation-Date: 2012-09-20 13:50+0900\n"
 "PO-Revision-Date: 2010-12-26 10:05+0200\n"
-"Last-Translator: Aharon Hillel <a.hillel@samsung.com>\n"
+"Last-Translator: Shilpa Singh <shilpa.singh@samsung.com>\n"
 "Language-Team: General\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -203,3 +203,15 @@ msgstr ""
 #: src/modules/datetime_input_popup/datetime_input_popup.c:786
 msgid "Set"
 msgstr ""
+
+#: src/modules/ctxpopup_CopypasteUI/copypaste.c
+msgid "Translate"
+msgstr "תרגם"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:375
+msgid "Set date"
+msgstr "הגדר תאריך"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:384
+msgid "Set time"
+msgstr "הגדר שעה"

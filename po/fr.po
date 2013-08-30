@@ -10,7 +10,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
 "POT-Creation-Date: 2012-09-20 13:50+0900\n"
 "PO-Revision-Date: 2011-11-08 07:57+0100\n"
-"Last-Translator: dazibao <dazibao@sfr.fr>\n"
+"Last-Translator: Shilpa Singh <shilpa.singh@samsung.com>\n"
 "Language-Team: French <sansgourou@gmail.com>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -212,3 +212,15 @@ msgstr "Régler"
 
 #~ msgid "OFF"
 #~ msgstr "NON"
+
+#: src/modules/ctxpopup_CopypasteUI/copypaste.c
+msgid "Translate"
+msgstr "Traduire"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:375
+msgid "Set date"
+msgstr "Définir la date"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:384
+msgid "Set time"
+msgstr "Définir l'heure"

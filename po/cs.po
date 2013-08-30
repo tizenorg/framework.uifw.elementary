@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
 "POT-Creation-Date: 2012-09-20 13:50+0900\n"
 "PO-Revision-Date: 2011-10-23 01:31+0100\n"
-"Last-Translator: Daniel Kolesa <quaker66@gmail.com>\n"
+"Last-Translator: Shilpa Singh <shilpa.singh@samsung.com>\n"
 "Language-Team: Czech <kde-i18n-doc@kde.org>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
@@ -208,3 +208,11 @@ msgstr "Sada"
 
 #~ msgid "OFF"
 #~ msgstr "VYPNUTO"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:375
+msgid "Set date"
+msgstr "Nastavit datum"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:384
+msgid "Set time"
+msgstr "Nastavit čas"

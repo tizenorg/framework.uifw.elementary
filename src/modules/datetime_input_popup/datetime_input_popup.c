@@ -361,7 +361,7 @@ _set_datepicker_popup_title_text(Popup_Module_Data *popup_mod)
 {
    struct tm set_time;
    time_t t;
-   char title[BUFF_SIZE];
+   char weekday[BUFF_SIZE];
    if (!popup_mod) return;
 
    t = time(NULL);
@@ -373,21 +373,19 @@ _set_datepicker_popup_title_text(Popup_Module_Data *popup_mod)
     * ignore day light saving mode in mktime(). */
    set_time.tm_isdst = -1;
    mktime(&set_time);
-   strftime(title, BUFF_SIZE, "%a %x", &set_time);
-   elm_object_part_text_set(popup_mod->popup, "title,text", title);
+   strftime(weekday, BUFF_SIZE, "%a", &set_time);
+   elm_object_part_text_set(popup_mod->popup, "elm.text.title2", weekday);
+
+   elm_object_domain_translatable_part_text_set(popup_mod->popup, "title,text", PACKAGE, E_("Set date"));
 }
 
 void
 _set_timepicker_popup_title_text(Popup_Module_Data *popup_mod)
 {
-   char title[BUFF_SIZE];
    if (!popup_mod) return;
 
-   if (!popup_mod->time_12hr_fmt)
-     strftime(title, BUFF_SIZE, "%H:%M", &(popup_mod->set_time));
-   else
-     strftime(title, BUFF_SIZE, "%I:%M %p", &(popup_mod->set_time));
-   elm_object_part_text_set(popup_mod->popup, "title,text", title);
+   elm_object_domain_translatable_part_text_set(popup_mod->popup, "title,text", PACKAGE, E_("Set time"));
+   elm_object_part_text_set(popup_mod->popup, "elm.text.title2", "");
 }
 
 static void
@@ -503,7 +501,6 @@ _timepicker_value_changed_cb(void *data, Evas_Object *obj, void *event_info __UN
    else if (obj == popup_mod->popup_field[ELM_DATETIME_MINUTE])
      (popup_mod->set_time).tm_min = (int)elm_spinner_value_get(obj);
 
-   _set_timepicker_popup_title_text(popup_mod);
 }
 
 static void
@@ -532,7 +529,6 @@ _ampm_clicked_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNU
    (popup_mod->set_time).tm_hour = hour;
    popup_mod->is_pm = (hour < STRUCT_TM_TIME_12HRS_MAX_VALUE) ? 0 : 1;
    _set_ampm_value(popup_mod);
-   _set_timepicker_popup_title_text(popup_mod);
 }
 
 const char *

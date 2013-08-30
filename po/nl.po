@@ -11,7 +11,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
 "POT-Creation-Date: 2012-09-20 13:50+0900\n"
 "PO-Revision-Date: 2011-06-19 16:41+0100\n"
-"Last-Translator: Heimen Stoffels <vistausss@gmail.com>\n"
+"Last-Translator: Shilpa Singh <shilpa.singh@samsung.com>\n"
 "Language-Team: Dutch <vistausss@gmail.com>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
@@ -207,3 +207,15 @@ msgstr ""
 #: src/modules/datetime_input_popup/datetime_input_popup.c:786
 msgid "Set"
 msgstr "Setzen"
+
+#: src/modules/ctxpopup_CopypasteUI/copypaste.c
+msgid "Translate"
+msgstr "Vertalen"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:375
+msgid "Set date"
+msgstr "Datum instellen"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:384
+msgid "Set time"
+msgstr "Tijd instellen"

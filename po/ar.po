@@ -207,3 +207,11 @@ msgstr "ﺾﺒﻃ"
 #: src/modules/ctxpopup_CopypasteUI/copypaste.c
 msgid "Translate"
 msgstr "ترجمة"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:375
+msgid "Set date"
+msgstr "اختر التاريخ"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:384
+msgid "Set time"
+msgstr "اختر الوقت"
