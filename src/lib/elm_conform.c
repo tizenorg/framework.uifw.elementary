@@ -1234,6 +1234,7 @@ _elm_conformant_smart_del(Evas_Object *obj)
    if (sd->show_region_job) ecore_job_del(sd->show_region_job);
    if (sd->port_indi_timer) ecore_timer_del(sd->port_indi_timer);
    if (sd->land_indi_timer) ecore_timer_del(sd->land_indi_timer);
+   if (sd->indicator_effect_timer) ecore_timer_del(sd->indicator_effect_timer);
    if (sd->portrait_indicator)
      {
         evas_object_smart_callback_del(sd->portrait_indicator, "message.received", (Evas_Smart_Cb)_plug_msg_handle);
