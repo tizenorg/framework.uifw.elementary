@@ -1062,7 +1062,7 @@ _create_datepicker_layout(Popup_Module_Data *popup_mod)
    char buf[BUFF_SIZE];
    int idx, loc;
 
-   if (!popup_mod) return;
+   if (!popup_mod || !popup_mod->popup) return;
 
    popup_mod->datepicker_layout = elm_layout_add(popup_mod->popup);
    elm_layout_theme_set(popup_mod->datepicker_layout, "layout", "datetime_popup", "date_layout");
@@ -1101,7 +1101,7 @@ _create_timepicker_layout(Popup_Module_Data *popup_mod)
    char buf[BUFF_SIZE];
    int idx;
 
-   if (!popup_mod) return;
+   if (!popup_mod || !popup_mod->popup) return;
 
    popup_mod->timepicker_layout = elm_layout_add(popup_mod->popup);
    popup_mod->time_12hr_fmt = popup_mod->mod_data.field_location_get(popup_mod->mod_data.base, ELM_DATETIME_AMPM, NULL);
