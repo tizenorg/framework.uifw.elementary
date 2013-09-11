@@ -495,13 +495,13 @@ _timepicker_value_changed_cb(void *data, Evas_Object *obj, void *event_info __UN
    if (obj == popup_mod->popup_field[ELM_DATETIME_HOUR])
      {
         hour = (int)elm_spinner_value_get(obj);
-        if (popup_mod->time_12hr_fmt && popup_mod->is_pm)
-          {
-             if (hour != STRUCT_TM_TIME_12HRS_MAX_VALUE)
-               hour += STRUCT_TM_TIME_12HRS_MAX_VALUE;
-             else
-               hour = 0;
-          }
+        if (popup_mod->time_12hr_fmt)
+        {
+           if (popup_mod->is_pm && (hour != STRUCT_TM_TIME_12HRS_MAX_VALUE))
+              hour += STRUCT_TM_TIME_12HRS_MAX_VALUE;
+           else if (!popup_mod->is_pm && (hour == STRUCT_TM_TIME_12HRS_MAX_VALUE))
+              hour = 0;
+        }
         (popup_mod->set_time).tm_hour = hour;
         popup_mod->mod_data.fields_min_max_get(popup_mod->mod_data.base,
                             &(popup_mod->set_time), &min_values, &max_values);
