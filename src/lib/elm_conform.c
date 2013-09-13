@@ -284,71 +284,6 @@ _check_indicator_event(Evas_Object *conformant)
 }
 
 static void
-_on_indicator_event_mouse_down(void *data,
-                               Evas *e __UNUSED__,
-                               Evas_Object *obj __UNUSED__,
-                               void *event_info)
-{
-   Evas_Event_Mouse_Down *ev = event_info;
-   Evas_Object *conformant = data;
-   ELM_CONFORMANT_DATA_GET(conformant, sd);
-
-   if (ev->button != 1) return;
-   if (_check_indicator_event(conformant))
-     {
-        sd->down_y = ev->canvas.y;
-        if (sd->on_indicator_effect && sd->indicator_effect_timer)
-          {
-             ecore_timer_del(sd->indicator_effect_timer);
-             sd->indicator_effect_timer = NULL;
-          }
-     }
-}
-
-static void
-_on_indicator_event_mouse_move(void *data,
-                               Evas *e __UNUSED__,
-                               Evas_Object *obj __UNUSED__,
-                               void *event_info)
-{
-   Evas_Event_Mouse_Move *ev = event_info;
-   Evas_Object *conformant = data;
-
-   ELM_CONFORMANT_DATA_GET(conformant, sd);
-
-   if (ev->buttons != 1) return;
-   if (sd->on_indicator_effect) return;
-
-   if (_check_indicator_event(conformant))
-     {
-        if ((ev->cur.canvas.y - sd->down_y) > 40)
-          {
-              _indicator_show_effect(conformant, 3);
-          }
-     }
-
-}
-
-static void
-_on_indicator_event_mouse_up(void *data,
-                               Evas *e __UNUSED__,
-                               Evas_Object *obj __UNUSED__,
-                               void *event_info)
-{
-   Evas_Event_Mouse_Up *ev = event_info;
-   Evas_Object *conformant = data;
-
-   ELM_CONFORMANT_DATA_GET(conformant, sd);
-   if (ev->button != 1) return;
-   if (_check_indicator_event(conformant))
-     {
-        sd->down_y = 0;
-        if (sd->on_indicator_effect && !sd->indicator_effect_timer)
-          _indicator_hide_effect(conformant);
-     }
-}
-
-static void
 _conformant_parts_swallow(Evas_Object *obj)
 {
    Evas *e;
@@ -422,29 +357,6 @@ _conformant_parts_swallow(Evas_Object *obj)
      {
         evas_object_del(sd->softkey);
         sd->softkey = NULL;
-     }
-
-   //Event indicator
-   if (edje_object_part_exists(wd->resize_obj, INDICATOR_EVENT_PART))
-     {
-        if (!sd->indicator_event)
-          {
-             sd->indicator_event = evas_object_rectangle_add(e);
-             evas_object_size_hint_min_set(sd->indicator_event, -1, 0);
-             evas_object_size_hint_max_set(sd->indicator_event, -1, 0);
-             evas_object_event_callback_add(sd->indicator_event, EVAS_CALLBACK_MOUSE_DOWN, _on_indicator_event_mouse_down, obj);
-             evas_object_event_callback_add(sd->indicator_event, EVAS_CALLBACK_MOUSE_MOVE, _on_indicator_event_mouse_move, obj);
-             evas_object_event_callback_add(sd->indicator_event, EVAS_CALLBACK_MOUSE_UP, _on_indicator_event_mouse_up, obj);
-             evas_object_color_set(sd->indicator_event, 0, 0, 0, 0);
-             evas_object_repeat_events_set(sd->indicator_event, EINA_TRUE);
-          }
-
-        elm_layout_content_set(obj, INDICATOR_EVENT_PART, sd->indicator_event);
-     }
-   else if (sd->indicator_event)
-     {
-        evas_object_del(sd->indicator_event);
-        sd->indicator_event = NULL;
      }
 }
 
@@ -820,6 +732,18 @@ _on_rotation_changed(void *data,
         elm_layout_content_set(conformant, INDICATOR_PART, sd->portrait_indicator);
      }
    _indicator_type_set(conformant);
+}
+
+static void
+_on_indicator_flick_done(void *data,
+                    Evas_Object *obj __UNUSED__,
+                    void *event_info __UNUSED__)
+{
+   Evas_Object *conformant = data;
+
+   ELM_CONFORMANT_DATA_GET(conformant, sd);
+   _indicator_show_effect(conformant, 3);
+
 }
 
 static void
@@ -1246,14 +1170,6 @@ _elm_conformant_smart_del(Evas_Object *obj)
         evas_object_del(sd->landscape_indicator);
      }
 
-   if (sd->indicator_event)
-     {
-        evas_object_event_callback_del(sd->indicator_event, EVAS_CALLBACK_MOUSE_DOWN, _on_indicator_event_mouse_down);
-        evas_object_event_callback_del(sd->indicator_event, EVAS_CALLBACK_MOUSE_MOVE, _on_indicator_event_mouse_move);
-        evas_object_event_callback_del(sd->indicator_event, EVAS_CALLBACK_MOUSE_UP, _on_indicator_event_mouse_up);
-        evas_object_del(sd->indicator_event);
-     }
-
    top = sd->win;
    evas_object_data_set(top, "\377 elm,conformant", NULL);
 
@@ -1366,6 +1282,8 @@ elm_conformant_add(Evas_Object *parent)
      (sd->win, "indicator,prop,changed", (Evas_Smart_Cb)_on_indicator_mode_changed, obj);
    evas_object_smart_callback_add
      (sd->win, "rotation,changed", (Evas_Smart_Cb)_on_rotation_changed, obj);
+   evas_object_smart_callback_add
+     (sd->win, "indicator,flick,done", (Evas_Smart_Cb)_on_indicator_flick_done, obj);
 
    return obj;
 }

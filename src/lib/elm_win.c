@@ -188,6 +188,7 @@ static const char SIG_UNMAXIMIZED[] = "unmaximized";
 static const char SIG_IOERR[] = "ioerr";
 static const char SIG_INDICATOR_PROP_CHANGED[] = "indicator,prop,changed";
 static const char SIG_ROTATION_CHANGED[] = "rotation,changed";
+static const char SIG_INDICATOR_FLICK_DONE[] = "indicator,flick,done";
 static const char SIG_PROFILE_CHANGED[] = "profile,changed";
 static const char SIG_WM_ROTATION_CHANGED[] = "wm,rotation,changed";
 
@@ -2146,8 +2147,24 @@ _elm_win_client_message(void *data,
                                     ELM_ACCESS_ACTION_MOUSE, a);
                   free(a);
                }
+             else if ((unsigned int)e->data.l[1] ==
+                      ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_ENABLE)
+               {
+                  elm_access_action(ELM_WIDGET_DATA(sd)->obj,
+                                    ELM_ACCESS_ACTION_ENABLE, NULL);
+               }
+             else if ((unsigned int)e->data.l[1] ==
+                      ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_DISABLE)
+               {
+                  elm_access_action(ELM_WIDGET_DATA(sd)->obj,
+                                    ELM_ACCESS_ACTION_DISABLE, NULL);
+               }
           }
      }
+   else if (e->message_type == ECORE_X_ATOM_E_INDICATOR_FLICK_DONE)
+   {
+	   evas_object_smart_callback_call(ELM_WIDGET_DATA(sd)->obj, SIG_INDICATOR_FLICK_DONE, NULL);
+   }
    return ECORE_CALLBACK_PASS_ON;
 }
 
