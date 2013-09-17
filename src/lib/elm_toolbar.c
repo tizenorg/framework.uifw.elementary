@@ -145,6 +145,22 @@ _item_unselect(Elm_Toolbar_Item *item)
 }
 
 static void
+_item_unhighlight(Elm_Toolbar_Item *item)
+{
+   if (!item) return;
+
+   ELM_TOOLBAR_DATA_GET(WIDGET(item), sd);
+
+   if (!sd->highlighted_item) return;
+
+   if (item == sd->highlighted_item)
+     {
+        edje_object_signal_emit(VIEW(sd->highlighted_item), "elm,highlight,off", "elm");
+        sd->highlighted_item = NULL;
+     }
+}
+
+static void
 _menu_hide(void *data,
            Evas *e __UNUSED__,
            Evas_Object *obj __UNUSED__,
@@ -958,6 +974,7 @@ _item_del(Elm_Toolbar_Item *it)
    Elm_Toolbar_Item_State *it_state;
 
    _item_unselect(it);
+   _item_unhighlight(it);
 
    EINA_LIST_FREE(it->states, it_state)
      {
@@ -1452,13 +1469,16 @@ _move_cb(void *data,
 static void
 _highlight_off_cb(void *data __UNUSED__,
          Evas *e __UNUSED__,
-         Evas_Object *obj __UNUSED__,
+         Evas_Object *obj,
          void *event_info __UNUSED__)
 {
    ELM_TOOLBAR_DATA_GET(obj, sd);
 
    if (sd->highlighted_item)
-     edje_object_signal_emit(VIEW(sd->highlighted_item), "elm,highlight,off", "elm");
+     {
+        edje_object_signal_emit(VIEW(sd->highlighted_item), "elm,highlight,off", "elm");
+        sd->highlighted_item = NULL;
+     }
 }
 
 static void
