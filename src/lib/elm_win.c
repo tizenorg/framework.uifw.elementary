@@ -1211,6 +1211,9 @@ _elm_win_smart_event(Evas_Object *obj,
    if ((!strcmp(ev->keyname, "Tab")) ||
        (!strcmp(ev->keyname, "ISO_Left_Tab")))
      {
+        if (evas_key_modifier_is_set(ev->modifiers, "Control") ||
+            evas_key_modifier_is_set(ev->modifiers, "Alt"))
+          return;
         if (evas_key_modifier_is_set(ev->modifiers, "Shift"))
           elm_widget_focus_cycle(obj, ELM_FOCUS_PREVIOUS);
         else
@@ -1221,40 +1224,28 @@ _elm_win_smart_event(Evas_Object *obj,
    else if ((!strcmp(ev->keyname, "Left")) ||
             ((!strcmp(ev->keyname, "KP_Left")) && (!ev->string)))
      {
-        if (current_focused == obj)
-          elm_widget_focus_cycle(obj, ELM_FOCUS_NEXT);
-        else
-          elm_widget_focus_direction_go(obj, 270.0);
+        elm_widget_focus_cycle(obj, ELM_FOCUS_LEFT);
 
         goto success;
      }
    else if ((!strcmp(ev->keyname, "Right")) ||
             ((!strcmp(ev->keyname, "KP_Right")) && (!ev->string)))
      {
-        if (current_focused == obj)
-          elm_widget_focus_cycle(obj, ELM_FOCUS_NEXT);
-        else
-          elm_widget_focus_direction_go(obj, 90.0);
+        elm_widget_focus_cycle(obj, ELM_FOCUS_RIGHT);
 
         goto success;
      }
    else if ((!strcmp(ev->keyname, "Up")) ||
             ((!strcmp(ev->keyname, "KP_Up")) && (!ev->string)))
      {
-        if (current_focused == obj)
-          elm_widget_focus_cycle(obj, ELM_FOCUS_NEXT);
-        else
-          elm_widget_focus_direction_go(obj, 0.0);
+        elm_widget_focus_cycle(obj, ELM_FOCUS_UP);
 
         goto success;
      }
    else if ((!strcmp(ev->keyname, "Down")) ||
             ((!strcmp(ev->keyname, "KP_Down")) && (!ev->string)))
      {
-        if (current_focused == obj)
-          elm_widget_focus_cycle(obj, ELM_FOCUS_NEXT);
-        else
-          elm_widget_focus_direction_go(obj, 180.0);
+        elm_widget_focus_cycle(obj, ELM_FOCUS_DOWN);
 
         goto success;
      }
