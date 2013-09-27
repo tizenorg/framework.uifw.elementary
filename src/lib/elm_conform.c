@@ -273,14 +273,21 @@ _indicator_show_effect(Evas_Object *conformant, double duration)
 }
 
 static Eina_Bool
-_check_indicator_event(Evas_Object *conformant)
+_mouse_button_down_hdl(void *data, int type __UNUSED__, void *event __UNUSED__)
 {
+   Evas_Object *conformant = data;
    ELM_CONFORMANT_DATA_GET(conformant, sd);
-   if (sd->ind_o_mode == ELM_WIN_INDICATOR_TRANSPARENT)
-     return EINA_TRUE;
-   else if ((sd->rot == 90) || (sd->rot == 270))
-     return EINA_TRUE;
-   else return EINA_FALSE;
+
+   if (sd->on_indicator_effect)
+     {
+        if (sd->indicator_effect_timer)
+          {
+             ecore_timer_del(sd->indicator_effect_timer);
+             sd->indicator_effect_timer = NULL;
+          }
+        _indicator_hide_effect(conformant);
+     }
+   return ECORE_CALLBACK_PASS_ON;
 }
 
 static void
@@ -608,6 +615,9 @@ _indicator_mode_set(Evas_Object *conformant, Elm_Win_Indicator_Mode indmode)
 
    if (indmode == ELM_WIN_INDICATOR_SHOW)
      {
+        if (sd->mouse_down_hdl) ecore_event_handler_del(sd->mouse_down_hdl);
+        sd->mouse_down_hdl = ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_DOWN, _mouse_button_down_hdl, conformant);
+
         old_indi = elm_layout_content_get(conformant, INDICATOR_PART);
 
         //create new indicator
@@ -640,6 +650,11 @@ _indicator_mode_set(Evas_Object *conformant, Elm_Win_Indicator_Mode indmode)
      }
    else
      {
+        if (sd->mouse_down_hdl)
+          {
+             ecore_event_handler_del(sd->mouse_down_hdl);
+             sd->mouse_down_hdl = NULL;
+          }
         old_indi = elm_layout_content_get(conformant, INDICATOR_PART);
         if (old_indi)
           {
@@ -741,7 +756,6 @@ _on_indicator_flick_done(void *data,
 {
    Evas_Object *conformant = data;
 
-   ELM_CONFORMANT_DATA_GET(conformant, sd);
    _indicator_show_effect(conformant, 3);
 
 }
@@ -1147,6 +1161,7 @@ _elm_conformant_smart_del(Evas_Object *obj)
 #ifdef HAVE_ELEMENTARY_X
    if (sd->prop_hdl) ecore_event_handler_del(sd->prop_hdl);
 #endif
+   if (sd->mouse_down_hdl) ecore_event_handler_del(sd->mouse_down_hdl);
    if (sd->scroller)
      {
         evas_object_event_callback_del
