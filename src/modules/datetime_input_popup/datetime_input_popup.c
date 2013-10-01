@@ -36,19 +36,18 @@ typedef struct _Popup_Module_Data Popup_Module_Data;
 struct _Popup_Module_Data
 {
    Elm_Datetime_Module_Data mod_data;
+   Evas_Object *date_btn, *time_btn;
    Evas_Object *popup;
    Evas_Object *datepicker_layout, *timepicker_layout;
    Evas_Object *popup_field[DATETIME_FIELD_COUNT];
-   int field_location[PICKER_POPUP_FIELD_COUNT];
-   Evas_Object *datetime_field[DATETIME_FIELD_COUNT];
    struct tm set_time;
+   char weekday[BUFF_SIZE];
+   int field_location[PICKER_POPUP_FIELD_COUNT];
    Eina_Bool time_12hr_fmt;
    Eina_Bool is_pm;
    Eina_Bool weekday_show;
    Eina_Bool weekday_loc_first;
 };
-
-EAPI void field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj);
 
 static int
 _picker_nextfield_location_get(void *data, int curr)
@@ -94,54 +93,6 @@ _picker_hide_cb(void *data,
 
    evas_object_smart_callback_call(obj, SIG_EDIT_END, NULL);
    evas_object_hide(popup_mod->popup);
-}
-
-static void
-_datetime_press_cb(void *data,
-                   Evas_Object *obj __UNUSED__,
-                   const char *emission __UNUSED__,
-                   const char *source)
-{
-   Popup_Module_Data *popup_mod;
-   int idx;
-
-   popup_mod = (Popup_Module_Data *)data;
-   if (!popup_mod) return;
-
-   if (!strcmp(source, "date.picker.bg"))
-     {
-        for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
-           elm_object_signal_emit(popup_mod->datetime_field[idx], "elm,state,select", "elm");
-     }
-   else if (!strcmp(source, "time.picker.bg"))
-     {
-        for (idx = ELM_DATETIME_HOUR; idx < DATETIME_FIELD_COUNT; idx++)
-           elm_object_signal_emit(popup_mod->datetime_field[idx], "elm,state,select", "elm");
-     }
-}
-
-static void
-_datetime_unpress_cb(void *data,
-                     Evas_Object *obj __UNUSED__,
-                     const char *emission __UNUSED__,
-                     const char *source)
-{
-   Popup_Module_Data *popup_mod;
-   int idx;
-
-   popup_mod = (Popup_Module_Data *)data;
-   if (!popup_mod) return;
-
-   if (!strcmp(source, "date.picker.bg"))
-     {
-        for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
-           elm_object_signal_emit(popup_mod->datetime_field[idx], "elm,state,unselect", "elm");
-     }
-   else if (!strcmp(source, "time.picker.bg"))
-     {
-        for (idx = ELM_DATETIME_HOUR; idx < DATETIME_FIELD_COUNT; idx++)
-           elm_object_signal_emit(popup_mod->datetime_field[idx], "elm,state,unselect", "elm");
-     }
 }
 
 static void
@@ -361,7 +312,6 @@ _set_datepicker_popup_title_text(Popup_Module_Data *popup_mod)
 {
    struct tm set_time;
    time_t t;
-   char weekday[BUFF_SIZE];
    if (!popup_mod) return;
 
    t = time(NULL);
@@ -373,8 +323,8 @@ _set_datepicker_popup_title_text(Popup_Module_Data *popup_mod)
     * ignore day light saving mode in mktime(). */
    set_time.tm_isdst = -1;
    mktime(&set_time);
-   strftime(weekday, BUFF_SIZE, "%a", &set_time);
-   elm_object_part_text_set(popup_mod->popup, "elm.text.title2", weekday);
+   strftime(popup_mod->weekday, BUFF_SIZE, "%a", &set_time);
+   elm_object_part_text_set(popup_mod->popup, "elm.text.title2", popup_mod->weekday);
 
    elm_object_domain_translatable_part_text_set(popup_mod->popup, "title,text", PACKAGE, E_("Set date"));
 }
@@ -1002,7 +952,7 @@ static void
 _create_datetime_popup(Popup_Module_Data *popup_mod)
 {
    Evas_Object *set_btn, *cancel_btn;
-   Evas_Object *parent, *widget, *conformant = NULL;
+   Evas_Object *parent, *widget, *naviframe = NULL;
    const char *widget_type;
 
    if (!popup_mod) return;
@@ -1013,15 +963,15 @@ _create_datetime_popup(Popup_Module_Data *popup_mod)
      {
         parent = elm_widget_parent_get(widget);
         widget_type = elm_widget_type_get(widget);
-        if (!strcmp(widget_type, "elm_conformant"))
+        if (!strcmp(widget_type, "elm_naviframe"))
           {
-             conformant = widget;
+             naviframe = widget;
              break;
           }
         widget = parent;
      }
-   if (conformant)
-     popup_mod->popup = elm_popup_add(elm_object_content_get(conformant));
+   if (naviframe)
+     popup_mod->popup = elm_popup_add(naviframe);
    else
      popup_mod->popup = elm_popup_add(elm_widget_top_get(popup_mod->mod_data.base));
 
@@ -1030,13 +980,13 @@ _create_datetime_popup(Popup_Module_Data *popup_mod)
    evas_object_size_hint_align_set(popup_mod->popup, EVAS_HINT_FILL, 0.5);
 
    cancel_btn = elm_button_add(popup_mod->popup);
-   elm_object_style_set(cancel_btn, "popup_button/default");
+   elm_object_style_set(cancel_btn, "popup");
    elm_object_domain_translatable_text_set(cancel_btn, PACKAGE, E_("Cancel"));
    elm_object_part_content_set(popup_mod->popup, "button1", cancel_btn);
    evas_object_smart_callback_add(cancel_btn, "clicked", _popup_cancel_btn_clicked_cb, popup_mod);
 
    set_btn = elm_button_add(popup_mod->popup);
-   elm_object_style_set(set_btn, "popup_button/default");
+   elm_object_style_set(set_btn, "popup");
    elm_object_domain_translatable_text_set(set_btn, PACKAGE, E_("Set"));
    elm_object_part_content_set(popup_mod->popup, "button2", set_btn);
    evas_object_smart_callback_add(set_btn, "clicked", _popup_set_btn_clicked_cb, popup_mod);
@@ -1116,12 +1066,8 @@ _create_timepicker_layout(Popup_Module_Data *popup_mod)
        popup_mod->popup_field[idx] = spinner;
     }
 
-   ampm = elm_entry_add(popup_mod->popup);
-   elm_entry_single_line_set(ampm, EINA_TRUE);
-   elm_entry_editable_set(ampm, EINA_FALSE);
-   elm_entry_magnifier_disabled_set(ampm, EINA_TRUE);
-   elm_entry_context_menu_disabled_set(ampm, EINA_TRUE);
-   elm_object_style_set(ampm, "datetime_popup/ampm");
+   ampm = elm_button_add(popup_mod->popup);
+   elm_object_style_set(ampm, "datetime/ampm");
    evas_object_smart_callback_add(ampm, "clicked", _ampm_clicked_cb, popup_mod);
    elm_object_part_content_set(popup_mod->timepicker_layout, "field2",ampm);
    popup_mod->popup_field[ELM_DATETIME_AMPM] = ampm;
@@ -1157,8 +1103,8 @@ _module_format_change(Popup_Module_Data *popup_mod)
    int field_loc[PICKER_POPUP_FIELD_COUNT];
    char buf[BUFF_SIZE];
    int idx, loc, prev_loc;
-   Eina_Bool datepicker_bg_show = EINA_FALSE;
-   Eina_Bool timepicker_bg_show = EINA_FALSE;
+   Eina_Bool show_date_btn = EINA_FALSE;
+   Eina_Bool show_time_btn = EINA_FALSE;
    Eina_Bool time_12hr;
 
    if (!popup_mod) return;
@@ -1182,14 +1128,32 @@ _module_format_change(Popup_Module_Data *popup_mod)
           }
      }
    for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
-     datepicker_bg_show |= popup_mod->mod_data.field_location_get(datetime, idx, NULL);
-   if (!datepicker_bg_show)
-     elm_layout_signal_emit(datetime, "datetime,datepicker,bg,hide", "elm");
+     show_date_btn |= popup_mod->mod_data.field_location_get(datetime, idx, NULL);
+   if (show_date_btn)
+     {
+        elm_object_part_content_set(datetime, "date.btn", popup_mod->date_btn);
+        elm_layout_signal_emit(datetime, "datepicker,show", "elm");
+     }
+   else
+     {
+        elm_object_part_content_unset(datetime, "date.btn");
+        evas_object_hide(popup_mod->date_btn);
+        elm_layout_signal_emit(datetime, "datepicker,hide", "elm");
+     }
 
    for (idx = ELM_DATETIME_HOUR; idx < ELM_DATETIME_AMPM; idx++)
-     timepicker_bg_show |= popup_mod->mod_data.field_location_get(datetime, idx, NULL);
-   if (!timepicker_bg_show)
-     elm_layout_signal_emit(datetime, "datetime,timepicker,bg,hide", "elm");
+     show_time_btn |= popup_mod->mod_data.field_location_get(datetime, idx, NULL);
+   if (show_time_btn)
+     {
+        elm_object_part_content_set(datetime, "time.btn", popup_mod->time_btn);
+        elm_layout_signal_emit(datetime, "timepicker,show", "elm");
+     }
+   else
+     {
+        elm_object_part_content_unset(datetime, "time.btn");
+        evas_object_hide(popup_mod->time_btn);
+        elm_layout_signal_emit(datetime, "timepicker,hide", "elm");
+     }
 
    time_12hr = popup_mod->mod_data.field_location_get(datetime, ELM_DATETIME_AMPM, NULL);
    if ((popup_mod->time_12hr_fmt != time_12hr) && (popup_mod->timepicker_layout))
@@ -1223,11 +1187,100 @@ _module_format_change(Popup_Module_Data *popup_mod)
    _weekday_loc_update(popup_mod);
 }
 
+// module functions for the specific module type
+
+EAPI void
+display_fields(Elm_Datetime_Module_Data *module_data)
+{
+   Popup_Module_Data *popup_mod;
+   struct tm curr_time;
+   char date_str[BUFF_SIZE] = {0,};
+   char time_str[BUFF_SIZE] = {0,};
+   char buf[BUFF_SIZE] = {0,};
+   const char *fmt;
+   int i, idx, loc;
+   Eina_Bool is_visible;
+
+   popup_mod = (Popup_Module_Data *)module_data;
+   if (!popup_mod || !popup_mod->time_btn || !popup_mod->time_btn) return;
+
+   elm_datetime_value_get(popup_mod->mod_data.base, &curr_time);
+   if (popup_mod->weekday_show && popup_mod->weekday_loc_first)
+     {
+        is_visible = popup_mod->mod_data.field_location_get
+                           (popup_mod->mod_data.base, ELM_DATETIME_DATE, NULL);
+        if (is_visible)
+          {
+             /* FIXME: To restrict month wrapping because of summer time in some locales,
+              * ignore day light saving mode in mktime(). */
+             curr_time.tm_isdst = -1;
+             mktime(&curr_time);
+             strftime(buf, sizeof(buf), "%a", &curr_time);
+             strcat(date_str, buf);
+             strcat(date_str, " ");
+          }
+     }
+   for (i = 0; i <= ELM_DATETIME_DATE; i++)
+     {
+        for(idx = 0; idx <= ELM_DATETIME_DATE; idx++)
+          {
+             is_visible = popup_mod->mod_data.field_location_get
+                                   (popup_mod->mod_data.base, idx, &loc);
+             if (is_visible && (loc == i))
+               {
+                  fmt = popup_mod->mod_data.field_format_get
+                                 (popup_mod->mod_data.base, idx);
+                  /* FIXME: To restrict month wrapping because of summer time in some locales,
+                   * ignore day light saving mode in mktime(). */
+                  curr_time.tm_isdst = -1;
+                  mktime(&curr_time);
+                  strftime(buf, sizeof(buf), fmt, &curr_time);
+                  if (loc != 0) strcat(date_str, "/");
+                  strcat(date_str, buf);
+                  break;
+               }
+          }
+     }
+   if (popup_mod->weekday_show && !popup_mod->weekday_loc_first)
+     {
+        is_visible = popup_mod->mod_data.field_location_get
+                           (popup_mod->mod_data.base, ELM_DATETIME_DATE, NULL);
+        if (is_visible)
+          {
+             /* FIXME: To restrict month wrapping because of summer time in some locales,
+              * ignore day light saving mode in mktime(). */
+             curr_time.tm_isdst = -1;
+             mktime(&curr_time);
+             strftime(buf, sizeof(buf), "%a", &curr_time);
+             strcat(date_str, " ");
+             strcat(date_str, buf);
+          }
+     }
+
+   for(idx = ELM_DATETIME_HOUR; idx < DATETIME_FIELD_COUNT; idx++)
+     {
+        is_visible = popup_mod->mod_data.field_location_get
+                              (popup_mod->mod_data.base, idx, NULL);
+        if (is_visible)
+          {
+             fmt = popup_mod->mod_data.field_format_get
+                            (popup_mod->mod_data.base, idx);
+             /* FIXME: To restrict month wrapping because of summer time in some locales,
+              * ignore day light saving mode in mktime(). */
+             curr_time.tm_isdst = -1;
+             mktime(&curr_time);
+             strftime(buf, sizeof(buf), fmt, &curr_time);
+             if (idx == ELM_DATETIME_MINUTE) strcat(time_str, ":");
+             else if (idx == ELM_DATETIME_AMPM) strcat(time_str, " ");
+             strcat(time_str, buf);
+          }
+     }
+   elm_object_text_set(popup_mod->date_btn, date_str);
+   elm_object_text_set(popup_mod->time_btn, time_str);
+}
+
 static void
-_datepicker_show_cb(void *data,
-                   Evas_Object *obj,
-                   const char *emission __UNUSED__,
-                   const char *source __UNUSED__)
+_launch_datepicker(void *data, Evas_Object * obj, void *event_info __UNUSED__)
 {
    Popup_Module_Data *popup_mod;
 
@@ -1235,14 +1288,44 @@ _datepicker_show_cb(void *data,
    if (!popup_mod) return;
 
    if (!popup_mod->popup)
-     _create_datetime_popup(popup_mod);
+    _create_datetime_popup(popup_mod);
 
    if (!popup_mod->datepicker_layout)
-     _create_datepicker_layout(popup_mod);
+    _create_datepicker_layout(popup_mod);
 
    _show_datepicker_layout(popup_mod);
    evas_object_show(popup_mod->popup);
-   evas_object_smart_callback_call(obj, SIG_EDIT_START, NULL);
+
+   evas_object_smart_callback_call(popup_mod->mod_data.base, SIG_EDIT_START, NULL);
+}
+
+static void
+_launch_timepicker(void *data, Evas_Object * obj, void *event_info __UNUSED__)
+{
+   Popup_Module_Data *popup_mod;
+
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return;
+
+   if (!popup_mod->popup)
+    _create_datetime_popup(popup_mod);
+
+   if (!popup_mod->timepicker_layout)
+    _create_timepicker_layout(popup_mod);
+
+   _show_timepicker_layout(popup_mod);
+   evas_object_show(popup_mod->popup);
+
+   evas_object_smart_callback_call(popup_mod->mod_data.base, SIG_EDIT_START, NULL);
+}
+
+static void
+_datepicker_show_cb(void *data,
+                   Evas_Object *obj,
+                   const char *emission __UNUSED__,
+                   const char *source __UNUSED__)
+{
+   _launch_datepicker(data, NULL, NULL);
 }
 
 static void
@@ -1251,20 +1334,7 @@ _timepicker_show_cb(void *data,
                    const char *emission __UNUSED__,
                    const char *source __UNUSED__)
 {
-   Popup_Module_Data *popup_mod;
-
-   popup_mod = (Popup_Module_Data *)data;
-   if (!popup_mod) return;
-
-   if (!popup_mod->popup)
-     _create_datetime_popup(popup_mod);
-
-   if (!popup_mod->timepicker_layout)
-     _create_timepicker_layout(popup_mod);
-
-   _show_timepicker_layout(popup_mod);
-   evas_object_show(popup_mod->popup);
-   evas_object_smart_callback_call(obj, SIG_EDIT_START, NULL);
+   _launch_timepicker(data, NULL, NULL);
 }
 
 static void
@@ -1275,7 +1345,10 @@ _module_language_changed_cb(void *data,
    Popup_Module_Data *popup_mod;
    Evas_Object *content;
    popup_mod = (Popup_Module_Data *)data;
-   if (!popup_mod || !popup_mod->popup) return;
+   if (!popup_mod) return;
+
+   _weekday_loc_update(popup_mod);
+   if (!popup_mod->popup) return;
 
    content = elm_object_content_get(popup_mod->popup);
    if (content == popup_mod->datepicker_layout)
@@ -1294,24 +1367,12 @@ _weekday_show_cb(void *data,
                  const char *source __UNUSED__)
 {
    Popup_Module_Data *popup_mod;
-   int idx, loc, weekday_loc;
 
    popup_mod = (Popup_Module_Data *)data;
    if (!popup_mod) return;
 
    popup_mod->weekday_show = EINA_TRUE;
-
-   weekday_loc = (popup_mod->weekday_loc_first) ? 0 : 2;
-   for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
-     {
-        popup_mod->mod_data.field_location_get(popup_mod->mod_data.base, idx, &loc);
-        if (loc == weekday_loc)
-         {
-            field_value_display((Elm_Datetime_Module_Data *)popup_mod,
-                                popup_mod->datetime_field[idx]);
-            break;
-         }
-     }
+   display_fields((Elm_Datetime_Module_Data *)popup_mod);
 }
 
 static void
@@ -1321,149 +1382,151 @@ _weekday_hide_cb(void *data,
                  const char *source __UNUSED__)
 {
    Popup_Module_Data *popup_mod;
-   int idx, loc, weekday_loc;
 
    popup_mod = (Popup_Module_Data *)data;
    if (!popup_mod) return;
 
    popup_mod->weekday_show = EINA_FALSE;
-   weekday_loc = (popup_mod->weekday_loc_first) ? 0 : 2;
+   display_fields((Elm_Datetime_Module_Data *)popup_mod);
+}
+
+static char *
+_picker_location_text_get(int curr, struct tm *set_date)
+{
+   char buf[BUFF_SIZE] = {0,};
+   switch(curr)
+     {
+       case 0:
+          sprintf(buf, "%d year", (STRUCT_TM_YEAR_BASE_VALUE + set_date->tm_year));
+          return strdup(buf);
+       case 1:
+          sprintf(buf, "%d month", set_date->tm_mon+1);
+          return strdup(buf);
+       case 2:
+          sprintf(buf, "%d date", set_date->tm_mday);
+          return strdup(buf);
+       default:
+          break;
+     }
+
+   return NULL;
+}
+
+static char *
+_access_date_info_cb(void *data, Evas_Object *obj __UNUSED__)
+{
+   int idx = 0, loc = 0;
+   char *ret = NULL;
+   Eina_Strbuf *buf = NULL;
+   Popup_Module_Data *popup_mod;
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return NULL;
+   struct tm set_date;
+
+   elm_datetime_value_get(popup_mod->mod_data.base, &set_date);
+   buf = eina_strbuf_new();
    for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
      {
         popup_mod->mod_data.field_location_get(popup_mod->mod_data.base, idx, &loc);
-        if (loc == weekday_loc)
-         {
-            field_value_display((Elm_Datetime_Module_Data *)popup_mod,
-                                popup_mod->datetime_field[idx]);
-            break;
-         }
+        if (loc > ELM_DATETIME_DATE) loc  = loc - PICKER_POPUP_FIELD_COUNT;
+        popup_mod->field_location[loc] = idx;
      }
+   if (popup_mod->weekday_show && popup_mod->weekday_loc_first)
+     eina_strbuf_append(buf, popup_mod->weekday);
+   for (idx = 0; idx <= ELM_DATETIME_DATE; idx++)
+     eina_strbuf_append(buf,_picker_location_text_get(popup_mod->field_location[idx], &set_date));
+   if (popup_mod->weekday_show && !popup_mod->weekday_loc_first)
+     eina_strbuf_append(buf, popup_mod->weekday);
+   ret = eina_strbuf_string_steal(buf);
+   eina_strbuf_free(buf);
+   return ret;
 }
 
-static void
-_access_set(Evas_Object *obj, Elm_Datetime_Field_Type field_type)
+static char *
+_access_time_info_cb(void *data, Evas_Object *obj __UNUSED__)
 {
-   const char* type = NULL;
+   char *ret = NULL;
+   Eina_Strbuf *buf;
+   Popup_Module_Data *popup_mod;
+   struct tm set_time;
 
-   switch (field_type)
+   popup_mod = (Popup_Module_Data *)data;
+   if (!popup_mod) return NULL;
+
+   elm_datetime_value_get(popup_mod->mod_data.base, &set_time);
+   buf = eina_strbuf_new();
+   eina_strbuf_append_printf(buf,
+                             "%d hour, %d minute ",
+                             set_time.tm_hour,
+                             set_time.tm_min);
+   if (popup_mod->time_12hr_fmt)
      {
-       case ELM_DATETIME_YEAR:
-        type = "datetime field, year";
-        break;
-
-      case ELM_DATETIME_MONTH:
-        type = "datetime field, month";
-        break;
-
-     case ELM_DATETIME_DATE:
-        type = "datetime field, date";
-        break;
-
-      case ELM_DATETIME_HOUR:
-        type = "datetime field, hour";
-        break;
-
-      case ELM_DATETIME_MINUTE:
-        type = "datetime field, minute";
-        break;
-
-      case ELM_DATETIME_AMPM:
-        type = "datetime field, AM PM";
-        break;
-
-      default:
-        break;
+        if (popup_mod->is_pm)
+          eina_strbuf_append(buf, E_("PM"));
+        else
+          eina_strbuf_append(buf, E_("AM"));
      }
-
-   _elm_access_text_set
-     (_elm_access_object_get(obj), ELM_ACCESS_TYPE, type);
-   _elm_access_callback_set
-     (_elm_access_object_get(obj), ELM_ACCESS_STATE, NULL, NULL);
+   ret = eina_strbuf_string_steal(buf);
+   eina_strbuf_free(buf);
+   return ret;
 }
 
-// module functions for the specific module type
+EAPI Eina_List*
+focus_object_list_get(Elm_Datetime_Module_Data *module_data, Evas_Object *obj __UNUSED__)
+{
+   Popup_Module_Data *popup_mod;
+   Eina_List *items = NULL;
+
+   popup_mod = (Popup_Module_Data *)module_data;
+   if (!popup_mod) return NULL;
+
+   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
+     {
+        items = eina_list_append(items, popup_mod->date_btn);
+        items = eina_list_append(items, popup_mod->time_btn);
+     }
+   return items;
+}
+
 EAPI void
-field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
+access_register(Elm_Datetime_Module_Data *module_data)
 {
    Popup_Module_Data *popup_mod;
-   Elm_Datetime_Field_Type  field_type;
-   struct tm curr_time;
-   char buf[BUFF_SIZE] = {0,};
-   char weekday[BUFF_SIZE], label[BUFF_SIZE];
-   int loc, weekday_loc;
-   const char *fmt;
-   Eina_Bool is_weekday_shown;
 
    popup_mod = (Popup_Module_Data *)module_data;
-   if (!popup_mod || !obj) return;
+   if (!popup_mod) return;
 
-   elm_datetime_value_get(popup_mod->mod_data.base, &curr_time);
-   field_type = (Elm_Datetime_Field_Type )evas_object_data_get(obj, "_field_type");
-   fmt = popup_mod->mod_data.field_format_get(popup_mod->mod_data.base, field_type);
-   strftime(buf, sizeof(buf), fmt, &curr_time);
-
-   if ((!buf[0]) && ((!strcmp(fmt, "%p")) || (!strcmp(fmt, "%P"))))
-     {
-        if (curr_time.tm_hour < STRUCT_TM_TIME_12HRS_MAX_VALUE)
-          elm_object_domain_translatable_text_set(obj, PACKAGE, E_("AM"));
-        else
-          elm_object_domain_translatable_text_set(obj, PACKAGE, E_("PM"));
-     }
-   else if (!popup_mod->weekday_show)
-     elm_object_text_set(obj, buf);
-   else
-     {
-        /* FIXME: To restrict month wrapping because of summer time in some locales,
-         * ignore day light saving mode in mktime(). */
-        curr_time.tm_isdst = -1;
-        mktime(&curr_time);
-        strftime(weekday, sizeof(weekday), "%a", &curr_time);
-        weekday_loc = (popup_mod->weekday_loc_first) ? 0 : 2;
-        is_weekday_shown = popup_mod->mod_data.field_location_get(
-                           popup_mod->mod_data.base, field_type, &loc);
-        if (!is_weekday_shown || (loc != weekday_loc))
-          elm_object_text_set(obj, buf);
-        else if (loc == 0)
-          {
-             snprintf(label, sizeof(label), "%s %s", weekday, buf);
-             elm_object_text_set(obj, label);
-          }
-        else
-          {
-             snprintf(label, sizeof(label), "%s %s", buf, weekday);
-             elm_object_text_set(obj, label);
-          }
-     }
+   _elm_access_object_register(popup_mod->mod_data.base,
+                               elm_layout_edje_get(popup_mod->mod_data.base));
+   _elm_access_text_set(_elm_access_object_get(popup_mod->mod_data.base),
+                        ELM_ACCESS_TYPE, E_("datetime"));
+   elm_access_info_cb_set(popup_mod->date_btn, ELM_ACCESS_INFO,
+                          _access_date_info_cb, popup_mod);
+   elm_access_info_cb_set(popup_mod->time_btn, ELM_ACCESS_INFO,
+                          _access_time_info_cb, popup_mod);
 }
 
-EAPI Evas_Object *
-field_create(Elm_Datetime_Module_Data *module_data, Elm_Datetime_Field_Type field_type)
+EAPI void
+create_fields(Elm_Datetime_Module_Data *mdata)
 {
    Popup_Module_Data *popup_mod;
-   Evas_Object *field_obj;
-   char buf[BUFF_SIZE];
+   Evas_Object *obj;
 
-   popup_mod = (Popup_Module_Data *)module_data;
-   if (!popup_mod) return NULL;
+   popup_mod = (Popup_Module_Data *)mdata;
+   if (!popup_mod) return;
 
-   field_obj = elm_label_add(popup_mod->mod_data.base);
-   snprintf(buf, sizeof(buf), "datetime/%s/default", field_styles[field_type]);
-   elm_object_style_set(field_obj, buf);
-   evas_object_data_set(field_obj, "_field_type", (void *)field_type);
-   popup_mod->datetime_field[field_type] = field_obj;
+   obj = popup_mod->mod_data.base;
+   popup_mod->date_btn = elm_button_add(obj);
+   elm_object_style_set(popup_mod->date_btn, "style1/auto_expand");
+   elm_object_part_content_set(obj, "date.btn", popup_mod->date_btn);
+   evas_object_smart_callback_add(popup_mod->date_btn, "clicked",
+                                  _launch_datepicker, popup_mod);
 
-   _access_set(field_obj, field_type);
-
-   return field_obj;
-}
-
-EAPI Elm_Datetime_Module_Data *
-obj_hook(Evas_Object *obj)
-{
-   Popup_Module_Data *popup_mod;
-
-   popup_mod = ELM_NEW(Popup_Module_Data);
-   if (!popup_mod) return NULL;
+   popup_mod->time_btn = elm_button_add(obj);
+   elm_object_style_set(popup_mod->time_btn, "style1/auto_expand");
+   elm_object_part_content_set(obj, "time.btn", popup_mod->time_btn);
+   evas_object_smart_callback_add(popup_mod->time_btn, "clicked",
+                                  _launch_timepicker, popup_mod);
 
    elm_object_signal_callback_add(obj, "datepicker,show", "",
                                   _datepicker_show_cb, popup_mod);
@@ -1471,17 +1534,24 @@ obj_hook(Evas_Object *obj)
                                   _timepicker_show_cb, popup_mod);
    elm_object_signal_callback_add(obj, "picker,hide", "",
                                   _picker_hide_cb, popup_mod);
-   elm_object_signal_callback_add(obj, "language,changed", "",
+   evas_object_smart_callback_add(obj, "language,changed",
                                   _module_language_changed_cb, popup_mod);
-   elm_object_signal_callback_add(obj, "elm,action,press", "*",
-                                  _datetime_press_cb, popup_mod);
-   elm_object_signal_callback_add(obj, "elm,action,unpress", "*",
-                                  _datetime_unpress_cb, popup_mod);
    elm_object_signal_callback_add(obj, "weekday,show", "",
                                   _weekday_show_cb, popup_mod);
    elm_object_signal_callback_add(obj, "weekday,hide", "",
                                   _weekday_hide_cb, popup_mod);
+}
 
+EAPI Elm_Datetime_Module_Data *
+obj_hook(Evas_Object *obj __UNUSED__)
+{
+   Popup_Module_Data *popup_mod;
+
+   popup_mod = ELM_NEW(Popup_Module_Data);
+   if (!popup_mod) return NULL;
+
+   popup_mod->date_btn = NULL;
+   popup_mod->time_btn = NULL;
    popup_mod->popup = NULL;
    popup_mod->datepicker_layout = NULL;
    popup_mod->timepicker_layout = NULL;
@@ -1499,6 +1569,10 @@ obj_unhook(Elm_Datetime_Module_Data *module_data)
    popup_mod = (Popup_Module_Data *)module_data;
    if (!popup_mod) return;
 
+   if (popup_mod->datepicker_layout)
+     evas_object_del(popup_mod->datepicker_layout);
+   if (popup_mod->timepicker_layout)
+     evas_object_del(popup_mod->timepicker_layout);
    if (popup_mod->popup)
      evas_object_del(popup_mod->popup);
 
@@ -1524,11 +1598,13 @@ EAPI void
 obj_theme_hook(Elm_Datetime_Module_Data *module_data)
 {
    Popup_Module_Data *popup_mod;
+   Evas_Object *obj;
 
    popup_mod = (Popup_Module_Data *)module_data;
    if (!popup_mod) return;
 
-   // TODO: function can be improved to provide different popup styles.
+   obj = popup_mod->mod_data.base;
+   display_fields((Elm_Datetime_Module_Data *)popup_mod);
 }
 
 EAPI void
@@ -1537,17 +1613,11 @@ obj_focus_hook(Elm_Datetime_Module_Data *module_data __UNUSED__)
    // TODO: Default focus - enhance this func. for obj_show/obj_hide like below
 #if 0
    Popup_Module_Data *popup_mod;
-   int idx;
-   Eina_Bool is_focused = EINA_FALSE; //init with i/p argument
 
    popup_mod = (Popup_Module_Data *)module_data;
    if (!popup_mod || popup_mod->popup) return;
 
-   for (idx = 0; idx < DATETIME_FIELD_COUNT; idx++)
-      if (elm_object_focus_get(popup_mod->popup_field[idx]))
-        is_focused = EINA_TRUE;
-
-   if (is_focused)
+   if (elm_widget_focus_get(obj))
      evas_object_show(popup_mod->popup);
    else
      evas_object_hide(popup_mod->popup);
