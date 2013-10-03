@@ -28,8 +28,6 @@ EAPI const char ELM_DATETIME_SMART_NAME[] = "elm_datetime";
 #define EDC_PART_FIELD_DISABLE_SIG_STR "field%d,disable"
 #define EDC_PART_FIELD_SEPARATOR_ENABLE_SIG_STR  "field%d,separator,enable"
 #define EDC_PART_FIELD_SEPARATOR_DISABLE_SIG_STR "field%d,separator,disable"
-#define EDC_PART_TIMEPICKER_STARTING_FIELD_STR "timepicker,starting,field%d"
-#define EDC_PART_DATEPICKER_STARTING_FIELD_STR "datepicker,starting,field%d"
 
 /* struct tm does not define the fields in the order year, month,
  * date, hour, minute. values are reassigned to an array for easy
@@ -85,37 +83,20 @@ _dt_mod_init()
      _elm_module_symbol_get(mod, "obj_unhook");
    ((Datetime_Mod_Api *)(mod->api))->obj_theme_hook =
      _elm_module_symbol_get(mod, "obj_theme_hook");
-   ((Datetime_Mod_Api *)(mod->api))->obj_focus_hook =
-     _elm_module_symbol_get(mod, "obj_focus_hook");
    ((Datetime_Mod_Api *)(mod->api))->obj_format_hook =
      _elm_module_symbol_get(mod, "obj_format_hook");
-   ((Datetime_Mod_Api *)(mod->api))->obj_hide =
-     _elm_module_symbol_get(mod, "obj_hide");
-   ((Datetime_Mod_Api *)(mod->api))->field_create =
-     _elm_module_symbol_get(mod, "field_create");
-   ((Datetime_Mod_Api *)(mod->api))->field_value_display =
-     _elm_module_symbol_get(mod, "field_value_display");
+   ((Datetime_Mod_Api *)(mod->api))->obj_focus_hook =
+     _elm_module_symbol_get(mod, "obj_focus_hook");
+   ((Datetime_Mod_Api *)(mod->api))->focus_object_list_get =
+     _elm_module_symbol_get(mod, "focus_object_list_get");
+   ((Datetime_Mod_Api *)(mod->api))->access_register =
+     _elm_module_symbol_get(mod, "access_register");
+   ((Datetime_Mod_Api *)(mod->api))->create_fields =
+     _elm_module_symbol_get(mod, "create_fields");
+   ((Datetime_Mod_Api *)(mod->api))->display_fields =
+     _elm_module_symbol_get(mod, "display_fields");
 
    return mod->api;
-}
-
-static void
-_field_list_display(Evas_Object *obj)
-{
-   Datetime_Field *field;
-   unsigned int idx = 0;
-
-   ELM_DATETIME_DATA_GET(obj, sd);
-
-   for (idx = 0; idx < ELM_DATETIME_TYPE_COUNT; idx++)
-     {
-        field = sd->field_list + idx;
-        if (field->fmt_exist && field->visible)
-          {
-             if ((dt_mod) && (dt_mod->field_value_display))
-               dt_mod->field_value_display(sd->mod_data, field->item_obj);
-          }
-     }
 }
 
 // FIXME: provide nl_langinfo on Windows if possible
@@ -213,58 +194,6 @@ _expand_format(char *dt_fmt)
 
    buf[idx] = 0;
    strncpy(dt_fmt, buf, ELM_DATETIME_MAX_FORMAT_LEN);
-}
-
-static void
-_field_list_arrange(Evas_Object *obj)
-{
-   Datetime_Field *field;
-   char buf[BUFFER_SIZE];
-   int idx;
-   int datepicker_start_idx = ELM_DATETIME_TYPE_COUNT;
-   int timepicker_start_idx = ELM_DATETIME_TYPE_COUNT;
-
-   ELM_DATETIME_DATA_GET(obj, sd);
-
-   for (idx = 0; idx < ELM_DATETIME_TYPE_COUNT; idx++)
-     {
-        field = sd->field_list + idx;
-        snprintf(buf, sizeof(buf), EDC_PART_FIELD_STR, field->location);
-        evas_object_hide(elm_layout_content_unset(obj, buf));
-     }
-
-   for (idx = 0; idx < ELM_DATETIME_TYPE_COUNT; idx++)
-     {
-        field = sd->field_list + idx;
-        snprintf(buf, sizeof(buf), EDC_PART_FIELD_STR, field->location);
-        if (field->visible && field->fmt_exist)
-          elm_layout_content_set(obj, buf, field->item_obj);
-     }
-
-   for (idx = 0; idx < ELM_DATETIME_HOUR; idx++)
-     {
-        field = sd->field_list + idx;
-        if ((field->fmt_exist) && (field->location < datepicker_start_idx))
-          datepicker_start_idx = field->location;
-     }
-
-   snprintf(buf, sizeof(buf), EDC_PART_DATEPICKER_STARTING_FIELD_STR,
-            datepicker_start_idx);
-   elm_layout_signal_emit(obj, buf, "elm");
-
-   for (idx = ELM_DATETIME_HOUR; idx < ELM_DATETIME_TYPE_COUNT; idx++)
-     {
-        field = sd->field_list + idx;
-        if ((field->fmt_exist) && (field->location < timepicker_start_idx))
-          timepicker_start_idx = field->location;
-     }
-   snprintf(buf, sizeof(buf), EDC_PART_TIMEPICKER_STARTING_FIELD_STR,
-            timepicker_start_idx);
-   elm_layout_signal_emit(obj, buf, "elm");
-
-   elm_layout_signal_emit(obj, "datetime,weekday,hide", "elm");
-   elm_layout_sizing_eval(obj);
-   _field_list_display(obj);
 }
 
 static unsigned int
@@ -417,11 +346,11 @@ _reload_format(Evas_Object *obj)
           }
      }
 
-   _field_list_arrange(obj);
-   edje_object_message_signal_process(ELM_WIDGET_DATA(sd)->resize_obj);
-
    if ((dt_mod) && (dt_mod->obj_format_hook))
      dt_mod->obj_format_hook(sd->mod_data);
+
+   if ((dt_mod) && (dt_mod->display_fields))
+     dt_mod->display_fields(sd->mod_data);
 }
 
 static Eina_Bool
@@ -429,8 +358,13 @@ _elm_datetime_smart_translate(Evas_Object *obj)
 {
    ELM_DATETIME_DATA_GET(obj, sd);
 
-   if (!sd->user_format) _reload_format(obj);
-   else _field_list_display(obj);
+   if (sd->user_format)
+     {
+        if ((dt_mod) && (dt_mod->display_fields))
+          dt_mod->display_fields(sd->mod_data);
+     }
+   else
+     _reload_format(obj);
 
    evas_object_smart_callback_call(obj, SIG_LANGUAGE_CHANGED, NULL);
 
@@ -441,32 +375,11 @@ static Eina_List *
 _datetime_items_get(const Evas_Object *obj)
 {
    Eina_List *items = NULL;
-   Datetime_Field *field;
-   int loc = 0;
-   unsigned int idx;
-   Eina_Bool visible[ELM_DATETIME_TYPE_COUNT];
 
    ELM_DATETIME_DATA_GET(obj, sd);
 
-   for (idx = 0; idx < ELM_DATETIME_TYPE_COUNT; idx++)
-     {
-        field = sd->field_list + idx;
-        if (field->fmt_exist && field->visible) visible[idx] = EINA_TRUE;
-        else visible[idx] = EINA_FALSE;
-     }
-   for (loc = 0; loc < ELM_DATETIME_TYPE_COUNT; loc++)
-     {
-        for (idx = 0; idx < ELM_DATETIME_TYPE_COUNT; idx++)
-          {
-             field = sd->field_list + idx;
-             if ((field->location == loc) && (visible[idx]))
-               items = eina_list_append(items, field->item_obj);
-          }
-     }
-
-   // ACCESS
-   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
-     items = eina_list_append(items, sd->access_obj);
+   if ((dt_mod) && (dt_mod->focus_object_list_get))
+     items = dt_mod->focus_object_list_get(sd->mod_data);
 
    return items;
 }
@@ -508,12 +421,6 @@ _elm_datetime_smart_on_focus(Evas_Object *obj)
   if ((dt_mod) && (dt_mod->obj_focus_hook))
     dt_mod->obj_focus_hook(sd->mod_data);
 
-   if (!elm_widget_focus_get(obj))
-     {
-        if ((dt_mod) && (dt_mod->obj_hide))
-          dt_mod->obj_hide(sd->mod_data);
-     }
-
    return EINA_TRUE;
 }
 
@@ -551,7 +458,7 @@ _elm_datetime_smart_theme(Evas_Object *obj)
    if (!ELM_WIDGET_CLASS(_elm_datetime_parent_sc)->theme(obj))
      return EINA_FALSE;
 
-   if ((!dt_mod) || (!dt_mod->field_value_display)) return EINA_TRUE;
+   if (!dt_mod) return EINA_TRUE;
 
    for (idx = 0; idx < ELM_DATETIME_TYPE_COUNT; idx++)
      {
@@ -561,8 +468,6 @@ _elm_datetime_smart_theme(Evas_Object *obj)
              snprintf(buf, sizeof(buf), EDC_PART_FIELD_ENABLE_SIG_STR,
                       field->location);
              elm_layout_signal_emit(obj, buf, "elm");
-
-             dt_mod->field_value_display(sd->mod_data, field->item_obj);
 
              if (field->separator && strcmp(field->separator, ""))
                {
@@ -589,11 +494,9 @@ _elm_datetime_smart_theme(Evas_Object *obj)
              elm_layout_signal_emit(obj, buf, "elm");
           }
      }
-
-   edje_object_message_signal_process(ELM_WIDGET_DATA(sd)->resize_obj);
    elm_layout_sizing_eval(obj);
 
-   if ((dt_mod) && (dt_mod->obj_theme_hook))
+   if (dt_mod->obj_theme_hook)
      dt_mod->obj_theme_hook(sd->mod_data);
 
    return EINA_TRUE;
@@ -621,9 +524,7 @@ _max_days_get(int year,
         mktime(&time1);
         if (time1.tm_mday == 1) break;
      }
-
    day--;
-
    return day;
 }
 
@@ -693,7 +594,8 @@ _apply_field_limits(Evas_Object *obj)
           *timearr[idx] = field->max;
      }
 
-   _field_list_display(obj);
+   if ((dt_mod) && (dt_mod->display_fields))
+     dt_mod->display_fields(sd->mod_data);
 }
 
 static void
@@ -793,7 +695,7 @@ static void
 _fields_min_max_get(Evas_Object *obj, struct tm *set_value,
                     struct tm *min_value, struct tm *max_value)
 {
-   int value, min, max, max_days;
+   int min, max, max_days;
    Datetime_Field *field;
    unsigned int i, idx;
 
@@ -867,98 +769,30 @@ _field_list_init(Evas_Object *obj)
      }
 }
 
-static char *
-_access_info_cb(void *data, Evas_Object *obj __UNUSED__)
-{
-   char *ret;
-   Eina_Strbuf *buf;
-   buf = eina_strbuf_new();
-
-   ELM_DATETIME_DATA_GET(data, sd);
-   eina_strbuf_append_printf(buf,
-                             "%d year, %d month, %d date, %d hour, %d minute",
-                             sd->curr_time.tm_year, sd->curr_time.tm_mon + 1,
-                             sd->curr_time.tm_mday, sd->curr_time.tm_hour,
-                             sd->curr_time.tm_min);
-
-   ret = eina_strbuf_string_steal(buf);
-   eina_strbuf_free(buf);
-   return ret;
-}
-
 static void
 _elm_datetime_smart_add(Evas_Object *obj)
 {
-   int idx;
-   Datetime_Field *field;
-
    EVAS_SMART_DATA_ALLOC(obj, Elm_Datetime_Smart_Data);
 
    ELM_WIDGET_CLASS(_elm_datetime_parent_sc)->base.add(obj);
-
-   elm_layout_theme_set(obj, "datetime", "base", elm_widget_style_get(obj));
-
-   // module - initialise module for datetime
-   if (!dt_mod) dt_mod = _dt_mod_init();
-   if ((dt_mod) && (dt_mod->obj_hook)) priv->mod_data = dt_mod->obj_hook(obj);
-
-   // update module data
-   if (priv->mod_data)
-     {
-        priv->mod_data->base = obj;
-        priv->mod_data->field_format_get = _field_format_get;
-        priv->mod_data->field_location_get = _field_location_get;
-        priv->mod_data->field_limit_get = _field_limit_get;
-        priv->mod_data->fields_min_max_get = _fields_min_max_get;
-     }
-
-   _field_list_init(obj);
-   _reload_format(obj);
-
-   if ((dt_mod) && (dt_mod->field_create))
-     {
-        for (idx = 0; idx < ELM_DATETIME_TYPE_COUNT; idx++)
-          {
-             field = priv->field_list + idx;
-             field->item_obj = dt_mod->field_create(priv->mod_data, idx);
-          }
-     }
-
-   _field_list_arrange(obj);
-
-   elm_widget_can_focus_set(obj, EINA_TRUE);
-
-   elm_layout_sizing_eval(obj);
-
-   // ACCESS
-   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
-     {
-        priv->access_obj = _elm_access_edje_object_part_object_register
-                             (obj, elm_layout_edje_get(obj), "access");
-        Elm_Access_Info *ai;
-        ai = _elm_access_object_get(priv->access_obj);
-        _elm_access_text_set(ai, ELM_ACCESS_TYPE, "date time");
-        _elm_access_callback_set(ai, ELM_ACCESS_INFO, _access_info_cb, obj);
-     }
 }
 
 static void
 _elm_datetime_smart_del(Evas_Object *obj)
 {
-   Datetime_Field *tmp;
+   Datetime_Field *field;
    unsigned int idx;
 
    ELM_DATETIME_DATA_GET(obj, sd);
 
    for (idx = 0; idx < ELM_DATETIME_TYPE_COUNT; idx++)
      {
-        tmp = sd->field_list + idx;
-        evas_object_del(tmp->item_obj);
-        eina_stringshare_del(tmp->separator);
+        field = sd->field_list + idx;
+        eina_stringshare_del(field->separator);
      }
 
    if ((dt_mod) && (dt_mod->obj_unhook))
-     dt_mod->obj_unhook(sd->mod_data);  // module - unhook
+     dt_mod->obj_unhook(sd->mod_data);
 
    ELM_WIDGET_CLASS(_elm_datetime_parent_sc)->base.del(obj);
 }
@@ -968,12 +802,10 @@ _elm_datetime_smart_set_user(Elm_Datetime_Smart_Class *sc)
 {
    ELM_WIDGET_CLASS(sc)->base.add = _elm_datetime_smart_add;
    ELM_WIDGET_CLASS(sc)->base.del = _elm_datetime_smart_del;
-
    ELM_WIDGET_CLASS(sc)->translate = _elm_datetime_smart_translate;
    ELM_WIDGET_CLASS(sc)->focus_next = _elm_datetime_smart_focus_next;
    ELM_WIDGET_CLASS(sc)->on_focus = _elm_datetime_smart_on_focus;
    ELM_WIDGET_CLASS(sc)->theme = _elm_datetime_smart_theme;
-
    ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_datetime_smart_sizing_eval;
 }
 
@@ -999,6 +831,8 @@ EAPI Evas_Object *
 elm_datetime_add(Evas_Object *parent)
 {
    Evas_Object *obj;
+   int idx;
+   Datetime_Field *field;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
 
@@ -1007,6 +841,41 @@ elm_datetime_add(Evas_Object *parent)
 
    if (!elm_widget_sub_object_add(parent, obj))
      ERR("could not add %p as sub object of %p", obj, parent);
+
+   ELM_DATETIME_DATA_GET(obj, sd);
+
+   elm_layout_theme_set(obj, "datetime", "base", elm_widget_style_get(obj));
+
+   // module - initialise module for datetime
+   if (!dt_mod) dt_mod = _dt_mod_init();
+
+   if ((dt_mod) && (dt_mod->obj_hook))
+    sd->mod_data = dt_mod->obj_hook(obj);
+
+   // update module data
+   if (sd->mod_data)
+     {
+        sd->mod_data->base = obj;
+        sd->mod_data->field_format_get = _field_format_get;
+        sd->mod_data->field_location_get = _field_location_get;
+        sd->mod_data->field_limit_get = _field_limit_get;
+        sd->mod_data->fields_min_max_get = _fields_min_max_get;
+     }
+
+   _field_list_init(obj);
+   _reload_format(obj);
+
+   if ((dt_mod) && (dt_mod->create_fields))
+     dt_mod->create_fields(sd->mod_data);
+
+   if ((dt_mod) && (dt_mod->display_fields))
+     dt_mod->display_fields(sd->mod_data);
+
+   if ((dt_mod) && (dt_mod->access_register))
+     dt_mod->access_register(sd->mod_data);
+
+   elm_widget_can_focus_set(obj, EINA_TRUE);
+   elm_layout_sizing_eval(obj);
 
    return obj;
 }

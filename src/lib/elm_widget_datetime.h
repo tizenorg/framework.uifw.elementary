@@ -129,7 +129,6 @@ typedef struct _Format_Map              Format_Map;
 
 struct _Datetime_Field
 {
-   Evas_Object            *item_obj;
    char                    fmt[ELM_DATETIME_MAX_FIELD_FORMAT_LEN];
    Elm_Datetime_Field_Type type;
    const char             *separator;
@@ -147,14 +146,13 @@ struct _Datetime_Mod_Api
    Elm_Datetime_Module_Data *(*obj_hook)(Evas_Object * obj);
    void                      (*obj_unhook)(Elm_Datetime_Module_Data *mdata);
    void                      (*obj_theme_hook)(Elm_Datetime_Module_Data *mdata);
-   void                      (*obj_focus_hook)(Elm_Datetime_Module_Data *mdata);
    void                      (*obj_format_hook)(Elm_Datetime_Module_Data *mdata);
-   void                      (*obj_hide)(Elm_Datetime_Module_Data *mdata);
-   Evas_Object              *(*field_create)(Elm_Datetime_Module_Data * mdata,
-                                             Elm_Datetime_Field_Type ftype);
-   void                      (*field_value_display)(Elm_Datetime_Module_Data
-                                                    *mdata,
-                                                    Evas_Object *obj);
+   void                      (*obj_focus_hook)(Elm_Datetime_Module_Data *mdata);
+   Eina_List                *(*focus_object_list_get)(Elm_Datetime_Module_Data
+                                                       *mdata);
+   void                      (*access_register)(Elm_Datetime_Module_Data *mdata);
+   EAPI void                 (*create_fields)(Elm_Datetime_Module_Data *mdata);
+   EAPI void                 (*display_fields)(Elm_Datetime_Module_Data *mdata);
 };
 
 struct _Elm_Datetime_Smart_Data
@@ -166,7 +164,6 @@ struct _Elm_Datetime_Smart_Data
    struct tm                 curr_time, min_limit, max_limit;
    Elm_Datetime_Module_Data *mod_data;
    char                      format[ELM_DATETIME_MAX_FORMAT_LEN];
-   Evas_Object              *access_obj;
    Eina_Bool                 user_format : 1;  /* whether user set
                                                 * format or default
                                                 * format. */
