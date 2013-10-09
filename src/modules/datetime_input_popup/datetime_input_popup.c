@@ -1271,7 +1271,15 @@ display_fields(Elm_Datetime_Module_Data *module_data)
              mktime(&curr_time);
              strftime(buf, sizeof(buf), fmt, &curr_time);
              if (idx == ELM_DATETIME_MINUTE) strcat(time_str, ":");
-             else if (idx == ELM_DATETIME_AMPM) strcat(time_str, " ");
+             else if (idx == ELM_DATETIME_AMPM)
+               {
+                  strcat(time_str, " ");
+                  if (!buf[0] || !strcmp(buf, ""))
+                    {
+                       if (curr_time.tm_hour < 12) strcat(time_str, E_("AM"));
+                       else strcat(time_str, E_("PM"));
+                    }
+               }
              strcat(time_str, buf);
           }
      }
