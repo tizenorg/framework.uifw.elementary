@@ -870,6 +870,21 @@ _move_resize_cb(void *data __UNUSED__,
 }
 
 static void
+_on_pressed_signal(void *data,
+                   Evas_Object *obj __UNUSED__,
+                   const char *emission __UNUSED__,
+                   const char *source __UNUSED__)
+{
+   ELM_CONFORMANT_DATA_GET_OR_RETURN(data, sd);
+
+   if (sd->on_indicator_effect)
+     {
+        if (sd->indicator_effect_timer) ecore_timer_del(sd->indicator_effect_timer);
+        _indicator_hide_effect(data);
+     }
+}
+
+static void
 _show_region_job(void *data)
 {
    Evas_Object *focus_obj;
@@ -1193,6 +1208,10 @@ _elm_conformant_smart_del(Evas_Object *obj)
    evas_object_smart_callback_del(top, "rotation,changed",
                                   (Evas_Smart_Cb)_on_rotation_changed);
 
+   edje_object_signal_callback_del
+     (ELM_WIDGET_DATA(sd)->resize_obj, "elm,action,press", "",
+     _on_pressed_signal);
+
    ELM_WIDGET_CLASS(_elm_conformant_parent_sc)->base.del(obj);
 }
 
@@ -1283,6 +1302,10 @@ elm_conformant_add(Evas_Object *parent)
    ELM_CONFORMANT_DATA_GET(obj, sd);
 
    sd->win = elm_widget_top_get(obj);
+
+   edje_object_signal_callback_add
+     (ELM_WIDGET_DATA(sd)->resize_obj, "elm,action,press", "",
+     _on_pressed_signal, obj);
 
    sd->indmode = elm_win_indicator_mode_get(sd->win);
    sd->ind_o_mode = elm_win_indicator_opacity_get(sd->win);
