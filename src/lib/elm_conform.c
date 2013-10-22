@@ -272,23 +272,6 @@ _indicator_show_effect(Evas_Object *conformant, double duration)
    sd->indicator_effect_timer = ecore_timer_add(duration, _indicator_hide_effect, conformant);
 }
 
-static Eina_Bool
-_mouse_button_down_hdl(void *data, int type __UNUSED__, void *event __UNUSED__)
-{
-   Evas_Object *conformant = data;
-   ELM_CONFORMANT_DATA_GET(conformant, sd);
-
-   if (sd->on_indicator_effect)
-     {
-        if (sd->indicator_effect_timer)
-          {
-             ecore_timer_del(sd->indicator_effect_timer);
-             sd->indicator_effect_timer = NULL;
-          }
-        _indicator_hide_effect(conformant);
-     }
-   return ECORE_CALLBACK_PASS_ON;
-}
 
 static void
 _conformant_parts_swallow(Evas_Object *obj)
@@ -545,12 +528,6 @@ _create_portrait_indicator(Evas_Object *obj)
    /* access - would use tree_highlight_allow_set(); */
    elm_widget_tree_unfocusable_set(port_indicator, EINA_TRUE);
 
-   if (sd->ind_o_mode == ELM_WIN_INDICATOR_TRANSPARENT)
-     {
-        DBG("[INDICATOR]Change repeat=1(port create, transparent)");
-        evas_object_repeat_events_set(port_indicator, EINA_TRUE);
-     }
-
    return port_indicator;
 }
 
@@ -593,8 +570,6 @@ _create_landscape_indicator(Evas_Object *obj)
 
    /* access - would use tree_highlight_allow_set(); */
    elm_widget_tree_unfocusable_set(land_indicator, EINA_TRUE);
-   DBG("[INDICATOR]Change repeat=1(land create)");
-   evas_object_repeat_events_set(land_indicator, EINA_TRUE);
 
    return land_indicator;
 }
@@ -615,9 +590,6 @@ _indicator_mode_set(Evas_Object *conformant, Elm_Win_Indicator_Mode indmode)
 
    if (indmode == ELM_WIN_INDICATOR_SHOW)
      {
-        if (sd->mouse_down_hdl) ecore_event_handler_del(sd->mouse_down_hdl);
-        sd->mouse_down_hdl = ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_DOWN, _mouse_button_down_hdl, conformant);
-
         old_indi = elm_layout_content_get(conformant, INDICATOR_PART);
 
         //create new indicator
@@ -650,11 +622,6 @@ _indicator_mode_set(Evas_Object *conformant, Elm_Win_Indicator_Mode indmode)
      }
    else
      {
-        if (sd->mouse_down_hdl)
-          {
-             ecore_event_handler_del(sd->mouse_down_hdl);
-             sd->mouse_down_hdl = NULL;
-          }
         old_indi = elm_layout_content_get(conformant, INDICATOR_PART);
         if (old_indi)
           {
@@ -799,6 +766,17 @@ _elm_conformant_smart_theme(Evas_Object *obj)
    elm_layout_sizing_eval(obj);
 
    return EINA_TRUE;
+}
+
+static void
+_elm_conformant_smart_signal(Evas_Object *obj,
+                            const char *emission,
+                            const char *source)
+{
+   ELM_CONFORMANT_DATA_GET(obj, sd);
+
+   _elm_conformant_parent_sc->signal(obj, emission, source);
+   edje_object_message_signal_process(ELM_WIDGET_DATA(sd)->resize_obj);
 }
 
 // unused now - but meant to be for making sure the focused widget is always
@@ -1176,7 +1154,6 @@ _elm_conformant_smart_del(Evas_Object *obj)
 #ifdef HAVE_ELEMENTARY_X
    if (sd->prop_hdl) ecore_event_handler_del(sd->prop_hdl);
 #endif
-   if (sd->mouse_down_hdl) ecore_event_handler_del(sd->mouse_down_hdl);
    if (sd->scroller)
      {
         evas_object_event_callback_del
@@ -1290,8 +1267,17 @@ EAPI Evas_Object *
 elm_conformant_add(Evas_Object *parent)
 {
    Evas_Object *obj;
+   Evas_Object *win;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
+
+   //before conformant add, check window has another conformant.
+   win = elm_widget_top_get(parent);
+   if (evas_object_data_get(win, "\377 elm,conformant"))
+     {
+        ERR("This window already has a conformant");
+        return NULL;
+     }
 
    obj = elm_widget_add(_elm_conformant_smart_class_new(), parent);
    if (!obj) return NULL;

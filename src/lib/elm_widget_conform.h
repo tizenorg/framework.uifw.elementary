@@ -148,7 +148,6 @@ struct _Elm_Conformant_Smart_Data
    Ecore_Timer                   *land_indi_timer;
    Ecore_Timer                   *port_indi_timer;
    Ecore_Timer                   *indicator_effect_timer;
-   Ecore_Event_Handler           *mouse_down_hdl;
 
    int                            rot;
 
