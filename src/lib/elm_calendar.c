@@ -390,7 +390,10 @@ _populate(Evas_Object *obj)
           }
 
         if ((day) && (day <= maxdays))
-          snprintf(day_s, sizeof(day_s), "%i", day++);
+          {
+             snprintf(day_s, sizeof(day_s) - 1, "%i", day++);
+             day_s[2] = '\0';
+          }
         else
           day_s[0] = 0;
 

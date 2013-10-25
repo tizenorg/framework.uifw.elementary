@@ -1196,7 +1196,6 @@ _elm_win_smart_event(Evas_Object *obj,
                      void *event_info __UNUSED__)
 {
    Evas_Event_Key_Down *ev = event_info;
-   Evas_Object *current_focused;
 
    if (elm_widget_disabled_get(obj)) return EINA_FALSE;
 
@@ -1208,13 +1207,12 @@ _elm_win_smart_event(Evas_Object *obj,
      return EINA_FALSE;
    ////
 
-   current_focused = elm_widget_focused_object_get(obj);
    if ((!strcmp(ev->keyname, "Tab")) ||
        (!strcmp(ev->keyname, "ISO_Left_Tab")))
      {
         if (evas_key_modifier_is_set(ev->modifiers, "Control") ||
             evas_key_modifier_is_set(ev->modifiers, "Alt"))
-          return;
+          return EINA_FALSE;
         if (evas_key_modifier_is_set(ev->modifiers, "Shift"))
           elm_widget_focus_cycle(obj, ELM_FOCUS_PREVIOUS);
         else

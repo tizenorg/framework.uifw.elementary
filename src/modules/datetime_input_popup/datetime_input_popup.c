@@ -232,7 +232,7 @@ static void
 _entry_activated_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 {
    Popup_Module_Data *popup_mod;
-   Evas_Object *entry, *en;
+   Evas_Object *entry;
    int idx, next_idx;
 
    popup_mod = (Popup_Module_Data *)data;
@@ -252,7 +252,6 @@ _entry_activated_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
    entry = elm_object_part_content_get(popup_mod->popup_field[ELM_DATETIME_HOUR], "elm.swallow.entry");
    if (obj == entry)
      {
-        en = elm_object_part_content_get(popup_mod->popup_field[ELM_DATETIME_MINUTE], "elm.swallow.entry");
         elm_layout_signal_emit(popup_mod->popup_field[ELM_DATETIME_MINUTE],
                                "elm,action,entry,toggle", "elm");
      }
@@ -575,7 +574,12 @@ _month_validity_checking_filter(void *data, Evas_Object *obj, char **text)
    max -= 1;
 
    max_digits = (max >= 10 ? 2 : 1);
-   if (len < 1 && max_digits > 1 && val < 1) return;
+   if (len < 1 && max_digits > 1 && val < 1)
+   {
+       free((void *)new_str);
+       new_str = NULL;
+       return;
+   }
 
    if ((val >= min) && (val <= max))
      {

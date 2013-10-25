@@ -574,7 +574,8 @@ _mouse_grab_pixels(void *data, int type __UNUSED__, void *event __UNUSED__)
    scr = ecore_x_default_screen_get();
    visual = ecore_x_default_visual_get(display, scr);
    img = ecore_x_image_new(17, 17, visual, ecore_x_window_depth_get(sd->grab.xroot));
-   ecore_x_image_get(img, sd->grab.xroot, x - 8, y - 8, 0, 0, 17, 17);
+   if (!ecore_x_image_get(img, sd->grab.xroot, x - 8, y - 8, 0, 0, 17, 17))
+     return EINA_FALSE;
    src = ecore_x_image_data_get(img, &bpl, &rows, &bpp);
    if (!ecore_x_image_is_argb32_get(img))
      {

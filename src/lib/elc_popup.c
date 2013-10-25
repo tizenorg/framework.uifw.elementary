@@ -1824,9 +1824,6 @@ elm_popup_orient_set(Evas_Object *obj,
          case ELM_POPUP_ORIENT_BOTTOM_RIGHT:
             horizontal = 1.0; vertical = 1.0;
            break;
-
-         case ELM_POPUP_ORIENT_LAST:
-           break;
         }
    elm_notify_align_set(sd->notify, horizontal, vertical);
 }
