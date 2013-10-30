@@ -488,6 +488,34 @@ _plug_msg_handle(void *data, Evas_Object *obj __UNUSED__, void *event_info)
      }
 }
 
+static void
+_indicator_mouse_down(void *data,
+                   Evas *e __UNUSED__,
+                   Evas_Object *obj __UNUSED__,
+                   void *event_info __UNUSED__)
+{
+   Evas_Object *conform = data;
+
+   ELM_CONFORMANT_DATA_GET(conform, sd);
+
+   if (sd->indicator_effect_timer) ecore_timer_del(sd->indicator_effect_timer);
+   sd->indicator_effect_timer = NULL;
+}
+
+static void
+_indicator_mouse_up(void *data,
+                   Evas *e __UNUSED__,
+                   Evas_Object *obj __UNUSED__,
+                   void *event_info __UNUSED__)
+{
+   Evas_Object *conform = data;
+
+   ELM_CONFORMANT_DATA_GET(conform, sd);
+
+   if (sd->indicator_effect_timer) ecore_timer_del(sd->indicator_effect_timer);
+   sd->indicator_effect_timer = ecore_timer_add(3.0, _indicator_hide_effect, conform);
+}
+
 static Evas_Object *
 _create_portrait_indicator(Evas_Object *obj)
 {
@@ -521,6 +549,8 @@ _create_portrait_indicator(Evas_Object *obj)
 
    elm_widget_sub_object_add(obj, port_indicator);
    evas_object_smart_callback_add(port_indicator, "image.deleted", _port_indicator_disconnected, obj);
+   evas_object_event_callback_add(port_indicator, EVAS_CALLBACK_MOUSE_DOWN, _indicator_mouse_down, obj);
+   evas_object_event_callback_add(port_indicator, EVAS_CALLBACK_MOUSE_UP, _indicator_mouse_up, obj);
 
    evas_object_size_hint_min_set(port_indicator, -1, 0);
    evas_object_size_hint_max_set(port_indicator, -1, 0);
@@ -564,6 +594,8 @@ _create_landscape_indicator(Evas_Object *obj)
 
    elm_widget_sub_object_add(obj, land_indicator);
    evas_object_smart_callback_add(land_indicator, "image.deleted",_land_indicator_disconnected, obj);
+   evas_object_event_callback_add(land_indicator, EVAS_CALLBACK_MOUSE_DOWN, _indicator_mouse_down, obj);
+   evas_object_event_callback_add(land_indicator, EVAS_CALLBACK_MOUSE_UP, _indicator_mouse_up, obj);
 
    evas_object_size_hint_min_set(land_indicator, -1, 0);
    evas_object_size_hint_max_set(land_indicator, -1, 0);
@@ -1169,11 +1201,17 @@ _elm_conformant_smart_del(Evas_Object *obj)
    if (sd->portrait_indicator)
      {
         evas_object_smart_callback_del(sd->portrait_indicator, "message.received", (Evas_Smart_Cb)_plug_msg_handle);
+        evas_object_smart_callback_del(sd->portrait_indicator, "image.deleted", _port_indicator_disconnected);
+        evas_object_event_callback_del(sd->portrait_indicator, EVAS_CALLBACK_MOUSE_DOWN, _indicator_mouse_down);
+        evas_object_event_callback_del(sd->portrait_indicator, EVAS_CALLBACK_MOUSE_UP, _indicator_mouse_up);
         evas_object_del(sd->portrait_indicator);
      }
    if (sd->landscape_indicator)
      {
         evas_object_smart_callback_del(sd->landscape_indicator, "message.received", (Evas_Smart_Cb)_plug_msg_handle);
+        evas_object_smart_callback_del(sd->landscape_indicator, "image.deleted",_land_indicator_disconnected);
+        evas_object_event_callback_del(sd->landscape_indicator, EVAS_CALLBACK_MOUSE_DOWN, _indicator_mouse_down);
+        evas_object_event_callback_del(sd->landscape_indicator, EVAS_CALLBACK_MOUSE_UP, _indicator_mouse_up);
         evas_object_del(sd->landscape_indicator);
      }
 
