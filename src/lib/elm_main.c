@@ -840,9 +840,25 @@ elm_quicklaunch_exe_path_get(const char *exe)
    return NULL;
 }
 
+static void
+_initialize_eail(void)
+{
+   /*Initialize eail library*/
+   Elm_Module *m;
+   static int eail_initted = 0;
+   if (eail_initted > 1) return;
+   if ((m = _elm_module_find_as("eail/api")))
+     {
+        m->init_func(m);
+        eail_initted++;
+     }
+}
+
 EAPI void
 elm_run(void)
 {
+   _initialize_eail();
+
    ecore_main_loop_begin();
 }
 
