@@ -22,6 +22,8 @@ static const char SIG_VBAR_UNPRESS[] = "vbar,unpress";
 static const char SIG_HBAR_DRAG[] = "hbar,drag";
 static const char SIG_HBAR_PRESS[] = "hbar,press";
 static const char SIG_HBAR_UNPRESS[] = "hbar,unpress";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 static const Evas_Smart_Cb_Description _smart_callbacks[] =
 {
    {SIG_SCROLL, ""},
@@ -43,6 +45,8 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] =
    {SIG_HBAR_DRAG, ""},
    {SIG_HBAR_PRESS, ""},
    {SIG_HBAR_UNPRESS, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

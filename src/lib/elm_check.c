@@ -21,10 +21,15 @@ static const Elm_Layout_Part_Alias_Description _text_aliases[] =
 };
 
 static const char SIG_CHANGED[] = "changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
+
 
 /* smart callbacks coming from elm check objects: */
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CHANGED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

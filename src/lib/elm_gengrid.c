@@ -64,6 +64,8 @@ static const char SIG_UNHIGHLIGHTED[] = "unhighlighted";
 static const char SIG_LANG_CHANGED[] = "language,changed";
 static const char SIG_PRESSED[] = "pressed";
 static const char SIG_RELEASED[] = "released";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_ACTIVATED, ""},
@@ -95,6 +97,8 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_LANG_CHANGED, ""},
    {SIG_PRESSED, ""},
    {SIG_RELEASED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

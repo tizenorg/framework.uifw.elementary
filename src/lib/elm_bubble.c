@@ -6,6 +6,8 @@ EAPI const char ELM_BUBBLE_SMART_NAME[] = "elm_bubble";
 
 static const char SIG_CLICKED[] = "clicked";
 static const char SIG_ACCESS_CHANGED[] = "access,changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 
 static const Elm_Layout_Part_Alias_Description _content_aliases[] =
 {
@@ -25,6 +27,8 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] =
 {
    {SIG_CLICKED, ""},
    {SIG_ACCESS_CHANGED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

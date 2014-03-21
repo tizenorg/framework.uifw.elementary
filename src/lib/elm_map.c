@@ -308,6 +308,8 @@ static const char SIG_NAME_LOADED_FAIL[] = "name,loaded,fail";
 static const char SIG_OVERLAY_CLICKED[] = "overlay,clicked";
 static const char SIG_OVERLAY_DEL[] = "overlay,del";
 static const char SIG_LANG_CHANGED[] = "language,changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CLICKED, ""},
@@ -335,6 +337,8 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_OVERLAY_CLICKED, ""},
    {SIG_OVERLAY_DEL, ""},
    {SIG_LANG_CHANGED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

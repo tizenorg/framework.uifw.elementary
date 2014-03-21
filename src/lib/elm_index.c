@@ -13,6 +13,8 @@ static const char SIG_SELECTED[] = "selected";
 static const char SIG_LEVEL_UP[] = "level,up";
 static const char SIG_LEVEL_DOWN[] = "level,down";
 static const char SIG_LANG_CHANGED[] = "language,changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CHANGED, ""},
@@ -21,6 +23,8 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_LEVEL_UP, ""},
    {SIG_LEVEL_DOWN, ""},
    {SIG_LANG_CHANGED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 
