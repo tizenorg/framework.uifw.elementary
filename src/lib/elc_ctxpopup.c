@@ -11,11 +11,15 @@ static const char ACCESS_OUTLINE_PART[] = "access.outline";
 static const char SIG_DISMISSED[] = "dismissed";
 static const char SIG_LANG_CHANGED[] = "language,changed";
 static const char SIG_ACCESS_CHANGED[] = "access,changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_DISMISSED, ""},
    {SIG_LANG_CHANGED, ""},
    {SIG_ACCESS_CHANGED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

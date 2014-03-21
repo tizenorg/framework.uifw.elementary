@@ -30,6 +30,8 @@ static const char SIG_SCROLL_ANIM_START[] = "scroll,anim,start";
 static const char SIG_SCROLL_ANIM_STOP[] = "scroll,anim,stop";
 static const char SIG_SCROLL_DRAG_START[] = "scroll,drag,start";
 static const char SIG_SCROLL_DRAG_STOP[] = "scroll,drag,stop";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CLICKED, ""},
    {SIG_PRESS, ""},
@@ -47,6 +49,8 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_SCROLL_ANIM_STOP, ""},
    {SIG_SCROLL_DRAG_START, ""},
    {SIG_SCROLL_DRAG_STOP, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

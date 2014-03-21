@@ -22,6 +22,7 @@ BuildRequires:  efreet-devel
 BuildRequires:  ethumb-devel
 BuildRequires:  emotion-devel
 BuildRequires:  app-svc-devel
+#BuildRequires:  ecore-x
 BuildRequires:  libx11-devel
 
 %description

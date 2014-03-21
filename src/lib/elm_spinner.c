@@ -8,11 +8,15 @@ EAPI const char ELM_SPINNER_SMART_NAME[] = "elm_spinner";
 static const char SIG_CHANGED[] = "changed";
 static const char SIG_DELAY_CHANGED[] = "delay,changed";
 static const char SIG_LANG_CHANGED[] = "language,changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CHANGED, ""},
    {SIG_DELAY_CHANGED, ""},
    {SIG_LANG_CHANGED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

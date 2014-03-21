@@ -18,10 +18,14 @@ static const char TITLE_ACCESS_PART[] = "access.title";
 static const char SIG_TRANSITION_FINISHED[] = "transition,finished";
 static const char SIG_TITLE_CLICKED[] = "title,clicked";
 static const char SIG_ACCESS_CHANGED[] = "access,changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_TRANSITION_FINISHED, ""},
    {SIG_TITLE_CLICKED, ""},
    {SIG_ACCESS_CHANGED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

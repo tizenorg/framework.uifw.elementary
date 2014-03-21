@@ -37,9 +37,13 @@ const Elm_Layout_Part_Alias_Description _content_aliases[] =
 
 static const char SIG_CLICKED[] = "clicked";
 static const char SIG_SMART_LOCATION_CHANGED[] = "smart,changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CLICKED, ""},
    {SIG_SMART_LOCATION_CHANGED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

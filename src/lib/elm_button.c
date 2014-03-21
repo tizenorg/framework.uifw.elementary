@@ -10,6 +10,8 @@ static const char SIG_REPEATED[] = "repeated";
 static const char SIG_PRESSED[] = "pressed";
 static const char SIG_UNFOCUSED[] = "unfocused";
 static const char SIG_UNPRESSED[] = "unpressed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 
 static const Elm_Layout_Part_Alias_Description _content_aliases[] =
 {
@@ -32,6 +34,8 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_PRESSED, ""},
    {SIG_UNFOCUSED, ""},
    {SIG_UNPRESSED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

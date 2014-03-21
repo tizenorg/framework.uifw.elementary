@@ -29,10 +29,14 @@ EAPI const char ELM_FLIPSELECTOR_SMART_NAME[] = "elm_flipselector";
 static const char SIG_SELECTED[] = "selected";
 static const char SIG_UNDERFLOWED[] = "underflowed";
 static const char SIG_OVERFLOWED[] = "overflowed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_SELECTED, ""},
    {SIG_UNDERFLOWED, ""},
    {SIG_OVERFLOWED, ""},
+   {SIG_ENABLED, ""}, 
+   {SIG_DISABLED, ""}, 
    {NULL, NULL}
 };
 

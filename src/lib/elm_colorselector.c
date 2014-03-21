@@ -13,6 +13,8 @@ EAPI const char ELM_COLORSELECTOR_SMART_NAME[] = "elm_colorselector";
 #define DEFAULT_VER_PAD 10
 
 static const char SIG_CHANGED[] = "changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 static const char SIG_COLOR_ITEM_SELECTED[] = "color,item,selected";
 static const char SIG_COLOR_ITEM_LONGPRESSED[] = "color,item,longpressed";
 static const Evas_Smart_Cb_Description _smart_callbacks[] =
@@ -20,6 +22,8 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] =
    {SIG_COLOR_ITEM_SELECTED, ""},
    {SIG_COLOR_ITEM_LONGPRESSED, ""},
    {SIG_CHANGED, ""},
+   {SIG_ENABLED, ""}, 
+   {SIG_DISABLED, ""}, 
    {NULL, NULL}
 };
 

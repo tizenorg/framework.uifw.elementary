@@ -9,10 +9,14 @@ EAPI const char ELM_FILESELECTOR_BUTTON_SMART_NAME[] =
 
 static const char SIG_FILE_CHOSEN[] = "file,chosen";
 static const char SIG_LANG_CHANGED[] = "language,changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_FILE_CHOSEN, "s"},
    {SIG_LANG_CHANGED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

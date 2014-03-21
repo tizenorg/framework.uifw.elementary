@@ -21,11 +21,15 @@ static const char SIG_CHANGED[] = "changed";
 static const char SIG_DELAY_CHANGED[] = "delay,changed";
 static const char SIG_DRAG_START[] = "slider,drag,start";
 static const char SIG_DRAG_STOP[] = "slider,drag,stop";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CHANGED, ""},
    {SIG_DELAY_CHANGED, ""},
    {SIG_DRAG_START, ""},
    {SIG_DRAG_STOP, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

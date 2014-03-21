@@ -5,6 +5,8 @@
 EAPI const char ELM_PROGRESSBAR_SMART_NAME[] = "elm_progressbar";
 
 static const char SIG_CHANGED[] = "changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 
 #define MIN_RATIO_LVL 0.0
 #define MAX_RATIO_LVL 1.0
@@ -13,6 +15,8 @@ static const char SIG_CHANGED[] = "changed";
  * ones coming from elm layout): */
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CHANGED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 

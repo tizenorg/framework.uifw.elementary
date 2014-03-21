@@ -20,6 +20,10 @@ static const char ELM_WIDGET_SMART_NAME[] = "elm_widget";
 typedef struct _Elm_Event_Cb_Data         Elm_Event_Cb_Data;
 typedef struct _Elm_Translate_String_Data Elm_Translate_String_Data;
 
+const char SIG_ENABLED[] = "enabled";
+const char SIG_DISABLED[] = "disabled";
+
+
 struct _Elm_Event_Cb_Data
 {
    Elm_Event_Cb func;
@@ -2959,6 +2963,10 @@ elm_widget_disabled_set(Evas_Object *obj,
 
    if (sd->disabled == disabled) return;
    sd->disabled = !!disabled;
+   if (disabled) 
+     evas_object_smart_callback_call(obj, SIG_DISABLED, NULL);
+   else
+     evas_object_smart_callback_call(obj, SIG_ENABLED, NULL);
    elm_widget_focus_disabled_handle(obj);
    if (!sd->api) return;
    sd->api->disable(obj);

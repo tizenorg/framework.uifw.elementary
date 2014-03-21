@@ -87,6 +87,8 @@ static const char SIG_RELEASED[] = "released";
 static const char SIG_FOCUSED[] = "item,focused";
 static const char SIG_UNFOCUSED[] = "item,unfocused";
 static const char SIG_ACCESS_CHANGED[] = "access,changed";
+static const char SIG_ENABLED[] = "enabled";
+static const char SIG_DISABLED[] = "disabled";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CLICKED_DOUBLE, ""},
@@ -138,6 +140,8 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_PRESSED, ""},
    {SIG_RELEASED, ""},
    {SIG_ACCESS_CHANGED, ""},
+   {SIG_ENABLED, ""},
+   {SIG_DISABLED, ""},
    {NULL, NULL}
 };
 
