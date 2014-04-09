@@ -1094,6 +1094,17 @@ elm_object_focus_set(Evas_Object *obj,
                      Eina_Bool    focus)
 {
    EINA_SAFETY_ON_NULL_RETURN(obj);
+   Evas *evas;
+
+   if (elm_config_focus_highlight_enabled_get())
+     if (focus)
+       _elm_access_object_hilight(obj);
+     else
+     {
+       evas = evas_object_evas_get(obj);
+       if (!evas) return;
+       _elm_access_object_hilight_disable(evas);
+     }
 
    if (elm_widget_is(obj))
      {
