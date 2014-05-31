@@ -1,0 +1,251 @@
+# Galician translation of Elementary
+# This file is put in the public domain.
+# Aníbal Garrido <khany@member.trisquel.info>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: elementary\n"
+"Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
+"POT-Creation-Date: 2012-10-02 20:47+0200\n"
+"PO-Revision-Date: 2012-10-02 20:51+0200\n"
+"Last-Translator: Shilpa Singh <shilpa.singh@samsung.com>\n"
+"Language-Team: http://trasno.net/ <proxecto@trasno.net>\n"
+"Language: gl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/lib/elc_fileselector.c:749
+msgid "Up"
+msgstr "Arriba"
+
+#: src/lib/elc_fileselector.c:764
+msgid "Home"
+msgstr "Cartafol persoal"
+
+#: src/lib/elc_fileselector.c:992
+#: src/lib/elm_entry.c:1257
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: src/lib/elc_fileselector.c:1001
+msgid "OK"
+msgstr "Aceptar"
+
+#: src/lib/elm_bubble.c:196
+msgid "Bubble"
+msgstr "Burbulla"
+
+#: src/lib/elm_button.c:55
+msgid "Clicked"
+msgstr "Premido"
+
+#: src/lib/elm_button.c:266
+#: src/lib/elm_check.c:200
+#: src/lib/elm_gengrid.c:618
+#: src/lib/elm_genlist.c:1282
+#: src/lib/elm_list.c:1353
+#: src/lib/elm_radio.c:241
+#: src/lib/elm_spinner.c:503
+#: src/lib/elm_toolbar.c:1535
+msgid "State: Disabled"
+msgstr "Estado: Desactivado"
+
+#: src/lib/elm_button.c:290
+msgid "Button"
+msgstr "Botón"
+
+#: src/lib/elm_calendar.c:132
+msgid "%B %Y"
+msgstr "%B %Y"
+
+#: src/lib/elm_calendar.c:234
+msgid "calendar item"
+msgstr "calendario"
+
+#: src/lib/elm_calendar.c:261
+msgid "calendar decrement button"
+msgstr "Botón de diminución do calendario"
+
+#: src/lib/elm_calendar.c:267
+msgid "calendar increment button"
+msgstr "Botón de aumento do calendario"
+
+#: src/lib/elm_calendar.c:273
+msgid "calendar month"
+msgstr "mes do calendario"
+
+#: src/lib/elm_check.c:47
+#: src/lib/elm_check.c:50
+#: src/lib/elm_check.c:213
+#: src/lib/elm_radio.c:83
+#: src/lib/elm_radio.c:242
+msgid "State: On"
+msgstr "Estado: Conectado"
+
+#: src/lib/elm_check.c:60
+#: src/lib/elm_check.c:63
+#: src/lib/elm_check.c:225
+#: src/lib/elm_radio.c:244
+msgid "State: Off"
+msgstr "Estado: Desconectado"
+
+#: src/lib/elm_check.c:209
+#: src/lib/elm_check.c:222
+msgid "State"
+msgstr "Estado"
+
+#: src/lib/elm_check.c:289
+msgid "Check"
+msgstr "Comprobar"
+
+#: src/lib/elm_colorselector.c:895
+msgid "color selector palette item"
+msgstr "Paleta de selección de cor"
+
+#: src/lib/elm_config.c:2117
+msgid "default:LTR"
+msgstr "Predeterminado: LTR"
+
+#: src/lib/elm_diskselector.c:630
+msgid "diskselector item"
+msgstr "Selector de disco"
+
+#: src/lib/elm_entry.c:1249
+msgid "Copy"
+msgstr "Copiar"
+
+#: src/lib/elm_entry.c:1253
+msgid "Cut"
+msgstr "Cortar"
+
+#: src/lib/elm_entry.c:1269
+msgid "Select"
+msgstr "Seleccionar"
+
+#: src/lib/elm_entry.c:1276
+msgid "Paste"
+msgstr "Pegar"
+
+#: src/lib/elm_entry.c:2924
+msgid "Entry"
+msgstr "Entrada"
+
+#: src/lib/elm_gengrid.c:650
+msgid "Gengrid Item"
+msgstr "Grella xenérica"
+
+#: src/lib/elm_genlist.c:1316
+msgid "Genlist Item"
+msgstr "Lista xenérica"
+
+#: src/lib/elm_index.c:99
+msgid "Index Item"
+msgstr "Elemento do índice"
+
+#: src/lib/elm_index.c:672
+msgid "Index"
+msgstr "Índice"
+
+#: src/lib/elm_label.c:348
+msgid "Label"
+msgstr "Etiqueta"
+
+#: src/lib/elm_list.c:1393
+msgid "List Item"
+msgstr "Lista"
+
+#: src/lib/elm_progressbar.c:260
+msgid "progressbar"
+msgstr "barra de progreso"
+
+#: src/lib/elm_radio.c:271
+msgid "Radio"
+msgstr "Radio"
+
+#: src/lib/elm_slider.c:802
+msgid "slider"
+msgstr "Barra de desprazamento"
+
+#: src/lib/elm_spinner.c:534
+msgid "spinner increment button"
+msgstr "botón de aumento"
+
+#: src/lib/elm_spinner.c:542
+msgid "spinner decrement button"
+msgstr "botón de disminución"
+
+#: src/lib/elm_spinner.c:549
+msgid "spinner"
+msgstr "botón de spinner"
+
+#: src/lib/elm_toolbar.c:1171
+msgid "Selected"
+msgstr "Seleccionado"
+
+#: src/lib/elm_toolbar.c:1533
+msgid "Separator"
+msgstr "Separador"
+
+#: src/lib/elm_toolbar.c:1537
+msgid "State: Selected"
+msgstr "Estado: Seleccionado"
+
+#: src/lib/elm_toolbar.c:1539
+msgid "Has menu"
+msgstr "Ten menú"
+
+#: src/lib/elm_toolbar.c:1618
+msgid "Tool Item"
+msgstr "Ferramenta"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:749
+#: src/modules/datetime_input_popup/datetime_input_popup.c:992
+msgid "AM"
+msgstr ""
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:754
+#: src/modules/datetime_input_popup/datetime_input_popup.c:993
+msgid "PM"
+msgstr ""
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:786
+msgid "Set"
+msgstr "Conxunto"
+
+#~ msgid "title"
+#~ msgstr "título"
+
+#~ msgid "sub title"
+#~ msgstr "subtítulo"
+
+#~ msgid "Back"
+#~ msgstr "Atrás"
+
+#~ msgid "State: Unselected"
+#~ msgstr "Estado: Sen seleccionar"
+
+#~ msgid "Segment Control Item"
+#~ msgstr "Segmento de control"
+
+#~ msgid "popup title"
+#~ msgstr "título emerxente"
+
+#~ msgid "popup label"
+#~ msgstr "etiqueta emerxente"
+
+#~ msgid "day selector item"
+#~ msgstr "selector de día"
+
+#: src/modules/ctxpopup_CopypasteUI/copypaste.c
+msgid "Translate"
+msgstr "Traducir"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:375
+msgid "Set date"
+msgstr "Definir data"
+
+#: src/modules/datetime_input_popup/datetime_input_popup.c:384
+msgid "Set time"
+msgstr "Definir hora"
+
