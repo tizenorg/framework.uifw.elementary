@@ -1,10 +1,9 @@
-#sbs-git:slp/pkgs/e/elementary elementary 1.0.0+svn.70492slp2+build11
 Name:       elementary
 Summary:    EFL toolkit for small touchscreens
-Version:    1.7.1+svn.77535+build249b26
+Version:    1.7.1+svn.77535+build567
 Release:    1
 Group:      System/Libraries
-License:    LGPLv2.1
+License:    LGPLv2.1+
 URL:        http://trac.enlightenment.org/e/wiki/Elementary
 Source0:    %{name}-%{version}.tar.gz
 Requires(post): /sbin/ldconfig
@@ -21,12 +20,12 @@ BuildRequires:  edbus-devel
 BuildRequires:  efreet-devel
 BuildRequires:  ethumb-devel
 BuildRequires:  libx11-devel
-%if %{_repository} == "mobile"
+BuildRequires:  pkgconfig(icu-i18n)
+%if "%{?tizen_profile_name}" != "mobile"
+%if "%{?tizen_profile_name}" != "wearable"
 BuildRequires:  emotion-devel
-BuildRequires:  app-svc-devel
+BuildRequires:  pkgconfig(appsvc)
 %endif
-%if %{_repository} == "wearable"
-BuildRequires:  libslp-db-util-devel
 %endif
 
 %description
@@ -56,54 +55,69 @@ EFL toolkit for small touchscreens (tools)
 %build
 export CFLAGS+=" -fPIC -Wall"
 export LDFLAGS+=" -Wl,--hash-style=both -Wl,--as-needed"
-%if %{_repository} == "wearable"
+
 export CFLAGS+=" -DELM_FOCUSED_UI"
-export CFLAGS+=" -DBUILD_B2"
+export CFLAGS+=" -DELM_FEATURE_MULTI_WINDOW"
+
+%if "%{?tizen_profile_name}" == "wearable"
+export CFLAGS+=" -DELM_FEATURE_WEARABLE"
 %endif
 
-cd %{_repository} && %autogen \
-	   --disable-static \
-       --enable-dependency-tracking \
-       --disable-web
+%autogen \
+%if "%{?tizen_profile_name}" == "mobile"
+	--disable-emotion \
+%endif
+%if "%{?tizen_profile_name}" == "wearable"
+	--disable-emotion \
+%endif
+	--disable-static \
+	--enable-dependency-tracking
 
 make %{?jobs:-j%jobs}
 msgfmt -c --statistics -o po/dt_fmt.mo po/dt_fmt.po
 
 %install
-#rm -rf %{buildroot}
-cd %{_repository} && %make_install
-mkdir -p %{buildroot}/usr/share/license
-cat %{_builddir}/%{buildsubdir}/COPYING* > %{buildroot}/usr/share/license/%{name}
-cat %{_builddir}/%{buildsubdir}/COPYING* > %{buildroot}/usr/share/license/%{name}-tools
-mkdir -p %{buildroot}/usr/share/locale/en_US/LC_MESSAGES/
-cp %{_builddir}/%{buildsubdir}/%{_repository}/po/dt_fmt.mo %{buildroot}/usr/share/locale/en_US/LC_MESSAGES/
+%make_install
+
+mkdir -p %{buildroot}/%{_datadir}/locale/en_US/LC_MESSAGES/
+cp %{_builddir}/%{buildsubdir}/po/dt_fmt.mo %{buildroot}/%{_datadir}/locale/en_US/LC_MESSAGES/
+
+mkdir -p %{buildroot}/%{_datadir}/license
+cp %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/%{_datadir}/license/%{name}
+cp %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/%{_datadir}/license/%{name}-tools
 
 %post -p /sbin/ldconfig
-
 %postun -p /sbin/ldconfig
 
 %files
 %defattr(-,root,root,-)
-/usr/lib/libelementary*
-/usr/lib/elementary/modules/*/*/*.so
-/usr/lib/edje/modules/elm/*/module.so
-/usr/share/elementary/*
-/usr/share/icons/*
-/usr/share/locale/*
-#exclude *.desktop files
-%exclude /usr/share/applications/*
+%{_libdir}/libelementary.so.*
+%{_libdir}/elementary/modules/*/*/*.so
+%{_libdir}/edje/modules/elm/*/module.so
+%{_datadir}/elementary/edje_externals
+%{_datadir}/locale
+%{_datadir}/license/%{name}
 %manifest %{name}.manifest
-/usr/share/license/%{name}
+
+## theme is installed from efl-theme-tizen
+## config is installed from elm-misc
+%exclude %{_datadir}/elementary/themes
+%exclude %{_datadir}/elementary/config
+%exclude %{_libdir}/elementary/modules/test_*
 
 %files devel
 %defattr(-,root,root,-)
 /usr/include/*
-/usr/lib/libelementary.so
-/usr/lib/pkgconfig/elementary.pc
+%{_libdir}/libelementary.so
+%{_libdir}/pkgconfig/elementary.pc
 
 %files tools
 %defattr(-,root,root,-)
-/usr/bin/elementary_*
-/usr/lib/elementary_testql.so
+%{_bindir}/elementary_*
+%{_libdir}/elementary_testql.so
+%{_datadir}/icons
+%{_datadir}/applications
+%{_datadir}/elementary/objects
+%{_datadir}/elementary/images
+%{_datadir}/license/%{name}-tools
 %manifest %{name}-tools.manifest
-/usr/share/license/%{name}-tools
