@@ -11,13 +11,9 @@ group { name: "elm/slider/hidden/limit";
             text {
                font: "Sans,Edje-Vera";
                size: 10;
-               min: 0 0;
+               min: 1 1;
                align: 0.0 0.5;
             }
-         }
-         description { state: "visible" 0.0;
-            inherit: "default" 0.0;
-            text.min: 1 1;
          }
       }
       part { name: "elm.units.max";
@@ -31,30 +27,10 @@ group { name: "elm/slider/hidden/limit";
             text {
                font: "Sans,Edje-Vera";
                size: 10;
-               min: 0 0;
+               min: 1 1;
                align: 0.0 0.5;
             }
          }
-         description { state: "visible" 0.0;
-            inherit: "default" 0.0;
-            text.min: 1 1;
-         }
-      }
-   }
-   programs {
-      program { name: "visisble";
-         signal: "limits,visible";
-         source: "elm";
-         action: STATE_SET "visible" 0.0;
-         target: "elm.units.min";
-         target: "elm.units.max";
-      }
-      program { name: "hide";
-         signal: "limits,hide";
-         source: "elm";
-         action: STATE_SET "default" 0.0;
-         target: "elm.units.min";
-         target: "elm.units.max";
       }
    }
 }
@@ -278,11 +254,11 @@ group { name: "elm/slider/horizontal/default";
             visible: 0;
             rel1 {
                to_x: "limits";
-               offset: 0 5;
+               offset: 0 3;
             }
             rel2 {
                to_x: "limits";
-               offset: 5 -3;
+               offset: 5 -1;
             }
             image {
                normal: "sl_units.png";
@@ -356,11 +332,22 @@ group { name: "elm/slider/horizontal/default";
             text.min: 1 1;
          }
       }
-      part { name: "elm.dragable.slider";
+      part { name: "button";
          type: GROUP;
          source: "elm/slider/horizontal/indicator/default";
-         mouse_events: 1;
-         repeat_events: 1;
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            fixed: 1 1;
+            rel1.to: "elm.dragable.slider";
+            rel2.to: "elm.dragable.slider";
+         }
+         description { state: "hidden" 0.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part { name: "elm.dragable.slider";
+         type: RECT;
          scale: 1;
          dragable {
             x: 1 1 0;
@@ -368,8 +355,8 @@ group { name: "elm/slider/horizontal/default";
             confine: "bg";
          }
          description { state: "default" 0.0;
-            min: 0 24;
-            max: 0 24;
+            min: 0 0;
+            max: 0 0;
             fixed: 1 1;
             rel1 {
                relative: 0.5 0.0;
@@ -379,7 +366,30 @@ group { name: "elm/slider/horizontal/default";
                relative: 0.5 1.0;
                to_x: "bg";
             }
-            color: 255 0 0 100;
+            color: 0 0 0 0;
+         }
+      }
+      part { name: "slideevent";
+         type: RECT;
+         mouse_events: 1;
+         scale: 1;
+         dragable.events: "elm.dragable.slider";
+         description { state: "default" 0.0;
+            fixed: 1 1;
+            min: 24 24;
+            max: 24 24;
+            rel1.to: "elm.dragable.slider";
+            rel2.to: "elm.dragable.slider";
+            color: 0 0 0 0;
+         }
+      }
+      part { name: "elm.track.slider";
+         type: SWALLOW;
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            max: 0 0;
+            rel1.to: "elm.dragable.slider";
+            rel2.to: "elm.dragable.slider";
          }
       }
       part { name: "disabler";
@@ -395,6 +405,38 @@ group { name: "elm/slider/horizontal/default";
       }
    }
    programs {
+      program { name: "indicator_show";
+         signal: "elm,state,indicator,show";
+         source: "elm";
+         action:  SIGNAL_EMIT "popup,show" "elm";
+         after: "popup_show2";
+      }
+      program { name: "indicator_hide";
+         signal: "elm,state,indicator,hide";
+         source: "elm";
+         action:  SIGNAL_EMIT "popup,hide" "elm";
+         after: "popup_hide2";
+      }
+      program { name: "popup_show";
+         signal: "mouse,down,1";
+         source: "slideevent";
+         action:  SIGNAL_EMIT "popup,show" "elm";
+         after: "popup_show2";
+      }
+      program { name: "popup_show2";
+         action:  STATE_SET "hidden" 0.0;
+         target: "button";
+      }
+      program { name: "popup_hide";
+         signal: "mouse,up,1";
+         source: "slideevent";
+         action:  SIGNAL_EMIT "popup,hide" "elm";
+         after: "popup_hide2";
+      }
+      program { name: "popup_hide2";
+         action:  STATE_SET "default" 0.0;
+         target: "button";
+      }
       program { name: "text_show";
          signal: "elm,state,text,visible";
          source: "elm";
@@ -818,6 +860,8 @@ group { name: "elm/slider/vertical/default";
             rel2.offset: -9 -9;
          }
       }
+      alias: "elm.units.min" "limits:elm.units.min";
+      alias: "elm.units.max" "limits:elm.units.max";
       part { name: "elm.units";
          type: TEXT;
          mouse_events: 0;
@@ -842,8 +886,7 @@ group { name: "elm/slider/vertical/default";
          }
          description { state: "disabled" 0.0;
             inherit: "default" 0.0;
-            color:  0 0 0 128;
-            color3: 0 0 0 0;
+            color:  255 128 128 128;
             visible: 0;
          }
          description { state: "disabled_visible" 0.0;
@@ -854,11 +897,22 @@ group { name: "elm/slider/vertical/default";
             color3: 0 0 0 0;
          }
       }
-      part { name: "elm.dragable.slider";
+      part { name: "button";
          type: GROUP;
-         source: "elm/slider/vertical/indicator/default";
-         mouse_events: 1;
-         repeat_events: 1;
+         source: "elm/slider/horizontal/indicator/default";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            fixed: 1 1;
+            rel1.to: "elm.dragable.slider";
+            rel2.to: "elm.dragable.slider";
+         }
+         description { state: "hidden" 0.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part { name: "elm.dragable.slider";
+         type: RECT;
          scale: 1;
          dragable {
             x: 0 0 0;
@@ -866,18 +920,41 @@ group { name: "elm/slider/vertical/default";
             confine: "bg";
          }
          description { state: "default" 0.0;
-            min: 24 0;
-            max: 24 0;
+            min: 0 0;
+            max: 0 0;
             fixed: 1 1;
             rel1 {
-               relative: 0.5  0.0;
-               to_y: "bg";
+               relative: 0.0 0.5;
+               to_x: "bg";
             }
             rel2 {
-               relative: 0.5  1.0;
-               to_y: "bg";
+               relative: 1.0 0.5;
+               to_x: "bg";
             }
             color: 0 0 0 0;
+         }
+      }
+      part { name: "slideevent";
+         type: RECT;
+         mouse_events: 1;
+         scale: 1;
+         dragable.events: "elm.dragable.slider";
+         description { state: "default" 0.0;
+            fixed: 1 1;
+            min: 24 24;
+            max: 24 24;
+            rel1.to: "elm.dragable.slider";
+            rel2.to: "elm.dragable.slider";
+            color: 0 0 0 0;
+         }
+      }
+      part { name: "elm.track.slider";
+         type: SWALLOW;
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            max: 0 0;
+            rel1.to: "elm.dragable.slider";
+            rel2.to: "elm.dragable.slider";
          }
       }
       part { name: "disabler";
@@ -894,6 +971,38 @@ group { name: "elm/slider/vertical/default";
    }
 
    programs {
+      program { name: "indicator_show";
+         signal: "elm,state,indicator,show";
+         source: "elm";
+         action:  SIGNAL_EMIT "popup,show" "elm";
+         after: "popup_show2";
+      }
+      program { name: "indicator_hide";
+         signal: "elm,state,indicator,hide";
+         source: "elm";
+         action:  SIGNAL_EMIT "popup,hide" "elm";
+         after: "popup_hide2";
+      }
+      program { name: "popup_show";
+         signal: "mouse,down,1";
+         source: "slideevent";
+         action:  SIGNAL_EMIT "popup,show" "elm";
+         after: "popup_show2";
+      }
+      program { name: "popup_show2";
+         action:  STATE_SET "hidden" 0.0;
+         target: "button";
+      }
+      program { name: "popup_hide";
+         signal: "mouse,up,1";
+         source: "slideevent";
+         action:  SIGNAL_EMIT "popup,hide" "elm";
+         after: "popup_hide2";
+      }
+      program { name: "popup_hide2";
+         action:  STATE_SET "default" 0.0;
+         target: "button";
+      }
       program { name: "text_show";
          signal: "elm,state,text,visible";
          source: "elm";
@@ -937,10 +1046,6 @@ group { name: "elm/slider/vertical/default";
          target: "elm.units";
          target: "limits";
          target: "units";
-         after: "limits,children,visible";
-      }
-      program { name: "limits,children,visible";
-         action: SIGNAL_EMIT "limits:limits,visible" "elm";
       }
       program { name: "units_hide";
          signal: "elm,state,units,hidden";
@@ -1061,6 +1166,10 @@ group { name: "elm/slider/horizontal/indicator/default";
    alias: "elm/slider/horizontal/indicator/disabled";
    alias: "elm/slider/vertical/indicator/default";
    alias: "elm/slider/vertical/indicator/disabled";
+   
+   alias: "elm/slider/horizontal/popup/default";
+   alias: "elm/slider/vertical/popup/default";
+   
    images {
       image: "sl_bt_0.png" COMP;
       image: "sl_bt_1.png" COMP;
@@ -1323,6 +1432,25 @@ group { name: "elm/slider/horizontal/indicator/default";
       }
    }
    programs {
+      program { name: "popup_show";
+         signal: "popup,show";
+         source: "elm";
+         script {
+            thumb_down();
+         }
+      }
+      program { name: "popup_hide";
+         signal: "popup,hide";
+         source: "elm";
+         action:  SIGNAL_EMIT "popup,hide,done" "elm";
+      }
+      program { name: "popup_hide2";
+         signal: "popup,hide";
+         source: "elm";
+         script {
+            thumb_up();
+         }
+      }
       program { name: "set_val_show";
          signal: "elm,state,val,show";
          source: "elm";

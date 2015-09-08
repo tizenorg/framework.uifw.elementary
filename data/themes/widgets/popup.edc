@@ -20,6 +20,41 @@ group { name: "elm/notify/block_events/popup";
    }
 }
 
+group { name: "elm/notify/block_events/transparent";
+   parts {
+      part { name: "block_events";
+         type: RECT;
+         description { state: "default" 0.0;
+            color: 0 0 0 0;
+         }
+         description { state: "clicked" 0.0;
+            color: 0 0 0 50;
+         }
+      }
+   }
+   programs {
+      program { name: "block_clicked";
+         signal: "mouse,clicked,1";
+         source: "block_events";
+         action: SIGNAL_EMIT "elm,action,click" "elm";
+         after: "deeper_block_color";
+      }
+      program {
+         name: "deeper_block_color";
+         action: STATE_SET "clicked" 0.0;
+         target: "block_events";
+         transition: LINEAR 0.2;
+         after: "default_block_color";
+      }
+      program {
+         name: "default_block_color";
+         action: STATE_SET "default" 0.0;
+         target: "block_events";
+         transition: LINEAR 0.2;
+      }
+   }
+}
+
 group { name: "elm/label/base/popup/default";
    styles
      {
@@ -170,6 +205,7 @@ group { name: "elm/popup/base/default";
          type: TEXTBLOCK;
          scale:1;
          description { state: "default" 0.0;
+            fixed: 1 1;
             text {
               style: "popup_title_style";
               min: 0 0;
@@ -432,7 +468,9 @@ group { name: "elm/popup/content/default";
       }
       parts {
          part { name: "event_blocker";
+            type: RECT;
             description { state: "default" 0.0;
+               min: 380 0;
             }
          }
          part { name: "bg";
@@ -601,14 +639,18 @@ group { name: "elm/popup/content/default";
             }
          }
          part { name: "over1";
+            type: RECT;
             repeat_events: 1;
             ignore_flags: ON_HOLD;
             description { state: "default" 0.0;
+               color: 0 0 0 0;
             }
          }
          part { name: "over2";
+            type: RECT;
             repeat_events: 1;
             description { state: "default" 0.0;
+               color: 0 0 0 0;
             }
          }
          part { name: "disclip";

@@ -1,14 +1,18 @@
 /**
- * @addtogroup Actionslider Actionslider
+ * @internal
+ * @defgroup Actionslider Actionslider
  * @ingroup Elementary
+ *
+ * @image html actionslider_inheritance_tree.png
+ * @image latex actionslider_inheritance_tree.eps
  *
  * @image html img/widget/actionslider/preview-00.png
  * @image latex img/widget/actionslider/preview-00.eps
  *
- * An actionslider is a switcher for 2 or 3 labels with customizable magnet
+ * An actionslider is a switcher for @c 2 or @c 3 labels with customizable magnet
  * properties. The user drags and releases the indicator, to choose a label.
  *
- * Labels occupy the following positions.
+ * Labels occupy the following positions:
  * a. Left
  * b. Right
  * c. Center
@@ -17,28 +21,31 @@
  *
  * Magnets can be set on the above positions.
  *
- * When the indicator is released, it will move to its nearest "enabled and magnetized" position.
+ * When the indicator is released, it moves to its nearest
+ * "enabled and magnetized" position.
  *
- * @note By default all positions are set as enabled.
+ * By default, all positions are set as enabled.
  *
- * Signals that you can add callbacks for are:
+ * This widget inherits from the @ref Layout one, so that all the
+ * functions acting on it also work for actionslider objects.
  *
- * "selected" - when user selects an enabled position (the label is passed as
- *              event info)".
- * "pos_changed" - when the indicator reaches any of the positions("left",
- *                 "right" or "center").
+ * This widget emits the following signals, besides the ones sent from
+ * @ref Layout :
+ * @li @c "selected" - When the user selects an enabled position (the
+ *              label is passed as event info).
+ * @li @c "pos_changed" - When the indicator reaches any of the
+ *                 positions("left", "right" or "center").
  *
- * Default text parts of the actionslider widget that you can use for are:
- * @li "indicator" - An indicator label of the actionslider
- * @li "left" - A left label of the actionslider
- * @li "right" - A right label of the actionslider
- * @li "center" - A center label of the actionslider
+ * The default text parts of the actionslider widget that you can use are:
+ * @li "indicator" - An indicator label of the actionslider.
+ * @li "left" - A left label of the actionslider.
+ * @li "right" - A right label of the actionslider.
+ * @li "center" - A center label of the actionslider.
  *
- * Supported elm_object common APIs.
+ * Supported common elm_object APIs.
  * @li @ref elm_object_part_text_set
  * @li @ref elm_object_part_text_get
  *
- * See an example of actionslider usage @ref actionslider_example_page "here"
  * @{
  */
 typedef enum
@@ -51,86 +58,70 @@ typedef enum
 } Elm_Actionslider_Pos;
 
 /**
- * Add a new actionslider to the parent.
+ * @brief Adds a new actionslider to the parent.
  *
- * @param parent The parent object
- * @return The new actionslider object or NULL if it cannot be created
- *
- * @ingroup Actionslider
+ * @param[in] parent The parent object
+ * @return The new actionslider object, otherwise @c NULL if it cannot be created
  */
 EAPI Evas_Object                *elm_actionslider_add(Evas_Object *parent);
 
 /**
- * Get actionslider selected label.
+ * @brief Gets the actionslider selected label.
  *
- * @param obj The actionslider object
+ * @param[in] obj The actionslider object
  * @return The selected label
- *
- * @ingroup Actionslider
  */
 EAPI const char                 *elm_actionslider_selected_label_get(const Evas_Object *obj);
 
 /**
- * Set actionslider indicator position.
+ * @brief Sets the actionslider indicator position.
  *
- * @param obj The actionslider object.
- * @param pos The position of the indicator.
- *
- * @ingroup Actionslider
+ * @param[in] obj The actionslider object
+ * @param[in] pos The position of the indicator
  */
 EAPI void                        elm_actionslider_indicator_pos_set(Evas_Object *obj, Elm_Actionslider_Pos pos);
 
 /**
- * Get actionslider indicator position.
+ * @brief Gets the actionslider indicator position.
  *
- * @param obj The actionslider object.
- * @return The position of the indicator.
- *
- * @ingroup Actionslider
+ * @param[in] obj The actionslider object
+ * @return The position of the indicator
  */
 EAPI Elm_Actionslider_Pos        elm_actionslider_indicator_pos_get(const Evas_Object *obj);
 
 /**
- * Set actionslider magnet position. To make multiple positions magnets @c or
- * them together(e.g.: ELM_ACTIONSLIDER_LEFT | ELM_ACTIONSLIDER_RIGHT)
+ * @brief Sets the actionslider magnet position. To make multiple positions magnets as enabled @c or
+ *        them together(e.g.: @c ELM_ACTIONSLIDER_LEFT | @c ELM_ACTIONSLIDER_RIGHT).
  *
- * @param obj The actionslider object.
- * @param pos Bit mask indicating the magnet positions.
- *
- * @ingroup Actionslider
+ * @param[in] obj The actionslider object
+ * @param[in] pos The bit mask indicating the magnet positions
  */
 EAPI void                        elm_actionslider_magnet_pos_set(Evas_Object *obj, Elm_Actionslider_Pos pos);
 
 /**
- * Get actionslider magnet position.
+ * @brief Gets the actionslider magnet position.
  *
- * @param obj The actionslider object.
- * @return The positions with magnet property.
- *
- * @ingroup Actionslider
+ * @param[in] obj The actionslider object
+ * @return The positions with the magnet property
  */
 EAPI Elm_Actionslider_Pos        elm_actionslider_magnet_pos_get(const Evas_Object *obj);
 
 /**
- * Set actionslider enabled position. To set multiple positions as enabled @c or
- * them together(e.g.: ELM_ACTIONSLIDER_LEFT | ELM_ACTIONSLIDER_RIGHT).
+ * @brief Sets the actionslider enabled position. To set multiple positions as enabled OR
+ *        them together(e.g.: @c ELM_ACTIONSLIDER_LEFT | @c ELM_ACTIONSLIDER_RIGHT).
  *
- * @note All the positions are enabled by default.
+ * @remarks All the positions are enabled by default.
  *
- * @param obj The actionslider object.
- * @param pos Bit mask indicating the enabled positions.
- *
- * @ingroup Actionslider
+ * @param[in] obj The actionslider object
+ * @param[in] pos The bit mask indicating the enabled positions
  */
 EAPI void                        elm_actionslider_enabled_pos_set(Evas_Object *obj, Elm_Actionslider_Pos pos);
 
 /**
- * Get actionslider enabled position.
+ * @brief Gets the actionslider enabled position.
  *
- * @param obj The actionslider object.
- * @return The enabled positions.
- *
- * @ingroup Actionslider
+ * @param[in] obj The actionslider object
+ * @return The enabled positions
  */
 EAPI Elm_Actionslider_Pos        elm_actionslider_enabled_pos_get(const Evas_Object *obj);
 

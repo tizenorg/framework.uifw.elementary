@@ -1,104 +1,179 @@
 /**
  * @defgroup Panel Panel
- * @ingroup Elementary
+ * @ingroup elm_widget_group
  *
- * @image html img/widget/panel/preview-00.png
- * @image latex img/widget/panel/preview-00.eps
+ * @image html panel_inheritance_tree.png
+ * @image latex panel_inheritance_tree.eps
  *
- * @brief A panel is a type of animated container that contains subobjects.
- * It can be expanded or contracted by clicking the button on it's edge.
+ * @brief A panel is an animated side-panel that contains a
+ *        sub-object. It can be expanded or contracted by clicking the
+ *        button on its edge.
  *
  * Orientations are as follows:
- * @li ELM_PANEL_ORIENT_TOP
- * @li ELM_PANEL_ORIENT_LEFT
- * @li ELM_PANEL_ORIENT_RIGHT
+ * @li @c ELM_PANEL_ORIENT_TOP
+ * @li @c ELM_PANEL_ORIENT_LEFT
+ * @li @c ELM_PANEL_ORIENT_RIGHT
+ * @li @c ELM_PANEL_ORIENT_BOTTOM
  *
- * Default content parts of the panel widget that you can use for are:
- * @li "default" - A content of the panel
+ * This widget inherits from the @ref Layout one, so that all the
+ * functions acting on it also work for panel objects (@since 1.8).
  *
- * Supported elm_object common APIs.
- * @li @ref elm_object_signal_emit
- * @li @ref elm_object_signal_callback_add
- * @li @ref elm_object_signal_callback_del
- * @li @ref elm_object_part_content_set
- * @li @ref elm_object_part_content_get
- * @li @ref elm_object_part_content_unset
+ * The default content parts of the panel widget that you can use are:
+ * @li @c "default" - Content of the panel.
  *
- * @ref tutorial_panel shows one way to use this widget.
+ * This widget emits the following signals, besides the ones sent from
+ * @li @c "scroll" - The content has been scrolled (moved).
+ *
  * @{
+ */
+
+
+/**
+ * @brief Enumeration of Elm Panel Orient type
  */
 typedef enum
 {
    ELM_PANEL_ORIENT_TOP, /**< Panel (dis)appears from the top */
-   ELM_PANEL_ORIENT_BOTTOM, /**< Not implemented */
+   ELM_PANEL_ORIENT_BOTTOM, /**< Panel (dis)appears from the bottom */
    ELM_PANEL_ORIENT_LEFT, /**< Panel (dis)appears from the left */
    ELM_PANEL_ORIENT_RIGHT, /**< Panel (dis)appears from the right */
 } Elm_Panel_Orient;
 
 /**
- * @brief Adds a panel object
+ * @typedef Elm_Panel_Scroll_Info
  *
- * @param parent The parent object
+ * @brief The structure type when the panel content is scrolled, if the panel object is scrollable,
+ *        this information is passed by the @a event_info argument in the
+ *        @c "scroll" smart callback function.
+ */
+typedef struct _Elm_Panel_Scroll_Info
+{
+   double rel_x;   /**< Content scrolled position (0.0 ~ 1.0) in the panel */
+   double rel_y;   /**< Content scrolled position (0.0 ~ 1.0) in the panel */
+
+} Elm_Panel_Scroll_Info;
+
+/**
+ * @brief Adds a panel object.
  *
- * @return The panel object, or NULL on failure
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Panel
+ * @param[in] parent The parent object
+ *
+ * @return The panel object, otherwise @c NULL on failure
  */
 EAPI Evas_Object                 *elm_panel_add(Evas_Object *parent);
 
 /**
- * @brief Sets the orientation of the panel
+ * @brief Sets the orientation of the panel.
  *
- * @param obj The panel object
- * @param orient The panel orientation. Can be one of the following:
- * @li ELM_PANEL_ORIENT_TOP
- * @li ELM_PANEL_ORIENT_LEFT
- * @li ELM_PANEL_ORIENT_RIGHT
+ * @details This sets the location from where the panel (dis)appears.
  *
- * Sets from where the panel will (dis)appear.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Panel
+ * @param[in] obj The panel object
+ * @param[in] orient The panel orientation, can be one of the following:
+ *               @li ELM_PANEL_ORIENT_TOP
+ *               @li ELM_PANEL_ORIENT_LEFT
+ *               @li ELM_PANEL_ORIENT_RIGHT
  */
 EAPI void                         elm_panel_orient_set(Evas_Object *obj, Elm_Panel_Orient orient);
 
 /**
- * @brief Get the orientation of the panel.
+ * @brief Gets the orientation of the panel.
  *
- * @param obj The panel object
- * @return The Elm_Panel_Orient, or ELM_PANEL_ORIENT_LEFT on failure.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Panel
+ * @param[in] obj The panel object
+ * @return The Elm_Panel_Orient, otherwise @c ELM_PANEL_ORIENT_LEFT on failure
  */
 EAPI Elm_Panel_Orient             elm_panel_orient_get(const Evas_Object *obj);
 
 /**
- * @brief Set the state of the panel.
+ * @brief Sets the state of the panel.
  *
- * @param obj The panel object
- * @param hidden If true, the panel will run the animation to disappear.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Panel
+ * @param[in] obj The panel object
+ * @param[in] hidden If @c true the panel runs the animation to disappear,
+ *               otherwise @c false
  */
 EAPI void                         elm_panel_hidden_set(Evas_Object *obj, Eina_Bool hidden);
 
 /**
- * @brief Get the state of the panel.
+ * @brief Gets the state of the panel.
  *
- * @param obj The panel object
- * @return EINA_TRUE if it is hidden state
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Panel
+ * @param[in] obj The panel object
+ * @return @c EINA_TRUE if it is the hidden state,
+ *         otherwise @c EINA_FALSE
  */
 EAPI Eina_Bool                    elm_panel_hidden_get(const Evas_Object *obj);
 
 /**
- * @brief Toggle the hidden state of the panel from code
+ * @brief Toggles the hidden state of the panel from the code.
  *
- * @param obj The panel object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Panel
+ * @param[in] obj The panel object
  */
 EAPI void                         elm_panel_toggle(Evas_Object *obj);
+
+/**
+ * @remarks Tizen only feature but not internal (will be patched into upstream)
+ *
+ * @brief Enables or disables scrolling in the panel.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks Normally the panel is not scrollable unless you enable it with this call.
+ *
+ * @param[in] obj The panel object
+ * @param[in] scrollable If @c EINA_TRUE it is scrollable, otherwise @c EINA_FALSE
+ */
+EAPI void                         elm_panel_scrollable_set(Evas_Object *obj, Eina_Bool scrollable);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Gets the scrollable state of the panel.
+ *
+ * @remarks Normally the panel is not scrollable. This gets the scrollable state
+ *          of the panel.
+ *
+ * @param obj The panel object
+ * @return The scrollable state
+ *
+ * @see elm_panel_scrollable_set()
+ */
+EAPI Eina_Bool          elm_panel_scrollable_get(const Evas_Object *obj);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Set the size of the content of a scrollable panel
+ *
+ * @param obj The panel object
+ * @param ratio The ratio of the content to the panel. This value ranges from 0 to 1.
+ */
+EAPI void               elm_panel_scrollable_content_size_set(Evas_Object *obj, double ratio);
 
 /**
  * @}

@@ -1,268 +1,227 @@
 /**
+ * @internal
  * @defgroup Video Video
- * @ingroup Elementary
+ * @ingroup elm_widget_group
  *
- * @addtogroup Video
- * @{
+ * @image html video_inheritance_tree.png
+ * @image latex video_inheritance_tree.eps
  *
- * Elementary comes with two object that help design application that need
- * to display video.
+ * @image html player_inheritance_tree.png
+ * @image latex player_inheritance_tree.eps
  *
- * The first one, Elm_Video, display a video by using Emotion.
- * It embeds the video inside an Edje object, so you can do some
+ * @brief This widget can display a video by using Emotion.
+ *
+ * Elementary comes with two objects that help design applications that need
+ * to display a video.
+ *
+ * The first one, Elm_Video, displays a video by using Emotion.
+ * It embeds the video inside an Edje object, so that you can do some
  * animation depending on the video state change. It also implements a
  * resource management policy to remove this burden from the application.
  *
  * The second one,
- * Elm_Player is a video player that need to be linked with an Elm_Video.
- * It take care of updating its content according to Emotion event and provide a
+ * Elm_Player is a video player that needs to be linked with an Elm_Video.
+ * It takes care of updating its content according to the Emotion event and provides a
  * way to theme itself. It also automatically raises the priority of the
- * linked Elm_Video so it will use the video decoder, if available. It also
+ * linked Elm_Video so it uses the video decoder, if available. It also
  * activates the "remember" function on the linked Elm_Video object.
  *
- * Signals that you can add callback for are :
+ * Both widgets inherit from the @ref Layout one, so that all the
+ * functions acting on it also work for video objects.
  *
- * "forward,clicked" - the user clicked the forward button.
- * "info,clicked" - the user clicked the info button.
- * "next,clicked" - the user clicked the next button.
- * "pause,clicked" - the user clicked the pause button.
- * "play,clicked" - the user clicked the play button.
- * "prev,clicked" - the user clicked the prev button.
- * "rewind,clicked" - the user clicked the rewind button.
- * "stop,clicked" - the user clicked the stop button.
+ * The player widget emits the following signals, besides the ones
+ * sent from @ref Layout :
+ *  - @c "forward,clicked" - The user clicked the forward button.
+ *  - @c "info,clicked" - The user clicked the info button.
+ *  - @c "next,clicked" - The user clicked the next button.
+ *  - @c "pause,clicked" - The user clicked the pause button.
+ *  - @c "play,clicked" - The user clicked the play button.
+ *  - @c "prev,clicked" - The user clicked the prev button.
+ *  - @c "rewind,clicked" - The user clicked the rewind button.
+ *  - @c "stop,clicked" - The user clicked the stop button.
  *
- * Default content parts of the player widget that you can use for are:
- * @li "video" - A video of the player
+ * The default content parts of the player widget that you can use are:
+ * @li "video" - A video of the player.
  *
+ * @{
  */
 
 /**
- * @brief Add a new Elm_Player object to the given parent Elementary (container) object.
+ * @brief Adds a new Elm_Player object to the given parent Elementary (container) object.
  *
- * @param parent The parent object
- * @return a new player widget handle or @c NULL, on errors.
+ * @details This function inserts a new player widget on the canvas.
  *
- * This function inserts a new player widget on the canvas.
+ * @param[in] parent The parent object
+ * @return A new player widget handle, otherwise @c NULL in case of an error
  *
  * @see elm_object_part_content_set()
- *
- * @ingroup Video
  */
 EAPI Evas_Object         *elm_player_add(Evas_Object *parent);
 
 /**
- * @brief Add a new Elm_Video object to the given parent Elementary (container) object.
+ * @brief Adds a new Elm_Video object to the given parent Elementary (container) object.
  *
- * @param parent The parent object
- * @return a new video widget handle or @c NULL, on errors.
+ * @details This function inserts a new video widget on the canvas.
  *
- * This function inserts a new video widget on the canvas.
+ * @param[in] parent The parent object
+ * @return A new video widget handle, otherwise @c NULL in case of an error
  *
  * @see elm_video_file_set()
- *
- * @ingroup Video
  */
 EAPI Evas_Object         *elm_video_add(Evas_Object *parent);
 
 /**
- * @brief Define the file or URI that will be the video source.
+ * @brief Defines the file or URI that is the video source.
  *
- * @param video The video object to define the file or URI for the video
- * of the Elm_Video object.
+ * @details This function explicitly defines a file or URI as a source
+ *          for the video of the Elm_Video object.
  *
- * @param filename The file or URI to target.
- * Local files can be specified using file:// or by using full file paths.
- * URI could be remote source of video, like http:// or local source like
- * WebCam (v4l2://). (You can use Emotion API to request and list
- * the available Webcam on your system).
+ * @param[in] video The video object to define the file or URI for the video
+ *              of the Elm_Video object
  *
- * @return @c EINA_TRUE on success, @c EINA_FALSE otherwise
+ * @param[in] filename The file or URI to target
+ *                 Local files can be specified using file:// or by using full file paths.
+ *                 URI could be a remote source of video, like http:// or a local source like
+ *                 WebCam (v4l2://). (You can use Emotion API to request and list
+ *                 the available Webcam on your system).
  *
- * This function will explicitly define a file or URI as a source
- * for the video of the Elm_Video object.
+ * @return @c EINA_TRUE on success, otherwise @c EINA_FALSE on failure
  *
  * @see elm_video_add()
  * @see elm_player_add()
- *
- * @ingroup Video
  */
 EAPI Eina_Bool            elm_video_file_set(Evas_Object *video, const char *filename);
 
 /**
  * @brief Get the underlying Emotion object.
  *
- * @param video The video object to proceed the request on.
- * @return the underlying Emotion object.
- *
- * @ingroup Video
+ * @param[in] video The video object to proceed the request on
+ * @return The underlying Emotion object
  */
 EAPI Evas_Object         *elm_video_emotion_get(const Evas_Object *video);
 
 /**
- * @brief Start to play the video
+ * @brief Starts to play the video.
  *
- * @param video The video object to proceed the request on.
+ * @details This starts to play the video and cancel the all suspend state.
  *
- * Start to play the video and cancel all suspend state.
- *
- * @ingroup Video
+ * @param[in] video The video object to proceed the request on
  */
 EAPI void                 elm_video_play(Evas_Object *video);
 
 /**
- * @brief Pause the video
+ * @brief Pauses the video.
  *
- * @param video The video object to proceed the request on.
+ * @details This pauses the video and starts a timer to trigger the suspend mode.
  *
- * Pause the video and start a timer to trigger suspend mode.
- *
- * @ingroup Video
+ * @param[in] video The video object to proceed the request on
  */
 EAPI void                 elm_video_pause(Evas_Object *video);
 
 /**
- * @brief Stop the video
+ * @brief Stops the video.
  *
- * @param video The video object to proceed the request on.
+ * @details This stops the video and puts the emotion in the deep sleep mode.
  *
- * Stop the video and put the emotion in deep sleep mode.
- *
- * @ingroup Video
+ * @param[in] video The video object to proceed the request on
  */
 EAPI void                 elm_video_stop(Evas_Object *video);
 
 /**
- * @brief Is the video actually playing.
+ * @brief Gets whether the video is actually playing.
  *
- * @param video The video object to proceed the request on.
- * @return EINA_TRUE if the video is actually playing.
+ * @remarks You should consider watching an event on the object instead of polling
+ *          the object state.
  *
- * You should consider watching event on the object instead of polling
- * the object state.
- *
- * @ingroup Video
+ * @param[in] video The video object to proceed the request on
+ * @return @c EINA_TRUE if the video is actually playing,
+ *         otherwise @c EINA_FALSE
  */
 EAPI Eina_Bool            elm_video_is_playing_get(const Evas_Object *video);
 
 /**
- * @brief Is it possible to seek inside the video.
+ * @brief Gets whether it is possible to seek inside the video.
  *
- * @param video The video object to proceed the request on.
- * @return EINA_TRUE if is possible to seek inside the video.
- *
- * @ingroup Video
+ * @param[in] video The video object to proceed the request on
+ * @return #EINA_TRUE if it is possible to seek inside the video,
+ *         otherwise #EINA_FALSE
  */
 EAPI Eina_Bool            elm_video_is_seekable_get(const Evas_Object *video);
 
 /**
- * @brief Is the audio muted.
+ * @brief Gets whether the audio is muted.
  *
- * @param video The video object to proceed the request on.
- * @return EINA_TRUE if the audio is muted.
- *
- * @ingroup Video
- */
-EAPI Eina_Bool            elm_video_audio_mute_get(const Evas_Object *video);
-
-/**
- * @brief Change the mute state of the Elm_Video object.
- *
- * @param video The video object to proceed the request on.
- * @param mute The new mute state.
- *
- * @ingroup Video
- */
-EAPI void                 elm_video_audio_mute_set(Evas_Object *video, Eina_Bool mute);
-
-/**
- * @brief Get the audio level of the current video.
- *
- * @param video The video object to proceed the request on.
- * @return the current audio level.
- *
- * @ingroup Video
+ * @param[in] video The video object to proceed the request on
+ * @return The current audio level
  */
 EAPI double               elm_video_audio_level_get(const Evas_Object *video);
 
 /**
- * @brief Set the audio level of an Elm_Video object.
+ * @brief Sets the audio level of an Elm_Video object.
  *
- * @param video The video object to proceed the request on.
- * @param volume The new audio volume.
- *
- * @ingroup Video
+ * @param[in] video The video object to proceed the request on
+ * @param[in] volume The new audio volume
  */
 EAPI void                 elm_video_audio_level_set(Evas_Object *video, double volume);
 
 /**
- * @brief Get the current position (in seconds) being played in the
- * Elm_Video object.
+ * @brief Gets the current position (in seconds) being played in the
+ *        Elm_Video object.
  *
- * @param video The video object.
- * @return the time(in seconds) since the beginning of the media file.
- *
- * @ingroup Video
+ * @param[in] video The video object
+ * @return The time (in seconds) since the beginning of the media file
  */
 EAPI double               elm_video_play_position_get(const Evas_Object *video);
 
 /**
- * @brief Set the current position (in seconds) to be played in the
- * Elm_Video object.
+ * @brief Sets the current position (in seconds) to be played in the
+ *        Elm_Video object.
  *
- * @param video The video object.
- * @param position the time(in seconds) since the beginning of the media file.
- *
- * @ingroup Video
+ * @param[in] video The video object
+ * @param[in] position The time (in seconds) since the beginning of the media file
  */
 EAPI void                 elm_video_play_position_set(Evas_Object *video, double position);
+
 /**
- * @brief Get the total playing time (in seconds) of the Elm_Video object.
+ * @brief Gets the total playing time (in seconds) of the Elm_Video object.
  *
- * @param video The video object.
- * @return the total duration(in seconds) of the media file.
- *
- * @ingroup Video
+ * @param[in] video The video object
+ * @return The total duration (in seconds) of the media file
  */
 EAPI double               elm_video_play_length_get(const Evas_Object *video);
 
 /**
- * @brief Set whether the object can remember the last played position.
+ * @brief Sets whether the object can remember the last played position.
  *
- * @param video The video object.
- * @param remember the last played position of the Elm_Video object.
+ * @remarks This API only serves as an indication. System support is required.
  *
- * @note This API only serves as indication. System support is required.
- *
- * @ingroup Video
+ * @param[in] video The video object
+ * @param[in] remember The boolean value that indicates the last played position of the Elm_Video object
  */
 EAPI void                 elm_video_remember_position_set(Evas_Object *video, Eina_Bool remember);
 
 /**
- * @brief Set whether the object can remember the last played position.
+ * @brief Sets whether the object can remember the last played position.
  *
- * @param video The video object.
- * @return whether the object remembers the last played position (EINA_TRUE)
- * or not.
+ * @remarks This API only serves as an indication. System support is required.
  *
- * @note This API only serves as indication. System support is required.
- *
- * @ingroup Video
+ * @param[in] video The video object
+ * @return The boolean value that indicates whether the object remembers the last played position (@c EINA_TRUE)
  */
 EAPI Eina_Bool            elm_video_remember_position_get(const Evas_Object *video);
 
 /**
- * @brief Get the title (for ex. DVD title) from this emotion object.
+ * @brief Gets the title (for instance DVD title) from this emotion object.
  *
- * @param video The Elm_Video object.
- * @return A string containing the title.
+ * @remarks This function is only useful when playing a DVD.
  *
- * This function is only useful when playing a DVD.
+ * @remarks Don't change or free the string returned by this function.
  *
- * @note Don't change or free the string returned by this function.
- *
- * @ingroup Video
+ * @param[in] video The Elm_Video object
+ * @return A string containing the title
  */
 EAPI const char          *elm_video_title_get(const Evas_Object *video);
+
 /**
  * @}
  */

@@ -1,25 +1,32 @@
 /**
  * @defgroup Colorselector Colorselector
- * @ingroup Elementary
+ * @ingroup elm_widget_group
  *
- * @image html img/widget/colorselector/preview-00.png
- * @image latex img/widget/colorselector/preview-00.eps
+ * @image html colorselector_inheritance_tree.png
+ * @image latex colorselector_inheritance_tree.eps
  *
- * A ColorSelector is a color selection widget. It allows application to set a
- * series of colors.It also allows to load/save colors from/to config with a
- * unique identifier, by default, the colors are loaded/saved from/to config
- * using "default" identifier.
- * The colors can be picked by user from the color set by clicking on individual color
- * item on the palette or by selecting it from selector.
+ * @brief A ColorSelector is a color selection widget.
  *
- * Signals that you can add callbacks for are:
- * - "changed" - When the color value changes on selector(event_info is NULL).
- * - "color,item,selected" - When user clicks on color item. The event_info parameter
- * of the callback will be the selected color item.
- * - "color,item,longpressed" - When user long presses on color item. The event info
- * parameter of the callback contains selected color item.
+ * It allows an application to set a series of colors.It also allows to
+ * load/save colors from/to config with a unique identifier, by default,
+ * the colors are loaded/saved from/to config using a "default" identifier.
+ * The colors  can be picked by the user from the color set by clicking on
+ * individual color items on the palette or by selecting it from the selector.
  *
- * See @ref tutorial_colorselector.
+ * This widget inherits from the @ref Layout one, so that all the
+ * functions acting on it also work for check objects.
+ *
+ * This widget emits the following signals, besides the ones sent from
+ * @ref Layout :
+ * - @c "changed" - When the color value changes on the selector.
+ *   @a event_info is @c NULL.
+ * - @c "color,item,selected" - When the user clicks on a color item. The
+ *   @a event_info parameter of the callback is the selected color
+ *   item.
+ * - @c "color,item,longpressed" - When user long presses on a color
+ *   item. The @a event_info parameter of the callback contains the selected
+ *   color item.
+ *
  * @{
  */
 
@@ -29,6 +36,7 @@ typedef struct _Elm_Color_RGBA
    unsigned int g;
    unsigned int b;
    unsigned int a;
+   const char *color_name;
 } Elm_Color_RGBA;
 
 typedef struct _Elm_Custom_Palette
@@ -38,152 +46,202 @@ typedef struct _Elm_Custom_Palette
 } Elm_Custom_Palette;
 
 /**
- * @enum _Elm_Colorselector_Mode
+ * @enum Elm_Colorselector_Mode
  * @typedef Elm_Colorselector_Mode
  *
- * Different modes supported by Colorselector
+ * @brief Enumeration that defines the different modes supported by Colorselector.
  *
  * @see elm_colorselector_mode_set()
  * @see elm_colorselector_mode_get()
  */
 typedef enum
 {
-   ELM_COLORSELECTOR_PALETTE = 0, /**< only color palette is displayed */
-   ELM_COLORSELECTOR_COMPONENTS, /**< only color selector is displayed */
-   ELM_COLORSELECTOR_BOTH /**< Both Palette and selector is displayed, default */
+   ELM_COLORSELECTOR_PALETTE = 0, /**< Only the color palette is displayed */
+   ELM_COLORSELECTOR_COMPONENTS, /**< Only the color selector is displayed */
+   ELM_COLORSELECTOR_BOTH, /**< Both the Palette and the selector is displayed, default */
+   ELM_COLORSELECTOR_PICKER, /**< Only the color picker is displayed */
+   ELM_COLORSELECTOR_PLANE, /**< Only the color plane is displayed */
+   ELM_COLORSELECTOR_PALETTE_PLANE, /**< Both the palette and the plane is displayed */
+   ELM_COLORSELECTOR_ALL /**< All possible color selectors are displayed */
 } Elm_Colorselector_Mode;
 
 /**
- * @brief Add a new colorselector to the parent
+ * @MOBILE_ONLY
  *
- * @param parent The parent object
- * @return The new object or NULL if it cannot be created
+ * @brief Adds a new colorselector to the parent.
  *
- * @ingroup Colorselector
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] parent The parent object
+ * @return The new object, otherwise @c NULL if it cannot be created
  */
 EAPI Evas_Object *elm_colorselector_add(Evas_Object *parent);
 
 /**
- * Set color to colorselector
+ * @MOBILE_ONLY
  *
- * @param obj Colorselector object
- * @param r r-value of color
- * @param g g-value of color
- * @param b b-value of color
- * @param a a-value of color
+ * @brief Sets a color to the colorselector.
  *
- * @ingroup Colorselector
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The colorselector object
+ * @param[in] r The r-value of color
+ * @param[in] g The g-value of color
+ * @param[in] b The b-value of color
+ * @param[in] a The a-value of color
  */
 EAPI void elm_colorselector_color_set(Evas_Object *obj, int r, int g, int b, int a);
 
 /**
- * Get current color from colorselector
+ * @MOBILE_ONLY
  *
- * @param obj Colorselector object
- * @param r integer pointer for r-value of color
- * @param g integer pointer for g-value of color
- * @param b integer pointer for b-value of color
- * @param a integer pointer for a-value of color
+ * @brief Gets the current color from the colorselector.
  *
- * @ingroup Colorselector
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The colorselector object
+ * @param[out] r An integer pointer for the r-value of color
+ * @param[out] g An integer pointer for the g-value of color
+ * @param[out] b An integer pointer for the b-value of color
+ * @param[out] a An integer pointer for the a-value of color
  */
 EAPI void elm_colorselector_color_get(const Evas_Object *obj, int *r, int *g, int *b, int *a);
 
 /**
- * Set Colorselector's mode.
+ * @MOBILE_ONLY
  *
- * @param obj Colorselector object
- * @param mode Elm_Colorselector_Mode
+ * @brief Sets the Colorselector mode.
  *
- * Colorselector supports three modes palette only, selector only and both.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Colorselector
+ * @remarks Colorselector supports three modes: palette only, selector only, and both.
+ *
+ * @param[in] obj The colorselector object
+ * @param[in] mode The Elm_Colorselector_Mode
  */
 EAPI void elm_colorselector_mode_set(Evas_Object *obj, Elm_Colorselector_Mode mode);
 
 /**
- * Get Colorselector's mode.
+ * @MOBILE_ONLY
  *
- * @param obj Colorselector object
- * @return mode The current mode of colorselector
+ * @brief Gets the Colorselector mode.
  *
- * @ingroup Colorselector
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The Colorselector object
+ * @return mode The current mode of the colorselector
  */
 EAPI Elm_Colorselector_Mode elm_colorselector_mode_get(const Evas_Object *obj);
 
 /**
- * Get Palette item's color.
+ * @MOBILE_ONLY
  *
- * @param it The color palette item.
- * @param r integer pointer for r-value of color
- * @param g integer pointer for g-value of color
- * @param b integer pointer for b-value of color
- * @param a integer pointer for a-value of color
+ * @brief Gets the Palette item's color.
  *
- * @ingroup Colorselector
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] it The color palette item
+ * @param[out] r An integer pointer for the r-value of color
+ * @param[out] g An integer pointer for the g-value of color
+ * @param[out] b An integer pointer for the b-value of color
+ * @param[out] a An integer pointer for the a-value of color
  */
 EAPI void elm_colorselector_palette_item_color_get(const Elm_Object_Item *it, int *r, int *g, int *b, int *a);
 
 /**
- * Set palette item's color.
+ * @MOBILE_ONLY
  *
- * @param it The color palette item.
- * @param r r-value of color
- * @param g g-value of color
- * @param b b-value of color
- * @param a a-value of color
+ * @brief Sets the palette item's color.
  *
- * @ingroup Colorselector
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] it The color palette item
+ * @param[in] r The r-value of color
+ * @param[in] g The g-value of color
+ * @param[in] b The b-value of color
+ * @param[in] a The a-value of color
  */
 EAPI void elm_colorselector_palette_item_color_set(Elm_Object_Item *it, int r, int g, int b, int a);
 
 /**
- * Add a new color item to palette.
+ * @MOBILE_ONLY
  *
- * @param obj The Colorselector object
- * @param r r-value of color
- * @param g g-value of color
- * @param b b-value of color
- * @param a a-value of color
- * @return A new color palette Item.
+ * @brief Adds a new color item to the palette.
  *
- * @ingroup Colorselector
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The Colorselector object
+ * @param[in] r The r-value of color
+ * @param[in] g The g-value of color
+ * @param[in] b The b-value of color
+ * @param[in] a The a-value of color
+ * @return A new color palette Item
  */
 EAPI Elm_Object_Item *elm_colorselector_palette_color_add(Evas_Object *obj, int r, int g, int b, int a);
 
 /**
- * Clear the palette items.
+ * @MOBILE_ONLY
  *
- * @param obj The Colorselector object
+ * @brief Clears the palette items.
  *
- * @ingroup Colorselector
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The Colorselector object
  */
 EAPI void elm_colorselector_palette_clear(Evas_Object *obj);
 
 /**
- * Set current palette's name
+ * @MOBILE_ONLY
  *
- * @param obj The Colorselector object
- * @param palette_name Name of palette
+ * @brief Gets the list of palette items.
  *
- * When colorpalette name is set, colors will be loaded from and saved to config
- * using the set name. If no name is set then colors will be loaded from or
- * saved to "default" config.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Colorselector
+ * @param[in] obj The Colorselector object
+ * @return The list of color items
+ */
+EAPI Eina_List *elm_colorselector_palette_items_get(const Evas_Object *obj);
+
+/**
+ * @MOBILE_ONLY
+ *
+ * @brief Sets the current palette's name.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks When the colorpalette name is set, colors are loaded from and saved to the config
+ *          using the set name. If no name is set then colors are loaded from or
+ *          saved to the "default" config.
+ *
+ * @param[in] obj The Colorselector object
+ * @param[in] palette_name The name of the palette
  */
 EAPI void elm_colorselector_palette_name_set(Evas_Object *obj, const char *palette_name);
 
 /**
- * Get current palette's name
+ * @MOBILE_ONLY
  *
- * @param obj The Colorselector object
- * @return Name of palette
+ * @brief Gets the current palette's name.
  *
- * Returns the currently set palette name using which colors will be
- * saved/loaded in to config.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Colorselector
+ * @details This returns the currently set palette name using which colors are
+ *          saved/loaded into the config.
+ *
+ * @param[in] obj The Colorselector object
+ * @return The name of the palette
  */
 EAPI const char *elm_colorselector_palette_name_get(const Evas_Object *obj);
 

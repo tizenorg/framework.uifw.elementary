@@ -1,593 +1,916 @@
 #include <Elementary.h>
 #include "elm_priv.h"
+#include "elm_widget_clock.h"
+
+EAPI const char ELM_CLOCK_SMART_NAME[] = "elm_clock";
 
 #define DEFAULT_FIRST_INTERVAL 0.85
-typedef struct _Widget_Data Widget_Data;
 
-struct _Widget_Data
-{
-   Evas_Object *clk;
-   double interval, first_interval;
-   Eina_Bool seconds : 1;
-   Eina_Bool am_pm : 1;
-   Eina_Bool edit : 1;
-   Elm_Clock_Edit_Mode digedit;
-   int hrs, min, sec, timediff;
-   Evas_Object *digit[6];
-   Evas_Object *ampm;
-   Evas_Object *sel_obj;
-   Ecore_Timer *ticker, *spin;
-   struct
-   {
-      int hrs, min, sec;
-      char ampm;
-      Eina_Bool seconds : 1;
-      Eina_Bool am_pm : 1;
-      Eina_Bool edit : 1;
-      Elm_Clock_Edit_Mode digedit;
-   } cur;
-};
-
-static const char *widtype = NULL;
-static void _del_hook(Evas_Object *obj);
-static void _theme_hook(Evas_Object *obj);
-static void _on_focus_hook(void *data, Evas_Object *obj);
-static Eina_Bool _ticker(void *data);
-static Eina_Bool _signal_clock_val_up(void *data);
-static Eina_Bool _signal_clock_val_down(void *data);
 static void _time_update(Evas_Object *obj);
 
 static const char SIG_CHANGED[] = "changed";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 
-static const Evas_Smart_Cb_Description _signals[] = {
+static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CHANGED, ""},
+   {SIG_ACCESS_CHANGED, ""},
    {NULL, NULL}
 };
 
-
-static void
-_del_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   int i;
-   for (i = 0; i < 6; i++)
-     {
-        if (wd->digit[i]) evas_object_del(wd->digit[i]);
-     }
-   if (wd->ampm) evas_object_del(wd->ampm);
-   if (wd->ticker) ecore_timer_del(wd->ticker);
-   if (wd->spin) ecore_timer_del(wd->spin);
-   free(wd);
-}
-
-static void
-_theme_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (elm_widget_focus_get(obj))
-     edje_object_signal_emit(wd->clk, "elm,action,focus", "elm");
-   else
-     edje_object_signal_emit(wd->clk, "elm,action,unfocus", "elm");
-   wd->cur.am_pm = !wd->cur.am_pm; /* hack - force update */
-   _time_update(obj);
-}
-
-static void
-_on_focus_hook(void *data __UNUSED__, Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (elm_widget_focus_get(obj))
-     {
-        edje_object_signal_emit(wd->clk, "elm,action,focus", "elm");
-        evas_object_focus_set(wd->clk, EINA_TRUE);
-     }
-   else
-     {
-        edje_object_signal_emit(wd->clk, "elm,action,unfocus", "elm");
-        evas_object_focus_set(wd->clk, EINA_FALSE);
-     }
-}
-
-static void
-_signal_emit_hook(Evas_Object *obj, const char *emission, const char *source)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   int i;
-   if (!wd) return;
-   edje_object_signal_emit(wd->clk, emission, source);
-   for (i = 0; i < 6; i++)
-     {
-        if (wd->digit[i])
-          edje_object_signal_emit(wd->digit[i], emission, source);
-     }
-}
-
-static void
-_signal_callback_add_hook(Evas_Object *obj, const char *emission, const char *source, Edje_Signal_Cb func_cb, void *data)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   int i;
-   if (!wd) return;
-   edje_object_signal_callback_add(wd->clk, emission, source, func_cb, data);
-   for (i = 0; i < 6; i++)
-     {
-        if (wd->digit[i])
-          edje_object_signal_callback_add(wd->digit[i], emission, source,
-                                          func_cb, data);
-     }
-}
-
-static void
-_signal_callback_del_hook(Evas_Object *obj, const char *emission, const char *source, Edje_Signal_Cb func_cb, void *data)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   int i;
-   for (i = 0; i < 6; i++)
-     {
-        edje_object_signal_callback_del_full(wd->digit[i], emission, source,
-                                             func_cb, data);
-     }
-   edje_object_signal_callback_del_full(wd->clk, emission, source, func_cb,
-                                        data);
-}
-
-static void
-_timediff_set(Widget_Data *wd)
-{
-   struct timeval timev;
-   struct tm *tm;
-   time_t tt;
-   gettimeofday(&timev, NULL);
-   tt = (time_t)(timev.tv_sec);
-   tzset();
-   tm = localtime(&tt);
-   wd->timediff = (((wd->hrs - tm->tm_hour) * 60 +
-                    wd->min - tm->tm_min) * 60) + wd->sec - tm->tm_sec;
-}
+EVAS_SMART_SUBCLASS_NEW
+  (ELM_CLOCK_SMART_NAME, _elm_clock, Elm_Clock_Smart_Class,
+  Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks);
 
 static Eina_Bool
-_ticker(void *data)
+_on_clock_val_up(void *data)
 {
-   Widget_Data *wd = elm_widget_data_get(data);
-   double t;
-   struct timeval timev;
-   struct tm *tm;
-   time_t tt;
-   if (!wd) return ECORE_CALLBACK_CANCEL;
-   gettimeofday(&timev, NULL);
-   t = ((double)(1000000 - timev.tv_usec)) / 1000000.0;
-   wd->ticker = ecore_timer_add(t, _ticker, data);
-   if (!wd->edit)
-     {
-        tt = (time_t)(timev.tv_sec) + wd->timediff;
-        tzset();
-        tm = localtime(&tt);
-        if (tm)
-          {
-             wd->hrs = tm->tm_hour;
-             wd->min = tm->tm_min;
-             wd->sec = tm->tm_sec;
-             _time_update(data);
-          }
-     }
-   return ECORE_CALLBACK_CANCEL;
-}
+   ELM_CLOCK_DATA_GET(data, sd);
 
-static Eina_Bool
-_signal_clock_val_up(void *data)
-{
-   Widget_Data *wd = elm_widget_data_get(data);
-   if (!wd) goto clock_val_up_exit_on_error;
-   if (!wd->edit) goto clock_val_up_cancel;
-   if (!wd->sel_obj) goto clock_val_up_cancel;
-   if (wd->sel_obj == wd->digit[0])
+   if (!sd->edit) goto clock_val_up_cancel;
+   if (!sd->sel_obj) goto clock_val_up_cancel;
+   if (sd->sel_obj == sd->digit[0])
      {
-        wd->hrs = wd->hrs + 10;
-        if (wd->hrs >= 24) wd->hrs -= 24;
+        sd->hrs = sd->hrs + 10;
+        if (sd->hrs >= 24) sd->hrs -= 24;
      }
-   if (wd->sel_obj == wd->digit[1])
+   if (sd->sel_obj == sd->digit[1])
      {
-        wd->hrs = wd->hrs + 1;
-        if (wd->hrs >= 24) wd->hrs -= 24;
+        sd->hrs = sd->hrs + 1;
+        if (sd->hrs >= 24) sd->hrs -= 24;
      }
-   if (wd->sel_obj == wd->digit[2])
+   if (sd->sel_obj == sd->digit[2])
      {
-        wd->min = wd->min + 10;
-        if (wd->min >= 60) wd->min -= 60;
+        sd->min = sd->min + 10;
+        if (sd->min >= 60) sd->min -= 60;
      }
-   if (wd->sel_obj == wd->digit[3])
+   if (sd->sel_obj == sd->digit[3])
      {
-        wd->min = wd->min + 1;
-        if (wd->min >= 60) wd->min -= 60;
+        sd->min = sd->min + 1;
+        if (sd->min >= 60) sd->min -= 60;
      }
-   if (wd->sel_obj == wd->digit[4])
+   if (sd->sel_obj == sd->digit[4])
      {
-        wd->sec = wd->sec + 10;
-        if (wd->sec >= 60) wd->sec -= 60;
+        sd->sec = sd->sec + 10;
+        if (sd->sec >= 60) sd->sec -= 60;
      }
-   if (wd->sel_obj == wd->digit[5])
+   if (sd->sel_obj == sd->digit[5])
      {
-        wd->sec = wd->sec + 1;
-        if (wd->sec >= 60) wd->sec -= 60;
+        sd->sec = sd->sec + 1;
+        if (sd->sec >= 60) sd->sec -= 60;
      }
-   if (wd->sel_obj == wd->ampm)
+   if (sd->sel_obj == sd->am_pm_obj)
      {
-        wd->hrs = wd->hrs + 12;
-        if (wd->hrs > 23) wd->hrs -= 24;
+        sd->hrs = sd->hrs + 12;
+        if (sd->hrs > 23) sd->hrs -= 24;
      }
-   wd->interval = wd->interval / 1.05;
-   ecore_timer_interval_set(wd->spin, wd->interval);
+
+   sd->interval = sd->interval / 1.05;
+   ecore_timer_interval_set(sd->spin, sd->interval);
    _time_update(data);
    evas_object_smart_callback_call(data, SIG_CHANGED, NULL);
    return ECORE_CALLBACK_RENEW;
+
 clock_val_up_cancel:
-   wd->spin = NULL;
-clock_val_up_exit_on_error:
+
+   sd->spin = NULL;
+
    return ECORE_CALLBACK_CANCEL;
 }
 
 static Eina_Bool
-_signal_clock_val_down(void *data)
+_on_clock_val_down(void *data)
 {
-   Widget_Data *wd = elm_widget_data_get(data);
-   if (!wd) goto clock_val_down_exit_on_error;
-   if (!wd->edit) goto clock_val_down_cancel;
-   if (!wd->sel_obj) goto clock_val_down_cancel;
-   if (wd->sel_obj == wd->digit[0])
+   ELM_CLOCK_DATA_GET(data, sd);
+
+   if (!sd->edit) goto clock_val_down_cancel;
+   if (!sd->sel_obj) goto clock_val_down_cancel;
+   if (sd->sel_obj == sd->digit[0])
      {
-        wd->hrs = wd->hrs - 10;
-        if (wd->hrs < 0) wd->hrs += 24;
+        sd->hrs = sd->hrs - 10;
+        if (sd->hrs < 0) sd->hrs += 24;
      }
-   if (wd->sel_obj == wd->digit[1])
+   if (sd->sel_obj == sd->digit[1])
      {
-        wd->hrs = wd->hrs - 1;
-        if (wd->hrs < 0) wd->hrs += 24;
+        sd->hrs = sd->hrs - 1;
+        if (sd->hrs < 0) sd->hrs += 24;
      }
-   if (wd->sel_obj == wd->digit[2])
+   if (sd->sel_obj == sd->digit[2])
      {
-        wd->min = wd->min - 10;
-        if (wd->min < 0) wd->min += 60;
+        sd->min = sd->min - 10;
+        if (sd->min < 0) sd->min += 60;
      }
-   if (wd->sel_obj == wd->digit[3])
+   if (sd->sel_obj == sd->digit[3])
      {
-        wd->min = wd->min - 1;
-        if (wd->min < 0) wd->min += 60;
+        sd->min = sd->min - 1;
+        if (sd->min < 0) sd->min += 60;
      }
-   if (wd->sel_obj == wd->digit[4])
+   if (sd->sel_obj == sd->digit[4])
      {
-        wd->sec = wd->sec - 10;
-        if (wd->sec < 0) wd->sec += 60;
+        sd->sec = sd->sec - 10;
+        if (sd->sec < 0) sd->sec += 60;
      }
-   if (wd->sel_obj == wd->digit[5])
+   if (sd->sel_obj == sd->digit[5])
      {
-        wd->sec = wd->sec - 1;
-        if (wd->sec < 0) wd->sec += 60;
+        sd->sec = sd->sec - 1;
+        if (sd->sec < 0) sd->sec += 60;
      }
-   if (wd->sel_obj == wd->ampm)
+   if (sd->sel_obj == sd->am_pm_obj)
      {
-        wd->hrs = wd->hrs - 12;
-        if (wd->hrs < 0) wd->hrs += 24;
+        sd->hrs = sd->hrs - 12;
+        if (sd->hrs < 0) sd->hrs += 24;
      }
-   wd->interval = wd->interval / 1.05;
-   ecore_timer_interval_set(wd->spin, wd->interval);
+   sd->interval = sd->interval / 1.05;
+   ecore_timer_interval_set(sd->spin, sd->interval);
    _time_update(data);
    evas_object_smart_callback_call(data, SIG_CHANGED, NULL);
    return ECORE_CALLBACK_RENEW;
+
 clock_val_down_cancel:
-   wd->spin = NULL;
-clock_val_down_exit_on_error:
+   sd->spin = NULL;
+
    return ECORE_CALLBACK_CANCEL;
 }
 
 static void
-_signal_clock_val_up_start(void *data, Evas_Object *obj, const char *emission __UNUSED__, const char *source __UNUSED__)
+_on_clock_val_up_start(void *data,
+                       Evas_Object *obj,
+                       const char *emission __UNUSED__,
+                       const char *source __UNUSED__)
 {
-   Widget_Data *wd = elm_widget_data_get(data);
-   if (!wd) return;
-   wd->interval = wd->first_interval;
-   wd->sel_obj = obj;
-   if (wd->spin) ecore_timer_del(wd->spin);
-   wd->spin = ecore_timer_add(wd->interval, _signal_clock_val_up, data);
-   _signal_clock_val_up(data);
+   ELM_CLOCK_DATA_GET(data, sd);
+
+   sd->interval = sd->first_interval;
+   sd->sel_obj = obj;
+   if (sd->spin) ecore_timer_del(sd->spin);
+   sd->spin = ecore_timer_add(sd->interval, _on_clock_val_up, data);
+
+   _on_clock_val_up(data);
 }
 
 static void
-_signal_clock_val_down_start(void *data, Evas_Object *obj, const char *emission __UNUSED__, const char *source __UNUSED__)
+_on_clock_val_down_start(void *data,
+                         Evas_Object *obj,
+                         const char *emission __UNUSED__,
+                         const char *source __UNUSED__)
 {
-   Widget_Data *wd = elm_widget_data_get(data);
-   if (!wd) return;
-   wd->interval = wd->first_interval;
-   wd->sel_obj = obj;
-   if (wd->spin) ecore_timer_del(wd->spin);
-   wd->spin = ecore_timer_add(wd->interval, _signal_clock_val_down, data);
-   _signal_clock_val_down(data);
+   ELM_CLOCK_DATA_GET(data, sd);
+
+   sd->interval = sd->first_interval;
+   sd->sel_obj = obj;
+   if (sd->spin) ecore_timer_del(sd->spin);
+   sd->spin = ecore_timer_add(sd->interval, _on_clock_val_down, data);
+
+   _on_clock_val_down(data);
 }
 
 static void
-_signal_clock_val_change_stop(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_on_clock_val_change_stop(void *data,
+                          Evas_Object *obj __UNUSED__,
+                          const char *emission __UNUSED__,
+                          const char *source __UNUSED__)
 {
-   Widget_Data *wd = elm_widget_data_get(data);
-   if (!wd) return;
-   if (wd->spin) ecore_timer_del(wd->spin);
-   wd->spin = NULL;
-   wd->sel_obj = NULL;
+   Elm_Clock_Smart_Data *sd = data;
+
+   if (sd->spin) ecore_timer_del(sd->spin);
+   sd->spin = NULL;
+   sd->sel_obj = NULL;
 }
 
+static void
+_access_activate_cb(void *data,
+                    Evas_Object *part_obj,
+                    Elm_Object_Item *item __UNUSED__)
+{
+   Evas_Object *digit, *inc_btn;
+   ELM_CLOCK_DATA_GET(data, sd);
+
+   digit = evas_object_smart_parent_get(part_obj);
+   if (!digit) return;
+
+   inc_btn = (Evas_Object *)edje_object_part_object_get(digit, "access.t");
+
+   if (part_obj != inc_btn)
+     _on_clock_val_down_start(data, digit, NULL, NULL);
+   else
+     _on_clock_val_up_start(data, digit, NULL, NULL);
+
+   _on_clock_val_change_stop(sd, NULL, NULL, NULL);
+}
+
+static void
+_access_time_register(Evas_Object *obj, Eina_Bool is_access)
+{
+   Evas_Object *ao, *po;
+
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   if (!sd->edit) return;
+
+   /* hour, min, sec edit button */
+   int i;
+   for (i = 0; i < 6; i++)
+     {
+        if (is_access && (sd->digedit & (1 << i)))
+          {
+             char *digit = NULL;
+
+             switch (1 << i)
+               {
+                case ELM_CLOCK_EDIT_HOUR_DECIMAL:
+                  digit = "hour decimal";
+                  break;
+                case ELM_CLOCK_EDIT_HOUR_UNIT:
+                  digit = "hour unit";
+                  break;
+                case ELM_CLOCK_EDIT_MIN_DECIMAL:
+                  digit = "minute decimal";
+                  break;
+                case ELM_CLOCK_EDIT_MIN_UNIT:
+                  digit = "minute unit";
+                  break;
+                case ELM_CLOCK_EDIT_SEC_DECIMAL:
+                  digit = "second decimal";
+                  break;
+                case ELM_CLOCK_EDIT_SEC_UNIT:
+                  digit = "second unit";
+                  break;
+               }
+
+             Eina_Strbuf *strbuf;
+             strbuf = eina_strbuf_new();
+
+             /* increment button */
+             ao = _elm_access_edje_object_part_object_register
+                    (obj, sd->digit[i], "access.t");
+
+             eina_strbuf_append_printf(strbuf,
+               "clock increment button for %s", digit);
+             _elm_access_text_set(_elm_access_object_get(ao),
+               ELM_ACCESS_TYPE, eina_strbuf_string_get(strbuf));
+             _elm_access_activate_callback_set
+               (_elm_access_object_get(ao), _access_activate_cb, obj);
+
+             /* decrement button */
+             ao = _elm_access_edje_object_part_object_register
+                    (obj, sd->digit[i], "access.b");
+
+             eina_strbuf_replace(strbuf, "increment", "decrement", 1);
+             _elm_access_text_set(_elm_access_object_get(ao),
+               ELM_ACCESS_TYPE, eina_strbuf_string_get(strbuf));
+             _elm_access_activate_callback_set
+               (_elm_access_object_get(ao), _access_activate_cb, obj);
+
+             eina_strbuf_free(strbuf);
+
+             edje_object_signal_emit
+               (sd->digit[i], "elm,state,access,edit,on", "elm");
+          }
+        else if (!is_access && (sd->digedit & (1 << i)))
+          {
+             _elm_access_edje_object_part_object_unregister
+               (obj, sd->digit[i], "access.t");
+
+             _elm_access_edje_object_part_object_unregister
+               (obj, sd->digit[i], "access.b");
+
+             edje_object_signal_emit
+               (sd->digit[i], "elm,state,access,edit,off", "elm");
+          }
+
+        /* no need to propagate mouse event with acess */
+        po = (Evas_Object *)edje_object_part_object_get
+               (sd->digit[i], "access.t");
+        evas_object_propagate_events_set(po, !is_access);
+
+        po = (Evas_Object *)edje_object_part_object_get
+               (sd->digit[i], "access.b");
+        evas_object_propagate_events_set(po, !is_access);
+
+     }
+
+   /* am, pm edit button  */
+   if (is_access && sd->am_pm)
+     {
+        /* increment button */
+        ao = _elm_access_edje_object_part_object_register
+               (obj, sd->am_pm_obj, "access.t");
+        _elm_access_text_set(_elm_access_object_get(ao),
+          ELM_ACCESS_TYPE, E_("clock increment button for am,pm"));
+        _elm_access_activate_callback_set
+          (_elm_access_object_get(ao), _access_activate_cb, obj);
+
+        /* decrement button */
+        ao = _elm_access_edje_object_part_object_register
+               (obj, sd->am_pm_obj, "access.b");
+        _elm_access_text_set(_elm_access_object_get(ao),
+          ELM_ACCESS_TYPE, E_("clock decrement button for am,pm"));
+        _elm_access_activate_callback_set
+          (_elm_access_object_get(ao), _access_activate_cb, obj);
+
+         edje_object_signal_emit
+           (sd->am_pm_obj, "elm,state,access,edit,on", "elm");
+     }
+   else if (!is_access && sd->am_pm)
+     {
+        _elm_access_edje_object_part_object_register
+          (obj, sd->am_pm_obj, "access.t");
+
+        _elm_access_edje_object_part_object_register
+          (obj, sd->am_pm_obj, "access.b");
+
+         edje_object_signal_emit
+           (sd->am_pm_obj, "elm,state,access,edit,off", "elm");
+     }
+
+    /* no need to propagate mouse event with access */
+    po = (Evas_Object *)edje_object_part_object_get
+           (sd->am_pm_obj, "access.t");
+    evas_object_propagate_events_set(po, !is_access);
+
+    po = (Evas_Object *)edje_object_part_object_get
+           (sd->am_pm_obj, "access.b");
+    evas_object_propagate_events_set(po, !is_access);
+
+}
 static void
 _time_update(Evas_Object *obj)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
+   ELM_CLOCK_DATA_GET(obj, sd);
+
    Edje_Message_Int msg;
    int ampm = 0;
    const char *style = elm_widget_style_get(obj);
-   if (!wd) return;
-   if ((wd->cur.seconds != wd->seconds) || (wd->cur.am_pm != wd->am_pm) ||
-       (wd->cur.edit != wd->edit) || (wd->cur.digedit != wd->digedit))
+
+   if ((sd->cur.seconds != sd->seconds) || (sd->cur.am_pm != sd->am_pm) ||
+       (sd->cur.edit != sd->edit) || (sd->cur.digedit != sd->digedit))
      {
         int i;
         Evas_Coord mw, mh;
 
         for (i = 0; i < 6; i++)
           {
-             if (wd->digit[i])
+             if (sd->digit[i])
                {
-                  evas_object_del(wd->digit[i]);
-                  wd->digit[i] = NULL;
+                  evas_object_del(sd->digit[i]);
+                  sd->digit[i] = NULL;
                }
           }
-        if (wd->ampm)
+        if (sd->am_pm_obj)
           {
-             evas_object_del(wd->ampm);
-             wd->ampm = NULL;
+             evas_object_del(sd->am_pm_obj);
+             sd->am_pm_obj = NULL;
           }
 
-        if ((wd->seconds) && (wd->am_pm))
-          _elm_theme_object_set(obj, wd->clk, "clock", "base-all", style);
-        else if (wd->seconds)
-          _elm_theme_object_set(obj, wd->clk, "clock", "base-seconds", style);
-        else if (wd->am_pm)
-          _elm_theme_object_set(obj, wd->clk, "clock", "base-am_pm", style);
+        if ((sd->seconds) && (sd->am_pm))
+          elm_layout_theme_set(obj, "clock", "base-all", style);
+        else if (sd->seconds)
+          elm_layout_theme_set(obj, "clock", "base-seconds", style);
+        else if (sd->am_pm)
+          elm_layout_theme_set(obj, "clock", "base-am_pm", style);
         else
-          _elm_theme_object_set(obj, wd->clk, "clock", "base", style);
-        edje_object_scale_set(wd->clk, elm_widget_scale_get(obj) *
-                              _elm_config->scale);
+          elm_layout_theme_set(obj, "clock", "base", style);
+
+        edje_object_scale_set
+          (ELM_WIDGET_DATA(sd)->resize_obj, elm_widget_scale_get(obj) *
+          elm_config_scale_get());
 
         for (i = 0; i < 6; i++)
           {
              char buf[16];
 
-             if ((!wd->seconds) && (i >= 4)) break;
-             wd->digit[i] = edje_object_add(evas_object_evas_get(wd->clk));
-             _elm_theme_object_set(obj, wd->digit[i], "clock", "flipdigit", style);
-             edje_object_scale_set(wd->digit[i], elm_widget_scale_get(obj) *
-                                   _elm_config->scale);
-             if ((wd->edit) && (wd->digedit & (1 << i)))
-               edje_object_signal_emit(wd->digit[i], "elm,state,edit,on", "elm");
-             edje_object_signal_callback_add(wd->digit[i], "elm,action,up,start",
-                                             "", _signal_clock_val_up_start, obj);
-             edje_object_signal_callback_add(wd->digit[i], "elm,action,up,stop",
-                                             "", _signal_clock_val_change_stop, obj);
-             edje_object_signal_callback_add(wd->digit[i], "elm,action,down,start",
-                                             "", _signal_clock_val_down_start, obj);
-             edje_object_signal_callback_add(wd->digit[i], "elm,action,down,stop",
-                                             "", _signal_clock_val_change_stop, obj);
+             if ((!sd->seconds) && (i >= 4)) break;
+             sd->digit[i] = edje_object_add
+                 (evas_object_evas_get(ELM_WIDGET_DATA(sd)->resize_obj));
+             elm_widget_theme_object_set
+               (obj, sd->digit[i], "clock", "flipdigit", style);
+             edje_object_scale_set
+               (sd->digit[i], elm_widget_scale_get(obj) *
+               elm_config_scale_get());
+
+             if ((sd->edit) && (sd->digedit & (1 << i)))
+               edje_object_signal_emit
+                 (sd->digit[i], "elm,state,edit,on", "elm");
+             edje_object_signal_callback_add
+               (sd->digit[i], "elm,action,up,start", "",
+               _on_clock_val_up_start, obj);
+             edje_object_signal_callback_add
+               (sd->digit[i], "elm,action,up,stop", "",
+               _on_clock_val_change_stop, sd);
+             edje_object_signal_callback_add
+               (sd->digit[i], "elm,action,down,start", "",
+               _on_clock_val_down_start, obj);
+             edje_object_signal_callback_add
+               (sd->digit[i], "elm,action,down,stop", "",
+               _on_clock_val_change_stop, sd);
+
              mw = mh = -1;
              elm_coords_finger_size_adjust(1, &mw, 2, &mh);
-             edje_object_size_min_restricted_calc(wd->digit[i], &mw, &mh, mw, mh);
+             edje_object_size_min_restricted_calc
+               (sd->digit[i], &mw, &mh, mw, mh);
              elm_coords_finger_size_adjust(1, &mw, 2, &mh);
-             edje_extern_object_min_size_set(wd->digit[i], mw, mh);
+             edje_extern_object_min_size_set(sd->digit[i], mw, mh);
              snprintf(buf, sizeof(buf), "d%i", i);
-             edje_object_part_swallow(wd->clk , buf, wd->digit[i]);
-             evas_object_show(wd->digit[i]);
+             elm_layout_content_set(obj, buf, sd->digit[i]);
+             evas_object_show(sd->digit[i]);
           }
-        if (wd->am_pm)
+        if (sd->am_pm)
           {
-             wd->ampm = edje_object_add(evas_object_evas_get(wd->clk));
-             _elm_theme_object_set(obj, wd->ampm, "clock", "flipampm", style);
-             edje_object_scale_set(wd->ampm, elm_widget_scale_get(obj) *
+             sd->am_pm_obj =
+               edje_object_add(evas_object_evas_get(ELM_WIDGET_DATA(sd)->resize_obj));
+             elm_widget_theme_object_set
+               (obj, sd->am_pm_obj, "clock", "flipampm", style);
+             edje_object_scale_set(sd->am_pm_obj, elm_widget_scale_get(obj) *
                                    _elm_config->scale);
-             if (wd->edit)
-               edje_object_signal_emit(wd->ampm, "elm,state,edit,on", "elm");
-             edje_object_signal_callback_add(wd->ampm, "elm,action,up,start",
-                                             "", _signal_clock_val_up_start, obj);
-             edje_object_signal_callback_add(wd->ampm, "elm,action,up,stop",
-                                             "", _signal_clock_val_change_stop, obj);
-             edje_object_signal_callback_add(wd->ampm, "elm,action,down,start",
-                                             "", _signal_clock_val_down_start, obj);
-             edje_object_signal_callback_add(wd->ampm, "elm,action,down,stop",
-                                             "", _signal_clock_val_change_stop, obj);
+             if (sd->edit)
+               edje_object_signal_emit
+                 (sd->am_pm_obj, "elm,state,edit,on", "elm");
+             edje_object_signal_callback_add
+               (sd->am_pm_obj, "elm,action,up,start", "",
+               _on_clock_val_up_start, obj);
+             edje_object_signal_callback_add
+               (sd->am_pm_obj, "elm,action,up,stop", "",
+               _on_clock_val_change_stop, sd);
+             edje_object_signal_callback_add
+               (sd->am_pm_obj, "elm,action,down,start", "",
+               _on_clock_val_down_start, obj);
+             edje_object_signal_callback_add
+               (sd->am_pm_obj, "elm,action,down,stop", "",
+               _on_clock_val_change_stop, sd);
+
              mw = mh = -1;
              elm_coords_finger_size_adjust(1, &mw, 2, &mh);
-             edje_object_size_min_restricted_calc(wd->ampm, &mw, &mh, mw, mh);
+             edje_object_size_min_restricted_calc
+               (sd->am_pm_obj, &mw, &mh, mw, mh);
              elm_coords_finger_size_adjust(1, &mw, 2, &mh);
-             edje_extern_object_min_size_set(wd->ampm, mw, mh);
-             edje_object_part_swallow(wd->clk , "ampm", wd->ampm);
-             evas_object_show(wd->ampm);
+             edje_extern_object_min_size_set(sd->am_pm_obj, mw, mh);
+             elm_layout_content_set(obj, "ampm", sd->am_pm_obj);
+             evas_object_show(sd->am_pm_obj);
           }
 
-        edje_object_size_min_calc(wd->clk, &mw, &mh);
+       /* access */
+       if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
+          _access_time_register(obj, EINA_TRUE);
+
+        edje_object_size_min_calc(ELM_WIDGET_DATA(sd)->resize_obj, &mw, &mh);
         evas_object_size_hint_min_set(obj, mw, mh);
 
-        wd->cur.hrs = 0;
-        wd->cur.min = 0;
-        wd->cur.sec = 0;
-        wd->cur.ampm = -1;
-        wd->cur.seconds = wd->seconds;
-        wd->cur.am_pm = wd->am_pm;
-        wd->cur.edit = wd->edit;
-        wd->cur.digedit = wd->digedit;
+        sd->cur.hrs = 0;
+        sd->cur.min = 0;
+        sd->cur.sec = 0;
+        sd->cur.ampm = -1;
+        sd->cur.seconds = sd->seconds;
+        sd->cur.am_pm = sd->am_pm;
+        sd->cur.edit = sd->edit;
+        sd->cur.digedit = sd->digedit;
      }
-   if (wd->hrs != wd->cur.hrs)
+   if (sd->hrs != sd->cur.hrs)
      {
         int hrs;
         int d1, d2, dc1, dc2;
 
-        hrs = wd->hrs;
-        if (wd->am_pm)
+        hrs = sd->hrs;
+        if (sd->am_pm)
           {
              if (hrs >= 12)
                {
                   if (hrs > 12) hrs -= 12;
                   ampm = 1;
                }
-             else if (!hrs) hrs = 12;
+             else if (!hrs)
+               hrs = 12;
           }
         d1 = hrs / 10;
         d2 = hrs % 10;
-        dc1 = wd->cur.hrs / 10;
-        dc2 = wd->cur.hrs % 10;
+        dc1 = sd->cur.hrs / 10;
+        dc2 = sd->cur.hrs % 10;
         if (d1 != dc1)
           {
              msg.val = d1;
-             edje_object_message_send(wd->digit[0], EDJE_MESSAGE_INT, 1, &msg);
+             edje_object_message_send(sd->digit[0], EDJE_MESSAGE_INT, 1, &msg);
           }
         if (d2 != dc2)
           {
              msg.val = d2;
-             edje_object_message_send(wd->digit[1], EDJE_MESSAGE_INT, 1, &msg);
+             edje_object_message_send(sd->digit[1], EDJE_MESSAGE_INT, 1, &msg);
           }
-        wd->cur.hrs = hrs;
+        sd->cur.hrs = hrs;
      }
-   if (wd->min != wd->cur.min)
+   if (sd->min != sd->cur.min)
      {
         int d1, d2, dc1, dc2;
 
-        d1 = wd->min / 10;
-        d2 = wd->min % 10;
-        dc1 = wd->cur.min / 10;
-        dc2 = wd->cur.min % 10;
+        d1 = sd->min / 10;
+        d2 = sd->min % 10;
+        dc1 = sd->cur.min / 10;
+        dc2 = sd->cur.min % 10;
         if (d1 != dc1)
           {
              msg.val = d1;
-             edje_object_message_send(wd->digit[2], EDJE_MESSAGE_INT, 1, &msg);
+             edje_object_message_send(sd->digit[2], EDJE_MESSAGE_INT, 1, &msg);
           }
         if (d2 != dc2)
           {
              msg.val = d2;
-             edje_object_message_send(wd->digit[3], EDJE_MESSAGE_INT, 1, &msg);
+             edje_object_message_send(sd->digit[3], EDJE_MESSAGE_INT, 1, &msg);
           }
-        wd->cur.min = wd->min;
+        sd->cur.min = sd->min;
      }
-   if (wd->seconds)
+   if (sd->seconds)
      {
-        if (wd->sec != wd->cur.sec)
+        if (sd->sec != sd->cur.sec)
           {
              int d1, d2, dc1, dc2;
 
-             d1 = wd->sec / 10;
-             d2 = wd->sec % 10;
-             dc1 = wd->cur.sec / 10;
-             dc2 = wd->cur.sec % 10;
+             d1 = sd->sec / 10;
+             d2 = sd->sec % 10;
+             dc1 = sd->cur.sec / 10;
+             dc2 = sd->cur.sec % 10;
              if (d1 != dc1)
                {
                   msg.val = d1;
-                  edje_object_message_send(wd->digit[4], EDJE_MESSAGE_INT, 1, &msg);
+                  edje_object_message_send
+                    (sd->digit[4], EDJE_MESSAGE_INT, 1, &msg);
                }
              if (d2 != dc2)
                {
                   msg.val = d2;
-                  edje_object_message_send(wd->digit[5], EDJE_MESSAGE_INT, 1, &msg);
+                  edje_object_message_send
+                    (sd->digit[5], EDJE_MESSAGE_INT, 1, &msg);
                }
-             wd->cur.sec = wd->sec;
+             sd->cur.sec = sd->sec;
           }
      }
    else
-     wd->cur.sec = -1;
+     sd->cur.sec = -1;
 
-   if (wd->am_pm)
+   if (sd->am_pm)
      {
-        if (wd->hrs >= 12) ampm = 1;
-        if (ampm != wd->cur.ampm)
+        if (sd->hrs >= 12) ampm = 1;
+        if (ampm != sd->cur.ampm)
           {
-             if (wd->cur.ampm != ampm)
+             if (sd->cur.ampm != ampm)
                {
                   msg.val = ampm;
-                  edje_object_message_send(wd->ampm, EDJE_MESSAGE_INT, 1, &msg);
+                  edje_object_message_send
+                    (sd->am_pm_obj, EDJE_MESSAGE_INT, 1, &msg);
                }
-             wd->cur.ampm = ampm;
+             sd->cur.ampm = ampm;
           }
      }
    else
-     wd->cur.ampm = -1;
+     sd->cur.ampm = -1;
+}
+
+static Eina_Bool
+_elm_clock_smart_theme(Evas_Object *obj)
+{
+   if (!ELM_WIDGET_CLASS(_elm_clock_parent_sc)->theme(obj)) return EINA_FALSE;
+
+   _time_update(obj);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_ticker(void *data)
+{
+   ELM_CLOCK_DATA_GET(data, sd);
+
+   double t;
+   struct timeval timev;
+   struct tm *tm;
+   time_t tt;
+
+   gettimeofday(&timev, NULL);
+   t = ((double)(1000000 - timev.tv_usec)) / 1000000.0;
+   sd->ticker = ecore_timer_add(t, _ticker, data);
+   if (!sd->edit)
+     {
+        tt = (time_t)(timev.tv_sec) + sd->timediff;
+        tzset();
+        tm = localtime(&tt);
+        if (tm)
+          {
+             sd->hrs = tm->tm_hour;
+             sd->min = tm->tm_min;
+             sd->sec = tm->tm_sec;
+             _time_update(data);
+          }
+     }
+
+   return ECORE_CALLBACK_CANCEL;
+}
+
+static char *
+_access_info_cb(void *data __UNUSED__, Evas_Object *obj)
+{
+   int hrs;
+   char *ret;
+   char *ampm = NULL;
+   Eina_Strbuf *buf;
+
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   buf = eina_strbuf_new();
+
+   hrs = sd->hrs;
+
+   if (sd->am_pm)
+     {
+        if (hrs >= 12)
+          {
+             if (hrs > 12) hrs -= 12;
+             ampm = "PM";
+          }
+        else ampm = "AM";
+     }
+
+   eina_strbuf_append_printf(buf, (ampm) ? ("%d, %d, %s") : ("%d, %d"),
+                             hrs, sd->min, ampm);
+
+   ret = eina_strbuf_string_steal(buf);
+   eina_strbuf_free(buf);
+   return ret;
+}
+
+static char *
+_access_state_cb(void *data __UNUSED__, Evas_Object *obj)
+{
+   ELM_CLOCK_DATA_GET(obj, sd);
+   if (sd->edit)
+     return strdup(E_("State: Editable"));
+
+   return NULL;
+}
+
+static void
+_elm_clock_smart_add(Evas_Object *obj)
+{
+   EVAS_SMART_DATA_ALLOC(obj, Elm_Clock_Smart_Data);
+
+   ELM_WIDGET_CLASS(_elm_clock_parent_sc)->base.add(obj);
+}
+
+static void
+_elm_clock_smart_del(Evas_Object *obj)
+{
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   if (sd->ticker) ecore_timer_del(sd->ticker);
+   if (sd->spin) ecore_timer_del(sd->spin);
+
+   /* NB: digits are killed for being sub objects, automatically */
+
+   ELM_WIDGET_CLASS(_elm_clock_parent_sc)->base.del(obj);
+}
+
+static Eina_Bool
+_elm_clock_smart_focus_next(const Evas_Object *obj,
+                            Elm_Focus_Direction dir,
+                            Evas_Object **next)
+{
+   Evas_Object *ao, *po;
+   Eina_List *items = NULL;
+
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   if (!sd->edit)
+     {
+        *next = (Evas_Object *)obj;
+        return !elm_widget_focus_get(obj);
+     }
+   else if (!elm_widget_focus_get(obj))
+     {
+        *next = (Evas_Object *)obj;
+        return EINA_TRUE;
+     }
+
+   int i;
+   for (i = 0; i < 6; i++)
+     {
+        if ((!sd->seconds) && (i >= 4)) break;
+        if (sd->digedit & (1 << i))
+          {
+             po = (Evas_Object *)edje_object_part_object_get
+                    (sd->digit[i], "access.t");
+             ao = evas_object_data_get(po, "_part_access_obj");
+             items = eina_list_append(items, ao);
+
+             po = (Evas_Object *)edje_object_part_object_get
+                    (sd->digit[i], "access.b");
+             ao = evas_object_data_get(po, "_part_access_obj");
+             items = eina_list_append(items, ao);
+          }
+     }
+
+   if (sd->am_pm)
+     {
+        po = (Evas_Object *)edje_object_part_object_get
+               (sd->am_pm_obj, "access.t");
+        ao = evas_object_data_get(po, "_part_access_obj");
+        items = eina_list_append(items, ao);
+
+        po = (Evas_Object *)edje_object_part_object_get
+               (sd->am_pm_obj, "access.b");
+        ao = evas_object_data_get(po, "_part_access_obj");
+        items = eina_list_append(items, ao);
+     }
+
+   return elm_widget_focus_list_next_get
+           (obj, items, eina_list_data_get, dir, next);
+}
+
+static void
+_access_obj_process(Evas_Object *obj, Eina_Bool is_access)
+{
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   /* clock object */
+   evas_object_propagate_events_set(obj, !is_access);
+
+   if (is_access)
+     edje_object_signal_emit(ELM_WIDGET_DATA(sd)->resize_obj,
+       "elm,state,access,on", "elm");
+   else
+     edje_object_signal_emit(ELM_WIDGET_DATA(sd)->resize_obj,
+       "elm,state,access,off", "elm");
+
+    /* clock time objects */
+    _access_time_register(obj, is_access);
+}
+
+static void
+_elm_clock_smart_access(Evas_Object *obj, Eina_Bool is_access)
+{
+   ELM_CLOCK_CHECK(obj);
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   if (is_access)
+     ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next =
+       _elm_clock_smart_focus_next;
+   else
+     ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next = NULL;
+   _access_obj_process(obj, is_access);
+
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
+}
+
+static void
+_elm_clock_smart_set_user(Elm_Clock_Smart_Class *sc)
+{
+   ELM_WIDGET_CLASS(sc)->base.add = _elm_clock_smart_add;
+   ELM_WIDGET_CLASS(sc)->base.del = _elm_clock_smart_del;
+
+   ELM_WIDGET_CLASS(sc)->theme = _elm_clock_smart_theme;
+
+   /* not a 'focus chain manager' */
+   ELM_WIDGET_CLASS(sc)->focus_next = NULL;
+   ELM_WIDGET_CLASS(sc)->focus_direction_manager_is = NULL;
+   ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
+
+   /* access */
+   if (_elm_config->access_mode != ELM_ACCESS_MODE_OFF)
+     ELM_WIDGET_CLASS(sc)->focus_next = _elm_clock_smart_focus_next;
+
+   ELM_WIDGET_CLASS(sc)->access = _elm_clock_smart_access;
+}
+
+EAPI const Elm_Clock_Smart_Class *
+elm_clock_smart_class_get(void)
+{
+   static Elm_Clock_Smart_Class _sc =
+     ELM_CLOCK_SMART_CLASS_INIT_NAME_VERSION(ELM_CLOCK_SMART_NAME);
+   static const Elm_Clock_Smart_Class *class = NULL;
+   Evas_Smart_Class *esc = (Evas_Smart_Class *)&_sc;
+
+   if (class)
+     return class;
+
+   _elm_clock_smart_set(&_sc);
+   esc->callbacks = _smart_callbacks;
+   class = &_sc;
+
+   return class;
 }
 
 EAPI Evas_Object *
 elm_clock_add(Evas_Object *parent)
 {
    Evas_Object *obj;
-   Evas *e;
-   Widget_Data *wd;
 
-   ELM_WIDGET_STANDARD_SETUP(wd, Widget_Data, parent, e, obj, NULL);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
 
-   ELM_SET_WIDTYPE(widtype, "clock");
-   elm_widget_type_set(obj, "clock");
-   elm_widget_sub_object_add(parent, obj);
-   elm_widget_data_set(obj, wd);
-   elm_widget_del_hook_set(obj, _del_hook);
-   elm_widget_theme_hook_set(obj, _theme_hook);
-   elm_widget_on_focus_hook_set(obj, _on_focus_hook, NULL);
-   elm_widget_signal_emit_hook_set(obj, _signal_emit_hook);
-   elm_widget_signal_callback_add_hook_set(obj, _signal_callback_add_hook);
-   elm_widget_signal_callback_del_hook_set(obj, _signal_callback_del_hook);
+   obj = elm_widget_add(_elm_clock_smart_class_new(), parent);
+   if (!obj) return NULL;
+
+   if (!elm_widget_sub_object_add(parent, obj))
+     ERR("could not add %p as sub object of %p", obj, parent);
+
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   sd->cur.ampm = -1;
+   sd->cur.seconds = EINA_TRUE;
+   sd->cur.am_pm = EINA_TRUE;
+   sd->cur.edit = EINA_TRUE;
+   sd->cur.digedit = ELM_CLOCK_EDIT_DEFAULT;
+   sd->first_interval = DEFAULT_FIRST_INTERVAL;
+   sd->timediff = 0;
+
    elm_widget_can_focus_set(obj, EINA_TRUE);
-
-   wd->clk = edje_object_add(e);
-   elm_widget_resize_object_set(obj, wd->clk);
-
-   wd->cur.ampm = -1;
-   wd->cur.seconds = EINA_TRUE;
-   wd->cur.am_pm = EINA_TRUE;
-   wd->cur.edit = EINA_TRUE;
-   wd->cur.digedit = ELM_CLOCK_EDIT_DEFAULT;
-   wd->first_interval = DEFAULT_FIRST_INTERVAL;
-   wd->timediff = 0;
 
    _time_update(obj);
    _ticker(obj);
 
-   evas_object_smart_callbacks_descriptions_set(obj, _signals);
+   /* access */
+   if (_elm_config->access_mode != ELM_ACCESS_MODE_OFF)
+     {
+        evas_object_propagate_events_set(obj, EINA_FALSE);
+        edje_object_signal_emit(ELM_WIDGET_DATA(sd)->resize_obj,
+          "elm,state,access,on", "elm");
+     }
+
+   _elm_access_object_register(obj, ELM_WIDGET_DATA(sd)->resize_obj);
+   _elm_access_text_set
+     (_elm_access_object_get(obj), ELM_ACCESS_TYPE, E_("Clock"));
+   _elm_access_callback_set
+     (_elm_access_object_get(obj), ELM_ACCESS_INFO, _access_info_cb, NULL);
+   evas_object_propagate_events_set(obj, EINA_FALSE);
+   _elm_access_callback_set
+     (_elm_access_object_get(obj), ELM_ACCESS_STATE, _access_state_cb, NULL);
+
+   //Tizen Only: This should be removed when eo is applied.
+   ELM_WIDGET_DATA_GET(obj, wsd);
+   wsd->on_create = EINA_FALSE;
 
    return obj;
 }
 
-EAPI void
-elm_clock_time_set(Evas_Object *obj, int hrs, int min, int sec)
+static void
+_timediff_set(Elm_Clock_Smart_Data *sd)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   wd->hrs = hrs;
-   wd->min = min;
-   wd->sec = sec;
-   _timediff_set(wd);
+   struct timeval timev;
+   struct tm *tm;
+   time_t tt;
+
+   gettimeofday(&timev, NULL);
+   tt = (time_t)(timev.tv_sec);
+   tzset();
+   tm = localtime(&tt);
+
+   if (tm)
+     {
+        sd->timediff = (((sd->hrs - tm->tm_hour) * 60 +
+                         sd->min - tm->tm_min) * 60) + sd->sec - tm->tm_sec;
+     }
+   else
+     {
+        ERR("Failed to get local time!");
+        sd->timediff = 0;
+     }
+}
+
+EAPI void
+elm_clock_time_set(Evas_Object *obj,
+                   int hrs,
+                   int min,
+                   int sec)
+{
+   ELM_CLOCK_CHECK(obj);
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   sd->hrs = hrs;
+   sd->min = min;
+   sd->sec = sec;
+
+   _timediff_set(sd);
    _time_update(obj);
 }
 
 EAPI void
-elm_clock_time_get(const Evas_Object *obj, int *hrs, int *min, int *sec)
+elm_clock_time_get(const Evas_Object *obj,
+                   int *hrs,
+                   int *min,
+                   int *sec)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (hrs) *hrs = wd->hrs;
-   if (min) *min = wd->min;
-   if (sec) *sec = wd->sec;
+   ELM_CLOCK_CHECK(obj);
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   if (hrs) *hrs = sd->hrs;
+   if (min) *min = sd->min;
+   if (sec) *sec = sd->sec;
 }
 
 EAPI void
-elm_clock_edit_set(Evas_Object *obj, Eina_Bool edit)
+elm_clock_edit_set(Evas_Object *obj,
+                   Eina_Bool edit)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   wd->edit = edit;
+   ELM_CLOCK_CHECK(obj);
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   sd->edit = edit;
    if (!edit)
-     _timediff_set(wd);
-   if ((edit) && (wd->digedit == ELM_CLOCK_EDIT_DEFAULT))
+     _timediff_set(sd);
+   if ((edit) && (sd->digedit == ELM_CLOCK_EDIT_DEFAULT))
      elm_clock_edit_mode_set(obj, ELM_CLOCK_EDIT_ALL);
    else
      _time_update(obj);
@@ -596,19 +919,20 @@ elm_clock_edit_set(Evas_Object *obj, Eina_Bool edit)
 EAPI Eina_Bool
 elm_clock_edit_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) EINA_FALSE;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return EINA_FALSE;
-   return wd->edit;
+   ELM_CLOCK_CHECK(obj) EINA_FALSE;
+   ELM_CLOCK_DATA_GET_OR_RETURN_VAL(obj, sd, EINA_FALSE);
+
+   return sd->edit;
 }
 
 EAPI void
-elm_clock_edit_mode_set(Evas_Object *obj, Elm_Clock_Edit_Mode digedit)
+elm_clock_edit_mode_set(Evas_Object *obj,
+                        Elm_Clock_Edit_Mode digedit)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   wd->digedit = digedit;
+   ELM_CLOCK_CHECK(obj);
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   sd->digedit = digedit;
    if (digedit == ELM_CLOCK_EDIT_DEFAULT)
      elm_clock_edit_set(obj, EINA_FALSE);
    else
@@ -618,64 +942,67 @@ elm_clock_edit_mode_set(Evas_Object *obj, Elm_Clock_Edit_Mode digedit)
 EAPI Elm_Clock_Edit_Mode
 elm_clock_edit_mode_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) 0;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return 0;
-   return wd->digedit;
+   ELM_CLOCK_CHECK(obj) 0;
+   ELM_CLOCK_DATA_GET_OR_RETURN_VAL(obj, sd, 0);
+
+   return sd->digedit;
 }
 
 EAPI void
-elm_clock_show_am_pm_set(Evas_Object *obj, Eina_Bool am_pm)
+elm_clock_show_am_pm_set(Evas_Object *obj,
+                         Eina_Bool am_pm)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   wd->am_pm = !!am_pm;
+   ELM_CLOCK_CHECK(obj);
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   sd->am_pm = !!am_pm;
    _time_update(obj);
 }
 
 EAPI Eina_Bool
 elm_clock_show_am_pm_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) EINA_FALSE;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return EINA_FALSE;
-   return wd->am_pm;
+   ELM_CLOCK_CHECK(obj) EINA_FALSE;
+   ELM_CLOCK_DATA_GET_OR_RETURN_VAL(obj, sd, EINA_FALSE);
+
+   return sd->am_pm;
 }
 
 EAPI void
-elm_clock_show_seconds_set(Evas_Object *obj, Eina_Bool seconds)
+elm_clock_show_seconds_set(Evas_Object *obj,
+                           Eina_Bool seconds)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   wd->seconds = !!seconds;
+   ELM_CLOCK_CHECK(obj);
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   sd->seconds = !!seconds;
    _time_update(obj);
 }
 
 EAPI Eina_Bool
 elm_clock_show_seconds_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) EINA_FALSE;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return EINA_FALSE;
-   return wd->seconds;
+   ELM_CLOCK_CHECK(obj) EINA_FALSE;
+   ELM_CLOCK_DATA_GET_OR_RETURN_VAL(obj, sd, EINA_FALSE);
+
+   return sd->seconds;
 }
 
 EAPI void
-elm_clock_first_interval_set(Evas_Object *obj, double interval)
+elm_clock_first_interval_set(Evas_Object *obj,
+                             double interval)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   wd->first_interval = !!interval;
+   ELM_CLOCK_CHECK(obj);
+   ELM_CLOCK_DATA_GET(obj, sd);
+
+   sd->first_interval = !!interval;
 }
 
 EAPI double
 elm_clock_first_interval_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) 0.0;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return 0.0;
-   return wd->first_interval;
+   ELM_CLOCK_CHECK(obj) 0.0;
+   ELM_CLOCK_DATA_GET_OR_RETURN_VAL(obj, sd, 0.0);
+
+   return sd->first_interval;
 }

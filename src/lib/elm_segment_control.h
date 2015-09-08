@@ -1,287 +1,320 @@
 /**
  * @defgroup SegmentControl SegmentControl
- * @ingroup Elementary
+ * @ingroup elm_widget_group
  *
- * @image html img/widget/segment_control/preview-00.png
- * @image latex img/widget/segment_control/preview-00.eps width=\textwidth
+ * @image html segment_control_inheritance_tree.png
+ * @image latex segment_control_inheritance_tree.eps
  *
  * @image html img/segment_control.png
- * @image latex img/segment_control.eps width=\textwidth
+ * @image latex img/segment_control.eps "segment control" width=\textwidth
  *
- * Segment control widget is a horizontal control made of multiple segment
- * items, each segment item functioning similar to discrete two state button.
- * A segment control groups the items together and provides compact
+ * @brief Segment control widget is a horizontal control made of multiple
+ *        segment items, each segment item functioning similar to a discrete
+ *        two state button.
+ *
+ * A segment control groups the items together and provides a compact
  * single button with multiple equal size segments.
  *
  * Segment item size is determined by base widget
  * size and the number of items added.
- * Only one segment item can be at selected state. A segment item can display
- * combination of Text and any Evas_Object like Images or other widget.
+ * Only one segment item can be at a selected state. A segment item can display
+ * a combination of Text and any Evas_Object like Images or other widgets.
  *
- * Smart callbacks one can listen to:
- * - "changed" - When the user clicks on a segment item which is not
- *   previously selected and get selected. The event_info parameter is the
+ * This widget inherits from the @ref Layout one, so that all the
+ * functions acting on it also work for segment control objects.
+ *
+ * This widget emits the following signals, besides the ones sent from
+ * @ref Layout :
+ * - @c "changed" - When the user clicks on a segment item which is not
+ *   previously selected and it gets selected. The @a event_info parameter is the
  *   segment item pointer.
  *
  * Available styles for it:
  * - @c "default"
  *
- * Default content parts of the segment control items that you can use for are:
- * @li "icon" - An icon in a segment control item
+ * The default content parts of the segment control items that you can use are:
+ * @li "icon" - An icon in a segment control item.
  *
- * Default text parts of the segment control items that you can use for are:
- * @li "default" - Title label in a segment control item
+ * The default text parts of the segment control items that you can use are:
+ * @li "default" - Title label in a segment control item.
  *
- * Supported elm_object common APIs.
+ * Supported common elm_object APIs.
  * @li elm_object_disabled_set
  * @li elm_object_disabled_get
  *
- * Supported elm_object_item common APIs.
+ * Supported common elm_object_item APIs.
  * @li @ref elm_object_item_part_text_set
  * @li @ref elm_object_item_part_text_get
  * @li @ref elm_object_item_part_content_set
  * @li @ref elm_object_item_part_content_get
  *
- * Here is an example on its usage:
- * @li @ref segment_control_example
- *
- */
-
-/**
- * @addtogroup SegmentControl
  * @{
  */
 
 /**
- * Add a new segment control widget to the given parent Elementary
- * (container) object.
+ * @MOBILE_ONLY
  *
- * @param parent The parent object.
- * @return a new segment control widget handle or @c NULL, on errors.
+ * @brief Adds a new segment control widget to the given parent Elementary
+ *        (container) object.
  *
- * This function inserts a new segment control widget on the canvas.
+ * @details This function inserts a new segment control widget on the canvas.
  *
- * @ingroup SegmentControl
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] parent The parent object
+ * @return A new segment control widget handle, otherwise @c NULL in case of an error
  */
 EAPI Evas_Object      *elm_segment_control_add(Evas_Object *parent);
 
 /**
- * Append a new item to the segment control object.
+ * @MOBILE_ONLY
  *
- * @param obj The segment control object.
- * @param icon The icon object to use for the left side of the item. An
- * icon can be any Evas object, but usually it is an icon created
- * with elm_icon_add().
- * @param label The label of the item.
- *        Note that, NULL is different from empty string "".
- * @return The created item or @c NULL upon failure.
+ * @brief Appends a new item to the segment control object.
  *
- * A new item will be created and appended to the segment control, i.e., will
- * be set as @b last item.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * If it should be inserted at another position,
- * elm_segment_control_item_insert_at() should be used instead.
+ * @remarks A new item is created and appended to the segment control, i.e., it
+ *          is set as the @b last item.
  *
- * Items created with this function can be deleted with function
- * elm_object_item_del() or elm_object_item_del_at().
+ * @remarks If it should be inserted at another position,
+ *          elm_segment_control_item_insert_at() should be used instead.
  *
- * @note @p label set to @c NULL is different from empty string "".
- * If an item
- * only has icon, it will be displayed bigger and centered. If it has
- * icon and label, even that an empty string, icon will be smaller and
- * positioned at left.
+ * @remarks Items created with this function can be deleted with function
+ *          elm_object_item_del() or elm_object_item_del_at().
+ *
+ * @remarks @a label set to @c NULL is different from an empty string "".
+ *          If an item only has icon, it is displayed bigger and it is centered. If it has
+ *          an icon and a label, even an empty string, the icon is smaller and
+ *          positioned towards the left.
  *
  * Simple example:
  * @code
  * sc = elm_segment_control_add(win);
  * ic = elm_icon_add(win);
- * elm_icon_file_set(ic, "path/to/image", NULL);
- * elm_icon_resizable_set(ic, EINA_TRUE, EINA_TRUE);
+ * elm_image_file_set(ic, "path/to/image", NULL);
  * elm_segment_control_item_add(sc, ic, "label");
  * evas_object_show(sc);
  * @endcode
  *
+ * @param[in] obj The segment control object.
+ * @param[in] icon The icon object to use for the left side of the item \n
+ *             An icon can be any Evas object, but usually it is an icon created
+ *             with elm_icon_add().
+ * @param[in] label The label of the item \n
+ *              Note that, @c NULL is different from an empty string "".
+ * @return The created item, otherwise @c NULL on failure
+ *
  * @see elm_segment_control_item_insert_at()
  * @see elm_object_item_del()
- *
- * @ingroup SegmentControl
  */
 EAPI Elm_Object_Item *elm_segment_control_item_add(Evas_Object *obj, Evas_Object *icon, const char *label);
 
 /**
- * Insert a new item to the segment control object at specified position.
+ * @MOBILE_ONLY
  *
- * @param obj The segment control object.
- * @param icon The icon object to use for the left side of the item. An
- * icon can be any Evas object, but usually it is an icon created
- * with elm_icon_add().
- * @param label The label of the item.
- * @param index Item position. Value should be between 0 and items count.
- * @return The created item or @c NULL upon failure.
-
- * Index values must be between @c 0, when item will be prepended to
- * segment control, and items count, that can be get with
- * elm_segment_control_item_count_get(), case when item will be appended
- * to segment control, just like elm_segment_control_item_add().
+ * @brief Inserts a new item to the segment control object at the specified position.
  *
- * Items created with this function can be deleted with function
- * elm_object_item_del() or elm_segment_control_item_del_at().
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @note @p label set to @c NULL is different from empty string "".
- * If an item
- * only has icon, it will be displayed bigger and centered. If it has
- * icon and label, even that an empty string, icon will be smaller and
- * positioned at left.
+ * @remarks Index values must be between @c 0, when the item is prepended to the
+ *          segment control, and items count, that can be obtained with
+ *          elm_segment_control_item_count_get(), similar to the case when the item is appended
+ *          to the segment control, just like elm_segment_control_item_add().
+ *
+ * @remarks Items created with this function can be deleted with function
+ *          elm_object_item_del() or elm_segment_control_item_del_at().
+ *
+ * @remarks @a label set to @c NULL is different from an empty string "".
+ *          If an item only has an icon, it is displayed bigger and it is centered. If it has
+ *          an icon and a label, even an empty string, the icon is smaller and
+ *          positioned towards the left.
+ *
+ * @param[in] obj The segment control object
+ * @param[in] icon The icon object to use for the left side of the item \n
+ *             An icon can be any Evas object, but usually it is an icon created
+ *             with elm_icon_add().
+ * @param[in] label The label of the item
+ * @param[in] index The item position \n
+ *              The value should be between @c 0 and the items count.
+ * @return The created item, otherwise @c NULL on failure
  *
  * @see elm_segment_control_item_add()
  * @see elm_segment_control_item_count_get()
  * @see elm_object_item_del()
- *
- * @ingroup SegmentControl
  */
 EAPI Elm_Object_Item *elm_segment_control_item_insert_at(Evas_Object *obj, Evas_Object *icon, const char *label, int index);
 
 /**
- * Remove a segment control item at given index from its parent,
- * deleting it.
+ * @MOBILE_ONLY
  *
- * @param obj The segment control object.
- * @param index The position of the segment control item to be deleted.
+ * @brief Removes a segment control item at the given index from its parent,
+ *        deleting it.
  *
- * Items can be added with elm_segment_control_item_add() or
- * elm_segment_control_item_insert_at().
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup SegmentControl
+ * @remarks Items can be added with elm_segment_control_item_add() or
+ *          elm_segment_control_item_insert_at().
+ *
+ * @param[in] obj The segment control object
+ * @param[in] index The position of the segment control item to be deleted
  */
 EAPI void              elm_segment_control_item_del_at(Evas_Object *obj, int index);
 
 /**
- * Get the Segment items count from segment control.
+ * @MOBILE_ONLY
  *
- * @param obj The segment control object.
- * @return Segment items count.
+ * @brief Gets the segment items count from the segment control.
  *
- * It will just return the number of items added to segment control @p obj.
+ * @details It just returns the number of items added to the segment control @a obj.
  *
- * @ingroup SegmentControl
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The segment control object
+ * @return The segment items count
  */
 EAPI int               elm_segment_control_item_count_get(const Evas_Object *obj);
 
 /**
- * Get the item placed at specified index.
+ * @MOBILE_ONLY
  *
- * @param obj The segment control object.
- * @param index The index of the segment item.
- * @return The segment control item or @c NULL on failure.
+ * @brief Gets the item placed at the specified index.
  *
- * Index is the position of an item in segment control widget. Its
- * range is from @c 0 to <tt> count - 1 </tt>.
- * Count is the number of items, that can be get with
- * elm_segment_control_item_count_get().
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup SegmentControl
+ * @remarks Index is the position of an item in the segment control widget. Its
+ *          range is from @c 0 to <tt> count - 1 </tt>.
+ *          Count is the number of items, that can be obtained with
+ *          elm_segment_control_item_count_get().
+ *
+ * @param[in] obj The segment control object
+ * @param[in] index The index of the segment item
+ * @return The segment control item, otherwise @c NULL on failure
  */
 EAPI Elm_Object_Item *elm_segment_control_item_get(const Evas_Object *obj, int index);
 
 /**
- * Get the label of item.
+ * @MOBILE_ONLY
  *
- * @param obj The segment control object.
- * @param index The index of the segment item.
- * @return The label of the item at @p index.
+ * @brief Gets the label of the item.
  *
- * The return value is a pointer to the label associated to the item when
- * it was created, with function elm_segment_control_item_add(), or later
- * with function elm_object_item_text_set. If no label
- * was passed as argument, it will return @c NULL.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @see elm_object_item_text_set() for more details.
+ * @remarks The return value is a pointer to the label associated to the item when
+ *          it is created, with function elm_segment_control_item_add(), or later
+ *          with function elm_object_item_text_set(). If no label
+ *          is passed as an argument, it returns @c NULL.
+ *
+ * @param[in] obj The segment control object
+ * @param[in] index The index of the segment item
+ * @return The label of the item at @a index
+ *
+ * @see elm_object_item_text_set()
  * @see elm_segment_control_item_add()
- *
- * @ingroup SegmentControl
  */
 EAPI const char       *elm_segment_control_item_label_get(const Evas_Object *obj, int index);
 
 /**
- * Get the icon associated to the item.
+ * @MOBILE_ONLY
  *
- * @param obj The segment control object.
- * @param index The index of the segment item.
- * @return The left side icon associated to the item at @p index.
+ * @brief Gets the icon associated to the item.
  *
- * The return value is a pointer to the icon associated to the item when
- * it was created, with function elm_segment_control_item_add(), or later
- * with function elm_object_item_part_content_set(). If no icon
- * was passed as argument, it will return @c NULL.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks The return value is a pointer to the icon associated to the item when
+ *          it is created, with function elm_segment_control_item_add(), or later
+ *          with function elm_object_item_part_content_set(). If no icon
+ *          is passed as an argument, it returns @c NULL.
+ *
+ * @param[in] obj The segment control object
+ * @param[in] index The index of the segment item
+ * @return The left side icon associated to the item at @a index
  *
  * @see elm_segment_control_item_add()
  * @see elm_object_item_part_content_set()
- *
- * @ingroup SegmentControl
  */
 EAPI Evas_Object      *elm_segment_control_item_icon_get(const Evas_Object *obj, int index);
 
 /**
- * Get the index of an item.
+ * @MOBILE_ONLY
  *
- * @param it The segment control item.
- * @return The position of item in segment control widget.
+ * @brief Gets the index of an item.
  *
- * Index is the position of an item in segment control widget. Its
- * range is from @c 0 to <tt> count - 1 </tt>.
- * Count is the number of items, that can be get with
- * elm_segment_control_item_count_get().
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup SegmentControl
+ * @remarks Index is the position of an item in the segment control widget. Its
+ *          range is from @c 0 to <tt> count - 1 </tt>.
+ *          Count is the number of items, that can be obtained with
+ *          elm_segment_control_item_count_get().
+ *
+ * @param[in] it The segment control item
+ * @return The position of the item in the segment control widget
  */
 EAPI int               elm_segment_control_item_index_get(const Elm_Object_Item *it);
 
 /**
- * Get the base object of the item.
+ * @MOBILE_ONLY
  *
- * @param it The segment control item.
- * @return The base object associated with @p it.
+ * @brief Gets the base object of the item.
  *
- * Base object is the @c Evas_Object that represents that item.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup SegmentControl
+ * @remarks Base object is the @c Evas_Object that represents that item.
+ *
+ * @param[in] it The segment control item
+ * @return The base object associated with @a it
  */
 EAPI Evas_Object      *elm_segment_control_item_object_get(const Elm_Object_Item *it);
 
 /**
- * Get the selected item.
+ * @MOBILE_ONLY
  *
- * @param obj The segment control object.
- * @return The selected item or @c NULL if none of segment items is
- * selected.
+ * @brief Gets the selected item.
  *
- * The selected item can be unselected with function
- * elm_segment_control_item_selected_set().
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * The selected item always will be highlighted on segment control.
+ * @remarks The selected item can be unselected with the function
+ *          elm_segment_control_item_selected_set().
  *
- * @ingroup SegmentControl
+ * @remarks The selected item is always highlighted on the segment control.
+ *
+ * @param[in] obj The segment control object
+ * @return The selected item, otherwise @c NULL if none of the segment items are
+ *         selected
  */
 EAPI Elm_Object_Item *elm_segment_control_item_selected_get(const Evas_Object *obj);
 
 /**
- * Set the selected state of an item.
+ * @MOBILE_ONLY
  *
- * @param it The segment control item
- * @param select The selected state
+ * @brief Sets the selected state of an item.
  *
- * This sets the selected state of the given item @p it.
- * @c EINA_TRUE for selected, @c EINA_FALSE for not selected.
+ * @details This sets the selected state of the given item @a it.
+ *          @c EINA_TRUE for selected, @c EINA_FALSE for not selected.
  *
- * If a new item is selected the previously selected will be unselected.
- * Selected item can be got with function
- * elm_segment_control_item_selected_get().
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * The selected item always will be highlighted on segment control.
+ * @remarks If a new item is selected the previously selected item is unselected.
+ *          Selected item can be obtained with the function
+ *          elm_segment_control_item_selected_get().
+ *
+ * @remarks The selected item is always highlighted on the segment control.
+ *
+ * @param[in] it The segment control item
+ * @param[in] select The selected state
  *
  * @see elm_segment_control_item_selected_get()
- *
- * @ingroup SegmentControl
  */
 EAPI void              elm_segment_control_item_selected_set(Elm_Object_Item *it, Eina_Bool select);
 

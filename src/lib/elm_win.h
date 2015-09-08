@@ -1,18 +1,20 @@
 /**
  * @defgroup Win Win
- * @ingroup Elementary
+ * @ingroup elm_widget_group
  *
- * @image html img/widget/win/preview-00.png
- * @image latex img/widget/win/preview-00.eps
+ * @image html win_inheritance_tree.png
+ * @image latex win_inheritance_tree.eps
  *
- * The window class of Elementary. Contains functions to manipulate
- * windows. The Evas engine used to render the window contents is specified
+ * @brief The window class of Elementary contains functions to manipulate
+ *        Windows.
+ *
+ * The Evas engine that is used to render the window contents is specified
  * in the system or user elementary config files (whichever is found last),
- * and can be overridden with the ELM_ENGINE environment variable for
+ * and can be overridden by using the ELM_ENGINE environment variable for
  * testing.  Engines that may be supported (depending on Evas and Ecore-Evas
- * compilation setup and modules actually installed at runtime) are (listed
- * in order of best supported and most likely to be complete and work to
- * lowest quality).
+ * compilation setup and modules that are actually installed at runtime) are
+ * (listed in order of best supported and most likely to be complete and work 
+ * to lowest quality).
  *
  * @li "x11", "x", "software-x11", "software_x11" (Software rendering in X11)
  * @li "gl", "opengl", "opengl-x11", "opengl_x11" (OpenGL or OpenGL-ES2
@@ -29,33 +31,33 @@
  * GDI with software)
  * @li "dfb", "directfb" (Rendering to a DirectFB window)
  * @li "x11-8", "x8", "software-8-x11", "software_8_x11" (Rendering in
- * grayscale using dedicated 8bit software engine in X11)
+ * grayscale using a dedicated 8bit software engine in X11)
  * @li "x11-16", "x16", "software-16-x11", "software_16_x11" (Rendering in
- * X11 using 16bit software engine)
+ * X11 using a 16bit software engine)
  * @li "wince-gdi", "software-16-wince-gdi", "software_16_wince_gdi"
- * (Windows CE rendering via GDI with 16bit software renderer)
+ * (Windows CE rendering via GDI with a 16bit software renderer)
  * @li "sdl-16", "software-16-sdl", "software_16_sdl" (Rendering to SDL
- * buffer with 16bit software renderer)
+ * buffer with a 16bit software renderer)
  * @li "ews" (rendering to EWS - Ecore + Evas Single Process Windowing System)
  * @li "gl-cocoa", "gl_cocoa", "opengl-cocoa", "opengl_cocoa" (OpenGL rendering in Cocoa)
  * @li "psl1ght" (PS3 rendering using PSL1GHT)
  *
  * All engines use a simple string to select the engine to render, EXCEPT
  * the "shot" engine. This actually encodes the output of the virtual
- * screenshot and how long to delay in the engine string. The engine string
+ * screenshot and the time for which to delay the engine string. The engine string
  * is encoded in the following way:
  *
  *   "shot:[delay=XX][:][repeat=DDD][:][file=XX]"
  *
- * Where options are separated by a ":" char if more than one option is
- * given, with delay, if provided being the first option and file the last
+ * Where options are separated by a ":" char, if more than one option is
+ * given with delay, if provided being the first option and file the last
  * (order is important). The delay specifies how long to wait after the
- * window is shown before doing the virtual "in memory" rendering and then
- * save the output to the file specified by the file option (and then exit).
- * If no delay is given, the default is 0.5 seconds. If no file is given the
- * default output file is "out.png". Repeat option is for continuous
- * capturing screenshots. Repeat range is from 1 to 999 and filename is
- * fixed to "out001.png" Some examples of using the shot engine:
+ * window is displayed before doing the virtual "in memory" rendering and then
+ * saving the output to the file specified by the file option (and then exiting).
+ * If no delay is given, the default value is @c 0.5 seconds. If no file is given the
+ * default output file is "out.png". The repeat option is for continuous
+ * capturing of screenshots. The repeat range is from @c 1 to @c 999 and the filename is
+ * fixed to "out001.png" Some examples of using the shot engine are:
  *
  *   ELM_ENGINE="shot:delay=1.0:repeat=5:file=elm_test.png" elementary_test
  *   ELM_ENGINE="shot:delay=1.0:file=elm_test.png" elementary_test
@@ -63,100 +65,108 @@
  *   ELM_ENGINE="shot:delay=2.0" elementary_test
  *   ELM_ENGINE="shot:" elementary_test
  *
- * Signals that you can add callbacks for are:
+ * Signals for which you can add callbacks are:
  *
- * @li "delete,request": the user requested to close the window. See
+ * @li "delete,request": The user requested to close the window. See
  * elm_win_autodel_set().
- * @li "focus,in": window got focus
- * @li "focus,out": window lost focus
- * @li "moved": window that holds the canvas was moved
- * @li "withdrawn": window is still managed normally but removed from view
- * @li "iconified": window is minimized (perhaps into an icon or taskbar)
- * @li "normal": window is in a normal state (not withdrawn or iconified)
- * @li "stick": window has become sticky (shows on all desktops)
- * @li "unstick": window has stopped being sticky
- * @li "fullscreen": window has become fullscreen
- * @li "unfullscreen": window has stopped being fullscreen
- * @li "maximized": window has been maximized
- * @li "unmaximized": window has stopped being maximized
- * @li "profile,changed": window's profile has been changed
- *
- * Examples:
- * @li @ref win_example_01
+ * @li "focus,in": The window got focus.
+ * @li "focus,out": The window lost focus.
+ * @li "moved": The window that holds the canvas is moved.
+ * @li "withdrawn": The window is still being managed normally but is removed from the view.
+ * @li "iconified": The window is minimized (perhaps into an icon or a taskbar).
+ * @li "normal": The window is in a normal state (not withdrawn or iconified).
+ * @li "stick": The window has become sticky (shows on all desktops).
+ * @li "unstick": The window has stopped being sticky.
+ * @li "fullscreen": The window has become fullscreen.
+ * @li "unfullscreen": The window has stopped being fullscreen.
+ * @li "maximized": The window has been maximized.
+ * @li "unmaximized": The window has stopped being maximized.
+ * @li "wm,rotation,changed": The rotation of the window has been changed by the Windows Manager.
+ * @li "ioerr": A low-level I/O error has occurred in the display system.
  *
  * @{
  */
 /**
- * Defines the types of window that can be created
+ * @brief Enumeration that defines the types of windows that can be created.
  *
- * These are hints set on the window so that a running Window Manager knows
- * how the window should be handled and/or what kind of decorations it
- * should have.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Currently, only the X11 backed engines use them.
+ * @remarks These are hints set on the window so that a running Windows Manager knows
+ *          how the window should be handled and/or what kind of decorations it
+ *          should have.
+ *
+ * @remarks Currently, only the X11 backed engines use them.
  */
 typedef enum
 {
-   ELM_WIN_BASIC, /**< A normal window. Indicates a normal, top-level
-                     window. Almost every window will be created with this
-                     type. */
-   ELM_WIN_DIALOG_BASIC, /**< Used for simple dialog windows/ */
-   ELM_WIN_DESKTOP, /**< For special desktop windows, like a background
-                       window holding desktop icons. */
+   ELM_WIN_UNKNOWN, /**< Unknown window type */
+   ELM_WIN_BASIC, /**< A normal window. It indicates a normal, top-level
+                     window. Almost every window is created with this
+                     type */
+   ELM_WIN_DIALOG_BASIC, /**< Used for simple dialog windows */
+   ELM_WIN_DESKTOP, /**< Used for special desktop windows, like a background
+                       window holding desktop icons */
    ELM_WIN_DOCK, /**< The window is used as a dock or panel. Usually would
-                    be kept on top of any other window by the Window
-                    Manager. */
+                    be kept on top of any other window by the Windows
+                    Manager */
    ELM_WIN_TOOLBAR, /**< The window is used to hold a floating toolbar, or
-                       similar. */
-   ELM_WIN_MENU, /**< Similar to #ELM_WIN_TOOLBAR. */
+                       something similar */
+   ELM_WIN_MENU, /**< This is similar to #ELM_WIN_TOOLBAR */
    ELM_WIN_UTILITY, /**< A persistent utility window, like a toolbox or
-                       palette. */
-   ELM_WIN_SPLASH, /**< Splash window for a starting up application. */
-   ELM_WIN_DROPDOWN_MENU, /**< The window is a dropdown menu, as when an
+                       palette */
+   ELM_WIN_SPLASH, /**< A splash window for an application that is starting up */
+   ELM_WIN_DROPDOWN_MENU, /**< The window is a dropdown menu, when an
                              entry in a menubar is clicked. Typically used
                              with elm_win_override_set(). This hint exists
                              for completion only, as the EFL way of
                              implementing a menu would not normally use a
-                             separate window for its contents. */
-   ELM_WIN_POPUP_MENU, /**< Like #ELM_WIN_DROPDOWN_MENU, but for the menu
-                          triggered by right-clicking an object. */
+                             separate window for its contents */
+   ELM_WIN_POPUP_MENU, /**< Like #ELM_WIN_DROPDOWN_MENU, but used for the menu
+                          triggered by right-clicking an object */
    ELM_WIN_TOOLTIP, /**< The window is a tooltip. A short piece of
-                       explanatory text that typically appear after the
+                       explanatory text that typically appears after the
                        mouse cursor hovers over an object for a while.
                        Typically used with elm_win_override_set() and also
-                       not very commonly used in the EFL. */
+                       not very commonly used in EFL */
    ELM_WIN_NOTIFICATION, /**< A notification window, like a warning about
-                            battery life or a new E-Mail received. */
+                            battery life or a new email that is received */
    ELM_WIN_COMBO, /**< A window holding the contents of a combo box. Not
-                     usually used in the EFL. */
-   ELM_WIN_DND, /**< Used to indicate the window is a representation of an
+                     usually used in EFL */
+   ELM_WIN_DND, /**< Used to indicate that the window is a representation of an
                    object being dragged across different windows, or even
                    applications. Typically used with
-                   elm_win_override_set(). */
+                   elm_win_override_set() */
    ELM_WIN_INLINED_IMAGE, /**< The window is rendered onto an image
                              buffer. No actual window is created for this
                              type, instead the window and all of its
-                             contents will be rendered to an image buffer.
-                             This allows to have children window inside a
+                             contents are rendered to an image buffer.
+                             This allows to have a children window inside a
                              parent one just like any other object would
                              be, and do other things like applying @c
                              Evas_Map effects to it. This is the only type
-                             of window that requires the @c parent
+                             of window that requires the @a parent
                              parameter of elm_win_add() to be a valid @c
-                             Evas_Object. */
+                             Evas_Object */
    ELM_WIN_SOCKET_IMAGE,/**< The window is rendered onto an image buffer
-			     and can be shown other process's plug image object.
-			     No actual window is created for this type,
-			     instead the window and all of its contents will be
-			     rendered to an image buffer and can be shown
-			     other process's plug image object*/
+                            and can be shown another process's plug image object.
+                            No actual window is created for this type,
+                            instead the window and all of its contents are
+                            rendered to an image buffer and can be shown
+                            another process's plug image object */
+   ELM_WIN_TIZEN_WIDGET // Don't use this type. This is only for internal usage.
 } Elm_Win_Type;
 
 /**
- * The different layouts that can be requested for the virtual keyboard.
+ * @brief Enumeration that defines the different layouts that can be requested for the virtual keyboard.
  *
- * When the application window is being managed by Illume, it may request
- * any of the following layouts for the virtual keyboard.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks When the application window is being managed by Illume, it may request
+ *          any of the following layouts for the virtual keyboard.
  */
 typedef enum
 {
@@ -179,13 +189,19 @@ typedef enum
 } Elm_Win_Keyboard_Mode;
 
 /**
- * In some environments, like phones, you may have an indicator that
- * shows battery status, reception, time etc. This is the indicator.
+ * @brief Enumeration that defines the different indicator states.
  *
- * Sometimes you don't want it because you provide the same functionality
- * inside your app, so this will request that the indicator is hidden in
- * this circumstance if you use ELM_ILLUME_INDICATOR_HIDE. The default
- * is to have the indicator shown.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks In some environments, like phones, you may have an indicator that
+ *          shows the battery status, reception, time etc. This is the indicator.
+ *
+ * @remarks Sometimes you don't want it because you provide the same functionality
+ *          inside your app, so this requests that the indicator be hidden in
+ *          such a circumstance if you use @c ELM_ILLUME_INDICATOR_HIDE. The default
+ *          is to have the indicator shown.
  */
 typedef enum
 {
@@ -195,22 +211,49 @@ typedef enum
 } Elm_Win_Indicator_Mode;
 
 /**
- * Defines the opacity modes of indicator that can be shown
+ * @brief Enumeration that defines the opacity modes of an indicator that can be shown.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  */
 
 typedef enum
 {
    ELM_WIN_INDICATOR_OPACITY_UNKNOWN, /**< Unknown indicator opacity mode */
    ELM_WIN_INDICATOR_OPAQUE, /**< Opacifies the indicator */
-   ELM_WIN_INDICATOR_TRANSLUCENT, /**< Be translucent the indicator */
-   ELM_WIN_INDICATOR_TRANSPARENT /**< Transparentizes the indicator */
+   ELM_WIN_INDICATOR_TRANSLUCENT, /**< Makes the indicator translucent */
+   ELM_WIN_INDICATOR_TRANSPARENT, /**< Transparentizes the indicator */
+   ELM_WIN_INDICATOR_BG_TRANSPARENT /**< Transparentizes the indicator background*/
 } Elm_Win_Indicator_Opacity_Mode;
 
 /**
- * Available commands that can be sent to the Illume manager.
+ * @brief Enumeration that defines the type modes of an indicator that can be shown.
  *
- * When running under an Illume session, a window may send commands to the
- * Illume manager to perform different actions.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks If the indicator can support several types,
+ *          you can use this enum value to deal with different types of indicators.
+ */
+
+typedef enum
+{
+   ELM_WIN_INDICATOR_TYPE_UNKNOWN, /**< Unknown indicator type mode */
+   ELM_WIN_INDICATOR_TYPE_1, /**< Type 0 indicator */
+   ELM_WIN_INDICATOR_TYPE_2, /**< Type 1 indicator */
+} Elm_Win_Indicator_Type_Mode;
+
+/**
+ * @brief Enumeration that defines the available commands that can be sent to the Illume manager.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks When running under an Illume session, a window may send commands to the
+ *          Illume manager to perform different actions.
  */
 typedef enum
 {
@@ -221,1204 +264,1908 @@ typedef enum
 } Elm_Illume_Command;
 
 /**
- * Adds a window object. If this is the first window created, pass NULL as
- * @p parent.
+ * @brief Adds a window object. If this is the first window created, pass @c NULL as
+ *        @a parent.
  *
- * @param parent Parent object to add the window to, or NULL
- * @param name The name of the window
- * @param type The window type, one of #Elm_Win_Type.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * The @p parent parameter can be @c NULL for every window @p type except
- * #ELM_WIN_INLINED_IMAGE, which needs a parent to retrieve the canvas on
- * which the image object will be created.
+ * @remarks The @a parent parameter can be @c NULL for every window @a type
+ *          except @c ELM_WIN_INLINED_IMAGE, which needs a parent to retrieve the
+ *          canvas on which the image object is created.
  *
- * @return The created object, or NULL on failure
+ * @param[in] parent The parent object to add the window to, otherwise @c NULL
+ * @param[in] name The name of the window
+ * @param[in] type The window type, one from #Elm_Win_Type
  *
- * @ingroup Win
+ * @return The created object, otherwise @c NULL on failure
  */
 EAPI Evas_Object          *elm_win_add(Evas_Object *parent, const char *name, Elm_Win_Type type);
 
 /**
- * Adds a window object with standard setup
+ * @brief Gets the type of a window.
  *
- * @param name The name of the window
- * @param title The title for the window
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * This creates a window like elm_win_add() but also puts in a standard
- * background with elm_bg_add(), as well as setting the window title to
- * @p title. The window type created is of type ELM_WIN_BASIC, with NULL
- * as the parent widget.
+ * @param[in] obj The window object for which to get the type
  *
- * @return The created object, or NULL on failure
+ * @return The type of a window object \n
+ *         If the object is not a window object, return @c -1.
+ */
+EAPI Elm_Win_Type          elm_win_type_get(Evas_Object *obj);
+
+/**
+ * @brief Adds a window object with a standard setup.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks This creates a window like elm_win_add(), but also puts in a standard
+ *          background using elm_bg_add() as well as setting the window title to
+ *          @a title. The window type created is of type @c ELM_WIN_BASIC with @c NULL
+ *          as the parent widget.
+ *
+ * @param[in] name The name of the window
+ * @param[in] title The title of the window
+ *
+ * @return The created object, otherwise @c NULL on failure
  *
  * @see elm_win_add()
- *
- * @ingroup Win
  */
 EAPI Evas_Object          *elm_win_util_standard_add(const char *name, const char *title);
 
 /**
- * Add @p subobj as a resize object of window @p obj.
+ * @brief Adds @a subobj as a resize object of the window @a obj.
  *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Setting an object as a resize object of the window means that the
- * @p subobj child's size and position will be controlled by the window
- * directly. That is, the object will be resized to match the window size
- * and should never be moved or resized manually by the developer.
+ * @remarks Setting an object as a resize object of the window means that the
+ *          @a subobj child's size and position is controlled by the window
+ *          directly. That is, the object is resized to match the window size
+ *          and should never be moved or resized manually by the developer.
  *
- * In addition, resize objects of the window control what the minimum size
- * of it will be, as well as whether it can or not be resized by the user.
+ * @remarks In addition, resize objects of the window control the minimum size
+ *          of it as well as whether it can or cannot be resized by the user.
  *
- * For the end user to be able to resize a window by dragging the handles
- * or borders provided by the Window Manager, or using any other similar
- * mechanism, all of the resize objects in the window should have their
- * evas_object_size_hint_weight_set() set to EVAS_HINT_EXPAND.
+ * @remarks For the end user to be able to resize a window by dragging the handles
+ *          or borders provided by the Windows Manager, or using any other similar
+ *          mechanism, all of the resize objects in the window should have their
+ *          evas_object_size_hint_weight_set() set to EVAS_HINT_EXPAND.
  *
- * Also notice that the window can get resized to the current size of the
- * object if the EVAS_HINT_EXPAND is set @b after the call to
- * elm_win_resize_object_add(). So if the object should get resized to the
- * size of the window, set this hint @b before adding it as a resize object
- * (this happens because the size of the window and the object are evaluated
- * as soon as the object is added to the window).
+ * @remarks Also notice that the window can get resized to the current size of the
+ *          object if EVAS_HINT_EXPAND is set @b after the call to
+ *          elm_win_resize_object_add(). So if the object should get resized to the
+ *          size of the window, set this hint @b before adding it as a resize object
+ *          (this happens because the size of the window and the object are evaluated
+ *          as soon as the object is added to the window).
  *
- * @param obj The window object
- * @param subobj The resize object to add
- *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] subobj The resize object to add
  */
 EAPI void                  elm_win_resize_object_add(Evas_Object *obj, Evas_Object *subobj);
 
 /**
- * Delete @p subobj as a resize object of window @p obj.
+ * @brief Deletes @a subobj as a resize object of the window @a obj.
  *
- * This function removes the object @p subobj from the resize objects of
- * the window @p obj. It will not delete the object itself, which will be
- * left unmanaged and should be deleted by the developer, manually handled
- * or set as child of some other container.
+ * @details This function removes the object @a subobj from the resize objects of
+ *          the window @a obj. It does not delete the object itself, which is
+ *          left unmanaged and should be deleted by the developer, manually handled
+ *          or set as the child of some other container.
  *
- * @param obj The window object
- * @param subobj The resize object to add
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] subobj The resize object to add
  */
 EAPI void                  elm_win_resize_object_del(Evas_Object *obj, Evas_Object *subobj);
 
 /**
- * Set the title of the window
+ * @brief Sets the title of the window.
  *
- * @param obj The window object
- * @param title The title to set
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] title The title to set
  */
 EAPI void                  elm_win_title_set(Evas_Object *obj, const char *title);
 
 /**
- * Get the title of the window
+ * @brief Gets the title of the window.
  *
- * The returned string is an internal one and should not be freed or
- * modified. It will also be rendered invalid if a new title is set or if
- * the window is destroyed.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
+ * @remarks The returned string is an internal one and should not be freed or
+ *          modified. It should also be rendered invalid if a new title is set or if
+ *          the window is destroyed.
+ *
+ * @param[in] obj The window object
  * @return The title
- *
- * @ingroup Win
  */
 EAPI const char           *elm_win_title_get(const Evas_Object *obj);
 
 /**
- * Set the icon name of the window
+ * @brief Sets the icon name of the window.
  *
- * @param obj The window object
- * @param icon_name The icon name to set
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] icon_name The icon name to set
  */
 EAPI void                  elm_win_icon_name_set(Evas_Object *obj, const char *icon_name);
 
 /**
- * Get the icon name of the window
+ * @brief Gets the icon name of the window.
  *
- * The returned string is an internal one and should not be freed or
- * modified. It will also be rendered invalid if a new icon name is set or if
- * the window is destroyed.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
+ * @remarks The returned string is an internal one and should not be freed or
+ *          modified. It should also be rendered invalid if a new icon name is set or if
+ *          the window is destroyed.
+ *
+ * @param[in] obj The window object
  * @return The icon name
- *
- * @ingroup Win
  */
 EAPI const char           *elm_win_icon_name_get(const Evas_Object *obj);
 
 /**
- * Set the role of the window
+ * @brief Sets the role of the window.
  *
- * @param obj The window object
- * @param role The role to set
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] role The role to set
  */
 EAPI void                  elm_win_role_set(Evas_Object *obj, const char *role);
 
 /**
- * Get the role of the window
+ * @brief Gets the role of the window.
  *
- * The returned string is an internal one and should not be freed or
- * modified. It will also be rendered invalid if a new role is set or if
- * the window is destroyed.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
+ * @remarks The returned string is an internal one and should not be freed or
+ *          modified. It should also be rendered invalid if a new role is set or if
+ *          the window is destroyed.
+ *
+ * @param[in] obj The window object
  * @return The role
- *
- * @ingroup Win
  */
 EAPI const char           *elm_win_role_get(const Evas_Object *obj);
 
 /**
- * Set the object to represent the window icon
+ * @brief Sets a window object icon.
  *
- * This sets an object that will be used as the icon for the window. The exact
- * pixel dimensions of the object (not object size) will be used, and the
- * image pixels will be used as-is when this function is called. If the
- * image object has been updated, then call this function again to source
- * the image pixels and put them on the window's icon. This has limitations
- * as only image objects allowed at this stage. This may be lifted in future.
+ * @details This sets an image to be used as the icon for the given window, in
+ *          the Windows Manager decoration part. The exact pixel dimensions of
+ *          the object (not object size) is used, and the image pixels
+ *          are used as-is when this function is called. If the image
+ *          object has been updated, then call this function again to source
+ *          the image pixels and put them on the window's icon. Note that
+ *          <b>only Evas image objects are allowed</b>.
  *
- * @param obj The window object
- * @param icon The object to use for an icon
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @remarks Example of usage:
+ * @code
+ *  icon = evas_object_image_add(evas_object_evas_get(elm_window));
+ *  evas_object_image_file_set(icon, "/path/to/the/icon", NULL);
+ *  elm_win_icon_object_set(elm_window, icon);
+ *  evas_object_show(icon);
+ * @endcode
+ *
+ * @param[in] obj The window object used to get an icon
+ * @param[in] icon The Evas image object used as an icon
  */
 EAPI void                  elm_win_icon_object_set(Evas_Object *obj, Evas_Object *icon);
 
 /**
- * Get the icon object used for the window
+ * @brief Gets the icon object used for the window.
  *
- * The object returns is the one marked by elm_win_icon_object_set() as the
- * object to use for the window icon.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
- * @return The icon object set
+ * @remarks The object returned is the one marked by elm_win_icon_object_set() as the
+ *          object to use for the window icon.
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return The icon object to set
  */
 EAPI const Evas_Object    *elm_win_icon_object_get(const Evas_Object *obj);
 
 /**
- * Set the window's autodel state.
+ * @brief Sets the window autodel state.
  *
- * When closing the window in any way outside of the program control, like
- * pressing the X button in the titlebar or using a command from the
- * Window Manager, a "delete,request" signal is emitted to indicate that
- * this event occurred and the developer can take any action, which may
- * include, or not, destroying the window object.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * When the @p autodel parameter is set, the window will be automatically
- * destroyed when this event occurs, after the signal is emitted.
- * If @p autodel is @c EINA_FALSE, then the window will not be destroyed
- * and is up to the program to do so when it's required.
+ * @remarks When closing the window in any way outside of the program control, like
+ *          pressing the X button in the titlebar or using a command from the
+ *          Windows Manager, a @c "delete,request" signal is emitted to indicate that
+ *          this event has occurred and the developer can take an action, which may or may not
+ *          include destroying the window object.
  *
- * @param obj The window object
- * @param autodel If true, the window will automatically delete itself when
- * closed
+ * @remarks When the @a autodel parameter is set, the window is automatically
+ *          destroyed when this event occurs, after the signal is emitted.
+ *          If @a autodel is @c EINA_FALSE, then the window is not destroyed
+ *          and it is up to the program to decide when to do so if required.
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] autodel If @c true the window automatically deletes itself when closed,
+ *                otherwise @c false
  */
 EAPI void                  elm_win_autodel_set(Evas_Object *obj, Eina_Bool autodel);
 
 /**
- * Get the window's autodel state.
+ * @brief Gets the window autodel state.
  *
- * @param obj The window object
- * @return If the window will automatically delete itself when closed
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @return @c true if the window automatically deletes itself when closed,
+ *         otherwise @c false
  *
  * @see elm_win_autodel_set()
- *
- * @ingroup Win
  */
 EAPI Eina_Bool             elm_win_autodel_get(const Evas_Object *obj);
 
 /**
- * Activate a window object.
+ * @brief Activates the window object.
  *
- * This function sends a request to the Window Manager to activate the
- * window pointed by @p obj. If honored by the WM, the window will receive
- * the keyboard focus.
+ * @details This function sends a request to the Windows Manager to activate the
+ *          window pointed by @a obj. If honored by the WM, the window receives
+ *          the keyboard focus.
  *
- * @note This is just a request that a Window Manager may ignore, so calling
- * this function does not ensure in any way that the window will be the
- * active one after it.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
+ * @remarks This is just a request that a Window Manager may ignore, so calling
+ *          this function does not ensure in any way that the window is going to be the
+ *          active one after it.
  *
- * @ingroup Win
+ * @param[in] obj The window object
  */
 EAPI void                  elm_win_activate(Evas_Object *obj);
 
 /**
- * Lower a window object.
+ * @brief Lowers the window object.
  *
- * Places the window pointed by @p obj at the bottom of the stack, so that
- * no other window is covered by it.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * If elm_win_override_set() is not set, the Window Manager may ignore this
- * request.
+ * @remarks Places the window pointed by @a obj at the bottom of the stack, so that
+ *          no other window is covered by it.
  *
- * @param obj The window object
+ * @remarks If elm_win_override_set() is not set, the Windows Manager may ignore this
+ *          request.
  *
- * @ingroup Win
+ * @param[in] obj The window object
  */
 EAPI void                  elm_win_lower(Evas_Object *obj);
 
 /**
- * Raise a window object.
+ * @brief Raises the window object.
  *
- * Places the window pointed by @p obj at the top of the stack, so that it's
- * not covered by any other window.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * If elm_win_override_set() is not set, the Window Manager may ignore this
- * request.
+ * @remarks Places the window pointed by @a obj at the top of the stack, so that it's
+ *          not covered by any other window.
  *
- * @param obj The window object
+ * @remarks If elm_win_override_set() is not set, the Windows Manager may ignore this
+ *          request.
  *
- * @ingroup Win
+ * @param[in] obj The window object
  */
 EAPI void                  elm_win_raise(Evas_Object *obj);
 
 /**
- * Center a window on its screen
+ * @brief Centers a window on its screen.
  *
- * This function centers window @p obj horizontally and/or vertically based on the values
- * of @p h and @p v.
- * @param obj The window object
- * @param h If true, center horizontally. If false, do not change horizontal location.
- * @param v If true, center vertically. If false, do not change vertical location.
+ * @details This function centers a window @a obj horizontally and/or vertically based on the values
+ *          of @a h and @a v.
  *
- * @ingroup Win
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @param[in] h If @c true it centers horizontally,
+ *            otherwise @c false if it does not change the horizontal location
+ * @param[in] v If @c true it centers vertically, 
+ *            otherwise @c false if it does not change the vertical location
  */
 EAPI void                  elm_win_center(Evas_Object *obj, Eina_Bool h, Eina_Bool v);
 
 /**
- * Set the borderless state of a window.
+ * @brief Sets the borderless state of a window.
  *
- * This function requests the Window Manager to not draw any decoration
- * around the window.
+ * @details This function requests the Windows Manager to not draw any decoration
+ *          around the window.
  *
- * @param obj The window object
- * @param borderless If true, the window is borderless
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] borderless If @c true the window is borderless,
+ *                   otherwise @c false
  */
 EAPI void                  elm_win_borderless_set(Evas_Object *obj, Eina_Bool borderless);
 
 /**
- * Get the borderless state of a window.
+ * @brief Gets the borderless state of a window.
  *
- * @param obj The window object
- * @return If true, the window is borderless
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return @c true if the window is borderless,
+ *         otherwise @c false
  */
 EAPI Eina_Bool             elm_win_borderless_get(const Evas_Object *obj);
 
 /**
- * Set the shaped state of a window.
+ * @brief Sets the shaped state of a window.
  *
- * Shaped windows, when supported, will render the parts of the window that
- * has no content, transparent.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * If @p shaped is EINA_FALSE, then it is strongly advised to have some
- * background object or cover the entire window in any other way, or the
- * parts of the canvas that have no data will show framebuffer artifacts.
+ * @remarks Shaped windows, when supported, render the parts of the window that
+ *          has no content and is transparent.
  *
- * @param obj The window object
- * @param shaped If true, the window is shaped
+ * @remarks If @a shaped is @c EINA_FALSE, then it is strongly advised to have some
+ *          background object or cover the entire window in any other way, otherwise the
+ *          parts of the canvas that have no data show framebuffer artifacts.
+ *
+ * @param[in] obj The window object
+ * @param[in] shaped If @c true the window is shaped,
+ *               otherwise @c false
  *
  * @see elm_win_alpha_set()
- *
- * @ingroup Win
  */
 EAPI void                  elm_win_shaped_set(Evas_Object *obj, Eina_Bool shaped);
 
 /**
- * Get the shaped state of a window.
+ * @brief Gets the shaped state of a window.
  *
- * @param obj The window object
- * @return If true, the window is shaped
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @return @c true if the window is shaped,
+ *         otherwise @c false
  *
  * @see elm_win_shaped_set()
- *
- * @ingroup Win
  */
 EAPI Eina_Bool             elm_win_shaped_get(const Evas_Object *obj);
 
 /**
- * Set the alpha channel state of a window.
+ * @brief Sets the alpha channel state of a window.
  *
- * If @p alpha is EINA_TRUE, the alpha channel of the canvas will be enabled
- * possibly making parts of the window completely or partially transparent.
- * This is also subject to the underlying system supporting it, like for
- * example, running under a compositing manager. If no compositing is
- * available, enabling this option will instead fallback to using shaped
- * windows, with elm_win_shaped_set().
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
- * @param alpha If true, the window has an alpha channel
+ * @remarks If @a alpha is @c EINA_TRUE, the alpha channel of the canvas is enabled
+ *          possibly making parts of the window completely or partially transparent.
+ *          This is also subject to the underlying system supporting it, like for
+ *          example, running under a compositing manager. If no compositing is
+ *          available, enabling this option results in using shaped
+ *          windows with elm_win_shaped_set().
+ *
+ * @param[in] obj The window object
+ * @param[in] alpha If @c true the window has an alpha channel,
+ *              otherwise @c false
  *
  * @see elm_win_alpha_set()
- *
- * @ingroup Win
  */
 EAPI void                  elm_win_alpha_set(Evas_Object *obj, Eina_Bool alpha);
 
 /**
- * Get the alpha channel state of a window.
+ * @brief Gets the alpha channel state of a window.
  *
- * @param obj The window object
- * @return If true, the window has an alpha channel
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return @c true if the window has an alpha channel,
+ *         otherwise @c false
  */
 EAPI Eina_Bool             elm_win_alpha_get(const Evas_Object *obj);
 
 /**
- * Set the override state of a window.
+ * @brief Sets the override state of a window.
  *
- * A window with @p override set to EINA_TRUE will not be managed by the
- * Window Manager. This means that no decorations of any kind will be shown
- * for it, moving and resizing must be handled by the application, as well
- * as the window visibility.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * This should not be used for normal windows, and even for not so normal
- * ones, it should only be used when there's a good reason and with a lot
- * of care. Mishandling override windows may result situations that
- * disrupt the normal workflow of the end user.
+ * @remarks A window with @a override set to @c EINA_TRUE is not managed by the
+ *          Windows Manager. This means that no decorations of any kind are shown
+ *          for it, moving and resizing must be handled by the application as well
+ *          as the window visibility.
  *
- * @param obj The window object
- * @param override If true, the window is overridden
+ * @remarks This should not be used for normal windows, and even for not so normal
+ *          ones, it should only be used with a lot of care and
+ *          when there's a good reason. Mishandling override windows may result in situations that
+ *          disrupt the normal workflow of the end user.
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] override If @c true the window is overridden,
+ *                 otherwise @c false
  */
 EAPI void                  elm_win_override_set(Evas_Object *obj, Eina_Bool override);
 
 /**
- * Get the override state of a window.
+ * @brief Gets the override state of a window.
  *
- * @param obj The window object
- * @return If true, the window is overridden
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @return @c true if the window is overridden,
+ *         otherwise @c false
  *
  * @see elm_win_override_set()
- *
- * @ingroup Win
  */
 EAPI Eina_Bool             elm_win_override_get(const Evas_Object *obj);
 
 /**
- * Set the fullscreen state of a window.
+ * @brief Sets the fullscreen state of a window.
  *
- * @param obj The window object
- * @param fullscreen If true, the window is fullscreen
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param fullscreen If @c true the window is fullscreen,
+ *                   otherwise @c false
  */
 EAPI void                  elm_win_fullscreen_set(Evas_Object *obj, Eina_Bool fullscreen);
 
 /**
- * Get the fullscreen state of a window.
+ * @brief Geta the fullscreen state of a window.
  *
- * @param obj The window object
- * @return If true, the window is fullscreen
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return @c true if the window is fullscreen,
+ *         otherwise @c false
  */
 EAPI Eina_Bool             elm_win_fullscreen_get(const Evas_Object *obj);
 
 /**
- * Set the maximized state of a window.
+ * @brief Sets the maximized state of a window.
  *
- * @param obj The window object
- * @param maximized If true, the window is maximized
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] maximized If @c true the window is maximized,
+ *                  otherwise @c false
  */
 EAPI void                  elm_win_maximized_set(Evas_Object *obj, Eina_Bool maximized);
 
 /**
- * Get the maximized state of a window.
+ * @brief Gets the maximized state of a window.
  *
- * @param obj The window object
- * @return If true, the window is maximized
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return @c true if the window is maximized,
+ *         otherwise @c false
  */
 EAPI Eina_Bool             elm_win_maximized_get(const Evas_Object *obj);
 
 /**
- * Set the iconified state of a window.
+ * @brief Sets the iconified state of a window.
  *
- * @param obj The window object
- * @param iconified If true, the window is iconified
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] iconified If @c true the window is iconified,
+ *                  otherwise @c false
  */
 EAPI void                  elm_win_iconified_set(Evas_Object *obj, Eina_Bool iconified);
 
 /**
- * Get the iconified state of a window.
+ * @brief Gets the iconified state of a window.
  *
- * @param obj The window object
- * @return If true, the window is iconified
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return @c true if the window is iconified,
+ *         otherwise @c false
  */
 EAPI Eina_Bool             elm_win_iconified_get(const Evas_Object *obj);
 
 /**
- * Set the withdrawn state of a window.
+ * @brief Sets the withdrawn state of a window.
  *
- * @param obj The window object
- * @param withdrawn If true, the window is withdrawn
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] withdrawn If @c true the window is withdrawn,
+ *                  otherwise @c false
  */
 EAPI void                  elm_win_withdrawn_set(Evas_Object *obj, Eina_Bool withdrawn);
 
 /**
- * Get the withdrawn state of a window.
+ * @brief Gets the withdrawn state of a window.
  *
- * @param obj The window object
- * @return If true, the window is withdrawn
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return @c true if the window is withdrawn,
+ *         otherwise @c false
  */
 EAPI Eina_Bool             elm_win_withdrawn_get(const Evas_Object *obj);
 
 /**
- * Set the profile list of a window.
+ * @brief Sets the profile list of a window.
  *
- * @param obj The window object
- * @param profiles The list of profile's name
- * @param num_profiles The number of profile names
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] profiles The list of profile names
+ * @param[in] num_profiles The number of profile names
  */
 EAPI void                  elm_win_profiles_set(Evas_Object *obj, const char **profiles, unsigned int num_profiles);
 
 /**
- * Get the profile of a window.
+ * @brief Gets the profile of a window.
  *
- * The returned string is an internal one and should not be freed or
- * modified. It will also be rendered invalid if a new role is set or if
- * the window is destroyed.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
- * @return The profile's name
+ * @remarks The returned string is an internal one and should not be freed or
+ *          modified. It is also rendered invalid if a new role is set or if
+ *          the window is destroyed.
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return The profile name
  */
 EAPI const char           *elm_win_profile_get(const Evas_Object *obj);
 
 /**
- * Set the urgent state of a window.
+ * @brief Sets the urgent state of a window.
  *
- * @param obj The window object
- * @param urgent If true, the window is urgent
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] urgent If @c true the window is urgent,
+ *               otherwise @c false
  */
 EAPI void                  elm_win_urgent_set(Evas_Object *obj, Eina_Bool urgent);
 
 /**
- * Get the urgent state of a window.
+ * @brief Gets the urgent state of a window.
  *
- * @param obj The window object
- * @return If true, the window is urgent
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return @c true if the window is urgent,
+ *         otherwise @c false
  */
 EAPI Eina_Bool             elm_win_urgent_get(const Evas_Object *obj);
 
 /**
- * Set the demand_attention state of a window.
+ * @brief Sets the @a demand_attention state of a window.
  *
- * @param obj The window object
- * @param demand_attention If true, the window is demand_attention
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] demand_attention If @c true the window is in the @a demand_attention state,
+ *                         otherwise @c false
  */
 EAPI void                  elm_win_demand_attention_set(Evas_Object *obj, Eina_Bool demand_attention);
 
 /**
- * Get the demand_attention state of a window.
+ * @brief Gets the @a demand_attention state of a window.
  *
- * @param obj The window object
- * @return If true, the window is demand_attention
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return @c true if the window is in the @a demand_attention state,
+ *         otherwise @c false
  */
 EAPI Eina_Bool             elm_win_demand_attention_get(const Evas_Object *obj);
 
 /**
- * Set the modal state of a window.
+ * @brief Sets the @a modal state of a window.
  *
- * @param obj The window object
- * @param modal If true, the window is modal
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] modal If @c true the window is @a modal,
+ *              otherwise @c false
  */
 EAPI void                  elm_win_modal_set(Evas_Object *obj, Eina_Bool modal);
 
 /**
- * Get the modal state of a window.
+ * @brief Gets the @a modal state of a window.
  *
- * @param obj The window object
- * @return If true, the window is modal
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return If @c true the window is @a modal,
+ *         otherwise @c false
  */
 EAPI Eina_Bool             elm_win_modal_get(const Evas_Object *obj);
 
 /**
- * Set the aspect ratio of a window.
+ * @brief Sets the aspect ratio of a window.
  *
- * @param obj The window object
- * @param aspect If 0, the window has no aspect limits, otherwise it is
- * width divided by height
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] aspect If @c 0 the window has no aspect limits,
+ *               otherwise it is width divided by height
  */
 EAPI void                  elm_win_aspect_set(Evas_Object *obj, double aspect);
 
 /**
- * Get the aspect ratio of a window.
+ * @brief Gets the aspect ratio of a window.
  *
- * @param obj The window object
- * @return The aspect ratio set (0 by default)
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return The set aspect ratio (@c 0 by default)
  */
 EAPI double                elm_win_aspect_get(const Evas_Object *obj);
 
 /**
- * Set the layer of the window.
+ * @brief Sets the base window size used with stepping calculation.
  *
- * What this means exactly will depend on the underlying engine used.
+ * @since 1.7
  *
- * In the case of X11 backed engines, the value in @p layer has the
- * following meanings:
- * @li < 3: The window will be placed below all others.
- * @li > 5: The window will be placed above all others.
- * @li other: The window will be placed in the default layer.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
- * @param layer The layer of the window
+ * @remarks Base size + stepping is what is calculated for window sizing restrictions.
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] w The base width
+ * @param[in] h The base height
+ *
+ * @see elm_win_size_step_set
+ * @see elm_win_size_base_get
+ */
+EAPI void                  elm_win_size_base_set(Evas_Object *obj, int w, int h);
+
+/**
+ * @brief Gets the base size of a window.
+ *
+ * @since 1.7
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @param[out] w The pointer that stores the returned base width
+ * @param[out] h The pointer that stores the returned base height
+ *
+ * @see elm_win_size_base_set
+ * @see elm_win_size_step_set
+ */
+EAPI void                  elm_win_size_base_get(Evas_Object *obj, int *w, int *h);
+
+/**
+ * @brief Sets the window stepping used with sizing calculation.
+ *
+ * @since 1.7
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks Base size + stepping is what is calculated for window sizing restrictions.
+ *
+ * @param[in] obj The window object
+ * @param[in] w The stepping width (@c 0 disables)
+ * @param[in] h The stepping height (@c 0 disables)
+ *
+ * @see elm_win_size_step_get
+ * @see elm_win_size_base_set
+ */
+EAPI void                  elm_win_size_step_set(Evas_Object *obj, int w, int h);
+
+/**
+ * @brief Gets the stepping of a window.
+ *
+ * @since 1.7
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @param[out] w The pointer that stores the returned stepping width
+ * @param[out] h The pointer that stores the returned stepping height
+ *
+ * @see elm_win_size_base_set
+ * @see elm_win_size_step_set
+ */
+EAPI void                  elm_win_size_step_get(Evas_Object *obj, int *w, int *h);
+
+/**
+ * @brief Sets the layer of the window.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks What this means exactly depends on the underlying engine used.
+ *
+ * @remarks In case of X11 backed engines, the value in @a layer has one of the
+ *          following meanings:
+ *          @li < 3: The window is placed below all others.
+ *          @li > 5: The window is placed above all others.
+ *          @li other: The window is placed in the default layer.
+ *
+ * @param[in] obj The window object
+ * @param[in] layer The layer of the window
  */
 EAPI void                  elm_win_layer_set(Evas_Object *obj, int layer);
 
 /**
- * Get the layer of the window.
+ * @brief Gets the layer of the window.
  *
- * @param obj The window object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
  * @return The layer of the window
  *
  * @see elm_win_layer_set()
- *
- * @ingroup Win
  */
 EAPI int                   elm_win_layer_get(const Evas_Object *obj);
 
 /**
- * Set the rotation of the window.
+ * @brief Pushes (incriments) the norender counter on the window.
  *
- * Most engines only work with multiples of 90.
+ * @since 1.7
  *
- * This function is used to set the orientation of the window @p obj to
- * match that of the screen. The window itself will be resized to adjust
- * to the new geometry of its contents. If you want to keep the window size,
- * see elm_win_rotation_with_resize_set().
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
- * @param rotation The rotation of the window, in degrees (0-360),
- * counter-clockwise.
+ * @remarks There are some occasions where you wish to suspend rendering on a window.
+ *          You may be "sleeping" and may have nothing to update and do not want animations
+ *          or other theme side-effects causing rendering to the window while "asleep".
+ *          You can push (and pop) the norender mode to make this work.
  *
- * @ingroup Win
+ * @remarks If combined with evas_render_dump(), you can minimize memory footprint
+ *          significantly while "asleep", and the pausing of rendering ensures that
+ *          evas does not re-load data into memory until needed. When rendering is
+ *          resumed, data is re-loaded as needed, which may result in some
+ *          lag, but does save memory.
+ *
+ * @param[in] obj The window object
+ *
+ * @see elm_win_norender_pop()
+ * @see elm_win_norender_get()
+ * @see elm_win_render()
+ */
+EAPI void                  elm_win_norender_push(Evas_Object *obj);
+
+/**
+ * @brief Pops (decrements) the norender counter on the window.
+ *
+ * @since 1.7
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks Once norender has gone back to @c 0, automatic rendering continues
+ *          in the given window. If it is already at @c 0, this has no effect.
+ *
+ * @param[in] obj The window object
+ *
+ * @see elm_win_norender_push()
+ * @see elm_win_norender_get()
+ * @see elm_win_render()
+ */
+EAPI void                  elm_win_norender_pop(Evas_Object *obj);
+
+/**
+ * @brief Returns the number of times norender has been pushed on the window.
+ *
+ * @since 1.7
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @return The number of times norender has been pushed
+ *
+ * @see elm_win_norender_push()
+ * @see elm_win_norender_pop()
+ * @see elm_win_render()
+ */
+EAPI int                   elm_win_norender_get(Evas_Object *obj);
+
+/**
+ * @brief Manually asks evas to render the window immediately.
+ *
+ * @since 1.7
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks You should NEVER call this unless you really know what you are doing and
+ *          why. Never call this unless you are asking for performance degredation
+ *          and possibly weird behavior. Windows gets automatically rendered when the
+ *          application goes idle so there is never a need to call this UNLESS you
+ *          have enabled the "norender" mode.
+ *
+ * @param[in] obj The window object
+ *
+ * @see elm_win_norender_push()
+ * @see elm_win_norender_pop()
+ * @see elm_win_norender_get()
+ */
+EAPI void                  elm_win_render(Evas_Object *obj);
+
+/**
+ * @brief Sets the rotation of the window.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks Most engines only work with multiples of @c 90.
+ *
+ * @remarks This function is used to set the orientation of the window @a obj to
+ *          match that of the screen. The window itself is resized to adjust
+ *          to the new geometry of its contents. If you want to keep the window size,
+ *
+ * @param[in] obj The window object
+ * @param[in] rotation The rotation of the window, in degrees (0-360),
+ *                 counter-clockwise
+ *
+ * @see elm_win_rotation_with_resize_set()
  */
 EAPI void                  elm_win_rotation_set(Evas_Object *obj, int rotation);
 
 /**
- * Rotates the window and resizes it.
+ * @brief Rotates the window and resizes it.
  *
- * Like elm_win_rotation_set(), but it also resizes the window's contents so
- * that they fit inside the current window geometry.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
- * @param rotation The rotation of the window in degrees (0-360),
- * counter-clockwise.
+ * @remarks Like elm_win_rotation_set(), but it also resizes the window's contents so
+ *          that they fit inside the current window geometry.
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] rotation The rotation of the window, in degrees (0-360),
+ *                 counter-clockwise
  */
 EAPI void                  elm_win_rotation_with_resize_set(Evas_Object *obj, int rotation);
 
 /**
- * Get the rotation of the window.
+ * @brief Gets the rotation of the window.
  *
- * @param obj The window object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
  * @return The rotation of the window in degrees (0-360)
  *
  * @see elm_win_rotation_set()
  * @see elm_win_rotation_with_resize_set()
- *
- * @ingroup Win
  */
 EAPI int                   elm_win_rotation_get(const Evas_Object *obj);
 
 /**
- * Set the sticky state of the window.
+ * @brief Sets the sticky state of the window.
  *
- * Hints the Window Manager that the window in @p obj should be left fixed
- * at its position even when the virtual desktop it's on moves or changes.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
- * @param sticky If true, the window's sticky state is enabled
+ * @remarks Hints the Windows Manager that the window in @a obj should be left fixed
+ *          at its position even when the virtual desktop that it's on moves or changes.
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] sticky If @c true the window's sticky state is enabled,
+ *               otherwise @c false
  */
 EAPI void                  elm_win_sticky_set(Evas_Object *obj, Eina_Bool sticky);
 
 /**
- * Get the sticky state of the window.
+ * @brief Gets the sticky state of the window.
  *
- * @param obj The window object
- * @return If true, the window's sticky state is enabled
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @return If @c true the window's sticky state is enabled,
+ *         otherwise @c false
  *
  * @see elm_win_sticky_set()
- *
- * @ingroup Win
  */
 EAPI Eina_Bool             elm_win_sticky_get(const Evas_Object *obj);
 
 /**
- * Set if this window is an illume conformant window
+ * @brief Sets whether this window is an illume conformant window.
  *
- * @param obj The window object
- * @param conformant The conformant flag (1 = conformant, 0 = non-conformant)
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] conformant The conformant flag (@c 1 = conformant, @c 0 = non-conformant)
  */
 EAPI void                  elm_win_conformant_set(Evas_Object *obj, Eina_Bool conformant);
 
 /**
- * Get if this window is an illume conformant window
+ * @brief Gets whether this window is an illume conformant window.
  *
- * @param obj The window object
- * @return A boolean if this window is illume conformant or not
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return The boolean value that indicates whether this window is illume conformant
  */
 EAPI Eina_Bool             elm_win_conformant_get(const Evas_Object *obj);
 
 /**
- * Set a window to be an illume quickpanel window
+ * @brief Sets a window to be an illume quickpanel window.
  *
- * By default window objects are not quickpanel windows.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object
- * @param quickpanel The quickpanel flag (1 = quickpanel, 0 = normal window)
+ * @remarks By default, window objects are not quickpanel windows.
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] quickpanel The quickpanel flag (@c 1 = quickpanel, @c 0 = normal window)
  */
 EAPI void                  elm_win_quickpanel_set(Evas_Object *obj, Eina_Bool quickpanel);
 
 /**
- * Get if this window is a quickpanel or not
+ * @brief Gets whether this window is a quickpanel.
  *
- * @param obj The window object
- * @return A boolean if this window is a quickpanel or not
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return A boolean value that indicates whether this window is a quickpanel
  */
 EAPI Eina_Bool             elm_win_quickpanel_get(const Evas_Object *obj);
 
 /**
- * Set the major priority of a quickpanel window
+ * @brief Sets the major priority of a quickpanel window.
  *
- * @param obj The window object
- * @param priority The major priority for this quickpanel
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] priority The major priority for this quickpanel
  */
 EAPI void                  elm_win_quickpanel_priority_major_set(Evas_Object *obj, int priority);
 
 /**
- * Get the major priority of a quickpanel window
+ * @brief Gets the major priority of a quickpanel window.
  *
- * @param obj The window object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
  * @return The major priority of this quickpanel
- *
- * @ingroup Win
  */
 EAPI int                   elm_win_quickpanel_priority_major_get(const Evas_Object *obj);
 
 /**
- * Set the minor priority of a quickpanel window
+ * @brief Sets the minor priority of a quickpanel window.
  *
- * @param obj The window object
- * @param priority The minor priority for this quickpanel
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] priority The minor priority for this quickpanel
  */
 EAPI void                  elm_win_quickpanel_priority_minor_set(Evas_Object *obj, int priority);
 
 /**
- * Get the minor priority of a quickpanel window
+ * @brief Gets the minor priority of a quickpanel window.
  *
- * @param obj The window object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
  * @return The minor priority of this quickpanel
- *
- * @ingroup Win
  */
 EAPI int                   elm_win_quickpanel_priority_minor_get(const Evas_Object *obj);
 
 /**
- * Set which zone this quickpanel should appear in
+ * @brief Sets the zone in which this quickpanel should appear.
  *
- * @param obj The window object
- * @param zone The requested zone for this quickpanel
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] zone The requested zone for this quickpanel
  */
 EAPI void                  elm_win_quickpanel_zone_set(Evas_Object *obj, int zone);
 
 /**
- * Get which zone this quickpanel should appear in
+ * @brief Gets the zone in which this should appear.
  *
- * @param obj The window object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
  * @return The requested zone for this quickpanel
- *
- * @ingroup Win
  */
 EAPI int                   elm_win_quickpanel_zone_get(const Evas_Object *obj);
 
 /**
- * Set the window to be skipped by keyboard focus
+ * @brief Sets the window to be skipped by keyboard focus.
  *
- * This sets the window to be skipped by normal keyboard input. This means
- * a window manager will be asked to not focus this window as well as omit
- * it from things like the taskbar, pager, "alt-tab" list etc. etc.
+ * @details This sets the window to be skipped by normal keyboard input. This means
+ *          the Windows Manager is asked to not focus this window as well as omit
+ *          it from things like the taskbar, pager, "alt-tab" list, etc.
  *
- * Call this and enable it on a window BEFORE you show it for the first time,
- * otherwise it may have no effect.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Use this for windows that have only output information or might only be
- * interacted with by the mouse or fingers, and never for typing input.
- * Be careful that this may have side-effects like making the window
- * non-accessible in some cases unless the window is specially handled. Use
- * this with care.
+ * @remarks Call this and enable it on a window BEFORE you show it for the first time,
+ *          otherwise it may have no effect.
  *
- * @param obj The window object
- * @param skip The skip flag state (EINA_TRUE if it is to be skipped)
+ * @remarks Use this for windows that have only output information or might only be
+ *          interacted with by a mouse or fingers, and never for typing input.
+ *          Be careful that this may have side-effects like making the window
+ *          non-accessible in some cases unless the window is specially handled. Use
+ *          this with care.
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] skip The skip flag state (@c EINA_TRUE if it is to be skipped)
  */
 EAPI void                  elm_win_prop_focus_skip_set(Evas_Object *obj, Eina_Bool skip);
 
 /**
- * Send a command to the windowing environment
+ * @brief Sends a command to the windowing environment.
  *
- * This is intended to work in touchscreen or small screen device
- * environments where there is a more simplistic window management policy in
- * place. This uses the window object indicated to select which part of the
- * environment to control (the part that this window lives in), and provides
- * a command and an optional parameter structure (use NULL for this if not
- * needed).
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object that lives in the environment to control
- * @param command The command to send
- * @param params Optional parameters for the command
+ * @remarks This is intended to work in touchscreen or small screen device
+ *          environments where there is a more simplistic window management policy in
+ *          place. This uses the window object indicated to select which part of the
+ *          environment to control (the part that this window lives in), and provides
+ *          a command and an optional parameter structure (use @c NULL for this if not
+ *          needed).
  *
- * @ingroup Win
+ * @param[in] obj The window object that lives in the environment to control
+ * @param[in] command The command to send
+ * @param[in] params The optional parameters for the command
  */
 EAPI void                  elm_win_illume_command_send(Evas_Object *obj, Elm_Illume_Command command, void *params);
 
 /**
- * Get the inlined image object handle
+ * @brief Gets the inlined image object handle.
  *
- * When you create a window with elm_win_add() of type ELM_WIN_INLINED_IMAGE,
- * then the window is in fact an evas image object inlined in the parent
- * canvas. You can get this object (be careful to not manipulate it as it
- * is under control of elementary), and use it to do things like get pixel
- * data, save the image to a file, etc.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The window object to get the inlined image from
- * @return The inlined image object, or NULL if none exists
+ * @remarks When you create a window with elm_win_add() of type @c ELM_WIN_INLINED_IMAGE,
+ *          then the window is in fact an evas image object inlined in the parent
+ *          canvas. You can get this object (be careful to not manipulate it as it
+ *          is under the control of elementary), and use it to do things like get pixel
+ *          data, save the image to a file, etc.
  *
- * @ingroup Win
+ * @param[in] obj The window object from which to get the inlined image
+ * @return The inlined image object, otherwise @c NULL if none exist
  */
 EAPI Evas_Object          *elm_win_inlined_image_object_get(Evas_Object *obj);
 
 /**
- * Determine whether a window has focus
- * @param obj The window to query
- * @return EINA_TRUE if the window exists and has focus, else EINA_FALSE
+ * @brief Determines whether a window has focus.
  *
- * @ingroup Win
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window to query
+ * @return @c EINA_TRUE if the window exists and has focus, 
+ *         otherwise @c EINA_FALSE
  */
 EAPI Eina_Bool             elm_win_focus_get(const Evas_Object *obj);
 
 /**
- * Constrain the maximum width and height of a window to the width and height of its screen
+ * @brief Limits the maximum width and height of a window to the width and height of its screen.
  *
- * When @p constrain is true, @p obj will never resize larger than the screen.
- * @param obj The window object
- * @param constrain EINA_TRUE to restrict the window's maximum size, EINA_FALSE to disable restriction
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @remarks When @a constrain is @c true, @a obj never resizes to a size larger than the screen.
+ * @param[in] obj The window object
+ * @param[in] constrain @c EINA_TRUE to restrict the window's maximum size, 
+ *                  otherwise @c EINA_FALSE to disable restriction
  */
 EAPI void                  elm_win_screen_constrain_set(Evas_Object *obj, Eina_Bool constrain);
 
 /**
- * Retrieve the constraints on the maximum width and height of a window relative to the width and height of its screen
+ * @brief Retrieves the constraints on the maximum width and height of a window relative to the width and height of its screen.
  *
- * When this function returns true, @p obj will never resize larger than the screen.
- * @param obj The window object
- * @return EINA_TRUE to restrict the window's maximum size, EINA_FALSE to disable restriction
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @remarks When this function returns @c true, @a obj never resizes to a size larger than the screen.
+ * @param[in] obj The window object
+ * @return @c EINA_TRUE to restrict the window's maximum size,
+ *         otherwise @c EINA_FALSE to disable restriction
  */
 EAPI Eina_Bool             elm_win_screen_constrain_get(Evas_Object *obj);
 
 /**
- * Get screen geometry details for the screen that a window is on
- * @param obj The window to query
- * @param x where to return the horizontal offset value. May be NULL.
- * @param y	where to return the vertical offset value. May be NULL.
- * @param w	where to return the width value. May be NULL.
- * @param h	where to return the height value. May be NULL.
+ * @brief Gets the screen geometry details for the screen that a window is on.
  *
- * @ingroup Win
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window to query
+ * @param[out] x The coordinate at which to return the horizontal offset value \n
+ *          This may be @c NULL.
+ * @param[out] y The coordinate at which to return the vertical offset value \n
+ *          This may be @c NULL.
+ * @param[out] w The coordinate at which to return the width value \n
+ *          This may be @c NULL.
+ * @param[out] h The coordinate at which to return the height value \n
+ *          This may be @c NULL.
  */
 EAPI void                  elm_win_screen_size_get(const Evas_Object *obj, int *x, int *y, int *w, int *h);
 
 /**
- * Set the enabled status for the focus highlight in a window
+ * @brief Gets the screen dpi for the screen that a window is on.
  *
- * This function will enable or disable the focus highlight only for the
- * given window, regardless of the global setting for it
+ * @since 1.7
  *
- * @param obj The window where to enable the highlight
- * @param enabled The enabled value for the highlight
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window to query
+ * @param[out] xdpi The pointer to the value that stores the returned horizontal dpi \n
+ *             This may be @c NULL.
+ * @param[out] ydpi The pointer to the value that stores the returned vertical dpi \n
+ *             This may be @c NULL.
+ */
+EAPI void                  elm_win_screen_dpi_get(const Evas_Object *obj, int *xdpi, int *ydpi);
+
+/**
+ * @brief Sets the enabled status for the focus highlight in a window.
+ *
+ * @details This function enables or disables the focus highlight only for the
+ *          given window, regardless of the global setting for it.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window for which to enable highlight
+ * @param[in] enabled The enabled value for the highlight
  */
 EAPI void                  elm_win_focus_highlight_enabled_set(Evas_Object *obj, Eina_Bool enabled);
 
 /**
- * Get the enabled value of the focus highlight for this window
+ * @brief Gets the enabled value of the focus highlight for this window.
  *
- * @param obj The window in which to check if the focus highlight is enabled
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @return EINA_TRUE if enabled, EINA_FALSE otherwise
+ * @param[in] obj The window in which to check if the focus highlight is enabled
  *
- * @ingroup Win
+ * @return @c EINA_TRUE if enabled,
+ *         otherwise @c EINA_FALSE
  */
 EAPI Eina_Bool             elm_win_focus_highlight_enabled_get(const Evas_Object *obj);
 
 /**
- * Set the style for the focus highlight on this window
+ * @brief Sets the style for the focus highlight on this window.
  *
- * Sets the style to use for theming the highlight of focused objects on
- * the given window. If @p style is NULL, the default will be used.
+ * @details This sets the style to use for theming the highlight of focused objects on
+ *          the given window. If @a style is @c NULL, the default value is used.
  *
- * @param obj The window where to set the style
- * @param style The style to set
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window for which to set the style
+ * @param[in] style The style to set
  */
 EAPI void                  elm_win_focus_highlight_style_set(Evas_Object *obj, const char *style);
 
 /**
- * Get the style set for the focus highlight object
+ * @brief Gets the style set for the focus highlight object.
  *
- * Gets the style set for this windows highlight object, or NULL if none
- * is set.
+ * @details This gets the style set for this windows highlight object, otherwise @c NULL if no style
+ *          is set.
  *
- * @param obj The window to retrieve the highlights style from
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @return The style set or NULL if none was. Default is used in that case.
+ * @param[in] obj The window from which to retrieve the highlight style
  *
- * @ingroup Win
+ * @return The style set, otherwise @c NULL if no style is set \n
+ *         The default value is used in that case.
  */
 EAPI const char           *elm_win_focus_highlight_style_get(const Evas_Object *obj);
 
 /**
- * Sets the keyboard mode of the window.
+ * @brief Sets the keyboard mode of the window.
  *
- * @param obj The window object
- * @param mode The mode to set, one of #Elm_Win_Keyboard_Mode
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] mode The mode to set, one from #Elm_Win_Keyboard_Mode
  */
 EAPI void                  elm_win_keyboard_mode_set(Evas_Object *obj, Elm_Win_Keyboard_Mode mode);
 
 /**
- * Gets the keyboard mode of the window.
+ * @brief Gets the keyboard mode of the window.
  *
- * @param obj The window object
- * @return The mode, one of #Elm_Win_Keyboard_Mode
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return The mode, one from #Elm_Win_Keyboard_Mode
  */
 EAPI Elm_Win_Keyboard_Mode elm_win_keyboard_mode_get(const Evas_Object *obj);
 
 /**
- * Sets whether the window is a keyboard.
+ * @brief Sets whether the window is a keyboard.
  *
- * @param obj The window object
- * @param is_keyboard If true, the window is a virtual keyboard
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] is_keyboard If @c true the window is a virtual keyboard,
+ *                    otherwise @c false
  */
 EAPI void                  elm_win_keyboard_win_set(Evas_Object *obj, Eina_Bool is_keyboard);
 
 /**
- * Gets whether the window is a keyboard.
+ * @brief Gets whether the window is a keyboard.
  *
- * @param obj The window object
- * @return If the window is a virtual keyboard
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return @c true if the window is a virtual keyboard,
+ *         otherwise @c false
  */
 EAPI Eina_Bool             elm_win_keyboard_win_get(const Evas_Object *obj);
 
 /**
- * Sets the indicator mode of the window.
+ * @brief Sets the indicator mode of the window.
  *
- * @param obj The window object
- * @param mode The mode to set, one of #Elm_Win_Indicator_Mode
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] mode The mode to set, one from #Elm_Win_Indicator_Mode
  */
 EAPI void                  elm_win_indicator_mode_set(Evas_Object *obj, Elm_Win_Indicator_Mode mode);
 
-// WRAPPER: Temperary added.
-EAPI void                  elm_win_indicator_state_set(Evas_Object *obj, Elm_Win_Indicator_Mode mode);
-
 /**
- * Gets the indicator mode of the window.
+ * @brief Gets the indicator mode of the window.
  *
- * @param obj The window object
- * @return The mode, one of #Elm_Win_Indicator_Mode
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return The mode, one from #Elm_Win_Indicator_Mode
  */
 EAPI Elm_Win_Indicator_Mode elm_win_indicator_mode_get(const Evas_Object *obj);
 
-// WRAPPER: Temperary added.
-EAPI Elm_Win_Indicator_Mode elm_win_indicator_state_get(const Evas_Object *obj);
-
 /**
- * Sets the indicator opacity mode of the window.
+ * @brief Sets the indicator opacity mode of the window.
  *
- * @param obj The window object
- * @param mode The mode to set, one of #Elm_Win_Indicator_Opacity_Mode
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] mode The mode to set, one from #Elm_Win_Indicator_Opacity_Mode
  */
 EAPI void                  elm_win_indicator_opacity_set(Evas_Object *obj, Elm_Win_Indicator_Opacity_Mode mode);
 
 /**
- * Gets the indicator opacity mode of the window.
+ * @brief Gets the indicator opacity mode of the window.
  *
- * @param obj The window object
- * @return The mode, one of #Elm_Win_Indicator_Opacity_Mode
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @return The mode, one from #Elm_Win_Indicator_Opacity_Mode
  */
 EAPI Elm_Win_Indicator_Opacity_Mode elm_win_indicator_opacity_get(const Evas_Object *obj);
 
 /**
- * Get the screen position of a window.
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Sets the indicator type mode of the window.
  *
  * @param obj The window object
- * @param x The int to store the x coordinate to
- * @param y The int to store the y coordinate to
+ * @param mode The mode to set, one from #Elm_Win_Indicator_Type_Mode
+ */
+EAPI void                  elm_win_indicator_type_set(Evas_Object *obj, Elm_Win_Indicator_Type_Mode mode);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
  *
- * @ingroup Win
+ * @brief Gets the indicator type mode of the window.
+ *
+ * @param obj The window object
+ * @return The mode, one from #Elm_Win_Indicator_Type_Mode
+ */
+EAPI Elm_Win_Indicator_Type_Mode elm_win_indicator_type_get(const Evas_Object *obj);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Enable the indicator fixed style of the window.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks It's disabled by default.
+ *
+ * @param[in] obj object to enable the fixed style on
+ * @param[in] enabled enabled state
+ */
+EAPI void                 elm_win_indicator_fixed_style_set(Evas_Object *obj, Eina_Bool enabled);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Get the indicator fixed style enabled state.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @return The indicator fixed style enabled state
+ */
+EAPI Eina_Bool            elm_win_indicator_fixed_style_get(const Evas_Object *obj);
+
+/**
+ * @brief Get the screen position of a window.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @param[out] x The integer that stores the x coordinate
+ * @param[out] y The integer that stores the y coordinate
  */
 EAPI void                  elm_win_screen_position_get(const Evas_Object *obj, int *x, int *y);
 
 /**
- * Create a socket to provide the service for Plug widget
+ * @brief Creates a socket to provide the service for a Plug widget.
  *
- * @param obj The window object
- * @param svcname The name of the service to be advertised. ensure that it is unique (when combined with @p svcnum) otherwise creation may fail.
- * @param svcnum A number (any value, 0 being the common default) to differentiate multiple instances of services with the same name.
- * @param svcsys A boolean that if true, specifies to create a system-wide service all users can connect to, otherwise the service is private to the user id that created the service.
- * @return If socket creation is successful
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Win
+ * @param[in] obj The window object
+ * @param[in] svcname The name of the service to be advertised \n
+ *                Ensure that it is unique (when combined with @a svcnum), otherwise the creation may fail.
+ * @param[in] svcnum A number (any value, @c 0 being the common default) to differentiate multiple instances of services with the same name
+ * @param[in] svcsys If @c true it specifies to create a system-wide service that all users can connect to, 
+ *               otherwise @c false if the service is private to the user ID that created the service
+ * @return The boolean value that indicates whether the socket creation is successful
  */
 EAPI Eina_Bool             elm_win_socket_listen(Evas_Object *obj, const char *svcname, int svcnum, Eina_Bool svcsys);
 
 /* X specific calls - won't work on non-x engines (return 0) */
 /**
- * Get the Ecore_X_Window of an Evas_Object
+ * @internal
+ * @remarks X11 only feature
+ *
+ * @brief Gets the Ecore_X_Window of an Evas_Object.
  *
  * @param obj The object
  *
- * @return The Ecore_X_Window of @p obj
- *
- * @ingroup Win
+ * @return The Ecore_X_Window of @a obj
  */
 EAPI Ecore_X_Window elm_win_xwindow_get(const Evas_Object *obj);
 
 /**
- * @}
+ * @internal
+ * @remarks Wayland only feature
+ *
+ * @brief Gets the Ecore_Wl_Window of an Evas_Object.
+ *
+ * @remarks Wayland specific call - returns NULL on non-Wayland engines
+ *
+ * @param obj The object
+ * @return The Ecore_Wl_Window of @a obj
  */
+EAPI Ecore_Wl_Window *elm_win_wl_window_get(const Evas_Object *obj);
 
 /**
- * @defgroup Inwin Inwin
- * @ingroup Win
+ * @typedef Elm_Win_Trap
  *
- * @image html img/widget/inwin/preview-00.png
- * @image latex img/widget/inwin/preview-00.eps
- * @image html img/widget/inwin/preview-01.png
- * @image latex img/widget/inwin/preview-01.eps
- * @image html img/widget/inwin/preview-02.png
- * @image latex img/widget/inwin/preview-02.eps
+ * @brief Trap can be set with elm_win_trap_set() and intercepts the
+ *        calls to internal ecore_evas with the same name and parameters. If
+ *        there is a trap and it returns @c EINA_TRUE then the call is
+ *        allowed, otherwise it is ignored.
  *
- * An inwin is a window inside a window that is useful for a quick popup.
- * It does not hover.
+ * @since 1.7
  *
- * It works by creating an object that will occupy the entire window, so it
- * must be created using an @ref Win "elm_win" as parent only. The inwin
- * object can be hidden or restacked below every other object if it's
- * needed to show what's behind it without destroying it. If this is done,
- * the elm_win_inwin_activate() function can be used to bring it back to
- * full visibility again.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * There are three styles available in the default theme. These are:
- * @li default: The inwin is sized to take over most of the window it's
- * placed in.
- * @li minimal: The size of the inwin will be the minimum necessary to show
- * its contents.
- * @li minimal_vertical: Horizontally, the inwin takes as much space as
- * possible, but it's sized vertically the most it needs to fit its\
- * contents.
- *
- * Some examples of Inwin can be found in the following:
- * @li @ref inwin_example_01
- *
- * @{
  */
+typedef struct _Elm_Win_Trap Elm_Win_Trap;
+struct _Elm_Win_Trap
+{
+#define ELM_WIN_TRAP_VERSION (1UL)
+   unsigned long version;
+   void *(*add)(Evas_Object *o); /**< Object is just added. The returned pointer is handled to every other trap call */
+   void (*del)(void *data, Evas_Object *o); /**< Object is deleted */
+   Eina_Bool (*hide)(void *data, Evas_Object *o);
+   Eina_Bool (*show)(void *data, Evas_Object *o);
+   Eina_Bool (*move)(void *data, Evas_Object *o, int x, int y);
+   Eina_Bool (*resize)(void *data, Evas_Object *o, int w, int h);
+   Eina_Bool (*center)(void *data, Evas_Object *o); /* not in ecore_evas, but nice to trap */
+   Eina_Bool (*lower)(void *data, Evas_Object *o);
+   Eina_Bool (*raise)(void *data, Evas_Object *o);
+   Eina_Bool (*activate)(void *data, Evas_Object *o);
+   Eina_Bool (*alpha_set)(void *data, Evas_Object *o, Eina_Bool alpha);
+   Eina_Bool (*aspect_set)(void *data, Evas_Object *o, double aspect);
+   Eina_Bool (*avoid_damage_set)(void *data, Evas_Object *o, Ecore_Evas_Avoid_Damage_Type on);
+   Eina_Bool (*borderless_set)(void *data, Evas_Object *o, Eina_Bool on);
+   Eina_Bool (*demand_attention_set)(void *data, Evas_Object *o, Eina_Bool on);
+   Eina_Bool (*focus_skip_set)(void *data, Evas_Object *o, Eina_Bool skip);
+   Eina_Bool (*fullscreen_set)(void *data, Evas_Object *o, Eina_Bool on);
+   Eina_Bool (*iconified_set)(void *data, Evas_Object *o, Eina_Bool on);
+   Eina_Bool (*layer_set)(void *data, Evas_Object *o, int layer);
+   Eina_Bool (*manual_render_set)(void *data, Evas_Object *o, Eina_Bool manual_render);
+   Eina_Bool (*maximized_set)(void *data, Evas_Object *o, Eina_Bool on);
+   Eina_Bool (*modal_set)(void *data, Evas_Object *o, Eina_Bool on);
+   Eina_Bool (*name_class_set)(void *data, Evas_Object *o, const char *n, const char *c);
+   Eina_Bool (*object_cursor_set)(void *data, Evas_Object *o, Evas_Object *obj, int layer, int hot_x, int hot_y);
+   Eina_Bool (*override_set)(void *data, Evas_Object *o, Eina_Bool on);
+   Eina_Bool (*rotation_set)(void *data, Evas_Object *o, int rot);
+   Eina_Bool (*rotation_with_resize_set)(void *data, Evas_Object *o, int rot);
+   Eina_Bool (*shaped_set)(void *data, Evas_Object *o, Eina_Bool shaped);
+   Eina_Bool (*size_base_set)(void *data, Evas_Object *o, int w, int h);
+   Eina_Bool (*size_step_set)(void *data, Evas_Object *o, int w, int h);
+   Eina_Bool (*size_min_set)(void *data, Evas_Object *o, int w, int h);
+   Eina_Bool (*size_max_set)(void *data, Evas_Object *o, int w, int h);
+   Eina_Bool (*sticky_set)(void *data, Evas_Object *o, Eina_Bool sticky);
+   Eina_Bool (*title_set)(void *data, Evas_Object *o, const char *t);
+   Eina_Bool (*urgent_set)(void *data, Evas_Object *o, Eina_Bool urgent);
+   Eina_Bool (*withdrawn_set)(void *data, Evas_Object *o, Eina_Bool withdrawn);
+};
 
 /**
- * Adds an inwin to the current window
+ * @brief Sets the trap to be used for internal @c Ecore_Evas management.
  *
- * The @p obj used as parent @b MUST be an @ref Win "Elementary Window".
- * Never call this function with anything other than the top-most window
- * as its parameter, unless you are fond of undefined behavior.
+ * @since 1.7
  *
- * After creating the object, the widget will set itself as resize object
- * for the window with elm_win_resize_object_add(), so when shown it will
- * appear to cover almost the entire window (how much of it depends on its
- * content and the style used). It must not be added into other container
- * objects and it needs not be moved or resized manually.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param parent The parent object
- * @return The new object or NULL if it cannot be created
+ * @remarks This is an advanced feature that you should avoid using.
  *
- * @ingroup Inwin
+ * @param[in] trap The trap to be used, otherwise @c NULL to remove traps \n
+ *             The pointer is not modified or copied, it is kept alive.
+ * @return @c EINA_TRUE on success, 
+ *         otherwise @c EINA_FALSE if there is a
+ *         problem, such as an invalid version number
  */
-EAPI Evas_Object *elm_win_inwin_add(Evas_Object *parent);
+EAPI Eina_Bool elm_win_trap_set(const Elm_Win_Trap *trap);
 
 /**
- * Activates an inwin object, ensuring its visibility
+ * @brief Sets the floating mode of a window.
  *
- * This function will make sure that the inwin @p obj is completely visible
- * by calling evas_object_show() and evas_object_raise() on it, to bring it
- * to the front. It also sets the keyboard focus to it, which will be passed
- * onto its content.
+ * @since 1.8
  *
- * The object's theme will also receive the signal "elm,action,show" with
- * source "elm".
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The inwin to activate
+ * @param[in] obj The window object
+ * @param[in] floating If @c true the window is in the floating mode,
+ *                 otherwise @c false
  *
- * @ingroup Inwin
- */
-EAPI void         elm_win_inwin_activate(Evas_Object *obj);
-
-/**
- * Set the content of an inwin object.
- *
- * Once the content object is set, a previously set one will be deleted.
- * If you want to keep that old content object, use the
- * elm_win_inwin_content_unset() function.
- *
- * @param obj The inwin object
- * @param content The object to set as content
- *
- * @ingroup Inwin
- */
-EAPI void         elm_win_inwin_content_set(Evas_Object *obj, Evas_Object *content);
-
-/**
- * Get the content of an inwin object.
- *
- * Return the content object for this widget.
- *
- * The returned object is valid as long as the inwin is still alive and no
- * other content is set on it. Deleting the object will notify the inwin
- * about it and this one will be left empty.
- *
- * If you need to remove an inwin's content to be reused somewhere else,
- * see elm_win_inwin_content_unset().
- *
- * @param obj The inwin object
- * @return The content that is being used
- *
- * @ingroup Inwin
- */
-EAPI Evas_Object *elm_win_inwin_content_get(const Evas_Object *obj);
-
-/**
- * Unset the content of an inwin object.
- *
- * Unparent and return the content object which was set for this widget.
- *
- * @param obj The inwin object
- * @return The content that was being used
- *
- * @ingroup Inwin
- */
-EAPI Evas_Object *elm_win_inwin_content_unset(Evas_Object *obj);
-
-/**
- * Set the floating mode of a window.
- *
- * @param obj The window object
- * @param floating If true, the window is floating mode
- *
- * @ingroup Win
+ * @see elm_win_floating_mode_get()
  */
 EAPI void                  elm_win_floating_mode_set(Evas_Object *obj, Eina_Bool floating);
 
 /**
- * Get the floating mode of a window.
+ * @brief Gets the floating mode of a window.
  *
- * @param obj The window object
- * @return If true, the window is floating mode
+ * @since 1.8
  *
- * @ingroup Win
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @return @c true if the window is in the floating mode,
+ *         otherwise @c false
+ *
+ * @see elm_win_floating_mode_set()
  */
 EAPI Eina_Bool             elm_win_floating_mode_get(const Evas_Object *obj);
 
+/**
+ * @brief Queries whether Windows Manager supports window rotation.
+ *
+ * @since 1.9
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks The Windows Manager rotation allows the WM to control the rotation of application windows.
+ *          It is designed to support synchronized rotation for multiple application windows at the same time.
+ *
+ * @param[in] obj The window object
+ * @return @c EINA_TRUE if the Windows Manager rotation is supported, 
+ *         otherwise @c EINA_FALSE
+ *
+ * @see elm_win_wm_rotation_supported_get()
+ * @see elm_win_wm_rotation_preferred_rotation_set()
+ * @see elm_win_wm_rotation_preferred_rotation_get()
+ * @see elm_win_wm_rotation_available_rotations_set()
+ * @see elm_win_wm_rotation_available_rotations_get()
+ * @see elm_win_wm_rotation_manual_rotation_done_set()
+ * @see elm_win_wm_rotation_manual_rotation_done_get()
+ * @see elm_win_wm_rotation_manual_rotation_done()
+ */
+EAPI Eina_Bool             elm_win_wm_rotation_supported_get(const Evas_Object *obj);
+
+/**
+ * @brief Set the preferred rotation value.
+ *
+ * @details This function is used to set the orientation of window @p obj to spicific angle fixed.
+ *
+ * @since 1.9
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @param[in] rotation The preferred rotation of the window in degrees (0-360),
+ *        counter-clockwise.
+ *
+ * @see elm_win_wm_rotation_preferred_rotation_get()
+ */
+EAPI void                  elm_win_wm_rotation_preferred_rotation_set(Evas_Object *obj, const int rotation);
+
+/**
+ * @brief Gets the preferred rotation value.
+ *
+ * @details This function is used to get the preferred rotation value.
+ *
+ * @since 1.9
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @return The preferred rotation of the window, in degrees (0-360),
+ *         counter-clockwise
+ *
+ * @see elm_win_wm_rotation_preferred_rotation_set()
+ */
+EAPI int                   elm_win_wm_rotation_preferred_rotation_get(const Evas_Object *obj);
+
+/**
+ * @brief Sets the array of available window rotations.
+ *
+ * @details This function is used to set the available rotations to give hints to WM.
+ *          WM refers these hints and sets the orientation of the window properly.
+ *
+ * @since 1.9
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @param[in] rotations The array of rotation values
+ * @param[in] count The number of arrays of rotations
+ *
+ * @see elm_win_wm_rotation_available_rotations_get()
+ */
+EAPI void                  elm_win_wm_rotation_available_rotations_set(Evas_Object *obj, const int *rotations, unsigned int count);
+
+/**
+ * @brief Gets the array of available window rotations.
+ *
+ * @details This function is used to get the available rotations.
+ *
+ * @since 1.9
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @param[out] rotations The array of rotation values
+ * @param[out] count The number of arrays of rotations
+ * @return #EINA_TRUE if succeed, otherwise #EINA_FALSE
+ *
+ * @see elm_win_wm_rotation_available_rotations_set()
+ */
+EAPI Eina_Bool             elm_win_wm_rotation_available_rotations_get(const Evas_Object *obj, int **rotations, unsigned int *count);
+
+/**
+ * @brief Sets the manual rotation done mode of the window.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @param[in] set If @c true, the Windows Manager does not rotate the window until
+ *            the rotation done event is received by elm_win_wm_rotation_manual_rotation_done,
+ *            otherwise @c false if the manual rotation mode is disabled
+ *
+ * @see elm_win_wm_rotation_manual_rotation_done_get()
+ * @see elm_win_wm_rotation_manual_rotation_done()
+ */
+EAPI void                  elm_win_wm_rotation_manual_rotation_done_set(Evas_Object *obj, Eina_Bool set);
+
+/**
+ * @brief Gets the manual rotation done mode of the window.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ * @return @c true if the manual rotation done mode is enabled,
+ *         otherwise @c false
+ *
+ * @see elm_win_wm_rotation_manual_rotation_done_set()
+ * @see elm_win_wm_rotation_manual_rotation_done()
+ */
+EAPI Eina_Bool             elm_win_wm_rotation_manual_rotation_done_get(const Evas_Object *obj);
+
+/**
+ * @brief Sets the rotation finish manually.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The window object
+ *
+ * @see elm_win_wm_rotation_manual_rotation_done_set()
+ * @see elm_win_wm_rotation_manual_rotation_done_get()
+ */
+EAPI void                  elm_win_wm_rotation_manual_rotation_done(Evas_Object *obj);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Sets the desktop layout support state.
+ *
+ * @param obj The window object
+ * @param support If @c true, the Windows Manager provides the desktop layout mode,
+ *                otherwise @c false if the Windows Manager sets the window to the normal mode
+ */
+EAPI void                  elm_win_wm_desktop_layout_support_set(Evas_Object *obj, const Eina_Bool support);
+
+/**
+ * @internal
+ * @remarks Tizen only feature 2013.12.07
+ *
+ * @brief For making unfocusable elm_window to be focusable.
+ */
+EAPI void                  elm_win_focus_allow_set(Evas_Object *obj, Eina_Bool enable);
+
+/**
+ * @internal
+ * @remarks Tizen only feature 2013.12.07
+ *
+ * @brief For making unfocusable elm_window to be focusable.
+ */
+EAPI Eina_Bool             elm_win_focus_allow_get(const Evas_Object *obj);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Gets the list of supported auxiliary hint strings.
+ *
+ * @since 1.8
+ *
+ * @remarks Do not change the returned list of contents. Auxiliary hint
+ *          strings are internal and should be considered constants, do not free or
+ *          modify them.
+ * @remarks Support for this depends on the underlying windowing system.
+ *
+ * @remarks The window auxiliary hint is the value that is used to decide which action should
+ *          be made available to the user by the Windows Manager. If you want to set a specific hint
+ *          to your window, then you should check whether it exists in the supported auxiliary
+ *          hints that are registered in the root window by the Windows Manager. Once you have added
+ *          an auxiliary hint, you can get a new ID which is used to change the value and delete the hint.
+ *          The Windows Manager sends a response message to the application on receiving the auxiliary
+ *          hint change event.
+ *
+ * @param obj The window object
+ * @return The list of supported auxiliary hint strings
+ */
+EAPI const Eina_List      *elm_win_aux_hints_supported_get(const Evas_Object *obj);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Creates an auxiliary hint of the window.
+ *
+ * @since 1.8
+ *
+ * @remarks Support for this depends on the underlying windowing system.
+ *
+ * @param obj The window object
+ * @param hint The auxiliary hint string
+ * @param val The value string
+ * @return The ID of the created auxiliary hint,
+ *         otherwise @c -1 on failure
+ */
+EAPI int                   elm_win_aux_hint_add(Evas_Object *obj, const char *hint, const char *val);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Deletes an auxiliary hint of the window.
+ *
+ * @since 1.8
+ *
+ * @remarks Support for this depends on the underlying windowing system.
+ * @param obj The window object
+ * @param id The ID of the auxiliary hint
+ * @return @c EINA_TRUE if no error occurs, 
+ *         otherwise @c EINA_FALSE
+ */
+EAPI Eina_Bool             elm_win_aux_hint_del(Evas_Object *obj, const int id);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Changes a value of the auxiliary hint.
+ *
+ * @since 1.8
+ *
+ * @remarks Support for this depends on the underlying windowing system.
+ * @param obj The window object
+ * @param id The auxiliary hint ID
+ * @param val The value string to be set
+ * @return @c EINA_TRUE if no error occurs,
+ *         otherwise @c EINA_FALSE
+ */
+EAPI Eina_Bool             elm_win_aux_hint_val_set(Evas_Object *obj, const int id, const char *val);
 
 /**
  * @}
  */
-

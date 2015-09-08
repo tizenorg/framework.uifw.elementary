@@ -1,106 +1,133 @@
 #include <Elementary.h>
 #include "elm_priv.h"
+#include "elm_widget_separator.h"
 
-typedef struct _Widget_Data Widget_Data;
+EAPI const char ELM_SEPARATOR_SMART_NAME[] = "elm_separator";
 
-struct _Widget_Data
+EVAS_SMART_SUBCLASS_NEW
+  (ELM_SEPARATOR_SMART_NAME, _elm_separator, Elm_Separator_Smart_Class,
+  Elm_Layout_Smart_Class, elm_layout_smart_class_get, NULL);
+
+static Eina_Bool
+_elm_separator_smart_theme(Evas_Object *obj)
 {
-   Evas_Object *sep;
-   Eina_Bool horizontal;
-};
+   ELM_SEPARATOR_DATA_GET(obj, sd);
 
-static const char *widtype = NULL;
-static void _del_hook(Evas_Object *obj);
-static void _mirrored_set(Evas_Object *obj, Eina_Bool rtl);
-static void _theme_hook(Evas_Object *obj);
-static void _sizing_eval(Evas_Object *obj);
-
-static void
-_del_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   free(wd);
-}
-
-static void
-_mirrored_set(Evas_Object *obj, Eina_Bool rtl)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   edje_object_mirrored_set(wd->sep, rtl);
-}
-
-static void
-_theme_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   _elm_widget_mirrored_reload(obj);
-   _mirrored_set(obj, elm_widget_mirrored_get(obj));
-   if (wd->horizontal)
-     _elm_theme_object_set(obj, wd->sep, "separator", "horizontal", elm_widget_style_get(obj));
+   if (sd->horizontal)
+     eina_stringshare_replace(&(ELM_LAYOUT_DATA(sd)->group), "horizontal");
    else
-     _elm_theme_object_set(obj, wd->sep, "separator", "vertical", elm_widget_style_get(obj));
-   edje_object_scale_set(wd->sep, elm_widget_scale_get(obj) * _elm_config->scale);
-   _sizing_eval(obj);
+     eina_stringshare_replace(&(ELM_LAYOUT_DATA(sd)->group), "vertical");
+
+   if (!ELM_WIDGET_CLASS(_elm_separator_parent_sc)->theme(obj))
+     return EINA_FALSE;
+
+   return EINA_TRUE;
 }
 
 static void
-_sizing_eval(Evas_Object *obj)
+_elm_separator_smart_sizing_eval(Evas_Object *obj)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
    Evas_Coord minw = -1, minh = -1, maxw = -1, maxh = -1;
-   if (!wd) return;
-   edje_object_size_min_calc(wd->sep, &minw, &minh);
+
+   ELM_SEPARATOR_DATA_GET(obj, sd);
+
+   edje_object_size_min_calc(ELM_WIDGET_DATA(sd)->resize_obj, &minw, &minh);
    evas_object_size_hint_min_set(obj, minw, minh);
    evas_object_size_hint_max_set(obj, maxw, maxh);
    evas_object_size_hint_align_set(obj, maxw, maxh);
+}
+
+static void
+_elm_separator_smart_add(Evas_Object *obj)
+{
+   EVAS_SMART_DATA_ALLOC(obj, Elm_Separator_Smart_Data);
+
+   ELM_WIDGET_CLASS(_elm_separator_parent_sc)->base.add(obj);
+
+}
+
+static void
+_elm_separator_smart_set_user(Elm_Separator_Smart_Class *sc)
+{
+   ELM_WIDGET_CLASS(sc)->base.add = _elm_separator_smart_add;
+
+   ELM_WIDGET_CLASS(sc)->theme = _elm_separator_smart_theme;
+
+   /* not a 'focus chain manager' */
+   ELM_WIDGET_CLASS(sc)->focus_next = NULL;
+   ELM_WIDGET_CLASS(sc)->focus_direction_manager_is = NULL;
+   ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
+
+   ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_separator_smart_sizing_eval;
+}
+
+EAPI const Elm_Separator_Smart_Class *
+elm_separator_smart_class_get(void)
+{
+   static Elm_Separator_Smart_Class _sc =
+     ELM_SEPARATOR_SMART_CLASS_INIT_NAME_VERSION(ELM_SEPARATOR_SMART_NAME);
+   static const Elm_Separator_Smart_Class *class = NULL;
+
+   if (class)
+     return class;
+
+   _elm_separator_smart_set(&_sc);
+   class = &_sc;
+
+   return class;
 }
 
 EAPI Evas_Object *
 elm_separator_add(Evas_Object *parent)
 {
    Evas_Object *obj;
-   Evas *e;
-   Widget_Data *wd;
 
-   ELM_WIDGET_STANDARD_SETUP(wd, Widget_Data, parent, e, obj, NULL);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
 
-   ELM_SET_WIDTYPE(widtype, "separator");
-   wd->horizontal = EINA_FALSE;
-   elm_widget_type_set(obj, "separator");
-   elm_widget_sub_object_add(parent, obj);
-   elm_widget_data_set(obj, wd);
-   elm_widget_del_hook_set(obj, _del_hook);
-   elm_widget_theme_hook_set(obj, _theme_hook);
+   obj = elm_widget_add(_elm_separator_smart_class_new(), parent);
+   if (!obj) return NULL;
+
+   if (!elm_widget_sub_object_add(parent, obj))
+     ERR("could not add %p as sub object of %p", obj, parent);
+
+   ELM_SEPARATOR_DATA_GET(obj, sd);
+
+   sd->horizontal = EINA_FALSE;
+
    elm_widget_can_focus_set(obj, EINA_FALSE);
 
-   wd->sep = edje_object_add(e);
-   _elm_theme_object_set(obj, wd->sep, "separator", "vertical", "default");
-   elm_widget_resize_object_set(obj, wd->sep);
-   _mirrored_set(obj, elm_widget_mirrored_get(obj));
-   _sizing_eval(obj);
+   elm_layout_theme_set
+     (obj, "separator", "vertical", elm_widget_style_get(obj));
+
+   elm_layout_sizing_eval(obj);
+
+   //Tizen Only: This should be removed when eo is applied.
+   ELM_WIDGET_DATA_GET(obj, wsd);
+   wsd->on_create = EINA_FALSE;
+
    return obj;
 }
 
 EAPI void
-elm_separator_horizontal_set(Evas_Object *obj, Eina_Bool horizontal)
+elm_separator_horizontal_set(Evas_Object *obj,
+                             Eina_Bool horizontal)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   ELM_SEPARATOR_CHECK(obj);
+   ELM_SEPARATOR_DATA_GET(obj, sd);
+
    horizontal = !!horizontal;
-   if (wd->horizontal == horizontal) return;
-   wd->horizontal = horizontal;
-   _theme_hook(obj);
+   if (sd->horizontal == horizontal) return;
+
+   sd->horizontal = horizontal;
+
+   _elm_separator_smart_theme(obj);
 }
 
 EAPI Eina_Bool
 elm_separator_horizontal_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) EINA_FALSE;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return EINA_FALSE;
-   return wd->horizontal;
+   ELM_SEPARATOR_CHECK(obj) EINA_FALSE;
+   ELM_SEPARATOR_DATA_GET(obj, sd);
+
+   return sd->horizontal;
 }

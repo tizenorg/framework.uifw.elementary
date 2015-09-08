@@ -297,6 +297,31 @@ tst_change(void *data       __UNUSED__,
 }
 
 static void
+tsht_round(void *data       __UNUSED__,
+          Evas_Object     *obj,
+          void *event_info __UNUSED__)
+{
+   double val = elm_slider_value_get(obj);
+   double v;
+
+   v = ((double)((int)(val * 10.0))) / 10.0;
+   if (v != val) elm_slider_value_set(obj, v);
+}
+
+static void
+tsht_change(void *data       __UNUSED__,
+           Evas_Object     *obj,
+           void *event_info __UNUSED__)
+{
+   double tst = elm_config_scroll_thumbscroll_hold_threshold_get();
+   double val = elm_slider_value_get(obj);
+
+   if (tst == val) return;
+   elm_config_scroll_thumbscroll_hold_threshold_set(val);
+   elm_config_all_flush();
+}
+
+static void
 tsmt_round(void *data       __UNUSED__,
            Evas_Object     *obj,
            void *event_info __UNUSED__)
@@ -322,6 +347,31 @@ tsmt_change(void *data       __UNUSED__,
 }
 
 static void
+tsfdt_round(void *data       __UNUSED__,
+            Evas_Object     *obj,
+            void *event_info __UNUSED__)
+{
+   double val = elm_slider_value_get(obj);
+   double v;
+
+   v = ((double)((int)(val * 10.0))) / 10.0;
+   if (v != val) elm_slider_value_set(obj, v);
+}
+
+static void
+tsfdt_change(void *data       __UNUSED__,
+             Evas_Object     *obj,
+             void *event_info __UNUSED__)
+{
+   double tsfdt = elm_config_scroll_thumbscroll_flick_distance_tolerance_get();
+   double val = elm_slider_value_get(obj);
+
+   if (tsfdt == val) return;
+   elm_config_scroll_thumbscroll_flick_distance_tolerance_set(val);
+   elm_config_all_flush();
+}
+
+static void
 tsf_round(void *data       __UNUSED__,
           Evas_Object     *obj,
           void *event_info __UNUSED__)
@@ -343,6 +393,56 @@ tsf_change(void *data       __UNUSED__,
 
    if (tsf == val) return;
    elm_config_scroll_thumbscroll_friction_set(val);
+   elm_config_all_flush();
+}
+
+static void
+tsmf_round(void *data       __UNUSED__,
+           Evas_Object     *obj,
+           void *event_info __UNUSED__)
+{
+   double val = elm_slider_value_get(obj);
+   double v;
+
+   v = ((double)((int)(val * 10.0))) / 10.0;
+   if (v != val) elm_slider_value_set(obj, v);
+}
+
+static void
+tsmf_change(void *data       __UNUSED__,
+            Evas_Object     *obj,
+            void *event_info __UNUSED__)
+{
+   double tsmf = elm_config_scroll_thumbscroll_min_friction_get();
+   double val = elm_slider_value_get(obj);
+
+   if (tsmf == val) return;
+   elm_config_scroll_thumbscroll_min_friction_set(val);
+   elm_config_all_flush();
+}
+
+static void
+tsfs_round(void *data       __UNUSED__,
+           Evas_Object     *obj,
+           void *event_info __UNUSED__)
+{
+   double val = elm_slider_value_get(obj);
+   double v;
+
+   v = ((double)((int)(val * 10.0))) / 10.0;
+   if (v != val) elm_slider_value_set(obj, v);
+}
+
+static void
+tsfs_change(void *data       __UNUSED__,
+            Evas_Object     *obj,
+            void *event_info __UNUSED__)
+{
+   double tsfs = elm_config_scroll_thumbscroll_friction_standard_get();
+   double val = elm_slider_value_get(obj);
+
+   if (tsfs == val) return;
+   elm_config_scroll_thumbscroll_friction_standard_set(val);
    elm_config_all_flush();
 }
 
@@ -393,6 +493,81 @@ tssf_change(void *data       __UNUSED__,
 
    if (tssf == val) return;
    elm_config_scroll_thumbscroll_sensitivity_friction_set(val);
+   elm_config_all_flush();
+}
+
+static void
+tsat_round(void *data       __UNUSED__,
+           Evas_Object     *obj,
+           void *event_info __UNUSED__)
+{
+   double val = elm_slider_value_get(obj);
+   double v;
+
+   v = ((double)((int)(val * 10.0))) / 10.0;
+   if (v != val) elm_slider_value_set(obj, v);
+}
+
+static void
+tsat_change(void *data       __UNUSED__,
+            Evas_Object     *obj,
+            void *event_info __UNUSED__)
+{
+   double tsat = elm_config_scroll_thumbscroll_acceleration_threshold_get();
+   double val = elm_slider_value_get(obj);
+
+   if (tsat == val) return;
+   elm_config_scroll_thumbscroll_acceleration_threshold_set(val);
+   elm_config_all_flush();
+}
+
+static void
+tsatl_round(void *data       __UNUSED__,
+           Evas_Object     *obj,
+           void *event_info __UNUSED__)
+{
+   double val = elm_slider_value_get(obj);
+   double v;
+
+   v = ((double)((int)(val * 10.0))) / 10.0;
+   if (v != val) elm_slider_value_set(obj, v);
+}
+
+static void
+tsatl_change(void *data       __UNUSED__,
+            Evas_Object     *obj,
+            void *event_info __UNUSED__)
+{
+   double tsatl = elm_config_scroll_thumbscroll_acceleration_time_limit_get();
+   double val = elm_slider_value_get(obj);
+
+   if (tsatl == val) return;
+   elm_config_scroll_thumbscroll_acceleration_time_limit_set(val);
+   elm_config_all_flush();
+}
+
+static void
+tsaw_round(void *data       __UNUSED__,
+           Evas_Object     *obj,
+           void *event_info __UNUSED__)
+{
+   double val = elm_slider_value_get(obj);
+   double v;
+
+   v = ((double)((int)(val * 10.0))) / 10.0;
+   if (v != val) elm_slider_value_set(obj, v);
+}
+
+static void
+tsaw_change(void *data       __UNUSED__,
+            Evas_Object     *obj,
+            void *event_info __UNUSED__)
+{
+   double tsaw = elm_config_scroll_thumbscroll_acceleration_weight_get();
+   double val = elm_slider_value_get(obj);
+
+   if (tsaw == val) return;
+   elm_config_scroll_thumbscroll_acceleration_weight_set(val);
    elm_config_all_flush();
 }
 
@@ -586,13 +761,40 @@ ecc_change(void *data       __UNUSED__,
 }
 
 static void
+ac_change(void *data       __UNUSED__,
+          Evas_Object     *obj,
+          void *event_info __UNUSED__)
+{
+   Eina_Bool val = elm_check_state_get(obj);
+   Eina_Bool ac = elm_config_access_get();
+
+   if (val == ac) return;
+   elm_config_access_set(val);
+   elm_config_all_flush();
+}
+
+static void
+sel_change(void *data       __UNUSED__,
+          Evas_Object     *obj,
+          void *event_info __UNUSED__)
+{
+   Eina_Bool val = elm_check_state_get(obj);
+   Eina_Bool sel = elm_config_selection_unfocused_clear_get();
+
+   if (val == sel) return;
+   elm_config_selection_unfocused_clear_set(val);
+   elm_config_all_flush();
+   elm_config_save();
+}
+
+static void
 _status_basic(Evas_Object *win,
               Evas_Object *bx0)
 {
    Evas_Object *lb, *fr;
 
    fr = elm_frame_add(win);
-   evas_object_size_hint_weight_set(fr, 1.0, 1.0);
+   evas_object_size_hint_weight_set(fr, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    elm_object_text_set(fr, "Information");
    elm_box_pack_end(bx0, fr);
    evas_object_show(fr);
@@ -732,6 +934,22 @@ _cf_caches(void            *data,
            void *event_info __UNUSED__)
 {
    _flip_to(data, "caches");
+}
+
+static void
+_cf_access(void            *data,
+           Evas_Object *obj __UNUSED__,
+           void *event_info __UNUSED__)
+{
+   _flip_to(data, "access");
+}
+
+static void
+_cf_selection(void            *data,
+           Evas_Object *obj __UNUSED__,
+           void *event_info __UNUSED__)
+{
+   _flip_to(data, "selection");
 }
 
 const char *
@@ -904,9 +1122,14 @@ _font_overlay_change(void *data       __UNUSED__,
 static void
 _config_display_update(Evas_Object *win)
 {
-   int flush_interval, font_c, image_c, edje_file_c, edje_col_c, ts_threshould;
-   double scale, s_bounce_friction, ts_momentum_threshold, ts_friction,
-          ts_border_friction, ts_sensitivity_friction, page_friction, bring_in_friction, zoom_friction;
+   int flush_interval, font_c, image_c, edje_file_c, edje_col_c, ts_threshould,
+       ts_hold_threshold;
+   double scale, s_bounce_friction, ts_momentum_threshold,
+          ts_flick_distance_tolerance, ts_friction,
+          ts_min_friction, ts_friction_standard, ts_border_friction,
+          ts_sensitivity_friction, ts_acceleration_threshold,
+          ts_acceleration_time_limit, ts_acceleration_weight, page_friction,
+          bring_in_friction, zoom_friction;
    const char *curr_theme, *curr_engine;
    const Eina_List *l_items, *l;
    Eina_Bool s_bounce, ts;
@@ -926,10 +1149,17 @@ _config_display_update(Evas_Object *win)
    s_bounce_friction = elm_config_scroll_bounce_friction_get();
    ts = elm_config_scroll_thumbscroll_enabled_get();
    ts_threshould = elm_config_scroll_thumbscroll_threshold_get();
+   ts_hold_threshold = elm_config_scroll_thumbscroll_hold_threshold_get();
    ts_momentum_threshold = elm_config_scroll_thumbscroll_momentum_threshold_get();
+   ts_flick_distance_tolerance = elm_config_scroll_thumbscroll_flick_distance_tolerance_get();
    ts_friction = elm_config_scroll_thumbscroll_friction_get();
+   ts_min_friction = elm_config_scroll_thumbscroll_min_friction_get();
+   ts_friction_standard = elm_config_scroll_thumbscroll_friction_standard_get();
    ts_border_friction = elm_config_scroll_thumbscroll_border_friction_get();
    ts_sensitivity_friction = elm_config_scroll_thumbscroll_sensitivity_friction_get();
+   ts_acceleration_threshold = elm_config_scroll_thumbscroll_acceleration_threshold_get();
+   ts_acceleration_time_limit = elm_config_scroll_thumbscroll_acceleration_time_limit_get();
+   ts_acceleration_weight = elm_config_scroll_thumbscroll_acceleration_weight_get();
    page_friction = elm_config_scroll_page_scroll_friction_get();
    bring_in_friction = elm_config_scroll_bring_in_scroll_friction_get();
    zoom_friction = elm_config_scroll_zoom_friction_get();
@@ -960,15 +1190,33 @@ _config_display_update(Evas_Object *win)
                                              "thumbscroll_threshold_slider"),
                         ts_threshould);
    elm_slider_value_set(evas_object_data_get(win,
+                                             "ts_hold_threshold_slider"),
+                        ts_hold_threshold);
+   elm_slider_value_set(evas_object_data_get(win,
                                              "ts_momentum_threshold_slider"),
                         ts_momentum_threshold);
    elm_slider_value_set(evas_object_data_get(win,
-                                             "thumbscroll_friction_slider"),
+                                             "ts_flick_distance_tolerance_slider"),
+                        ts_flick_distance_tolerance);
+   elm_slider_value_set(evas_object_data_get(win,
+                                             "ts_friction_slider"),
+                        ts_friction);
+   elm_slider_value_set(evas_object_data_get(win,
+                                             "thumbscroll_min_friction_slider"),
+                        ts_min_friction);
+   elm_slider_value_set(evas_object_data_get(win,
+                                             "thumbscroll_friction__standard_slider"),
                         ts_friction);
    elm_slider_value_set(evas_object_data_get(win, "ts_border_friction_slider"),
                         ts_border_friction);
    elm_slider_value_set(evas_object_data_get(win, "ts_sensitivity_friction_slider"),
                         ts_sensitivity_friction);
+   elm_slider_value_set(evas_object_data_get(win, "ts_acceleration_threshold_slider"),
+                        ts_acceleration_threshold);
+   elm_slider_value_set(evas_object_data_get(win, "ts_acceleration_time_limit_slider"),
+                        ts_acceleration_time_limit);
+   elm_slider_value_set(evas_object_data_get(win, "ts_acceleration_weight_slider"),
+                        ts_acceleration_weight);
    elm_slider_value_set(evas_object_data_get(win,
                                              "page_scroll_friction_slider"),
                         page_friction);
@@ -1219,35 +1467,89 @@ _status_config_sizing(Evas_Object *win,
    elm_naviframe_item_simple_push(naviframe, bx);
 }
 
+static void
+_status_config_access(Evas_Object *win,
+                      Evas_Object *naviframe)
+{
+   Evas_Object *bx, *ck;
+
+   bx = elm_box_add(win);
+   evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(bx, EVAS_HINT_FILL, 0.5);
+
+   ck = elm_check_add(win);
+   elm_object_tooltip_text_set(ck, "Set access mode");
+   elm_object_text_set(ck, "Enable Access Mode");
+   evas_object_data_set(win, "access_check", ck);
+   evas_object_size_hint_weight_set(ck, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(ck, EVAS_HINT_FILL, 0.5);
+   elm_check_state_set(ck, elm_config_access_get());
+   elm_box_pack_end(bx, ck);
+   evas_object_show(ck);
+
+   evas_object_smart_callback_add(ck, "changed", ac_change, NULL);
+
+   evas_object_data_set(win, "access", bx);
+
+   elm_naviframe_item_simple_push(naviframe, bx);
+}
+
+static void
+_status_config_selection(Evas_Object *win,
+                      Evas_Object *naviframe)
+{
+   Evas_Object *bx, *ck;
+
+   bx = elm_box_add(win);
+   evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(bx, EVAS_HINT_FILL, 0.5);
+
+   ck = elm_check_add(win);
+   elm_object_tooltip_text_set(ck, "Set selection mode");
+   elm_object_text_set(ck, "Enable clear selection when unfocus");
+   evas_object_data_set(win, "selection_check", ck);
+   evas_object_size_hint_weight_set(ck, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(ck, EVAS_HINT_FILL, 0.5);
+   elm_check_state_set(ck, elm_config_selection_unfocused_clear_get());
+   elm_box_pack_end(bx, ck);
+   evas_object_show(ck);
+
+   evas_object_smart_callback_add(ck, "changed", sel_change, NULL);
+
+   evas_object_data_set(win, "selection", bx);
+
+   elm_naviframe_item_simple_push(naviframe, bx);
+}
+
 static Evas_Object *
 _sample_theme_new(Evas_Object *win)
 {
    Evas_Object *base, *bg, *bt, *ck, *rd, *rdg, *sl, *fr, *li, *rc, *sp;
 
    base = elm_table_add(win);
-   evas_object_size_hint_weight_set(base, 1.0, 1.0);
+   evas_object_size_hint_weight_set(base, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(base, EVAS_HINT_FILL, EVAS_HINT_FILL);
 
    bg = elm_bg_add(win);
-   evas_object_size_hint_weight_set(bg, 1.0, 1.0);
+   evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(bg, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_table_pack(base, bg, 0, 0, 2, 5);
    evas_object_show(bg);
 
    bt = elm_button_add(win);
-   evas_object_size_hint_weight_set(bt, 1.0, 0.0);
+   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
    elm_object_text_set(bt, "Button");
    elm_table_pack(base, bt, 0, 0, 1, 1);
    evas_object_show(bt);
 
    ck = elm_check_add(win);
-   evas_object_size_hint_weight_set(ck, 1.0, 0.0);
+   evas_object_size_hint_weight_set(ck, EVAS_HINT_EXPAND, 0.0);
    elm_object_text_set(ck, "Check");
    elm_table_pack(base, ck, 0, 1, 1, 1);
    evas_object_show(ck);
 
    rd = elm_radio_add(win);
-   evas_object_size_hint_weight_set(rd, 1.0, 0.0);
+   evas_object_size_hint_weight_set(rd, EVAS_HINT_EXPAND, 0.0);
    elm_radio_state_value_set(rd, 0);
    elm_object_text_set(rd, "Radio 1");
    elm_table_pack(base, rd, 1, 0, 1, 1);
@@ -1255,7 +1557,7 @@ _sample_theme_new(Evas_Object *win)
    rdg = rd;
 
    rd = elm_radio_add(win);
-   evas_object_size_hint_weight_set(rd, 1.0, 0.0);
+   evas_object_size_hint_weight_set(rd, EVAS_HINT_EXPAND, 0.0);
    elm_radio_state_value_set(rd, 1);
    elm_object_text_set(rd, "Radio 2");
    elm_radio_group_add(rd, rdg);
@@ -1264,7 +1566,7 @@ _sample_theme_new(Evas_Object *win)
 
    sp = elm_separator_add(win);
    elm_separator_horizontal_set(sp, EINA_TRUE);
-   evas_object_size_hint_weight_set(sp, 1.0, 0.0);
+   evas_object_size_hint_weight_set(sp, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(sp, EVAS_HINT_FILL, 0.5);
    elm_table_pack(base, sp, 0, 2, 2, 1);
    evas_object_show(sp);
@@ -1274,7 +1576,7 @@ _sample_theme_new(Evas_Object *win)
    elm_slider_span_size_set(sl, 120);
    elm_slider_min_max_set(sl, 1, 10);
    elm_slider_value_set(sl, 4);
-   evas_object_size_hint_weight_set(sl, 1.0, 0.0);
+   evas_object_size_hint_weight_set(sl, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_table_pack(base, sl, 0, 3, 2, 1);
    evas_object_show(sl);
@@ -1282,12 +1584,12 @@ _sample_theme_new(Evas_Object *win)
    fr = elm_frame_add(win);
    elm_object_text_set(fr, "Frame");
    elm_table_pack(base, fr, 0, 4, 2, 1);
-   evas_object_size_hint_weight_set(fr, 1.0, 1.0);
+   evas_object_size_hint_weight_set(fr, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(fr, EVAS_HINT_FILL, EVAS_HINT_FILL);
    evas_object_show(fr);
 
    li = elm_list_add(win);
-   evas_object_size_hint_weight_set(li, 1.0, 1.0);
+   evas_object_size_hint_weight_set(li, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(li, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_object_content_set(fr, li);
    evas_object_show(li);
@@ -1298,7 +1600,7 @@ _sample_theme_new(Evas_Object *win)
    elm_list_go(li);
 
    rc = evas_object_rectangle_add(evas_object_evas_get(win));
-   evas_object_size_hint_weight_set(rc, 1.0, 1.0);
+   evas_object_size_hint_weight_set(rc, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_min_set(rc, 160, 120);
    elm_table_pack(base, rc, 0, 4, 2, 1);
 
@@ -1318,16 +1620,16 @@ _status_config_themes(Evas_Object *win,
    unsigned int x;
 
    tb = elm_table_add(win);
-   evas_object_size_hint_weight_set(tb, 1.0, 1.0);
+   evas_object_size_hint_weight_set(tb, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(tb, EVAS_HINT_FILL, EVAS_HINT_FILL);
 
    rc = evas_object_rectangle_add(evas_object_evas_get(win));
-   evas_object_size_hint_weight_set(rc, 1.0, 1.0);
+   evas_object_size_hint_weight_set(rc, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_min_set(rc, 0, 130);
    elm_table_pack(tb, rc, 0, 0, 1, 1);
 
    rc = evas_object_rectangle_add(evas_object_evas_get(win));
-   evas_object_size_hint_weight_set(rc, 1.0, 1.0);
+   evas_object_size_hint_weight_set(rc, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_min_set(rc, 0, 200);
    elm_table_pack(tb, rc, 0, 1, 1, 1);
 
@@ -1335,14 +1637,14 @@ _status_config_themes(Evas_Object *win,
 
    pd = elm_frame_add(win);
    elm_object_style_set(pd, "pad_medium");
-   evas_object_size_hint_weight_set(pd, 1.0, 1.0);
+   evas_object_size_hint_weight_set(pd, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(pd, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_table_pack(tb, pd, 0, 0, 1, 1);
    evas_object_show(pd);
 
    li = elm_list_add(win);
    elm_list_multi_select_set(li, EINA_TRUE);
-   evas_object_size_hint_weight_set(li, 1.0, 1.0);
+   evas_object_size_hint_weight_set(li, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(li, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_object_content_set(pd, li);
    evas_object_show(li);
@@ -1418,7 +1720,7 @@ _status_config_themes(Evas_Object *win,
 
    pd = elm_frame_add(win);
    elm_object_style_set(pd, "pad_medium");
-   evas_object_size_hint_weight_set(pd, 1.0, 1.0);
+   evas_object_size_hint_weight_set(pd, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(pd, 0.9, 0.9);
    elm_table_pack(tb, pd, 0, 0, 1, 1);
    evas_object_show(pd);
@@ -1427,28 +1729,28 @@ _status_config_themes(Evas_Object *win,
       bt = elm_button_add(win);
       evas_object_smart_callback_add(bt, "clicked", _theme_browse, win);
       elm_object_text_set(bt, "Browse...");
-      evas_object_size_hint_weight_set(bt, 1.0, 1.0);
+      evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
       evas_object_size_hint_align_set(bt, 0.9, 0.9);
       elm_object_content_set(pd, bt);
       evas_object_show(bt);
     */
    pd = elm_frame_add(win);
    elm_object_style_set(pd, "pad_medium");
-   evas_object_size_hint_weight_set(pd, 1.0, 0.0);
+   evas_object_size_hint_weight_set(pd, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(pd, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_table_pack(tb, pd, 0, 1, 1, 1);
    evas_object_show(pd);
 
    fr = elm_frame_add(win);
    elm_object_text_set(fr, "Preview");
-   evas_object_size_hint_weight_set(fr, 1.0, 1.0);
+   evas_object_size_hint_weight_set(fr, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(fr, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_object_content_set(pd, fr);
    evas_object_show(fr);
 
    sc = elm_scroller_add(win);
    elm_scroller_bounce_set(sc, EINA_FALSE, EINA_FALSE);
-   evas_object_size_hint_weight_set(sc, 1.0, 1.0);
+   evas_object_size_hint_weight_set(sc, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(sc, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_object_content_set(fr, sc);
    evas_object_show(sc);
@@ -1461,14 +1763,14 @@ _status_config_themes(Evas_Object *win,
    /////////////////////////////////////////////
    sp = elm_separator_add(win);
    elm_separator_horizontal_set(sp, EINA_TRUE);
-   evas_object_size_hint_weight_set(sp, 1.0, 0.0);
+   evas_object_size_hint_weight_set(sp, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(sp, EVAS_HINT_FILL, 0.5);
    elm_table_pack(tb, sp, 0, 2, 1, 1);
    evas_object_show(sp);
 
    pd = elm_frame_add(win);
    elm_object_style_set(pd, "pad_medium");
-   evas_object_size_hint_weight_set(pd, 1.0, 0.0);
+   evas_object_size_hint_weight_set(pd, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(pd, 0.5, 0.5);
    elm_table_pack(tb, pd, 0, 3, 1, 1);
    evas_object_show(pd);
@@ -1476,7 +1778,7 @@ _status_config_themes(Evas_Object *win,
    bt = elm_button_add(win);
    evas_object_smart_callback_add(bt, "clicked", _theme_use, win);
    elm_object_text_set(bt, "Use Theme");
-   evas_object_size_hint_weight_set(bt, 1.0, 0.0);
+   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(bt, 0.5, 0.5);
    elm_object_content_set(pd, bt);
    evas_object_show(bt);
@@ -2154,6 +2456,7 @@ _profiles_list_selected_cb(void            *data,
    else
      {
         if (desk) efreet_desktop_free(desk);
+        if (pdir) free(pdir);
         pdir = elm_config_profile_dir_get(sel_profile, EINA_FALSE);
         snprintf(buf, sizeof(buf), "%s/profile.desktop", pdir);
         desk = efreet_desktop_new(buf);
@@ -2230,6 +2533,7 @@ _profiles_list_fill(Evas_Object *l_widget,
         else
           {
              if (desk) efreet_desktop_free(desk);
+             if (pdir) free(pdir);
              pdir = elm_config_profile_dir_get(profile, EINA_FALSE);
              snprintf(buf, sizeof(buf), "%s/profile.desktop", pdir);
              desk = efreet_desktop_new(buf);
@@ -2248,8 +2552,8 @@ _profiles_list_fill(Evas_Object *l_widget,
         ext = strrchr(buf, '.');
         if (ext)
           {
-             if (!strcmp(ext, ".edj")) elm_icon_file_set(ic, buf, "icon");
-             else elm_icon_file_set(ic, buf, NULL);
+             if (!strcmp(ext, ".edj")) elm_image_file_set(ic, buf, "icon");
+             else elm_image_file_set(ic, buf, NULL);
           }
 
         evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_VERTICAL,
@@ -2520,6 +2824,26 @@ _status_config_scrolling(Evas_Object *win,
    evas_object_smart_callback_add(sl, "changed", tst_round, NULL);
    evas_object_smart_callback_add(sl, "delay,changed", tst_change, NULL);
 
+   LABEL_FRAME_ADD("<hilight>Thumb scroll hold threshold</>");
+
+   sl = elm_slider_add(win);
+   elm_object_tooltip_text_set(sl, "This is the number of pixels the range<br/>"
+                                   "which can be scrolled, while the scroller<br/>"
+                                   "is holed");
+   evas_object_data_set(win, "thumbscroll_hold_threshold_slider", sl);
+   evas_object_size_hint_weight_set(sl, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
+   elm_slider_span_size_set(sl, 120);
+   elm_slider_unit_format_set(sl, "%1.0f pixels");
+   elm_slider_indicator_format_set(sl, "%1.0f");
+   elm_slider_min_max_set(sl, 4.0, 500.0);
+   elm_slider_value_set(sl, elm_config_scroll_thumbscroll_threshold_get());
+   elm_box_pack_end(bx, sl);
+   evas_object_show(sl);
+
+   evas_object_smart_callback_add(sl, "changed", tsht_round, NULL);
+   evas_object_smart_callback_add(sl, "delay,changed", tsht_change, NULL);
+
    LABEL_FRAME_ADD("<hilight>Thumb scroll momentum threshold</>");
 
    sl = elm_slider_add(win);
@@ -2542,6 +2866,27 @@ _status_config_scrolling(Evas_Object *win,
    evas_object_smart_callback_add(sl, "delay,changed", tsmt_change,
                                   NULL);
 
+   LABEL_FRAME_ADD("<hilight>Thumb scroll flick distance tolerance</>");
+
+   sl = elm_slider_add(win);
+   elm_object_tooltip_text_set(sl, "This is the number of pixels the maximum<br/>"
+                                   "distance which can be flicked. If it is<br/>"
+                                   "flicked more than this, the flick distance<br/>"
+                                   "is same with maximum distance");
+   evas_object_data_set(win, "ts_flick_distance_tolerance_slider", sl);
+   evas_object_size_hint_weight_set(sl, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
+   elm_slider_span_size_set(sl, 120);
+   elm_slider_unit_format_set(sl, "%1.0f pixels");
+   elm_slider_indicator_format_set(sl, "%1.0f");
+   elm_slider_min_max_set(sl, 100.0, 3000.0);
+   elm_slider_value_set(sl, elm_config_scroll_thumbscroll_flick_distance_tolerance_get());
+   elm_box_pack_end(bx, sl);
+   evas_object_show(sl);
+
+   evas_object_smart_callback_add(sl, "changed", tsfdt_round, NULL);
+   evas_object_smart_callback_add(sl, "delay,changed", tsfdt_change, NULL);
+
    LABEL_FRAME_ADD("<hilight>Thumb scroll friction</>");
 
    sl = elm_slider_add(win);
@@ -2561,6 +2906,47 @@ _status_config_scrolling(Evas_Object *win,
 
    evas_object_smart_callback_add(sl, "changed", tsf_round, NULL);
    evas_object_smart_callback_add(sl, "delay,changed", tsf_change, NULL);
+
+   LABEL_FRAME_ADD("<hilight>Thumb scroll min friction</>");
+
+   sl = elm_slider_add(win);
+   elm_object_tooltip_text_set(sl, "This is the min amount of inertia a<br/>"
+                                   "scroller will impose at self scrolling<br/>"
+                                   "animations");
+   evas_object_data_set(win, "thumbscroll_min_friction_slider", sl);
+   evas_object_size_hint_weight_set(sl, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
+   elm_slider_span_size_set(sl, 120);
+   elm_slider_unit_format_set(sl, "%1.1f");
+   elm_slider_indicator_format_set(sl, "%1.1f");
+   elm_slider_min_max_set(sl, 0.0, 15.0);
+   elm_slider_value_set(sl, elm_config_scroll_thumbscroll_min_friction_get());
+   elm_box_pack_end(bx, sl);
+   evas_object_show(sl);
+
+   evas_object_smart_callback_add(sl, "changed", tsmf_round, NULL);
+   evas_object_smart_callback_add(sl, "delay,changed", tsmf_change, NULL);
+
+   LABEL_FRAME_ADD("<hilight>Thumb scroll friction standard</>");
+
+   sl = elm_slider_add(win);
+   elm_object_tooltip_text_set(sl, "This is the standard velocity of the scroller."
+                                   "<br/>The scroll animation time is same<br/>"
+                                   "with thumbscroll friction, if the velocity"
+                                   "<br/>is same with standard velocity.");
+   evas_object_data_set(win, "thumbscroll_friction_standard_slider", sl);
+   evas_object_size_hint_weight_set(sl, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
+   elm_slider_span_size_set(sl, 120);
+   elm_slider_unit_format_set(sl, "%1.0f pixel/s");
+   elm_slider_indicator_format_set(sl, "%1.0f");
+   elm_slider_min_max_set(sl, 10.0, 5000.0);
+   elm_slider_value_set(sl, elm_config_scroll_thumbscroll_friction_standard_get());
+   elm_box_pack_end(bx, sl);
+   evas_object_show(sl);
+
+   evas_object_smart_callback_add(sl, "changed", tsfs_round, NULL);
+   evas_object_smart_callback_add(sl, "delay,changed", tsfs_change, NULL);
 
    LABEL_FRAME_ADD("<hilight>Thumb scroll border friction</>");
 
@@ -2603,6 +2989,64 @@ _status_config_scrolling(Evas_Object *win,
 
    evas_object_smart_callback_add(sl, "changed", tssf_round, NULL);
    evas_object_smart_callback_add(sl, "delay,changed", tssf_change, NULL);
+
+   LABEL_FRAME_ADD("<hilight>Thumb scroll acceleration threshold</>");
+
+   sl = elm_slider_add(win);
+   elm_object_tooltip_text_set(sl, "This is the minimum speed of mouse <br/>"
+                                   "cursor movement which will accelerate<br/>"
+                                   "scrolling velocity after a<br/>"
+                                   "mouse up event (pixels/second)");
+   evas_object_data_set(win, "ts_acceleration_threshold_slider", sl);
+   evas_object_size_hint_weight_set(sl, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
+   elm_slider_span_size_set(sl, 120);
+   elm_slider_unit_format_set(sl, "%1.0f pixels/s");
+   elm_slider_indicator_format_set(sl, "%1.0f");
+   elm_slider_min_max_set(sl, 10.0, 5000.0);
+   elm_slider_value_set(sl, elm_config_scroll_thumbscroll_acceleration_threshold_get());
+   elm_box_pack_end(bx, sl);
+   evas_object_show(sl);
+
+   evas_object_smart_callback_add(sl, "changed", tsat_round, NULL);
+   evas_object_smart_callback_add(sl, "delay,changed", tsat_change, NULL);
+
+   LABEL_FRAME_ADD("<hilight>Thumb scroll acceleration time limit</>");
+
+   sl = elm_slider_add(win);
+   elm_object_tooltip_text_set(sl, "This is the time limit for<br/>"
+                                   "accelerating velocity<br/>");
+   evas_object_data_set(win, "ts_acceleration_time_limit_slider", sl);
+   evas_object_size_hint_weight_set(sl, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
+   elm_slider_span_size_set(sl, 120);
+   elm_slider_unit_format_set(sl, "%1.1f");
+   elm_slider_indicator_format_set(sl, "%1.1f");
+   elm_slider_min_max_set(sl, 0.0, 15.0);
+   elm_slider_value_set(sl, elm_config_scroll_thumbscroll_acceleration_time_limit_get());
+   elm_box_pack_end(bx, sl);
+   evas_object_show(sl);
+
+   evas_object_smart_callback_add(sl, "changed", tsatl_round, NULL);
+   evas_object_smart_callback_add(sl, "delay,changed", tsatl_change, NULL);
+
+   LABEL_FRAME_ADD("<hilight>Thumb scroll acceleration weight</>");
+
+   sl = elm_slider_add(win);
+   elm_object_tooltip_text_set(sl, "This is the weight for acceleration");
+   evas_object_data_set(win, "ts_acceleration_weight_slider", sl);
+   evas_object_size_hint_weight_set(sl, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
+   elm_slider_span_size_set(sl, 120);
+   elm_slider_unit_format_set(sl, "%1.1f");
+   elm_slider_indicator_format_set(sl, "%1.1f");
+   elm_slider_min_max_set(sl, 1.0, 10.0);
+   elm_slider_value_set(sl, elm_config_scroll_thumbscroll_acceleration_weight_get());
+   elm_box_pack_end(bx, sl);
+   evas_object_show(sl);
+
+   evas_object_smart_callback_add(sl, "changed", tsaw_round, NULL);
+   evas_object_smart_callback_add(sl, "delay,changed", tsaw_change, NULL);
 
    sp = elm_separator_add(win);
    elm_separator_horizontal_set(sp, EINA_TRUE);
@@ -2835,7 +3279,7 @@ _status_config_caches(Evas_Object *win,
    evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(bx, EVAS_HINT_FILL, 0.5);
 
-   LABEL_FRAME_ADD("<hilight>Cache Flush Interval (8 ticks pre second)</>");
+   LABEL_FRAME_ADD("<hilight>Cache Flush Interval (8 ticks per second)</>");
 
    sl = elm_slider_add(win);
    evas_object_data_set(win, "cache_flush_interval_slider", sl);
@@ -2975,7 +3419,7 @@ _status_config_full(Evas_Object *win,
    elm_toolbar_select_mode_set(tb, ELM_OBJECT_SELECT_MODE_ALWAYS);
    elm_toolbar_menu_parent_set(tb, win);
    elm_toolbar_homogeneous_set(tb, EINA_FALSE);
-   evas_object_size_hint_weight_set(tb, 1.0, 0.0);
+   evas_object_size_hint_weight_set(tb, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(tb, EVAS_HINT_FILL, EVAS_HINT_FILL);
 
    tb_sizing = elm_toolbar_item_append(tb, "zoom-fit-best", "Sizing",
@@ -2997,6 +3441,8 @@ _status_config_full(Evas_Object *win,
    elm_toolbar_item_append(tb, "video-display", "Rendering",
                            _cf_rendering, win);
    elm_toolbar_item_append(tb, "appointment-new", "Caches", _cf_caches, win);
+   elm_toolbar_item_append(tb, "stock_spellcheck", "Access", _cf_access, win);
+   elm_toolbar_item_append(tb, "clear-selection-check", "Selection", _cf_selection, win);
 
    elm_box_pack_end(bx0, tb);
    evas_object_show(tb);
@@ -3012,7 +3458,9 @@ _status_config_full(Evas_Object *win,
    _status_config_rendering(win, naviframe);
    _status_config_scrolling(win, naviframe);
    _status_config_caches(win, naviframe);
-   _status_config_sizing(win, naviframe);
+   _status_config_access(win, naviframe);
+   _status_config_selection(win, naviframe);
+   _status_config_sizing(win, naviframe); // Note: call this at the end.
 
    // FIXME uncomment after flip style fix, please
    //elm_object_style_set(naviframe, "flip");
@@ -3032,7 +3480,7 @@ win_create(void)
    evas_object_smart_callback_add(win, "delete,request", config_exit, NULL);
 
    bx0 = elm_box_add(win);
-   evas_object_size_hint_weight_set(bx0, 1.0, 1.0);
+   evas_object_size_hint_weight_set(bx0, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    elm_win_resize_object_add(win, bx0);
    evas_object_show(bx0);
 
@@ -3129,5 +3577,5 @@ elm_main(int    argc,
 }
 
 #endif
-/* All emelentary apps should use this. Put it right after elm_main() */
+/* All elementary apps should use this. Put it right after elm_main() */
 ELM_MAIN()

@@ -166,7 +166,7 @@ _color_and_icon_set(infra_data *infra, char *name, int n, int max,
 
         snprintf(infra->buf, sizeof(infra->buf),
               "%s/images/g_layer/%s_%d.png", elm_app_data_dir_get(), i->name, nn);
-        elm_icon_file_set(i->icon, infra->buf, NULL);
+        elm_image_file_set(i->icon, infra->buf, NULL);
         _icon_color_set(i, r, g, b, a);
      }
 }
@@ -501,8 +501,8 @@ Evas_Object *create_gesture_box(Evas_Object *win, icon_properties *icons,
    icons[idx].name = name;
    snprintf(buf, sizeof(buf), "%s/images/g_layer/%s_1.png",
          elm_app_data_dir_get(), icons[idx].name);
-   elm_icon_file_set(icons[idx].icon, buf, NULL);
-   elm_icon_resizable_set(icons[idx].icon, 0, 0);
+   elm_image_file_set(icons[idx].icon, buf, NULL);
+   elm_image_resizable_set(icons[idx].icon, 0, 0);
    evas_object_size_hint_align_set(icons[idx].icon, 0.5, 0.5);
    _icon_color_set(&icons[idx], INI_R, INI_G, INI_B, INI_A);
    elm_box_pack_end(bx, icons[idx].icon);
@@ -529,7 +529,7 @@ test_gesture_layer2(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
 
    infra_data *infra = _infra_data_alloc();
 
-   win = elm_win_util_standard_add("table", "Table");
+   win = elm_win_util_standard_add("gesture-layer2", "Gesture Layer 2");
    elm_win_autodel_set(win, EINA_TRUE);
    evas_object_smart_callback_add(win, "delete,request", my_win_del, infra);
 
@@ -669,9 +669,11 @@ test_gesture_layer2(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
 
    /* Gesture layer transparent object */
    r = evas_object_rectangle_add(evas_object_evas_get(win));
+   evas_object_move(r, 0, 0);
    evas_object_color_set(r, 0, 0, 0, 0);
    elm_win_resize_object_add(win, r);
-   g = elm_gesture_layer_add(r);
+
+   g = elm_gesture_layer_add(win);
    elm_gesture_layer_attach(g, r);
    evas_object_show(r);
 

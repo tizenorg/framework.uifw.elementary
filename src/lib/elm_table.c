@@ -1,48 +1,24 @@
 #include <Elementary.h>
 #include "elm_priv.h"
+#include "elm_widget_table.h"
 
-typedef struct _Widget_Data Widget_Data;
+EAPI const char ELM_TABLE_SMART_NAME[] = "elm_table";
 
-struct _Widget_Data
-{
-   Evas_Object *tbl;
-};
-
-static const char *widtype = NULL;
-static void _del_hook(Evas_Object *obj);
-static void _sizing_eval(Evas_Object *obj);
-static void _changed_size_hints(void *data, Evas *e, Evas_Object *obj, void *event_info);
-static void _sub_del(void *data, Evas_Object *obj, void *event_info);
-static void _theme_hook(Evas_Object *obj);
-
-static void
-_del_pre_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   evas_object_event_callback_del_full
-     (wd->tbl, EVAS_CALLBACK_CHANGED_SIZE_HINTS, _changed_size_hints, obj);
-   evas_object_del(wd->tbl);
-}
-
-static void
-_del_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   free(wd);
-}
+EVAS_SMART_SUBCLASS_NEW
+  (ELM_TABLE_SMART_NAME, _elm_table, Elm_Table_Smart_Class,
+  Elm_Widget_Smart_Class, elm_widget_smart_class_get, NULL);
 
 static Eina_Bool
-_elm_table_focus_next_hook(const Evas_Object *obj, Elm_Focus_Direction dir, Evas_Object **next)
+_elm_table_smart_focus_next(const Evas_Object *obj,
+                            Elm_Focus_Direction dir,
+                            Evas_Object **next)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
+   Eina_Bool ret;
    const Eina_List *items;
-   void *(*list_data_get) (const Eina_List *list);
-   Eina_List *(*list_free) (Eina_List *list);
+   Eina_List *(*list_free)(Eina_List *list);
+   void *(*list_data_get)(const Eina_List *list);
 
-   if ((!wd) || (!wd->tbl))
-     return EINA_FALSE;
+   ELM_TABLE_DATA_GET(obj, sd);
 
    /* Focus chain */
    /* TODO: Change this to use other chain */
@@ -53,15 +29,60 @@ _elm_table_focus_next_hook(const Evas_Object *obj, Elm_Focus_Direction dir, Evas
      }
    else
      {
-        items = evas_object_table_children_get(wd->tbl);
+        items = evas_object_table_children_get
+            (ELM_WIDGET_DATA(sd)->resize_obj);
         list_data_get = eina_list_data_get;
         list_free = eina_list_free;
 
         if (!items) return EINA_FALSE;
      }
 
-   Eina_Bool ret = elm_widget_focus_list_next_get(obj, items, list_data_get,
-                                                   dir, next);
+   ret = elm_widget_focus_list_next_get(obj, items, list_data_get, dir, next);
+
+   if (list_free) list_free((Eina_List *)items);
+
+   return ret;
+}
+
+static Eina_Bool
+_elm_table_smart_focus_direction_manager_is(const Evas_Object *obj __UNUSED__)
+{
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_elm_table_smart_focus_direction(const Evas_Object *obj,
+                                 const Evas_Object *base,
+                                 double degree,
+                                 Evas_Object **direction,
+                                 double *weight)
+{
+   Eina_Bool ret;
+   const Eina_List *items;
+   Eina_List *(*list_free)(Eina_List *list);
+   void *(*list_data_get)(const Eina_List *list);
+
+   ELM_TABLE_DATA_GET(obj, sd);
+
+   /* Focus chain */
+   /* TODO: Change this to use other chain */
+   if ((items = elm_widget_focus_custom_chain_get(obj)))
+     {
+        list_data_get = eina_list_data_get;
+        list_free = NULL;
+     }
+   else
+     {
+        items = evas_object_table_children_get
+            (ELM_WIDGET_DATA(sd)->resize_obj);
+        list_data_get = eina_list_data_get;
+        list_free = eina_list_free;
+
+        if (!items) return EINA_FALSE;
+     }
+
+   ret = elm_widget_focus_list_direction_get
+       (obj, base, items, list_data_get, degree, direction, weight);
 
    if (list_free)
      list_free((Eina_List *)items);
@@ -72,29 +93,33 @@ _elm_table_focus_next_hook(const Evas_Object *obj, Elm_Focus_Direction dir, Evas
 static void
 _mirrored_set(Evas_Object *obj, Eina_Bool rtl)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if ((!wd) || (!wd->tbl))
-     return;
+   ELM_TABLE_DATA_GET(obj, sd);
 
-   evas_object_table_mirrored_set(wd->tbl, rtl);
+   evas_object_table_mirrored_set(ELM_WIDGET_DATA(sd)->resize_obj, rtl);
 }
 
-static void
-_theme_hook(Evas_Object *obj)
+static Eina_Bool
+_elm_table_smart_theme(Evas_Object *obj)
 {
-   _elm_widget_mirrored_reload(obj);
+   if (!_elm_table_parent_sc->theme(obj)) return EINA_FALSE;
+
    _mirrored_set(obj, elm_widget_mirrored_get(obj));
+
+   return EINA_TRUE;
 }
 
 static void
 _sizing_eval(Evas_Object *obj)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
    Evas_Coord minw = -1, minh = -1, maxw = -1, maxh = -1;
    Evas_Coord w, h;
-   if (!wd) return;
-   evas_object_size_hint_min_get(wd->tbl, &minw, &minh);
-   evas_object_size_hint_max_get(wd->tbl, &maxw, &maxh);
+
+   ELM_TABLE_DATA_GET(obj, sd);
+
+   evas_object_size_hint_min_get
+     (ELM_WIDGET_DATA(sd)->resize_obj, &minw, &minh);
+   evas_object_size_hint_max_get
+     (ELM_WIDGET_DATA(sd)->resize_obj, &maxw, &maxh);
    evas_object_size_hint_min_set(obj, minw, minh);
    evas_object_size_hint_max_set(obj, maxw, maxh);
    evas_object_geometry_get(obj, NULL, NULL, &w, &h);
@@ -106,123 +131,259 @@ _sizing_eval(Evas_Object *obj)
 }
 
 static void
-_changed_size_hints(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_on_size_hints_changed(void *data,
+                       Evas *e __UNUSED__,
+                       Evas_Object *obj __UNUSED__,
+                       void *event_info __UNUSED__)
 {
    _sizing_eval(data);
 }
 
-static void
-_sub_del(void *data __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+static Eina_Bool
+_elm_table_smart_sub_object_del(Evas_Object *obj,
+                                Evas_Object *child)
 {
+   if (!_elm_table_parent_sc->sub_object_del(obj, child)) return EINA_FALSE;
+
    _sizing_eval(obj);
+
+   return EINA_TRUE;
+}
+
+static void
+_elm_table_smart_add(Evas_Object *obj)
+{
+   EVAS_SMART_DATA_ALLOC(obj, Elm_Widget_Smart_Data);
+
+   Evas_Object *table = evas_object_table_add(evas_object_evas_get(obj));
+   elm_widget_resize_object_set(obj, table, EINA_TRUE);
+
+   evas_object_event_callback_add
+     (table, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
+     _on_size_hints_changed, obj);
+
+   _elm_table_parent_sc->base.add(obj);
+
+   elm_widget_can_focus_set(obj, EINA_FALSE);
+   elm_widget_highlight_ignore_set(obj, EINA_FALSE);
+
+   _elm_table_smart_theme(obj);
+}
+
+static void
+_elm_table_smart_del(Evas_Object *obj)
+{
+   Eina_List *l;
+   Evas_Object *child;
+
+   ELM_TABLE_DATA_GET(obj, sd);
+
+   evas_object_event_callback_del_full
+     (ELM_WIDGET_DATA(sd)->resize_obj, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
+     _on_size_hints_changed, obj);
+
+   /* let's make our table object the *last* to be processed, since it
+    * may (smart) parent other sub objects here */
+   EINA_LIST_FOREACH(ELM_WIDGET_DATA(sd)->subobjs, l, child)
+     {
+        if (child == ELM_WIDGET_DATA(sd)->resize_obj)
+          {
+             ELM_WIDGET_DATA(sd)->subobjs =
+               eina_list_demote_list(ELM_WIDGET_DATA(sd)->subobjs, l);
+             break;
+          }
+     }
+
+   _elm_table_parent_sc->base.del(obj);
+}
+
+static void
+_elm_table_smart_set_user(Elm_Table_Smart_Class *sc)
+{
+   ELM_WIDGET_CLASS(sc)->base.add = _elm_table_smart_add;
+   ELM_WIDGET_CLASS(sc)->base.del = _elm_table_smart_del;
+   ELM_WIDGET_CLASS(sc)->sub_object_del = _elm_table_smart_sub_object_del;
+   ELM_WIDGET_CLASS(sc)->theme = _elm_table_smart_theme;
+   ELM_WIDGET_CLASS(sc)->focus_next = _elm_table_smart_focus_next;
+   ELM_WIDGET_CLASS(sc)->focus_direction_manager_is =
+      _elm_table_smart_focus_direction_manager_is;
+   ELM_WIDGET_CLASS(sc)->focus_direction = _elm_table_smart_focus_direction;
+}
+
+EAPI const Elm_Table_Smart_Class *
+elm_table_smart_class_get(void)
+{
+   static Elm_Table_Smart_Class _sc =
+     ELM_TABLE_SMART_CLASS_INIT_NAME_VERSION(ELM_TABLE_SMART_NAME);
+   static const Elm_Table_Smart_Class *class = NULL;
+
+   if (class) return class;
+
+   _elm_table_smart_set(&_sc);
+   class = &_sc;
+
+   return class;
 }
 
 EAPI Evas_Object *
 elm_table_add(Evas_Object *parent)
 {
    Evas_Object *obj;
-   Evas *e;
-   Widget_Data *wd;
 
-   ELM_WIDGET_STANDARD_SETUP(wd, Widget_Data, parent, e, obj, NULL);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
 
-   ELM_SET_WIDTYPE(widtype, "table");
-   elm_widget_type_set(obj, "table");
-   elm_widget_sub_object_add(parent, obj);
-   elm_widget_data_set(obj, wd);
-   elm_widget_del_hook_set(obj, _del_hook);
-   elm_widget_del_pre_hook_set(obj, _del_pre_hook);
-   elm_widget_focus_next_hook_set(obj, _elm_table_focus_next_hook);
-   elm_widget_can_focus_set(obj, EINA_FALSE);
-   elm_widget_highlight_ignore_set(obj, EINA_FALSE);
-   elm_widget_theme_hook_set(obj, _theme_hook);
+   obj = elm_widget_add(_elm_table_smart_class_new(), parent);
+   if (!obj) return NULL;
 
-   wd->tbl = evas_object_table_add(e);
-   evas_object_event_callback_add(wd->tbl, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-                                  _changed_size_hints, obj);
-   elm_widget_resize_object_set(obj, wd->tbl);
+   if (!elm_widget_sub_object_add(parent, obj))
+     ERR("could not add %p as sub object of %p", obj, parent);
 
-   evas_object_smart_callback_add(obj, "sub-object-del", _sub_del, obj);
+   //Tizen Only: This should be removed when eo is applied.
+   ELM_WIDGET_DATA_GET(obj, sd);
+   sd->on_create = EINA_FALSE;
 
-   _mirrored_set(obj, elm_widget_mirrored_get(obj));
    return obj;
 }
 
 EAPI void
-elm_table_homogeneous_set(Evas_Object *obj, Eina_Bool homogeneous)
+elm_table_homogeneous_set(Evas_Object *obj,
+                          Eina_Bool homogeneous)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   evas_object_table_homogeneous_set(wd->tbl, homogeneous);
+   ELM_TABLE_CHECK(obj);
+   ELM_TABLE_DATA_GET(obj, sd);
+
+   evas_object_table_homogeneous_set
+     (ELM_WIDGET_DATA(sd)->resize_obj, homogeneous);
 }
 
 EAPI Eina_Bool
 elm_table_homogeneous_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) EINA_FALSE;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return EINA_FALSE;
-   return evas_object_table_homogeneous_get(wd->tbl);
+   ELM_TABLE_CHECK(obj) EINA_FALSE;
+   ELM_TABLE_DATA_GET(obj, sd);
+
+   return evas_object_table_homogeneous_get(ELM_WIDGET_DATA(sd)->resize_obj);
 }
 
 EAPI void
-elm_table_padding_set(Evas_Object *obj, Evas_Coord horizontal, Evas_Coord vertical)
+elm_table_padding_set(Evas_Object *obj,
+                      Evas_Coord horizontal,
+                      Evas_Coord vertical)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   evas_object_table_padding_set(wd->tbl, horizontal, vertical);
+   ELM_TABLE_CHECK(obj);
+   ELM_TABLE_DATA_GET(obj, sd);
+
+   evas_object_table_padding_set
+     (ELM_WIDGET_DATA(sd)->resize_obj, horizontal, vertical);
 }
 
 EAPI void
-elm_table_padding_get(const Evas_Object *obj, Evas_Coord *horizontal, Evas_Coord *vertical)
+elm_table_padding_get(const Evas_Object *obj,
+                      Evas_Coord *horizontal,
+                      Evas_Coord *vertical)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   evas_object_table_padding_get(wd->tbl, horizontal, vertical);
+   ELM_TABLE_CHECK(obj);
+   ELM_TABLE_DATA_GET(obj, sd);
+
+   evas_object_table_padding_get
+     (ELM_WIDGET_DATA(sd)->resize_obj, horizontal, vertical);
 }
 
 EAPI void
-elm_table_pack(Evas_Object *obj, Evas_Object *subobj, int x, int y, int w, int h)
+elm_table_pack(Evas_Object *obj,
+               Evas_Object *subobj,
+               int col,
+               int row,
+               int colspan,
+               int rowspan)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   ELM_TABLE_CHECK(obj);
+   ELM_TABLE_DATA_GET(obj, sd);
+
+   if (col < 0)
+     {
+        ERR("col < 0");
+        return;
+     }
+   if (colspan < 1)
+     {
+        ERR("colspan < 1");
+        return;
+     }
+   if ((0xffff - col) < colspan)
+     {
+        ERR("col + colspan > 0xffff");
+        return;
+     }
+   if ((col + colspan) >= 0x7ffff)
+     {
+        WRN("col + colspan getting rather large (>32767)");
+     }
+   if (row < 0)
+     {
+        ERR("row < 0");
+        return;
+     }
+   if (rowspan < 1)
+     {
+        ERR("rowspan < 1");
+        return;
+     }
+   if ((0xffff - row) < rowspan)
+     {
+        ERR("row + rowspan > 0xffff");
+        return;
+     }
+   if ((row + rowspan) >= 0x7ffff)
+     {
+        WRN("row + rowspan getting rather large (>32767)");
+     }
+
    elm_widget_sub_object_add(obj, subobj);
-   evas_object_table_pack(wd->tbl, subobj, x, y, w, h);
+   evas_object_table_pack(ELM_WIDGET_DATA(sd)->resize_obj, subobj, col, row, colspan, rowspan);
 }
 
 EAPI void
-elm_table_unpack(Evas_Object *obj, Evas_Object *subobj)
+elm_table_unpack(Evas_Object *obj,
+                 Evas_Object *subobj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   ELM_TABLE_CHECK(obj);
+   ELM_TABLE_DATA_GET(obj, sd);
+
    elm_widget_sub_object_del(obj, subobj);
-   evas_object_table_unpack(wd->tbl, subobj);
+   evas_object_table_unpack(ELM_WIDGET_DATA(sd)->resize_obj, subobj);
 }
 
 EAPI void
-elm_table_pack_set(Evas_Object *subobj, int x, int y, int w, int h)
+elm_table_pack_set(Evas_Object *subobj,
+                   int x,
+                   int y,
+                   int w,
+                   int h)
 {
    Evas_Object *obj = elm_widget_parent_widget_get(subobj);
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   evas_object_table_pack(wd->tbl, subobj, x, y, w, h);
+
+   ELM_TABLE_CHECK(obj);
+   ELM_TABLE_DATA_GET(obj, sd);
+
+   evas_object_table_pack(ELM_WIDGET_DATA(sd)->resize_obj, subobj, x, y, w, h);
 }
 
 EAPI void
-elm_table_pack_get(Evas_Object *subobj, int *x, int *y, int *w, int *h)
+elm_table_pack_get(Evas_Object *subobj,
+                   int *x,
+                   int *y,
+                   int *w,
+                   int *h)
 {
    Evas_Object *obj = elm_widget_parent_widget_get(subobj);
    unsigned short ix, iy, iw, ih;
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   evas_object_table_pack_get(wd->tbl, subobj, &ix, &iy, &iw, &ih);
+
+   ELM_TABLE_CHECK(obj);
+   ELM_TABLE_DATA_GET(obj, sd);
+
+   evas_object_table_pack_get
+     (ELM_WIDGET_DATA(sd)->resize_obj, subobj, &ix, &iy, &iw, &ih);
    if (x) *x = ix;
    if (y) *y = iy;
    if (w) *w = iw;
@@ -230,14 +391,11 @@ elm_table_pack_get(Evas_Object *subobj, int *x, int *y, int *w, int *h)
 }
 
 EAPI void
-elm_table_clear(Evas_Object *obj, Eina_Bool clear)
+elm_table_clear(Evas_Object *obj,
+                Eina_Bool clear)
 {
-   Eina_List *chld;
-   Evas_Object *o;
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   chld = evas_object_table_children_get(wd->tbl);
-   EINA_LIST_FREE(chld, o) elm_widget_sub_object_del(obj, o);
-   evas_object_table_clear(wd->tbl, clear);
+   ELM_TABLE_CHECK(obj);
+   ELM_TABLE_DATA_GET(obj, sd);
+
+   evas_object_table_clear(ELM_WIDGET_DATA(sd)->resize_obj, clear);
 }

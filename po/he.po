@@ -1,15 +1,15 @@
 # Elementary translation file for Left To Right languages.
 # This file is distributed under the same license as the Elementary package.
-# FIRST AUTHOR <a.hillel@partner.samsung.com>, 2010.
+# FIRST AUTHOR <a.hillel@samsung.com>, 2010.
 #
-#: src/lib/elm_config.c:2010
+#: src/lib/elm_config.c:2101
 msgid ""
 msgstr ""
 "Project-Id-Version: elementary\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2012-04-26 13:40+0900\n"
+"POT-Creation-Date: 2012-09-20 13:50+0900\n"
 "PO-Revision-Date: 2010-12-26 10:05+0200\n"
-"Last-Translator: Aharon Hillel <a.hillel@partner.samsung.com>\n"
+"Last-Translator: Shilpa Singh <shilpa.singh@samsung.com>\n"
 "Language-Team: General\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -17,98 +17,135 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/lib/elc_fileselector.c:854
-msgid "Up"
-msgstr ""
-
-#: src/lib/elc_fileselector.c:869
-msgid "Home"
-msgstr ""
-
-#: src/lib/elc_fileselector.c:1021 src/lib/elm_entry.c:1371
+#: src/lib/elm_entry.c:1254
 msgid "Cancel"
-msgstr "בטל"
+msgstr "ביטול"
 
-#: src/lib/elc_fileselector.c:1031
-msgid "OK"
-msgstr "אשר"
-
-#: src/lib/elm_button.c:284
-msgid "Clicked"
-msgstr ""
-
-#: src/lib/elm_button.c:405 src/lib/elm_check.c:390 src/lib/elm_radio.c:295
-#: src/lib/elm_toolbar.c:891
-msgid "State: Disabled"
-msgstr ""
-
-#: src/lib/elm_button.c:459
-msgid "Button"
-msgstr ""
-
-#: src/lib/elm_calendar.c:161
-msgid "%B %Y"
-msgstr ""
-
-#: src/lib/elm_check.c:307 src/lib/elm_check.c:310 src/lib/elm_check.c:401
-#: src/lib/elm_radio.c:231 src/lib/elm_radio.c:297
-msgid "State: On"
-msgstr ""
-
-#: src/lib/elm_check.c:320 src/lib/elm_check.c:323 src/lib/elm_check.c:410
-#: src/lib/elm_radio.c:298
-msgid "State: Off"
-msgstr ""
-
-#: src/lib/elm_check.c:397 src/lib/elm_check.c:407
-msgid "State"
-msgstr ""
-
-#: src/lib/elm_check.c:463
-msgid "Check"
-msgstr ""
-
-#: src/lib/elm_config.c:1486
-msgid "default:LTR"
-msgstr "default:RTL"
-
-#: src/lib/elm_entry.c:1365
+#: src/lib/elm_entry.c:1246
 msgid "Copy"
 msgstr "העתק"
 
-#: src/lib/elm_entry.c:1368
+#: src/lib/elm_entry.c:1250
 msgid "Cut"
 msgstr "גזור"
 
-#: src/lib/elm_entry.c:1382
+#: src/lib/elm_entry.c:1266
 msgid "Select"
-msgstr "התחל בחירה"
+msgstr "בחר"
 
-#: src/lib/elm_entry.c:1388
+#: src/lib/elm_entry.c:1273
 msgid "Paste"
 msgstr "הדבק"
 
-#: src/lib/elm_radio.c:404
-msgid "Radio"
-msgstr ""
+#: src/modules/datetime_input_popup/datetime_input_popup.c:749
+#: src/modules/datetime_input_popup/datetime_input_popup.c:992
+msgid "AM"
+msgstr "AM"
 
-#: src/lib/elm_toolbar.c:807
-#, fuzzy
-msgid "Selected"
-msgstr "התחל בחירה"
+#: src/modules/datetime_input_popup/datetime_input_popup.c:754
+#: src/modules/datetime_input_popup/datetime_input_popup.c:993
+msgid "PM"
+msgstr "PM"
 
-#: src/lib/elm_toolbar.c:889
-msgid "Separator"
-msgstr ""
+#: src/modules/datetime_input_popup/datetime_input_popup.c:786
+msgid "Set"
+msgstr "הגדר"
 
-#: src/lib/elm_toolbar.c:893
-msgid "State: Selected"
-msgstr ""
+#: src/modules/datetime_input_popup/datetime_input_popup.c:375
+msgid "Set date"
+msgstr "הגדר תאריך"
 
-#: src/lib/elm_toolbar.c:895
-msgid "Has menu"
-msgstr ""
+#: src/modules/datetime_input_popup/datetime_input_popup.c:384
+msgid "Set time"
+msgstr "הגדר שעה"
 
-#: src/lib/elm_toolbar.c:959
-msgid "Tool Item"
-msgstr ""
+#: src/lib/elm_config.c:2117
+msgid "default:LTR"
+msgstr "default:RTL"
+
+msgid "tap to change"
+msgstr "הקש כדי לשנות את המצב."
+
+msgid "date"
+msgstr "תאריך"
+
+msgid "hour"
+msgstr "שעות"
+
+msgid "minute"
+msgstr "דקה"
+
+msgid "month"
+msgstr "חודש"
+
+msgid "year"
+msgstr "שנה"
+
+msgid "IDS_ST_BODY_P1SD_OF_P2SD_TTS"
+msgstr "%1$d מתוך %2$d."
+
+msgid "IDS_COM_BODY_DECREASE_DAY"
+msgstr "הפחת יום"
+
+msgid "IDS_COM_BODY_DECREASE_HOUR"
+msgstr "הפחת שעה"
+
+msgid "IDS_COM_BODY_DECREASE_MINUTE"
+msgstr "הפחת דקה"
+
+msgid "IDS_COM_BODY_DECREASE_MONTH"
+msgstr "הפחת חודש"
+
+msgid "IDS_COM_BODY_DECREASE_YEAR"
+msgstr "הפחת שנה"
+
+msgid "IDS_COM_BODY_INCREASE_DAY"
+msgstr "הוסף יום"
+
+msgid "IDS_COM_BODY_INCREASE_HOUR"
+msgstr "הוסף שעה"
+
+msgid "IDS_COM_BODY_INCREASE_MINUTE"
+msgstr "הוסף דקה"
+
+msgid "IDS_COM_BODY_INCREASE_MONTH"
+msgstr "הוסף חודש"
+
+msgid "IDS_COM_BODY_INCREASE_YEAR"
+msgstr "הוסף שנה"
+
+msgid "IDS_IDLE_BODY_TAP_TO_CHANGE"
+msgstr "הקש כדי לשנות."
+
+msgid "IDS_COM_BODY_SELECT_ALL"
+msgstr "בחר הכל"
+
+msgid "IDS_COM_BODY_COPY"
+msgstr "העתק"
+
+msgid "IDS_COM_SK_SELECT"
+msgstr "בחר"
+
+msgid "IDS_COM_BODY_CUT"
+msgstr "גזור"
+
+msgid "IDS_COM_BODY_PASTE"
+msgstr "הדבק"
+
+msgid "IDS_COM_BODY_CLIPBOARD"
+msgstr "לוח"
+
+msgid "WDS_ST_OPT_DAY_ABB"
+msgstr "יום"
+
+msgid "WDS_ST_OPT_HRS_ABB"
+msgstr "שע'"
+
+msgid "WDS_ST_OPT_MINS_ABB"
+msgstr "דקות"
+
+msgid "WDS_ST_OPT_MONTH_ABB"
+msgstr "חודש"
+
+msgid "WDS_ST_OPT_YEAR_ABB"
+msgstr "שנה"

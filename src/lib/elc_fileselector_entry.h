@@ -1,6 +1,10 @@
 /**
+ * @internal
  * @defgroup File_Selector_Entry File Selector Entry
- * @ingroup Elementary
+ * @ingroup elm_widget_group
+ *
+ * @image html fileselector_entry_inheritance_tree.png
+ * @image latex fileselector_entry_inheritance_tree.eps
  *
  * @image html img/widget/fileselector_entry/preview-00.png
  * @image latex img/widget/fileselector_entry/preview-00.eps
@@ -16,6 +20,10 @@
  * inner window. When a file is chosen from it, the (inner) window
  * is closed and the selected file's path string is exposed both as
  * a smart event and as the new text on the entry.
+ *
+ * This widget inherits from the @ref Layout one, so that all the
+ * functions acting on it also work for file selector entry objects
+ * (@since 1.8).
  *
  * This widget encapsulates operations on its internal file
  * selector on its own API. There is less control over its file
@@ -41,6 +49,7 @@
  * - @c "file,chosen" - The user has selected a path via the file
  *   selector entry's internal file selector, whose string pointer
  *   comes as the @c event_info data (a stringshared string)
+ * - @c "language,changed" - the program's language changed
  *
  * Default text parts of the fileselector_button widget that you can use for
  * are:
@@ -59,9 +68,6 @@
  * @li @ref elm_object_disabled_set
  * @li @ref elm_object_disabled_get
  *
- * Here is an example on its usage:
- * @li @ref fileselector_entry_example
- *
  * @see @ref File_Selector_Button for a similar widget.
  * @{
  */
@@ -70,7 +76,7 @@
  * Add a new file selector entry widget to the given parent
  * Elementary (container) object
  *
- * @param parent The parent object
+ * @param[in] parent The parent object
  * @return a new file selector entry widget handle or @c NULL, on
  * errors
  *
@@ -79,10 +85,10 @@
 EAPI Evas_Object                *elm_fileselector_entry_add(Evas_Object *parent);
 
 /**
- * Set the title for a given file selector entry widget's window
+ * @brief Set the title for a given file selector entry widget's window
  *
- * @param obj The file selector entry widget
- * @param title The title string
+ * @param[in] obj The fileselector entry object
+ * @param[in] title The title string
  *
  * This will change the window's title, when the file selector pops
  * out after a click on the entry's button. Those windows have the
@@ -101,7 +107,7 @@ EAPI void                        elm_fileselector_entry_window_title_set(Evas_Ob
  * Get the title set for a given file selector entry widget's
  * window
  *
- * @param obj The file selector entry widget
+ * @param[in] obj The file selector entry widget
  * @return Title of the file selector entry's window
  *
  * @see elm_fileselector_entry_window_title_get() for more details
@@ -114,9 +120,9 @@ EAPI const char                 *elm_fileselector_entry_window_title_get(const E
  * Set the size of a given file selector entry widget's window,
  * holding the file selector itself.
  *
- * @param obj The file selector entry widget
- * @param width The window's width
- * @param height The window's height
+ * @param[in] obj The file selector entry widget
+ * @param[in] width The window's width
+ * @param[in] height The window's height
  *
  * @note it will only take any effect if the file selector entry
  * widget is @b not under "inwin mode". The default size for the
@@ -132,9 +138,9 @@ EAPI void                        elm_fileselector_entry_window_size_set(Evas_Obj
  * Get the size of a given file selector entry widget's window,
  * holding the file selector itself.
  *
- * @param obj The file selector entry widget
- * @param width Pointer into which to store the width value
- * @param height Pointer into which to store the height value
+ * @param[in] obj The file selector entry widget
+ * @param[out] width Pointer into which to store the width value
+ * @param[out] height Pointer into which to store the height value
  *
  * @note Use @c NULL pointers on the size values you're not
  * interested in: they'll be ignored by the function.
@@ -149,8 +155,8 @@ EAPI void                        elm_fileselector_entry_window_size_get(const Ev
  * Set the initial file system path and the entry's path string for
  * a given file selector entry widget
  *
- * @param obj The file selector entry widget
- * @param path The path string
+ * @param[in] obj The file selector entry widget
+ * @param[in] path The path string
  *
  * It must be a <b>directory</b> path, which will have the contents
  * displayed initially in the file selector's view, when invoked
@@ -167,7 +173,7 @@ EAPI void                        elm_fileselector_entry_path_set(Evas_Object *ob
  * Get the entry's path string for a given file selector entry
  * widget
  *
- * @param obj The file selector entry widget
+ * @param[in] obj The file selector entry widget
  * @return path The path string
  *
  * @see elm_fileselector_entry_path_set() for more details
@@ -180,8 +186,8 @@ EAPI const char                 *elm_fileselector_entry_path_get(const Evas_Obje
  * Enable/disable a tree view in the given file selector entry
  * widget's internal file selector
  *
- * @param obj The file selector entry widget
- * @param value @c EINA_TRUE to enable tree view, @c EINA_FALSE to disable
+ * @param[in] obj The file selector entry widget
+ * @param[in] value @c EINA_TRUE to enable tree view, @c EINA_FALSE to disable
  *
  * This has the same effect as elm_fileselector_expandable_set(),
  * but now applied to a file selector entry's internal file
@@ -201,7 +207,7 @@ EAPI void                        elm_fileselector_entry_expandable_set(Evas_Obje
  * Get whether tree view is enabled for the given file selector
  * entry widget's internal file selector
  *
- * @param obj The file selector entry widget
+ * @param[in] obj The file selector entry widget
  * @return @c EINA_TRUE if @p obj widget's internal file selector
  * is in tree view, @c EINA_FALSE otherwise (and or errors)
  *
@@ -216,8 +222,8 @@ EAPI Eina_Bool                   elm_fileselector_entry_expandable_get(const Eva
  * selector is to display folders only or the directory contents,
  * as well.
  *
- * @param obj The file selector entry widget
- * @param value @c EINA_TRUE to make @p obj widget's internal file
+ * @param[in] obj The file selector entry widget
+ * @param[in] value @c EINA_TRUE to make @p obj widget's internal file
  * selector only display directories, @c EINA_FALSE to make files
  * to be displayed in it too
  *
@@ -236,7 +242,7 @@ EAPI void                        elm_fileselector_entry_folder_only_set(Evas_Obj
  * selector is displaying folders only or the directory contents,
  * as well.
  *
- * @param obj The file selector entry widget
+ * @param[in] obj The file selector entry widget
  * @return @c EINA_TRUE if @p obj widget's internal file
  * selector is only displaying directories, @c EINA_FALSE if files
  * are being displayed in it too (and on errors)
@@ -252,8 +258,8 @@ EAPI Eina_Bool                   elm_fileselector_entry_folder_only_get(const Ev
  * in a name for a file, in a given file selector entry widget's
  * internal file selector.
  *
- * @param obj The file selector entry widget
- * @param value @c EINA_TRUE to make @p obj widget's internal
+ * @param[in] obj The file selector entry widget
+ * @param[in] value @c EINA_TRUE to make @p obj widget's internal
  * file selector a "saving dialog", @c EINA_FALSE otherwise
  *
  * This has the same effect as elm_fileselector_is_save_set(),
@@ -270,7 +276,7 @@ EAPI void                        elm_fileselector_entry_is_save_set(Evas_Object 
  * Get whether the given file selector entry widget's internal
  * file selector is in "saving dialog" mode
  *
- * @param obj The file selector entry widget
+ * @param[in] obj The file selector entry widget
  * @return @c EINA_TRUE, if @p obj widget's internal file selector
  * is in "saving dialog" mode, @c EINA_FALSE otherwise (and on
  * errors)
@@ -286,8 +292,8 @@ EAPI Eina_Bool                   elm_fileselector_entry_is_save_get(const Evas_O
  * selector will raise an Elementary "inner window", instead of a
  * dedicated Elementary window. By default, it won't.
  *
- * @param obj The file selector entry widget
- * @param value @c EINA_TRUE to make it use an inner window, @c
+ * @param[in] obj The file selector entry widget
+ * @param[in] value @c EINA_TRUE to make it use an inner window, @c
  * EINA_TRUE to make it use a dedicated window
  *
  * @see elm_win_inwin_add() for more information on inner windows
@@ -302,7 +308,7 @@ EAPI void                        elm_fileselector_entry_inwin_mode_set(Evas_Obje
  * selector will raise an Elementary "inner window", instead of a
  * dedicated Elementary window.
  *
- * @param obj The file selector entry widget
+ * @param[in] obj The file selector entry widget
  * @return @c EINA_TRUE if will use an inner window, @c EINA_TRUE
  * if it will use a dedicated window
  *
@@ -316,8 +322,8 @@ EAPI Eina_Bool                   elm_fileselector_entry_inwin_mode_get(const Eva
  * Set the initial file system path for a given file selector entry
  * widget
  *
- * @param obj The file selector entry widget
- * @param path The path string
+ * @param[in] obj The file selector entry widget
+ * @param[in] path The path string
  *
  * It must be a <b>directory</b> path, which will have the contents
  * displayed initially in the file selector's view, when invoked
@@ -334,7 +340,7 @@ EAPI void                        elm_fileselector_entry_selected_set(Evas_Object
  * Get the parent directory's path to the latest file selection on
  * a given filer selector entry widget
  *
- * @param obj The file selector object
+ * @param[in] obj The file selector object
  * @return The (full) path of the directory of the last selection
  * on @p obj widget, a @b stringshared string
  *

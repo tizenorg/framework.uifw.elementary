@@ -1,287 +1,60 @@
 #include <Elementary.h>
 #include "elm_priv.h"
+#include "elm_widget_button.h"
 
-typedef struct _Widget_Data Widget_Data;
-
-struct _Widget_Data
-{
-   Evas_Object *btn, *icon;
-   const char *label;
-   double ar_threshold;
-   double ar_interval;
-   Ecore_Timer *timer;
-   Eina_Bool autorepeat : 1;
-   Eina_Bool repeating : 1;
-   Eina_Bool delete_me : 1;
-};
-
-static const char *widtype = NULL;
-static void _del_hook(Evas_Object *obj);
-static void _del_pre_hook(Evas_Object *obj);
-static void _theme_hook(Evas_Object *obj);
-static void _disable_hook(Evas_Object *obj);
-static void _content_set_hook(Evas_Object *obj, const char *part, Evas_Object *content);
-static Evas_Object *_content_get_hook(const Evas_Object *obj, const char *part);
-static Evas_Object *_content_unset_hook(Evas_Object *obj, const char *part);
-static void _sizing_eval(Evas_Object *obj);
-static void _changed_size_hints(void *data, Evas *e, Evas_Object *obj, void *event_info);
-static void _sub_del(void *data, Evas_Object *obj, void *event_info);
-static void _signal_clicked(void *data, Evas_Object *obj, const char *emission, const char *source);
-static void _signal_pressed(void *data, Evas_Object *obj, const char *emission, const char *source);
-static void _signal_unpressed(void *data, Evas_Object *obj, const char *emission, const char *source);
-static void _on_focus_hook(void *data, Evas_Object *obj);
-static void _activate(Evas_Object *obj);
-static void _activate_hook(Evas_Object *obj);
-static Eina_Bool _event_hook(Evas_Object *obj, Evas_Object *src,
-                             Evas_Callback_Type type, void *event_info);
+EAPI const char ELM_BUTTON_SMART_NAME[] = "elm_button";
 
 static const char SIG_CLICKED[] = "clicked";
+static const char SIG_LANG_CHANGED[] = "language,changed";
 static const char SIG_REPEATED[] = "repeated";
 static const char SIG_PRESSED[] = "pressed";
 static const char SIG_UNPRESSED[] = "unpressed";
-static const Evas_Smart_Cb_Description _signals[] = {
-       {SIG_CLICKED, ""},
-       {SIG_REPEATED, ""},
-       {SIG_PRESSED, ""},
-       {SIG_UNPRESSED, ""},
-       {NULL, NULL}
+
+static const Elm_Layout_Part_Alias_Description _content_aliases[] =
+{
+   {"icon", "elm.swallow.content"},
+   {NULL, NULL}
 };
 
-static Eina_Bool
-_event_hook(Evas_Object *obj, Evas_Object *src __UNUSED__, Evas_Callback_Type type, void *event_info)
+static const Elm_Layout_Part_Alias_Description _text_aliases[] =
 {
-   if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-   Evas_Event_Key_Down *ev = event_info;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return EINA_FALSE;
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
-   if (elm_widget_disabled_get(obj)) return EINA_FALSE;
-   if ((strcmp(ev->keyname, "Return")) &&
-       (strcmp(ev->keyname, "KP_Enter")) &&
-       (strcmp(ev->keyname, "space")))
-     return EINA_FALSE;
-   _activate(obj);
-   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-   edje_object_signal_emit(wd->btn, "elm,anim,activate", "elm");
-   return EINA_TRUE;
-}
+   {"default", "elm.text"},
+   {NULL, NULL}
+};
 
-static void
-_del_pre_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   wd->delete_me = EINA_TRUE;
-}
+/* smart callbacks coming from elm button objects (besides the ones
+ * coming from elm layout): */
+static const Evas_Smart_Cb_Description _smart_callbacks[] = {
+   {SIG_CLICKED, ""},
+   {SIG_LANG_CHANGED, ""},
+   {SIG_REPEATED, ""},
+   {SIG_PRESSED, ""},
+   {SIG_UNPRESSED, ""},
+   {NULL, NULL}
+};
 
-static void
-_del_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (wd->label) eina_stringshare_del(wd->label);
-   free(wd);
-}
-
-static void
-_on_focus_hook(void *data __UNUSED__, Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (elm_widget_focus_get(obj))
-     {
-        edje_object_signal_emit(wd->btn, "elm,action,focus", "elm");
-        evas_object_focus_set(wd->btn, EINA_TRUE);
-     }
-   else
-     {
-        edje_object_signal_emit(wd->btn, "elm,action,unfocus", "elm");
-        evas_object_focus_set(wd->btn, EINA_FALSE);
-     }
-}
-
-static void
-_mirrored_set(Evas_Object *obj, Eina_Bool rtl)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   edje_object_mirrored_set(wd->btn, rtl);
-}
-
-static void
-_theme_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   const char *str;
-   if (!wd) return;
-   _elm_widget_mirrored_reload(obj);
-   _mirrored_set(obj, elm_widget_mirrored_get(obj));
-   _elm_theme_object_set(obj, wd->btn, "button", "base", elm_widget_style_get(obj));
-   if (wd->icon)
-     edje_object_part_swallow(wd->btn, "elm.swallow.content", wd->icon);
-   if (wd->label)
-     edje_object_signal_emit(wd->btn, "elm,state,text,visible", "elm");
-   else
-     edje_object_signal_emit(wd->btn, "elm,state,text,hidden", "elm");
-   if (wd->icon)
-     edje_object_signal_emit(wd->btn, "elm,state,icon,visible", "elm");
-   else
-     edje_object_signal_emit(wd->btn, "elm,state,icon,hidden", "elm");
-   edje_object_part_text_escaped_set(wd->btn, "elm.text", wd->label);
-   if (elm_object_disabled_get(obj))
-     edje_object_signal_emit(wd->btn, "elm,state,disabled", "elm");
-   edje_object_message_signal_process(wd->btn);
-   edje_object_scale_set(wd->btn, elm_widget_scale_get(obj) * _elm_config->scale);
-   str = edje_object_data_get(wd->btn, "focus_highlight");
-   if ((str) && (!strcmp(str, "on")))
-     elm_widget_highlight_in_theme_set(obj, EINA_TRUE);
-   else
-     elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
-   _sizing_eval(obj);
-}
-
-static void
-_disable_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (elm_widget_disabled_get(obj))
-     edje_object_signal_emit(wd->btn, "elm,state,disabled", "elm");
-   else
-     edje_object_signal_emit(wd->btn, "elm,state,enabled", "elm");
-}
-
-static void
-_signal_emit_hook(Evas_Object *obj, const char *emission, const char *source)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   edje_object_signal_emit(wd->btn, emission, source);
-}
-
-static void
-_signal_callback_add_hook(Evas_Object *obj, const char *emission, const char *source, Edje_Signal_Cb func_cb, void *data)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   edje_object_signal_callback_add(wd->btn, emission, source, func_cb, data);
-}
-
-static void
-_signal_callback_del_hook(Evas_Object *obj, const char *emission, const char *source, Edje_Signal_Cb func_cb, void *data)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   edje_object_signal_callback_del_full(wd->btn, emission, source, func_cb,
-                                        data);
-}
-
-static void
-_content_set_hook(Evas_Object *obj, const char *part, Evas_Object *content)
-{
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (part && strcmp(part, "icon")) return;
-   if (wd->icon == content) return;
-   if (wd->icon) evas_object_del(wd->icon);
-   wd->icon = content;
-   if (content)
-     {
-        elm_widget_sub_object_add(obj, content);
-        evas_object_event_callback_add(content,
-                                       EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-                                       _changed_size_hints, obj);
-        edje_object_part_swallow(wd->btn, "elm.swallow.content", content);
-        edje_object_signal_emit(wd->btn, "elm,state,icon,visible", "elm");
-        edje_object_message_signal_process(wd->btn);
-     }
-   _sizing_eval(obj);
-}
-
-static Evas_Object *
-_content_get_hook(const Evas_Object *obj, const char *part)
-{
-   ELM_CHECK_WIDTYPE(obj, widtype) NULL;
-   Widget_Data *wd;
-
-   if (part && strcmp(part, "icon")) return NULL;
-   wd = elm_widget_data_get(obj);
-   if (!wd) return NULL;
-   return wd->icon;
-}
-
-static Evas_Object *
-_content_unset_hook(Evas_Object *obj, const char *part)
-{
-   ELM_CHECK_WIDTYPE(obj, widtype) NULL;
-   Widget_Data *wd;
-
-   if (part && strcmp(part, "icon")) return NULL;
-   wd = elm_widget_data_get(obj);
-   if (!wd) return NULL;
-   if (!wd->icon) return NULL;
-   Evas_Object *icon = wd->icon;
-   elm_widget_sub_object_del(obj, wd->icon);
-   edje_object_part_unswallow(wd->btn, icon);
-   return icon;
-}
-
-static void
-_sizing_eval(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   Evas_Coord minw = -1, minh = -1;
-
-   if (!wd) return;
-   if (wd->delete_me) return;
-   elm_coords_finger_size_adjust(1, &minw, 1, &minh);
-   edje_object_size_min_restricted_calc(wd->btn, &minw, &minh, minw, minh);
-   elm_coords_finger_size_adjust(1, &minw, 1, &minh);
-   evas_object_size_hint_min_set(obj, minw, minh);
-}
-
-static void
-_changed_size_hints(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
-{
-   Widget_Data *wd = elm_widget_data_get(data);
-   if (!wd) return;
-   if (obj != wd->icon) return;
-   _sizing_eval(data);
-}
-
-static void
-_sub_del(void *data __UNUSED__, Evas_Object *obj, void *event_info)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   Evas_Object *sub = event_info;
-   if (!wd) return;
-   if (sub == wd->icon)
-     {
-        edje_object_signal_emit(wd->btn, "elm,state,icon,hidden", "elm");
-        evas_object_event_callback_del_full(sub, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-                                            _changed_size_hints, obj);
-        wd->icon = NULL;
-        edje_object_message_signal_process(wd->btn);
-        _sizing_eval(obj);
-     }
-}
+EVAS_SMART_SUBCLASS_NEW
+  (ELM_BUTTON_SMART_NAME, _elm_button, Elm_Button_Smart_Class,
+  Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks);
 
 static void
 _activate(Evas_Object *obj)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (wd->timer)
+   ELM_BUTTON_DATA_GET_OR_RETURN(obj, sd);
+
+   if (sd->timer)
      {
-        ecore_timer_del(wd->timer);
-        wd->timer = NULL;
+        ecore_timer_del(sd->timer);
+        sd->timer = NULL;
      }
-   wd->repeating = EINA_FALSE;
+
+   sd->repeating = EINA_FALSE;
+
    if ((_elm_config->access_mode == ELM_ACCESS_MODE_OFF) ||
        (_elm_access_2nd_click_timeout(obj)))
      {
         if (_elm_config->access_mode != ELM_ACCESS_MODE_OFF)
-           _elm_access_say(E_("Clicked"));
+          _elm_access_say(obj, E_("Clicked"), EINA_FALSE);
         if (!elm_widget_disabled_get(obj) &&
             !evas_object_freeze_events_get(obj))
           evas_object_smart_callback_call(obj, SIG_CLICKED, NULL);
@@ -289,13 +62,113 @@ _activate(Evas_Object *obj)
 }
 
 static void
-_activate_hook(Evas_Object *obj)
+_elm_button_smart_sizing_eval(Evas_Object *obj)
 {
-   _activate(obj);
+   Evas_Coord minw = -1, minh = -1;
+
+   ELM_BUTTON_DATA_GET_OR_RETURN(obj, sd);
+
+   elm_coords_finger_size_adjust(1, &minw, 1, &minh);
+   edje_object_size_min_restricted_calc
+     (ELM_WIDGET_DATA(sd)->resize_obj, &minw, &minh, minw, minh);
+   elm_coords_finger_size_adjust(1, &minw, 1, &minh);
+   evas_object_size_hint_min_set(obj, minw, minh);
+}
+
+static Eina_Bool
+_elm_button_smart_activate(Evas_Object *obj, Elm_Activate act)
+{
+   if (act != ELM_ACTIVATE_DEFAULT) return EINA_FALSE;
+
+   if (!elm_widget_disabled_get(obj) &&
+       !evas_object_freeze_events_get(obj))
+     evas_object_smart_callback_call(obj, SIG_CLICKED, NULL);
+
+   return EINA_TRUE;
+}
+
+/* FIXME: replicated from elm_layout just because button's icon spot
+ * is elm.swallow.content, not elm.swallow.icon. Fix that whenever we
+ * can changed the theme API */
+static void
+_icon_signal_emit(Evas_Object *obj)
+{
+   char buf[64];
+
+   snprintf(buf, sizeof(buf), "elm,state,icon,%s",
+            elm_layout_content_get(obj, "icon") ? "visible" : "hidden");
+
+   elm_layout_signal_emit(obj, buf, "elm");
+   edje_object_message_signal_process(elm_layout_edje_get(obj));
+   _elm_button_smart_sizing_eval(obj);
+}
+
+// FIXME: There are applications which do not use elm_win as top widget.
+// This is workaround! Those could not use focus!
+static Eina_Bool _focus_enabled(Evas_Object *obj)
+{
+   if (!elm_widget_focus_get(obj)) return EINA_FALSE;
+
+   const Evas_Object *win = elm_widget_top_get(obj);
+   const char *type = evas_object_type_get(win);
+
+   if (type && !strcmp(type, "elm_win"))
+     {
+        return elm_win_focus_highlight_enabled_get(win);
+     }
+   return EINA_FALSE;
+}
+
+/* FIXME: replicated from elm_layout just because button's icon spot
+ * is elm.swallow.content, not elm.swallow.icon. Fix that whenever we
+ * can changed the theme API */
+static Eina_Bool
+_elm_button_smart_theme(Evas_Object *obj)
+{
+   if (!ELM_WIDGET_CLASS(_elm_button_parent_sc)->theme(obj)) return EINA_FALSE;
+
+   _icon_signal_emit(obj);
+
+   return EINA_TRUE;
+}
+
+/* FIXME: replicated from elm_layout just because button's icon spot
+ * is elm.swallow.content, not elm.swallow.icon. Fix that whenever we
+ * can changed the theme API */
+static Eina_Bool
+_elm_button_smart_sub_object_del(Evas_Object *obj,
+                                 Evas_Object *sobj)
+{
+   if (!ELM_WIDGET_CLASS(_elm_button_parent_sc)->sub_object_del(obj, sobj))
+     return EINA_FALSE;
+
+   _icon_signal_emit(obj);
+
+   return EINA_TRUE;
+}
+
+/* FIXME: replicated from elm_layout just because button's icon spot
+ * is elm.swallow.content, not elm.swallow.icon. Fix that whenever we
+ * can changed the theme API */
+static Eina_Bool
+_elm_button_smart_content_set(Evas_Object *obj,
+                              const char *part,
+                              Evas_Object *content)
+{
+   if (!ELM_CONTAINER_CLASS(_elm_button_parent_sc)->content_set
+         (obj, part, content))
+     return EINA_FALSE;
+
+   _icon_signal_emit(obj);
+
+   return EINA_TRUE;
 }
 
 static void
-_signal_clicked(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_on_clicked_signal(void *data,
+                   Evas_Object *obj __UNUSED__,
+                   const char *emission __UNUSED__,
+                   const char *source __UNUSED__)
 {
    _activate(data);
 }
@@ -303,13 +176,12 @@ _signal_clicked(void *data, Evas_Object *obj __UNUSED__, const char *emission __
 static Eina_Bool
 _autorepeat_send(void *data)
 {
-   Widget_Data *wd = elm_widget_data_get(data);
-   if (!wd) return ECORE_CALLBACK_CANCEL;
+   ELM_BUTTON_DATA_GET_OR_RETURN_VAL(data, sd, ECORE_CALLBACK_CANCEL);
 
    evas_object_smart_callback_call(data, SIG_REPEATED, NULL);
-   if (!wd->repeating)
+   if (!sd->repeating)
      {
-        wd->timer = NULL;
+        sd->timer = NULL;
         return ECORE_CALLBACK_CANCEL;
      }
 
@@ -319,216 +191,354 @@ _autorepeat_send(void *data)
 static Eina_Bool
 _autorepeat_initial_send(void *data)
 {
-   Widget_Data *wd = elm_widget_data_get(data);
-   if (!wd) return ECORE_CALLBACK_CANCEL;
+   ELM_BUTTON_DATA_GET_OR_RETURN_VAL(data, sd, ECORE_CALLBACK_CANCEL);
 
-   if (wd->timer) ecore_timer_del(wd->timer);
-   wd->repeating = EINA_TRUE;
+   if (sd->timer) ecore_timer_del(sd->timer);
+   sd->repeating = EINA_TRUE;
    _autorepeat_send(data);
-   wd->timer = ecore_timer_add(wd->ar_interval, _autorepeat_send, data);
+   sd->timer = ecore_timer_add(sd->ar_interval, _autorepeat_send, data);
 
    return ECORE_CALLBACK_CANCEL;
 }
 
 static void
-_signal_pressed(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_multi_up_cb(void *data __UNUSED__,
+             Evas *evas __UNUSED__,
+             Evas_Object *obj,
+             void *event_info __UNUSED__)
 {
-   Widget_Data *wd = elm_widget_data_get(data);
-   if (!wd) return;
-
-   if ((wd->autorepeat) && (!wd->repeating))
+   ELM_BUTTON_DATA_GET_OR_RETURN(obj, sd);
+   sd->multi_down--;
+   if (sd->multi_down == 0)
      {
-        if (wd->ar_threshold <= 0.0)
-          _autorepeat_initial_send(data); /* call immediately */
+        //Emitting signal to inform edje about last multi up event.
+        elm_layout_signal_emit(obj, "elm,action,multi,up", "elm");
+     }
+}
+
+static void
+_multi_down_cb(void *data __UNUSED__,
+               Evas *evas __UNUSED__,
+               Evas_Object *obj,
+               void *event_info __UNUSED__)
+{
+   ELM_BUTTON_DATA_GET_OR_RETURN(obj, sd);
+   //Emitting signal to inform edje about multi down event.
+   elm_layout_signal_emit(obj, "elm,action,multi,down", "elm");
+   sd->multi_down++;
+}
+
+static void
+_on_pressed_signal(void *data,
+                   Evas_Object *obj __UNUSED__,
+                   const char *emission __UNUSED__,
+                   const char *source __UNUSED__)
+{
+   ELM_BUTTON_DATA_GET_OR_RETURN(data, sd);
+   if ((sd->autorepeat) && (!sd->repeating))
+     {
+        if (sd->ar_threshold <= 0.0)
+          _autorepeat_initial_send(data);  /* call immediately */
         else
-          wd->timer = ecore_timer_add(wd->ar_threshold, _autorepeat_initial_send, data);
+          {
+             if (sd->timer) ecore_timer_del(sd->timer);
+             sd->timer = ecore_timer_add
+                (sd->ar_threshold, _autorepeat_initial_send, data);
+          }
      }
 
    evas_object_smart_callback_call(data, SIG_PRESSED, NULL);
 }
 
 static void
-_signal_unpressed(void *data, Evas_Object *obj __UNUSED__, const char *emission __UNUSED__, const char *source __UNUSED__)
+_on_unpressed_signal(void *data,
+                     Evas_Object *obj __UNUSED__,
+                     const char *emission __UNUSED__,
+                     const char *source __UNUSED__)
 {
-   Widget_Data *wd = elm_widget_data_get(data);
-   if (!wd) return;
+   ELM_BUTTON_DATA_GET_OR_RETURN(data, sd);
 
-   if (wd->timer)
+   if (sd->timer)
      {
-        ecore_timer_del(wd->timer);
-        wd->timer = NULL;
+        ecore_timer_del(sd->timer);
+        sd->timer = NULL;
      }
-   wd->repeating = EINA_FALSE;
+   sd->repeating = EINA_FALSE;
    evas_object_smart_callback_call(data, SIG_UNPRESSED, NULL);
 }
 
+//***************** TIZEN Only
 static void
-_elm_button_label_set(Evas_Object *obj, const char *item, const char *label)
+_touch_mouse_out_cb(void *data __UNUSED__,
+                    Evas_Object *obj,
+                    void *event_info __UNUSED__)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (item && strcmp(item, "default")) return;
-   if (!wd) return;
-   eina_stringshare_replace(&wd->label, label);
-   if (label)
-     edje_object_signal_emit(wd->btn, "elm,state,text,visible", "elm");
-   else
-     edje_object_signal_emit(wd->btn, "elm,state,text,hidden", "elm");
-   edje_object_message_signal_process(wd->btn);
-   edje_object_part_text_escaped_set(wd->btn, "elm.text", label);
-   _sizing_eval(obj);
+   if (elm_widget_disabled_get(obj)) return;
+   elm_layout_signal_emit(obj, "elm,action,unpressed", "elm");
+   _on_unpressed_signal(obj, NULL, NULL, NULL);
 }
+//****************************
 
-static const char *
-_elm_button_label_get(const Evas_Object *obj, const char *item)
+static Eina_Bool
+_elm_button_smart_event(Evas_Object *obj,
+                        Evas_Object *src __UNUSED__,
+                        Evas_Callback_Type type,
+                        void *event_info)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) NULL;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (item && strcmp(item, "default")) return NULL;
-   if (!wd) return NULL;
-   return wd->label;
+   Evas_Event_Key_Down *ev = event_info;
+
+   // TIZEN ONLY(20131221) : When access mode, focused ui is disabled.
+   if (_elm_config->access_mode) return EINA_FALSE;
+
+   if (elm_widget_disabled_get(obj)) return EINA_FALSE;
+
+   if (type != EVAS_CALLBACK_KEY_DOWN && type != EVAS_CALLBACK_KEY_UP) return EINA_FALSE;
+
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
+   if (!_focus_enabled(obj)) return EINA_FALSE;
+   if ((strcmp(ev->keyname, "Return")) &&
+       (strcmp(ev->keyname, "KP_Enter")))
+     return EINA_FALSE;
+
+   if (type == EVAS_CALLBACK_KEY_DOWN)
+     {
+        elm_layout_signal_emit(obj, "elm,anim,activate", "elm");
+        elm_layout_signal_emit(obj, "elm,action,pressed", "elm");
+        _on_pressed_signal(obj, NULL, NULL, NULL);
+     }
+   else if (type == EVAS_CALLBACK_KEY_UP)
+     {
+        elm_layout_signal_emit(obj, "elm,action,unpressed", "elm");
+        _on_unpressed_signal(obj, NULL, NULL, NULL);
+        _activate(obj);
+     }
+   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+   return EINA_TRUE;
 }
 
 static char *
-_access_info_cb(void *data __UNUSED__, Evas_Object *obj, Elm_Widget_Item *item __UNUSED__)
+_access_type_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__)
+{
+   return strdup(E_("Button"));
+}
+
+static char *
+_access_info_cb(void *data __UNUSED__, Evas_Object *obj)
 {
    const char *txt = elm_widget_access_info_get(obj);
-   if (!txt) txt = _elm_button_label_get(obj, NULL);
+
+   if (!txt) txt = elm_layout_text_get(obj, NULL);
    if (txt) return strdup(txt);
+
    return NULL;
 }
 
 static char *
-_access_state_cb(void *data __UNUSED__, Evas_Object *obj, Elm_Widget_Item *item __UNUSED__)
+_access_state_cb(void *data __UNUSED__, Evas_Object *obj)
 {
    if (elm_widget_disabled_get(obj))
-     return strdup(E_("State: Disabled"));
+     return strdup(E_("Disabled"));
+
    return NULL;
+}
+
+static void
+_elm_button_smart_add(Evas_Object *obj)
+{
+   EVAS_SMART_DATA_ALLOC(obj, Elm_Button_Smart_Data);
+
+   ELM_WIDGET_CLASS(_elm_button_parent_sc)->base.add(obj);
+}
+
+static Eina_Bool
+_elm_button_smart_translate(Evas_Object *obj)
+{
+   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+
+   return EINA_TRUE;
+}
+
+static void
+_elm_button_smart_set_user(Elm_Button_Smart_Class *sc)
+{
+   ELM_WIDGET_CLASS(sc)->base.add = _elm_button_smart_add;
+
+   ELM_WIDGET_CLASS(sc)->event = _elm_button_smart_event;
+   ELM_WIDGET_CLASS(sc)->theme = _elm_button_smart_theme;
+   ELM_WIDGET_CLASS(sc)->sub_object_del = _elm_button_smart_sub_object_del;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_button_smart_translate;
+
+   /* not a 'focus chain manager' */
+   ELM_WIDGET_CLASS(sc)->focus_next = NULL;
+   ELM_WIDGET_CLASS(sc)->focus_direction_manager_is = NULL;
+   ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
+
+   ELM_CONTAINER_CLASS(sc)->content_set = _elm_button_smart_content_set;
+
+   ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_button_smart_sizing_eval;
+   ELM_WIDGET_CLASS(sc)->activate = _elm_button_smart_activate;
+
+   ELM_LAYOUT_CLASS(sc)->content_aliases = _content_aliases;
+   ELM_LAYOUT_CLASS(sc)->text_aliases = _text_aliases;
+
+   sc->admits_autorepeat = EINA_TRUE;
+}
+
+EAPI const Elm_Button_Smart_Class *
+elm_button_smart_class_get(void)
+{
+   static Elm_Button_Smart_Class _sc =
+     ELM_BUTTON_SMART_CLASS_INIT_NAME_VERSION(ELM_BUTTON_SMART_NAME);
+   static const Elm_Button_Smart_Class *class = NULL;
+   Evas_Smart_Class *esc = (Evas_Smart_Class *)&_sc;
+
+   if (class) return class;
+
+   _elm_button_smart_set(&_sc);
+   esc->callbacks = _smart_callbacks;
+   class = &_sc;
+
+   return class;
 }
 
 EAPI Evas_Object *
 elm_button_add(Evas_Object *parent)
 {
    Evas_Object *obj;
-   Evas *e;
-   Widget_Data *wd;
 
-   ELM_WIDGET_STANDARD_SETUP(wd, Widget_Data, parent, e, obj, NULL);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
 
-   ELM_SET_WIDTYPE(widtype, "button");
-   elm_widget_type_set(obj, "button");
-   elm_widget_sub_object_add(parent, obj);
-   elm_widget_on_focus_hook_set(obj, _on_focus_hook, NULL);
-   elm_widget_data_set(obj, wd);
-   elm_widget_del_hook_set(obj, _del_hook);
-   elm_widget_del_pre_hook_set(obj, _del_pre_hook);
-   elm_widget_theme_hook_set(obj, _theme_hook);
-   elm_widget_disable_hook_set(obj, _disable_hook);
+   obj = elm_widget_add(_elm_button_smart_class_new(), parent);
+   if (!obj) return NULL;
+
+   if (!elm_widget_sub_object_add(parent, obj))
+     ERR("could not add %p as sub object of %p", obj, parent);
+
+   ELM_BUTTON_DATA_GET_OR_RETURN_VAL(obj, sd, NULL);
+   sd->multi_down = 0;
+
+   elm_layout_theme_set(obj, "button", "base", elm_widget_style_get(obj));
+
+   edje_object_signal_callback_add
+     (ELM_WIDGET_DATA(sd)->resize_obj, "elm,action,click", "",
+     _on_clicked_signal, obj);
+   edje_object_signal_callback_add
+     (ELM_WIDGET_DATA(sd)->resize_obj, "elm,action,press", "",
+     _on_pressed_signal, obj);
+   edje_object_signal_callback_add
+     (ELM_WIDGET_DATA(sd)->resize_obj, "elm,action,unpress", "",
+     _on_unpressed_signal, obj);
+
+//***************** TIZEN Only
+   evas_object_smart_callback_add(obj, "touch,mouse,out", _touch_mouse_out_cb, NULL);
+//****************************
+   /*Registering Multi down/up events to ignore mouse down/up events untill all
+    * multi down/up events are released.*/
+   evas_object_event_callback_add(obj, EVAS_CALLBACK_MULTI_DOWN, (Evas_Object_Event_Cb)_multi_down_cb, NULL);
+   evas_object_event_callback_add(obj, EVAS_CALLBACK_MULTI_UP, (Evas_Object_Event_Cb)_multi_up_cb, NULL);
+
+   _elm_access_object_register(obj, ELM_WIDGET_DATA(sd)->resize_obj);
+   _elm_access_callback_set
+     (_elm_access_object_get(obj), ELM_ACCESS_TYPE, _access_type_cb, NULL);
+   _elm_access_callback_set
+     (_elm_access_object_get(obj), ELM_ACCESS_INFO, _access_info_cb, NULL);
+   _elm_access_callback_set
+     (_elm_access_object_get(obj), ELM_ACCESS_STATE, _access_state_cb, sd);
+
    elm_widget_can_focus_set(obj, EINA_TRUE);
-   elm_widget_activate_hook_set(obj, _activate_hook);
-   elm_widget_event_hook_set(obj, _event_hook);
-   elm_widget_signal_emit_hook_set(obj, _signal_emit_hook);
-   elm_widget_signal_callback_add_hook_set(obj, _signal_callback_add_hook);
-   elm_widget_signal_callback_del_hook_set(obj, _signal_callback_del_hook);
-   elm_widget_text_set_hook_set(obj, _elm_button_label_set);
-   elm_widget_text_get_hook_set(obj, _elm_button_label_get);
-   elm_widget_content_set_hook_set(obj, _content_set_hook);
-   elm_widget_content_get_hook_set(obj, _content_get_hook);
-   elm_widget_content_unset_hook_set(obj, _content_unset_hook);
 
-   wd->btn = edje_object_add(e);
-   _elm_theme_object_set(obj, wd->btn, "button", "base", "default");
-   edje_object_signal_callback_add(wd->btn, "elm,action,click", "",
-                                   _signal_clicked, obj);
-   edje_object_signal_callback_add(wd->btn, "elm,action,press", "",
-                                   _signal_pressed, obj);
-   edje_object_signal_callback_add(wd->btn, "elm,action,unpress", "",
-                                   _signal_unpressed, obj);
-   elm_widget_resize_object_set(obj, wd->btn);
+   //Tizen Only: This should be removed when eo is applied.
+   ELM_WIDGET_DATA_GET(obj, wsd);
+   wsd->on_create = EINA_FALSE;
 
-   evas_object_smart_callback_add(obj, "sub-object-del", _sub_del, obj);
-
-   _theme_hook(obj);
-
-   // TODO: convert Elementary to subclassing of Evas_Smart_Class
-   // TODO: and save some bytes, making descriptions per-class and not instance!
-   evas_object_smart_callbacks_descriptions_set(obj, _signals);
-
-   _elm_access_object_register(obj, wd->btn);
-   _elm_access_text_set(_elm_access_object_get(obj),
-                        ELM_ACCESS_TYPE, E_("Button"));
-   _elm_access_callback_set(_elm_access_object_get(obj),
-                            ELM_ACCESS_INFO, _access_info_cb, obj);
-   _elm_access_callback_set(_elm_access_object_get(obj),
-                            ELM_ACCESS_STATE, _access_state_cb, obj);
    return obj;
 }
 
 EAPI void
-elm_button_autorepeat_set(Evas_Object *obj, Eina_Bool on)
+elm_button_autorepeat_set(Evas_Object *obj,
+                          Eina_Bool on)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (wd->timer)
+   ELM_BUTTON_CHECK(obj);
+   ELM_BUTTON_DATA_GET_OR_RETURN(obj, sd);
+
+   if (sd->timer)
      {
-        ecore_timer_del(wd->timer);
-        wd->timer = NULL;
+        ecore_timer_del(sd->timer);
+        sd->timer = NULL;
      }
-   wd->autorepeat = on;
-   wd->repeating = EINA_FALSE;
+   sd->autorepeat = on;
+   sd->repeating = EINA_FALSE;
 }
+
+#define _AR_CAPABLE(_sd) \
+  (ELM_BUTTON_CLASS(ELM_WIDGET_DATA(_sd)->api)->admits_autorepeat)
 
 EAPI Eina_Bool
 elm_button_autorepeat_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) EINA_FALSE;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return EINA_FALSE;
-   return wd->autorepeat;
+   ELM_BUTTON_CHECK(obj) EINA_FALSE;
+   ELM_BUTTON_DATA_GET_OR_RETURN_VAL(obj, sd, EINA_FALSE);
+
+   return _AR_CAPABLE(sd) & sd->autorepeat;
 }
 
 EAPI void
-elm_button_autorepeat_initial_timeout_set(Evas_Object *obj, double t)
+elm_button_autorepeat_initial_timeout_set(Evas_Object *obj,
+                                          double t)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (wd->ar_threshold == t) return;
-   if (wd->timer)
+   ELM_BUTTON_CHECK(obj);
+   ELM_BUTTON_DATA_GET_OR_RETURN(obj, sd);
+
+   if (!_AR_CAPABLE(sd))
      {
-        ecore_timer_del(wd->timer);
-        wd->timer = NULL;
+        ERR("this widget does not support auto repetition of clicks.");
+        return;
      }
-   wd->ar_threshold = t;
+
+   if (sd->ar_threshold == t) return;
+   if (sd->timer)
+     {
+        ecore_timer_del(sd->timer);
+        sd->timer = NULL;
+     }
+   sd->ar_threshold = t;
 }
 
 EAPI double
 elm_button_autorepeat_initial_timeout_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) 0.0;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return 0.0;
-   return wd->ar_threshold;
+   ELM_BUTTON_CHECK(obj) 0.0;
+   ELM_BUTTON_DATA_GET_OR_RETURN_VAL(obj, sd, 0.0);
+
+   if (!_AR_CAPABLE(sd)) return 0.0;
+
+   return sd->ar_threshold;
 }
 
 EAPI void
-elm_button_autorepeat_gap_timeout_set(Evas_Object *obj, double t)
+elm_button_autorepeat_gap_timeout_set(Evas_Object *obj,
+                                      double t)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (wd->ar_interval == t) return;
+   ELM_BUTTON_CHECK(obj);
+   ELM_BUTTON_DATA_GET_OR_RETURN(obj, sd);
 
-   wd->ar_interval = t;
-   if ((wd->repeating) && (wd->timer)) ecore_timer_interval_set(wd->timer, t);
+   if (!_AR_CAPABLE(sd))
+     {
+        ERR("this widget does not support auto repetition of clicks.");
+        return;
+     }
+
+   if (sd->ar_interval == t) return;
+
+   sd->ar_interval = t;
+   if ((sd->repeating) && (sd->timer)) ecore_timer_interval_set(sd->timer, t);
 }
 
 EAPI double
 elm_button_autorepeat_gap_timeout_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) 0.0;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return 0.0;
-   return wd->ar_interval;
+   ELM_BUTTON_CHECK(obj) 0.0;
+   ELM_BUTTON_DATA_GET_OR_RETURN_VAL(obj, sd, 0.0);
+
+   return sd->ar_interval;
 }

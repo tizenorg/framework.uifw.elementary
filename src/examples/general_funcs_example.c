@@ -67,7 +67,6 @@ EAPI_MAIN int
 elm_main(int    argc,
          char **argv)
 {
-   int h;
    Evas_Object *win, *bg, *box, *frame, *check, *b, *slider;
 
    /* tell elm about our app so it can figure out where to get files */
@@ -95,7 +94,6 @@ elm_main(int    argc,
    evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    elm_win_resize_object_add(win, bg);
    evas_object_show(bg);
-   evas_object_size_hint_min_set(bg, 160, 160);
 
    /* outer box */
    box = elm_box_add(win);
@@ -113,12 +111,8 @@ elm_main(int    argc,
    d.btn = elm_button_add(win);
    elm_object_text_set(d.btn, "Click me");
    elm_object_content_set(frame, d.btn);
-
    fprintf(stdout, "Elementary's finger size is set to %d pixels\n.",
            elm_config_finger_size_get());
-   elm_coords_finger_size_adjust(0, NULL, 3, &h);
-   /* so, button will be 3 fingers tall */
-   evas_object_size_hint_min_set(d.btn, 0, h);
    evas_object_show(d.btn);
 
    b = elm_box_add(win);

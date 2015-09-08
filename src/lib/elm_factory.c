@@ -132,16 +132,16 @@ _eval(Evas_Object *obj)
                   if (evas_object_smart_data_get(wd->content))
                      evas_object_smart_calculate(wd->content);
                }
-             //wd->last_calc_count =
-             //evas_smart_objects_calculate_count_get(evas_object_evas_get(obj));
+             wd->last_calc_count =
+                evas_smart_objects_calculate_count_get(evas_object_evas_get(obj));
           }
      }
    else
      {
         if (wd->content)
           {
-             //if (wd->last_calc_count !=
-             //evas_smart_objects_calculate_count_get(evas_object_evas_get(obj)))
+             if (wd->last_calc_count !=
+                evas_smart_objects_calculate_count_get(evas_object_evas_get(obj)))
                 evas_object_smart_callback_call(obj, SIG_UNREALIZE, NULL);
           }
      }
@@ -254,7 +254,7 @@ _content_set_hook(Evas_Object *obj, const char *part, Evas_Object *content)
    wd->content = content;
    if (!content) return;
 
-   elm_widget_resize_object_set(obj, content);
+   elm_widget_resize_object_set(obj, content, EINA_TRUE);
    evas_object_event_callback_add(content, EVAS_CALLBACK_DEL, _child_del, obj);
    evas_object_event_callback_add(content, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
                                   _child_change, obj);
@@ -303,6 +303,10 @@ elm_factory_add(Evas_Object *parent)
 
    wd->obj = obj;
    wd->last_calc_count = -1;
+
+   //Tizen Only: This should be removed when eo is applied.
+   wd->on_create = EINA_FALSE;
+
    return obj;
 }
 

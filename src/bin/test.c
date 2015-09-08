@@ -43,6 +43,7 @@ void test_layout2(void *data, Evas_Object *obj, void *event_info);
 void test_hover(void *data, Evas_Object *obj, void *event_info);
 void test_hover2(void *data, Evas_Object *obj, void *event_info);
 void test_entry(void *data, Evas_Object *obj, void *event_info);
+void test_entry_style_user(void *data, Evas_Object *obj, void *event_info);
 void test_entry_scrolled(void *data, Evas_Object *obj, void *event_info);
 void test_entry3(void *data, Evas_Object *obj, void *event_info);
 void test_entry4(void *data, Evas_Object *obj, void *event_info);
@@ -70,6 +71,7 @@ void test_list3(void *data, Evas_Object *obj, void *event_info);
 void test_list4(void *data, Evas_Object *obj, void *event_info);
 void test_list5(void *data, Evas_Object *obj, void *event_info);
 void test_list6(void *data, Evas_Object *obj, void *event_info);
+void test_list7(void *data, Evas_Object *obj, void *event_info);
 void test_inwin(void *data, Evas_Object *obj, void *event_info);
 void test_inwin2(void *data, Evas_Object *obj, void *event_info);
 void test_scaling(void *data, Evas_Object *obj, void *event_info);
@@ -93,6 +95,8 @@ void test_genlist14(void *data, Evas_Object *obj, void *event_info);
 void test_genlist15(void *data, Evas_Object *obj, void *event_info);
 void test_genlist16(void *data, Evas_Object *obj, void *event_info);
 void test_genlist17(void *data, Evas_Object *obj, void *event_info);
+void test_genlist18(void *data, Evas_Object *obj, void *event_info);
+void test_genlist19(void *data, Evas_Object *obj, void *event_info);
 void test_gesture_layer(void *data, Evas_Object *obj, void *event_info);
 void test_gesture_layer2(void *data, Evas_Object *obj, void *event_info);
 void test_gesture_layer3(void *data, Evas_Object *obj, void *event_info);
@@ -124,6 +128,7 @@ void test_icon_animated(void *data, Evas_Object *obj, void *event_info);
 void test_notify(void *data, Evas_Object *obj, void *event_info);
 void test_slideshow(void *data, Evas_Object *obj, void *event_info);
 void test_menu(void *data, Evas_Object *obj, void *event_info);
+void test_menu2(void *data, Evas_Object *obj, void *event_info);
 void test_panel(void *data, Evas_Object *obj, void *event_info);
 void test_panes(void *data, Evas_Object *obj, void *event_info);
 void test_calendar(void *data, Evas_Object *obj, void *event_info);
@@ -135,6 +140,7 @@ void test_flip(void *data, Evas_Object *obj, void *event_info);
 void test_flip2(void *data, Evas_Object *obj, void *event_info);
 void test_flip3(void *data, Evas_Object *obj, void *event_info);
 void test_flip4(void *data, Evas_Object *obj, void *event_info);
+void test_flip5(void *data, Evas_Object *obj, void *event_info);
 void test_flip_page(void *data, Evas_Object *obj, void *event_info);
 void test_label(void *data, Evas_Object *obj, void *event_info);
 void test_label2(void *data, Evas_Object *obj, void *event_info);
@@ -166,17 +172,25 @@ void test_store(void *data, Evas_Object *obj, void *event_info);
 void test_win_inline(void *data, Evas_Object *obj, void *event_info);
 void test_win_socket(void *data, Evas_Object *obj, void *event_info);
 void test_win_plug(void *data, Evas_Object *obj, void *event_info);
+void test_win_wm_rotation(void *data, Evas_Object *obj, void *event_info);
+void test_win_aux_hint(void *data, Evas_Object *obj, void *event_info);
 void test_grid(void *data, Evas_Object *obj, void *event_info);
 void test_glview_simple(void *data, Evas_Object *obj, void *event_info);
 void test_glview(void *data, Evas_Object *obj, void *event_info);
 void test_3d(void *data, Evas_Object *obj, void *event_info);
 void test_naviframe(void *data, Evas_Object *obj, void *event_info);
+void test_naviframe2(void *data, Evas_Object *obj, void *event_info);
 void test_naviframe_complex(void *data, Evas_Object *obj, void *event_info);
 //void test_factory(void *data, Evas_Object *obj, void *event_info);
 void test_datetime(void *data, Evas_Object *obj, void *event_info);
 void test_popup(void *data, Evas_Object *obj, void *event_info);
 void test_dayselector(void *data, Evas_Object *obj, void *event_info);
-void test_config(void *data, Evas_Object *obj, void *event_info);
+void test_image(void *data, Evas_Object *obj, void *event_info);
+void test_external_button(void *data, Evas_Object *obj, void *event_info);
+void test_external_slider(void *data, Evas_Object *obj, void *event_info);
+void test_external_scroller(void *data, Evas_Object *obj, void *event_info);
+void test_external_pbar(void *data, Evas_Object *obj, void *event_info);
+void test_external_video(void *data, Evas_Object *obj, void *event_info);
 #ifdef HAVE_EMOTION
 void test_video(void *data, Evas_Object *obj, void *event_info);
 #endif
@@ -187,6 +201,10 @@ void test_eio(void *data, Evas_Object *obj, void *event_info);
 void test_web_normal(void *data, Evas_Object *obj, void *event_info);
 void test_web_mobile(void *data, Evas_Object *obj, void *event_info);
 #endif
+void test_dnd_genlist_default_anim(void *data, Evas_Object *obj, void *event_info);
+void test_dnd_genlist_user_anim(void *data, Evas_Object *obj, void *event_info);
+void test_dnd_genlist_gengrid(void *data, Evas_Object *obj, void *event_info);
+void test_dnd_multi_features(void *data, Evas_Object *obj, void *event_info);
 
 Evas_Object *win, *tbx; // TODO: refactoring
 void *tt;
@@ -279,7 +297,7 @@ _menu_create(const char *option_str)
           {
              ic = elm_icon_add(win);
              snprintf(buf, sizeof(buf), "%s/images/%s", elm_app_data_dir_get(), t->icon);
-             elm_icon_file_set(ic, buf, NULL);
+             elm_image_file_set(ic, buf, NULL);
              elm_object_part_content_set(bt, "icon", ic);
              evas_object_show(ic);
           }
@@ -331,7 +349,7 @@ my_win_main(char *autorun, Eina_Bool test_win_only)
     * type is a basic window (the final parameter).
     * You can call elm_win_util_standard_add() instead. This is a convenient API
     * for window and bg creation. You don't need to create bg object manually.
-    * You can also set the title of the window at the same time. 
+    * You can also set the title of the window at the same time.
     *   ex) win = elm_win_util_standard_add("main", "Elementary Tests"); */
    win = elm_win_add(NULL, "main", ELM_WIN_BASIC);
    /* Set the title of the window - This is in the titlebar. */
@@ -385,6 +403,9 @@ my_win_main(char *autorun, Eina_Bool test_win_only)
                        "the test button to show the test window.");
    elm_object_content_set(fr, lb);
    evas_object_show(lb);
+
+   /* This label will not be read out */
+   elm_access_object_unregister(lb);
 
    tg = elm_check_add(win);
    elm_object_style_set(tg, "toggle");
@@ -452,6 +473,8 @@ add_tests:
    ADD_TEST(NULL, "Window / Background", "Window Inline", test_win_inline);
    ADD_TEST(NULL, "Window / Background", "Window Socket", test_win_socket);
    ADD_TEST(NULL, "Window / Background", "Window Plug", test_win_plug);
+   ADD_TEST(NULL, "Window / Background", "Window WM Rotation", test_win_wm_rotation);
+   ADD_TEST(NULL, "Window / Background", "Window Aux Hint", test_win_aux_hint);
 
    //------------------------------//
    ADD_TEST(NULL, "Images", "Icon", test_icon);
@@ -460,6 +483,7 @@ add_tests:
    ADD_TEST(NULL, "Images", "Photocam", test_photocam);
    ADD_TEST(NULL, "Images", "Photo", test_photo);
    ADD_TEST(NULL, "Images", "Thumb", test_thumb);
+   ADD_TEST(NULL, "Images", "Image", test_image);
    ADD_TEST(NULL, "Images", "Slideshow", test_slideshow);
 #ifdef HAVE_EMOTION
    ADD_TEST(NULL, "Images", "Video", test_video);
@@ -485,6 +509,7 @@ add_tests:
 
    //------------------------------//
    ADD_TEST(NULL, "Entries", "Entry", test_entry);
+   ADD_TEST(NULL, "Entries", "Entry Style", test_entry_style_user);
    ADD_TEST(NULL, "Entries", "Entry Scrolled", test_entry_scrolled);
    ADD_TEST(NULL, "Entries", "Entry 3", test_entry3);
    ADD_TEST(NULL, "Entries", "Entry 4", test_entry4);
@@ -514,8 +539,16 @@ add_tests:
    ADD_TEST(NULL, "Effects", "Flip 2", test_flip2);
    ADD_TEST(NULL, "Effects", "Flip 3", test_flip3);
    ADD_TEST(NULL, "Effects", "Flip Interactive", test_flip4);
+   ADD_TEST(NULL, "Effects", "Flip To", test_flip5);
    ADD_TEST(NULL, "Effects", "Flip Page", test_flip_page);
    ADD_TEST(NULL, "Effects", "Animation", test_anim);
+
+   //------------------------------//
+   ADD_TEST(NULL, "Edje External", "ExtButton", test_external_button);
+   ADD_TEST(NULL, "Edje External", "ExtProgressBar", test_external_pbar);
+   ADD_TEST(NULL, "Edje External", "ExtScroller", test_external_scroller);
+   ADD_TEST(NULL, "Edje External", "ExtSlider", test_external_slider);
+   ADD_TEST(NULL, "Edje External", "ExtVideo", test_external_video);
 
    //------------------------------//
    ADD_TEST(NULL, "Toolbars", "Toolbar", test_toolbar);
@@ -535,6 +568,7 @@ add_tests:
    ADD_TEST(NULL, "Lists", "List 4", test_list4);
    ADD_TEST(NULL, "Lists", "List 5", test_list5);
    ADD_TEST(NULL, "Lists", "List 6", test_list6);
+   ADD_TEST(NULL, "Lists", "List 7", test_list7);
    ADD_TEST(NULL, "Lists", "Genlist", test_genlist);
    ADD_TEST(NULL, "Lists", "Genlist 2", test_genlist2);
    ADD_TEST(NULL, "Lists", "Genlist 3", test_genlist3);
@@ -554,7 +588,9 @@ add_tests:
    ADD_TEST(NULL, "Lists", "Genlist Tree, Insert Sorted", test_genlist13);
    ADD_TEST(NULL, "Lists", "Genlist Tree, Insert Relative", test_genlist14);
    ADD_TEST(NULL, "Lists", "Genlist Flip Mode", test_genlist16);
-   ADD_TEST(NULL, "Lists", "Genlist Tree Effect", test_genlist17);
+   ADD_TEST(NULL, "Lists", "Genlist Decorate Modes", test_genlist17);
+   ADD_TEST(NULL, "Lists", "Genlist Tree and Decorate All Mode", test_genlist18);
+   ADD_TEST(NULL, "Lists", "Genlist Full Widget", test_genlist19);
    ADD_TEST(NULL, "Lists", "GenGrid", test_gengrid);
    ADD_TEST(NULL, "Lists", "GenGrid 2", test_gengrid2);
    ADD_TEST(NULL, "Lists", "GenGrid Group", test_gengrid3);
@@ -588,6 +624,7 @@ add_tests:
    ADD_TEST(NULL, "Selectors", "File Selector Button", test_fileselector_button);
    ADD_TEST(NULL, "Selectors", "Actionslider", test_actionslider);
    ADD_TEST(NULL, "Selectors", "Menu", test_menu);
+   ADD_TEST(NULL, "Selectors", "Menu 2", test_menu2);
    ADD_TEST(NULL, "Selectors", "Disk Selector", test_diskselector);
    ADD_TEST(NULL, "Selectors", "Color Selector", test_colorselector);
    ADD_TEST(NULL, "Selectors", "Segment Control", test_segment_control);
@@ -655,6 +692,7 @@ add_tests:
 
    //------------------------------//
    ADD_TEST(NULL, "Naviframe", "Naviframe", test_naviframe);
+   ADD_TEST(NULL, "Naviframe", "Naviframe 2", test_naviframe2);
    ADD_TEST(NULL, "Naviframe", "Naviframe: Complex", test_naviframe_complex);
 
    //------------------------------//
@@ -673,20 +711,24 @@ add_tests:
 //   ADD_TEST(NULL, "Helpers", "Factory", test_factory);
 
    //------------------------------//
-   ADD_TEST(NULL, "Micellaneous", "Copy And Paste", test_cnp);
-   ADD_TEST(NULL, "Micellaneous", "Weather", test_weather);
-   ADD_TEST(NULL, "Micellaneous", "Icon Desktops", test_icon_desktops);
-   ADD_TEST(NULL, "Micellaneous", "Floating Objects", test_floating);
-   ADD_TEST(NULL, "Micellaneous", "Configuration", test_config);
+   ADD_TEST(NULL, "Drag & Drop", "Genlist DnD Dflt Anim", test_dnd_genlist_default_anim);
+   ADD_TEST(NULL, "Drag & Drop", "Genlist DnD User Anim", test_dnd_genlist_user_anim);
+   ADD_TEST(NULL, "Drag & Drop", "Genlist-Gengrid DnD", test_dnd_genlist_gengrid);
+   ADD_TEST(NULL, "Drag & Drop", "Features DnD", test_dnd_multi_features);
+
+   //------------------------------//
+   ADD_TEST(NULL, "Miscellaneous", "Copy And Paste", test_cnp);
+   ADD_TEST(NULL, "Miscellaneous", "Weather", test_weather);
+   ADD_TEST(NULL, "Miscellaneous", "Icon Desktops", test_icon_desktops);
+   ADD_TEST(NULL, "Miscellaneous", "Floating Objects", test_floating);
 
 #undef ADD_TEST
 
    if (autorun)
      {
-        size_t alen = strlen(autorun);
         EINA_LIST_FOREACH(tests, l, t)
           {
-             if ((t->name) && (t->cb) && (!strncasecmp(t->name, autorun, alen)))
+             if ((t->name) && (t->cb) && (!strcasecmp(t->name, autorun)))
                {
                   t->cb(NULL, NULL, NULL);
                   break;
@@ -709,17 +751,13 @@ add_tests:
 
    /* set an initial window size */
    evas_object_resize(win, 480, 480);
-   /* show the window */
-   if (!test_win_only)
+   evas_object_show(win);
+   /* bring in autorun frame */
+   if (autorun)
      {
-        evas_object_show(win);
-        /* bring in autorun frame */
-        if (autorun)
-          {
-             Evas_Coord x, y;
-             evas_object_geometry_get(tt, &x, &y, NULL, NULL);
-             elm_scroller_region_bring_in(sc, x, y, 0, 0);
-          }
+        Evas_Coord x, y;
+        evas_object_geometry_get(tt, &x, &y, NULL, NULL);
+        elm_scroller_region_bring_in(sc, x, y, 0, 0);
      }
 }
 
@@ -731,6 +769,7 @@ elm_main(int argc, char **argv)
 {
    Eina_Bool test_win_only = EINA_FALSE;
    char *autorun = NULL;
+   struct elm_test *t = NULL;
 
    elm_policy_set(ELM_POLICY_QUIT, ELM_POLICY_QUIT_LAST_WINDOW_CLOSED);
 
@@ -760,6 +799,10 @@ elm_main(int argc, char **argv)
    my_win_main(autorun, test_win_only); /* create main window */
    elm_run(); /* and run the program now and handle all events etc. */
    /* if the mainloop that elm_run() runs exist - we exit the app */
+
+   EINA_LIST_FREE(tests, t)
+      free(t);
+
    elm_shutdown(); /* clean up and shut down */
    /* exit code */
    return 0;

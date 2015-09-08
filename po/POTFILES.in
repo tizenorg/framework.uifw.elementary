@@ -92,6 +92,9 @@
 ./src/lib/elc_fileselector.c
 ./src/lib/elc_fileselector_entry.c
 ./src/lib/elc_hoversel.c
+./src/lib/elc_multibuttonentry.c
+./src/lib/elc_naviframe.c
+./src/lib/elc_popup.c
 ./src/lib/elm_actionslider.c
 ./src/lib/elm_bg.c
 ./src/lib/elm_box.c
@@ -104,6 +107,7 @@
 ./src/lib/elm_colorselector.c
 ./src/lib/elm_config.c
 ./src/lib/elm_conform.c
+./src/lib/elm_dayselector.c
 ./src/lib/elm_diskselector.c
 ./src/lib/elm_entry.c
 ./src/lib/elm_flip.c
@@ -132,6 +136,7 @@
 ./src/lib/elm_progressbar.c
 ./src/lib/elm_radio.c
 ./src/lib/elm_scroller.c
+./src/lib/elm_segment_control.c
 ./src/lib/elm_separator.c
 ./src/lib/elm_slider.c
 ./src/lib/elm_slideshow.c
@@ -147,9 +152,13 @@
 ./src/lib/elm_win.c
 ./src/lib/els_box.c
 ./src/lib/els_cursor.c
-./src/lib/els_icon.c
 ./src/lib/els_pan.c
 ./src/lib/els_scroller.c
 ./src/lib/els_tooltip.c
+./src/modules/ctxpopup_copypasteUI/copypaste.c
 ./src/modules/test_entry/mod.c
 ./src/modules/test_map/mod.c
+./src/modules/datetime_input_button/datetime_input_button.c
+./src/modules/datetime_input_popup/datetime_input_popup.c
+./src/modules/datetime_input_circle/datetime_input_circle.c
+./src/lib/translate.c

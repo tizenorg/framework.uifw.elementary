@@ -100,17 +100,17 @@
  * @ref progressbar_example
  *
  * @ref slideshow_example
- * 
+ *
  * @ref efl_thread_1
- * 
+ *
  * @ref efl_thread_2
- * 
+ *
  * @ref efl_thread_3
- * 
+ *
  * @ref efl_thread_4
- * 
+ *
  * @ref efl_thread_5
- * 
+ *
  * @ref efl_thread_6
  */
 
@@ -119,7 +119,7 @@
  * @dontinclude bg_example_01.c
  *
  * The full code for this example can be found at @ref bg_example_01_c,
- * in the function @c test_bg_plain. It's part of the @c elementar_test
+ * in the function @c test_bg_plain. It's part of the @c elementary_test
  * suite, and thus has the code for the three examples referenced by this
  * documentation.
  *
@@ -160,7 +160,7 @@
  * @dontinclude bg_example_02.c
  *
  * The full code for this example can be found at @ref bg_example_02_c,
- * in the function @c test_bg_image. It's part of the @c elementar_test
+ * in the function @c test_bg_image. It's part of the @c elementary_test
  * suite, and thus has the code for the three examples referenced by this
  * documentation.
  *
@@ -219,17 +219,17 @@
  * This example will look like this:
  *
  * @image html screenshots/bg_01.png
- * @image latex screenshots/bg_01.eps width=\textwidth
+ * @image latex screenshots/bg_01.eps "bg example 01" width=\textwidth
  */
 
 /**
  * @page bg_03_example_page elm_bg - Background properties.
  * @dontinclude bg_example_03.c
  *
- * The full code for this example can be found at @ref bg_example_03_c, in the
+ * The full code for this example can be found at @ref bg_example_03.c, in the
  * function @c test_bg_options, with the callbacks @c _cb_overlay_changed, @c
  * _cb_color_changed and @c _cb_radio_changed defined in the beginning of the
- * file. It's part of the @c elementar_test suite, and thus has the code for
+ * file. It's part of the @c elementary_test suite, and thus has the code for
  * the three examples referenced by this documentation.
  *
  * This example will show the properties available for the background object,
@@ -355,6 +355,9 @@
  *
  * Now to see this code in action, open elementary_test, and go to the "Bg
  * Options" test. It should demonstrate what was implemented here.
+ *
+ * @example bg_example_03.c
+ * @include bg_example_03.c
  */
 
 /**
@@ -379,7 +382,7 @@
  * label magnetic(except if it's the center label):
  * @until }
  *
- * This callback enables or disables the magnetic propertty of the center
+ * This callback enables or disables the magnetic property of the center
  * label:
  * @until }
  *
@@ -407,7 +410,7 @@
  * do this all three positions would be enabled:
  * @until RIGHT
  *
- * Having the the enabled positions we now add a smart callback to change
+ * Having the enabled positions we now add a smart callback to change
  * which position is magnetic, so that only the last selected position is
  * magnetic:
  * @until NULL
@@ -424,7 +427,7 @@
  * @until object_show
  *
  * And another actionslider, in this one the indicator starts on the left.
- * It has labels only in the center and right, and both bositions are
+ * It has labels only in the center and right, and both positions are
  * magnetic. Because the left doesn't have a label and is not magnetic once
  * the indicator leaves it can't return:
  * @skipline actionslider_add
@@ -454,9 +457,12 @@
  * The example will look like this:
  *
  * @image html screenshots/actionslider_01.png
- * @image latex screenshots/actionslider_01.eps width=\textwidth
+ * @image latex screenshots/actionslider_01.eps "actionsdlier example 01" width=\textwidth
  *
- * See the full source code @ref actionslider_example_01 "here"
+ * See the full source code @ref actionslider_example_01.c "here"
+ *
+ * @example actionslider_example_01.c
+ * @include actionslider_example_01.c
  */
 
 /**
@@ -498,7 +504,7 @@
  * @page transit_example_01_explained elm_transit - Basic transit usage.
  * @dontinclude transit_example_01.c
  *
- * The full code for this example can be found at @ref transit_example_01_c.
+ * The full code for this example can be found at @ref transit_example_01.c.
  *
  * This example shows the simplest way of creating a transition and applying
  * it to an object. Similarly to every other elementary example, we create a
@@ -541,13 +547,16 @@
  * button, we could add them to the same transition. See the
  * @ref transit_example_03_c to watch many transitions being applied to an
  * object.
+ *
+ * @example transit_example_01.c
+ * @include transit_example_01.c
  */
 
 /**
  * @page transit_example_02_explained elm_transit - Chained transitions.
  * @dontinclude transit_example_02.c
  *
- * The full code for this example can be found at @ref transit_example_02_c.
+ * The full code for this example can be found at @ref transit_example_02.c.
  *
  * This example shows how to implement a chain of transitions. This chain is
  * used to start a transition just after another transition ended. Similarly
@@ -590,6 +599,9 @@
  * Finally we add the 2 other transitions to the chain, and run our program.
  * It will make one transition start after the other finish, and there is the
  * transition chain.
+ *
+ * @example transit_example_02.c
+ * @include transit_example_02.c
  */
 
 /**
@@ -614,7 +626,7 @@
  * quick launch, so this first call can't be avoided.
  *
  * If you ran this example from your "bindir" installation
- * directiory, no output will emerge from these both attempts -- it
+ * directory, no output will emerge from these both attempts -- it
  * will find the "magic" file there registered and set the prefixes
  * silently. Otherwise, you could get something like:
  @verbatim
@@ -647,7 +659,7 @@
  * @skip by using this policy
  * @until elm_win_autodel_set
  * we demonstrate the use of Elementary policies. The policy defining
- * under which circunstances our application should quit automatically
+ * under which circumstances our application should quit automatically
  * is set to when its last window is closed (this one has just one
  * window, though). This will save us from having to set a callback
  * ourselves on the window, like done in @ref bg_example_01_c "this"
@@ -706,7 +718,10 @@
  * naturally.
  *
  * The full code for this example can be found
- * @ref general_functions_example_c "here".
+ * @ref general_funcs_example.c "here".
+ *
+ * @example general_funcs_example.c
+ * @include general_funcs_example.c
  */
 
 /**
@@ -756,7 +771,7 @@
  * when it can't find them in the default theme. Another way to do this
  * is to set the theme search order using elm_theme_set(), but this requires
  * that the developer is careful not to override any user configuration.
- * That can be helped by adding our theme to the end of whatver is already
+ * That can be helped by adding our theme to the end of whatever is already
  * set, like in the following snippet.
  * @code
  * char buf[4096];
@@ -770,15 +785,13 @@
  * In the end, we should be looking at something like this:
  *
  * @image html screenshots/theme_example_01.png
- * @image latex screenshots/theme_example_01.eps width=\textwidth
+ * @image latex screenshots/theme_example_01.eps "theme example 01" width=\textwidth
  *
  * That's all. Boringly simple, and the full code in one piece can be found
  * @ref theme_example_01.c "here".
  *
- * And the code for our extension is @ref theme_example.edc "here".
- *
  * @example theme_example_01.c
- * @example theme_example.edc
+ * @include theme_example_01.c
  */
 
 /**
@@ -806,11 +819,6 @@
  * @skip int
  * @until ELM_MAIN
  *
- * That's pretty much it. The full code is @ref theme_example_02.c "here" and
- * the definition of the theme is the same as before, and can be found in
- * @ref theme_example.edc "here".
- *
- * @example theme_example_02.c
  */
 
  /**
@@ -825,7 +833,7 @@
   * In the end, we'll be presented with something that looks like this:
   *
   * @image html screenshots/button_00.png
-  * @image latex screenshots/button_00.eps width=\textwidth
+  * @image latex screenshots/button_00.eps "button example 00" width=\textwidth
   *
   * The full code of the example is @ref button_example_00.c "here" and we
   * will follow here with a rundown of it.
@@ -868,6 +876,7 @@
   * And we are done.
   *
   * @example button_example_00.c
+  * @include button_example_00.c
   */
 
 /**
@@ -882,7 +891,7 @@
   * In the end, we'll be presented with something that looks like this:
   *
   * @image html screenshots/button_01.png
-  * @image latex screenshots/button_01.eps width=\textwidth
+  * @image latex screenshots/button_01.eps "button example 01" width=\textwidth
   *
   * The full code of the example is @ref button_example_01.c "here" and we
   * will follow here with a rundown of it.
@@ -944,6 +953,7 @@
   * And we are done.
   *
   * @example button_example_01.c
+  * @include button_example_01.c
   */
 
 /**
@@ -994,10 +1004,8 @@
  * Our example will look like this:
  *
  * @image html screenshots/bubble_example_01.png
- * @image latex screenshots/bubble_example_01.eps width=\textwidth
+ * @image latex screenshots/bubble_example_01.eps "bubble example 01" width=\textwidth
  *
- * See the full source code @ref bubble_example_01.c here.
- * @example bubble_example_01.c
  */
 
 /**
@@ -1092,7 +1100,7 @@
  * untouched in our @ref box_example_01 "previous example".
  *
  * @image html screenshots/box_example_02.png
- * @image latex screenshots/box_example_02.eps width=\textwidth
+ * @image latex screenshots/box_example_02.eps "bg example 02" width=\textwidth
  *
  * @skipline Elementary.h
  *
@@ -1145,7 +1153,7 @@
  * @skip static void
  * @until }
  *
- * The main function doesn't have antyhing special. Creation of box, initial
+ * The main function doesn't have anything special. Creation of box, initial
  * buttons and some callback setting. The only part worth mentioning is the
  * initialization of our application data.
  * @skip tdata.box
@@ -1159,9 +1167,6 @@
  * through before to start the run of transitions.
  * @until _test_box_transition_change
  *
- * For the full code, follow @ref box_example_02.c "here".
- *
- * @example box_example_02.c
  */
 
 /**
@@ -1192,10 +1197,8 @@
  * Our example will look like this:
  *
  * @image html screenshots/calendar_example_01.png
- * @image latex screenshots/calendar_example_01.eps width=\textwidth
+ * @image latex screenshots/calendar_example_01.eps "calendar example 01" width=\textwidth
  *
- * See the full source code @ref calendar_example_01.c here.
- * @example calendar_example_01.c
  */
 
 /**
@@ -1246,10 +1249,8 @@
  * Our example will look like this:
  *
  * @image html screenshots/calendar_example_02.png
- * @image latex screenshots/calendar_example_02.eps width=\textwidth
+ * @image latex screenshots/calendar_example_02.eps "calendar example 02" width=\textwidth
  *
- * See the full source code @ref calendar_example_02.c here.
- * @example calendar_example_02.c
  */
 
 /**
@@ -1259,12 +1260,12 @@
  * This example explains how to set max and min year to be displayed
  * by a calendar object. This means that user won't be able to
  * see or select a date before and after selected years.
- * By default, limits are 1902 and maximun value will depends
+ * By default, limits are 1902 and maximum value will depends
  * on platform architecture (year 2037 for 32 bits); You can
  * read more about time functions on @c ctime manpage.
  *
  * Straigh to the point, to set it is enough to call
- * elm_calendar_min_max_year_set(). First value is minimun year, second
+ * elm_calendar_min_max_year_set(). First value is minimum year, second
  * is maximum. If first value is negative, it won't apply limit for min
  * year, if the second one is negative, won't apply for max year.
  * Setting both to negative value will clear limits (default state):
@@ -1273,10 +1274,8 @@
  * Our example will look like this:
  *
  * @image html screenshots/calendar_example_03.png
- * @image latex screenshots/calendar_example_03.eps width=\textwidth
+ * @image latex screenshots/calendar_example_03.eps "calendar example 03" width=\textwidth
  *
- * See the full source code @ref calendar_example_03.c here.
- * @example calendar_example_03.c
  */
 
 /**
@@ -1289,7 +1288,7 @@
  * If isn't required that users could select a day on calendar,
  * only interacting going through months, disabling days selection
  * could be a good idea to avoid confusion. For that:
- * @skipline elm_calendar_day_selection_disabled_set
+ * @skipline elm_calendar_select_mode_set
  *
  * Also, regarding days selection, you could be interested to set a
  * date to be highlighted on calendar from your code, maybe when
@@ -1306,10 +1305,8 @@
  * Our example will look like this:
  *
  * @image html screenshots/calendar_example_04.png
- * @image latex screenshots/calendar_example_04.eps width=\textwidth
+ * @image latex screenshots/calendar_example_04.eps "calendar example 04" width=\textwidth
  *
- * See the full source code @ref calendar_example_04.c here.
- * @example calendar_example_04.c
  */
 
 /**
@@ -1353,10 +1350,8 @@
  * Our example will look like this:
  *
  * @image html screenshots/calendar_example_05.png
- * @image latex screenshots/calendar_example_05.eps width=\textwidth
+ * @image latex screenshots/calendar_example_05.eps "calendar example 05" width=\textwidth
  *
- * See the full source code @ref calendar_example_05.c here.
- * @example calendar_example_05.c
  */
 
 /**
@@ -1373,7 +1368,7 @@
  * @li mark periodicity
  *
  * Style defines the kind of mark will be displayed over marked day,
- * on caledar. Default theme supports @b holiday and @b checked.
+ * on calendar. Default theme supports @b holiday and @b checked.
  * If more is required, is possible to set a new theme to calendar
  * widget using elm_object_style_set(), and use
  * the signal that will be used by such marks.
@@ -1423,10 +1418,10 @@
  * Our example will look like this:
  *
  * @image html screenshots/calendar_example_06.png
- * @image latex screenshots/calendar_example_06.eps width=\textwidth
+ * @image latex screenshots/calendar_example_06.eps "calendar example 06" width=\textwidth
  *
- * See the full source code @ref calendar_example_06.c here.
  * @example calendar_example_06.c
+ * @include calendar_example_06.c
  */
 
 /**
@@ -1495,11 +1490,10 @@
  * look like this picture:
  *
  * @image html screenshots/spinner_example.png
- * @image latex screenshots/spinner_example.eps width=\textwidth
- *
- * See the full @ref spinner_example.c "source code" for this example.
+ * @image latex screenshots/spinner_example.eps "spinner example" width=\textwidth
  *
  * @example spinner_example.c
+ * @include spinner_example.c
  */
 
 /**
@@ -1593,11 +1587,10 @@
  * look like this picture:
  *
  * @image html screenshots/slider_example.png
- * @image latex screenshots/slider_example.eps width=\textwidth
- *
- * See the full @ref slider_example.c "source code" for this example.
+ * @image latex screenshots/slider_example.eps "slider example" width=\textwidth
  *
  * @example slider_example.c
+ * @include slider_example.c
  */
 
 /**
@@ -1707,9 +1700,10 @@
  * look like this picture:
  *
  * @image html screenshots/panes_example.png
- * @image latex screenshots/panes_example.eps width=\textwidth
+ * @image latex screenshots/panes_example.eps "panes example" width=\textwidth
  *
  * @example panes_example.c
+ * @include panes_example.c
  */
 
 /**
@@ -1758,11 +1752,12 @@
  * look like this picture:
  *
  * @image html screenshots/clock_example.png
- * @image latex screenshots/clock_example.eps width=\textwidth
+ * @image latex screenshots/clock_example.eps "colock example" width=\textwidth
  *
- * See the full @ref clock_example_c "source code" for this example.
+ * See the full @ref clock_example.c "source code" for this example.
  *
  * @example clock_example.c
+ * @include clock_example.c
  */
 
 /**
@@ -1785,7 +1780,7 @@
  * taken from system @b locale. Note, besides, that the strings are different
  *  for different language settings.
  *
- * <b>Datetime format</b> can be programmatically set by using 
+ * <b>Datetime format</b> can be programmatically set by using
  * elm_datetime_format_set():
  * @dontinclude datetime_example.c
  * @skip DATE and TIME
@@ -1802,12 +1797,13 @@
  * showing only date, only time and both date & time:
  *
  * @image html screenshots/datetime_example.png
- * @image latex screenshots/datetime_example.eps width=\textwidth
+ * @image latex screenshots/datetime_example.eps "datetime example" width=\textwidth
  *
- * See the full @ref datetime_example_c "source code" for
+ * See the full @ref datetime_example.c "source code" for
  * this example.
  *
  * @example datetime_example.c
+ * @include datetime_example.c
  */
 
 /**
@@ -1843,11 +1839,12 @@
  * look like this picture:
  *
  * @image html screenshots/dayselector_example.png
- * @image latex screenshots/dayselector_example.eps width=\textwidth
+ * @image latex screenshots/dayselector_example.eps "dayselector example" width=\textwidth
  *
- * See the full @ref dayselector_example_c "source code" for this example.
+ * See the full @ref dayselector_example.c "source code" for this example.
  *
  * @example dayselector_example.c
+ * @include dayselector_example.c
  */
 
 /**
@@ -1927,9 +1924,10 @@
  * look like this picture:
  *
  * @image html screenshots/mapbuf_example.png
- * @image latex screenshots/mapbuf_example.eps width=\textwidth
+ * @image latex screenshots/mapbuf_example.eps "mapbuf example" width=\textwidth
  *
  * @example mapbuf_example.c
+ * @include mapbuf_example.c
  */
 
 /**
@@ -1945,7 +1943,7 @@
  *
  * It's enough to display a world map inside our window. But usually you'll
  * need to let user interact with the map. We need to place some buttons,
- * so the user could control the map. It's done on the followin code.
+ * so the user could control the map. It's done on the following code.
  * If you don't know about boxes, or buttons, check their examples,
  * @ref box_example_01 "Box Example 1" and
  * @ref button_example_01 "Button Example 1".
@@ -2002,9 +2000,10 @@
  * look like this picture:
  *
  * @image html screenshots/map_example_01.png
- * @image latex screenshots/map_example_01.eps width=\textwidth
+ * @image latex screenshots/map_example_01.eps "map example 01" width=\textwidth
  *
  * @example map_example_01.c
+ * @include map_example_01.c
  */
 
 /**
@@ -2013,7 +2012,7 @@
  * This code places a Elementary map widget on a window,
  * to exemplify part of the widget's API, related to overlays.
  *
- * We'll start this example in the same way
+ * We'll start this example in the same way as
  * @ref map_example_01 "Map Example 1". Adding a map with buttons to control
  * zoom, so if you didn't read it yet, just do it now.
  * @dontinclude map_example_02.c
@@ -2021,37 +2020,37 @@
  * @until zoom_fill
  *
  * Overlays can be placed over the map to represent anything we want. Let's
- * say we want to represent some countries and cities with overlays. 
- * 
- * Before we create city or country overlays, let's create class overlays. 
+ * say we want to represent some countries and cities with overlays.
+ *
+ * Before we create city or country overlays, let's create class overlays.
  *
  * @skipline elm_map_overlay_class_add
  * @until elm_map_overlay_icon_set
  * These lines create a class overlay which represents cities.
- * This class overlay will be used for grouping city overlays. 
- * Later city overlays in the same class are appended to this class overlay. 
+ * This class overlay will be used for grouping city overlays.
+ * Later city overlays in the same class are appended to this class overlay.
  * if city overlays are near each other, they will be grouped.
  *
- * We can set the icon for the class so that the icon will be displayed 
+ * We can set the icon for the class so that the icon will be displayed
  * when city overlays are grouped.
  * We can set the zoom required to display the overlays that belongs
  * to this class, so if the zoom is less than this value, nothing
- * will be shown. 
- * 
+ * will be shown.
+ *
  * Country class can be created in the same way.
  * @skipline elm_map_overlay_class_add
  * @until elm_map_overlay_icon_set
  *
- * Next we'll create some overlays representing cities and coutries.
- * We set the data for the overlay so that can be used later when 
+ * Next we'll create some overlays representing cities and countries.
+ * We set the data for the overlay so that can be used later when
  * clicked callback is called.
  * We'll append them into city class to be grouped.
- * We'll append them in a list, to close up them later. 
+ * We'll append them in a list, to close up them later.
  * To create a default overlay, we need to pass the coordinates.
  * @skipline elm_map_overlay_add
  * @until eina_list_append
  *
- * We subscribe a smart callback "overlay,clicked" to create bubble on 
+ * We subscribe a smart callback "overlay,clicked" to create bubble on
  * the clicked overlay.
  * @dontinclude map_example_02.c
  * @skipline "overlay,clicked"
@@ -2085,9 +2084,10 @@
  * look like this picture:
  *
  * @image html screenshots/map_example_02.png
- * @image latex screenshots/map_example_02.eps width=\textwidth
+ * @image latex screenshots/map_example_02.eps "map example 02" width=\textwidth
  *
  * @example map_example_02.c
+ * @include map_example_02.c
  */
 
 /**
@@ -2161,7 +2161,7 @@
  * util functions, so we could get coordinates for this address. These
  * functions return an #Elm_Map_Name handle for us.
  * Function elm_map_name_geo_request() will do this job for us,
- * but it's an assyncronous function, since it requires this
+ * but it's an asynchronous function, since it requires this
  * information from the server.
  *
  * That's the reason we need to wait for
@@ -2176,7 +2176,7 @@
  *
  * To trace a route we need to know how the user will go through the path.
  * Let's suppose he'll be walking, but doesn't like to walk, so we
- * need to choose the shortest path intead of the route that would
+ * need to choose the shortest path instead of the route that would
  * made him spend less time. Coordinates of the point from where he will
  * start and of the destination point need to be passed as well.
  *
@@ -2188,9 +2188,10 @@
  * look like this picture:
  *
  * @image html screenshots/map_example_03.png
- * @image latex screenshots/map_example_03.eps width=\textwidth
+ * @image latex screenshots/map_example_03.eps "map example 03" width=\textwidth
  *
  * @example map_example_03.c
+ * @include map_example_03.c
  */
 
 /**
@@ -2216,7 +2217,7 @@
  * @li The first added item remains centeres, i.e., it's the selected item.
  *
  * To add items, we are just appending it on a loop, using function
- * elm_diskselector_item_append(), that will be better exaplained on
+ * elm_diskselector_item_append(), that will be better explained on
  * items management example.
  *
  * For a circular diskselector, check the second widget. A circular
@@ -2255,9 +2256,10 @@
  * code, whose window should look like this picture:
  *
  * @image html screenshots/diskselector_example_01.png
- * @image latex screenshots/diskselector_example_01.eps width=\textwidth
+ * @image latex screenshots/diskselector_example_01.eps "diskselector example 01" width=\textwidth
  *
  * @example diskselector_example_01.c
+ * @include diskselector_example_01.c
  */
 
 /**
@@ -2295,7 +2297,7 @@
  * @until }
  *
  * All items are included on diskselector after last one. You @b can't
- * preprend items.
+ * prepend items.
  *
  * The first parameter of elm_diskselector_item_append() is the diskselector
  * object, that we are receiving as data on our callback function.
@@ -2308,7 +2310,7 @@
  * @skipline _add_ic_cb
  * @until }
  *
- * If an icon is required, you can pass it as third paramenter on our
+ * If an icon is required, you can pass it as third parameter on our
  * elm_diskselector_item_append() function. It will be place on the
  * left side of item's label, that will be shifted to right a bit.
  *
@@ -2322,7 +2324,7 @@
  *
  * To set a callback function that will be called every time an item is
  * selected, i.e., everytime the diskselector stops with this item in
- * center position, just pass the function as fourth paramenter.
+ * center position, just pass the function as fourth parameter.
  *
  * <b> Appending an item with callback function for selected with data: </b>
  * @dontinclude diskselector_example_02.c
@@ -2399,9 +2401,10 @@
  * code, whose window should look like this picture:
  *
  * @image html screenshots/diskselector_example_02.png
- * @image latex screenshots/diskselector_example_02.eps width=\textwidth
+ * @image latex screenshots/diskselector_example_02.eps "diskselector example 02" width=\textwidth
  *
  * @example diskselector_example_02.c
+ * @include diskselector_example_02.c
  */
 
 /**
@@ -2423,10 +2426,10 @@
  * We are just adding the list, so as you can see, defaults for it are:
  * @li Items are displayed vertically.
  * @li Only one item can be selected.
- * @li The list doesn't bouce.
+ * @li The list doesn't bounce.
  *
  * To add items, we are just appending it on a loop, using function
- * elm_list_item_append(), that will be better exaplained on
+ * elm_list_item_append(), that will be better explained on
  * items management example.
  * @dontinclude list_example_01.c
  * @skipline lbl[]
@@ -2445,9 +2448,10 @@
  * code, whose window should look like this picture:
  *
  * @image html screenshots/list_example_01.png
- * @image latex screenshots/list_example_01.eps width=\textwidth
+ * @image latex screenshots/list_example_01.eps "list example 01" width=\textwidth
  *
  * @example list_example_01.c
+ * @include list_example_01.c
  */
 
 /**
@@ -2491,9 +2495,10 @@
  * code, whose window should look like this picture:
  *
  * @image html screenshots/list_example_02.png
- * @image latex screenshots/list_example_02.eps width=\textwidth
+ * @image latex screenshots/list_example_02.eps "list example 02" width=\textwidth
  *
  * @example list_example_02.c
+ * @include list_example_02.c
  */
 
 /**
@@ -2530,7 +2535,7 @@
  * @skipline _prepend_cb
  * @until }
  *
- * The item will be placed on the begining of the list,
+ * The item will be placed on the beginning of the list,
  * i.e. it will be the first one.
  *
  * The first parameter of elm_list_item_prepend() is the list
@@ -2551,7 +2556,7 @@
  * @skipline _add_ic_cb
  * @until }
  *
- * If an icon is required, you can pass it as third paramenter on our
+ * If an icon is required, you can pass it as third parameter on our
  * elm_list_item_append() function. It will be place on the
  * left side of item's label. If an icon is wanted on the right side,
  * it should be passed as fourth parameter.
@@ -2567,7 +2572,7 @@
  *
  * To set a callback function that will be called every time an item is
  * selected, i.e., everytime the list stops with this item in
- * center position, just pass the function as fifth paramenter.
+ * center position, just pass the function as fifth parameter.
  *
  * <b> Appending an item with callback function for selected with data: </b>
  * @dontinclude list_example_03.c
@@ -2651,9 +2656,10 @@
  * code, whose window should look like this picture:
  *
  * @image html screenshots/list_example_03.png
- * @image latex screenshots/list_example_03.eps width=\textwidth
+ * @image latex screenshots/list_example_03.eps "list example 03" width=\textwidth
  *
  * @example list_example_03.c
+ * @include list_example_03.c
  */
 
 /**
@@ -2708,9 +2714,10 @@
  * look like this picture:
  *
  * @image html screenshots/toolbar_example_01.png
- * @image latex screenshots/toolbar_example_01.eps width=\textwidth
+ * @image latex screenshots/toolbar_example_01.eps "toolbar example 01" width=\textwidth
  *
  * @example toolbar_example_01.c
+ * @include toolbar_example_01.c
  */
 
 /**
@@ -2762,9 +2769,10 @@
  * look like this picture:
  *
  * @image html screenshots/toolbar_example_02.png
- * @image latex screenshots/toolbar_example_02.eps width=\textwidth
+ * @image latex screenshots/toolbar_example_02.eps "toolbar example 02" width=\textwidth
  *
  * @example toolbar_example_02.c
+ * @include toolbar_example_02.c
  */
 
 /**
@@ -2803,9 +2811,10 @@
  * look like this picture:
  *
  * @image html screenshots/toolbar_example_03.png
- * @image latex screenshots/toolbar_example_03.eps width=\textwidth
+ * @image latex screenshots/toolbar_example_03.eps "toolbar example 03" width=\textwidth
  *
  * @example toolbar_example_03.c
+ * @include toolbar_example_03.c
  */
 
 /**
@@ -2835,7 +2844,7 @@
  *
  * But, if you need to add some items that can have or not a label, but
  * want that all of them looks the same way, with icon at left, just add
- * an empty string label. It's done on our example to ilustrate that:
+ * an empty string label. It's done on our example to illustrate that:
  * @skipline icon_add
  * @until item_add
  *
@@ -2869,9 +2878,10 @@
  * look like this picture:
  *
  * @image html screenshots/segment_control_example.png
- * @image latex screenshots/segment_control_example.eps width=\textwidth
+ * @image latex screenshots/segment_control_example.eps "segment control example" width=\textwidth
  *
  * @example segment_control_example.c
+ * @include segment_control_example.c
  */
 
 /**
@@ -2929,11 +2939,12 @@
  * look like this picture:
  *
  * @image html screenshots/flipselector_example.png
- * @image latex screenshots/flipselector_example.eps width=\textwidth
+ * @image latex screenshots/flipselector_example.eps "flipselector example" width=\textwidth
  *
- * See the full @ref flipselector_example_c "source code" for this example.
+ * See the full @ref flipselector_example.c "source code" for this example.
  *
  * @example flipselector_example.c
+ * @include flipselector_example.c
  */
 
 /**
@@ -3005,11 +3016,12 @@
  * should look like this picture:
  *
  * @image html screenshots/fileselector_example.png
- * @image latex screenshots/fileselector_example.eps width=\textwidth
+ * @image latex screenshots/fileselector_example.eps "fileselector example" width=\textwidth
  *
- * See the full @ref fileselector_example_c "source code" for this example.
+ * See the full @ref fileselector_example.c "source code" for this example.
  *
  * @example fileselector_example.c
+ * @include fileselector_example.c
  */
 
 /**
@@ -3057,34 +3069,35 @@
  * This is how the example, just after called, should look like:
  *
  * @image html screenshots/fileselector_button_example_00.png
- * @image latex screenshots/fileselector_button_example_00.eps width=\textwidth
+ * @image latex screenshots/fileselector_button_example_00.eps "fileselector button example" width=\textwidth
  *
  * Click on the file selector button to raise its internal file
  * selector, which will be contained on an <b>"inner window"</b>:
  *
  * @image html screenshots/fileselector_button_example_01.png
- * @image latex screenshots/fileselector_button_example_01.eps width=\textwidth
+ * @image latex screenshots/fileselector_button_example_01.eps "fileselector button example 01" width=\textwidth
  *
  * Toggle the "inwin mode" switch off and, if you click on the file
  * selector button again, you'll get @b two windows, the original one
  * (note the last selection there!)
  *
  * @image html screenshots/fileselector_button_example_02.png
- * @image latex screenshots/fileselector_button_example_02.eps width=\textwidth
+ * @image latex screenshots/fileselector_button_example_02.eps "fileselector button example 02" width=\textwidth
  *
  * and the file selector's new one
  *
  * @image html screenshots/fileselector_button_example_03.png
- * @image latex screenshots/fileselector_button_example_03.eps width=\textwidth
+ * @image latex screenshots/fileselector_button_example_03.eps "fileselector button example 03" width=\textwidth
  *
  * Play with the checkboxes to get the behavior changes on the file
  * selector button. The respective API calls on the widget coming from
  * those knobs where shown in the code already.
  *
- * See the full @ref fileselector_button_example_c "source code" for
+ * See the full @ref fileselector_button_example.c "source code" for
  * this example.
  *
  * @example fileselector_button_example.c
+ * @include fileselector_button_example.c
  */
 
 /**
@@ -3134,43 +3147,44 @@
  * This is how the example, just after called, should look like:
  *
  * @image html screenshots/fileselector_entry_example_00.png
- * @image latex screenshots/fileselector_entry_example_00.eps width=\textwidth
+ * @image latex screenshots/fileselector_entry_example_00.eps "fileselector entry example" width=\textwidth
  *
  * Click on the file selector entry to raise its internal file
  * selector, which will be contained on an <b>"inner window"</b>:
  *
  * @image html screenshots/fileselector_entry_example_01.png
- * @image latex screenshots/fileselector_entry_example_01.eps width=\textwidth
+ * @image latex screenshots/fileselector_entry_example_01.eps "fileselector entry example 01" width=\textwidth
  *
  * Toggle the "inwin mode" switch off and, if you click on the file
  * selector entry again, you'll get @b two windows, the original one
  * (note the last selection there!)
  *
  * @image html screenshots/fileselector_entry_example_02.png
- * @image latex screenshots/fileselector_entry_example_02.eps width=\textwidth
+ * @image latex screenshots/fileselector_entry_example_02.eps "fileselector entry example 02" width=\textwidth
  *
  * and the file selector's new one
  *
  * @image html screenshots/fileselector_entry_example_03.png
- * @image latex screenshots/fileselector_entry_example_03.eps width=\textwidth
+ * @image latex screenshots/fileselector_entry_example_03.eps "fileselector entry example 03" width=\textwidth
  *
  * Play with the checkboxes to get the behavior changes on the file
  * selector entry. The respective API calls on the widget coming from
  * those knobs where shown in the code already.
  *
- * See the full @ref fileselector_entry_example_c "source code" for
+ * See the full @ref fileselector_entry_example.c "source code" for
  * this example.
  *
  * @example fileselector_entry_example.c
+ * @include fileselector_entry_example.c
  */
 
 /**
  * @page layout_example_01 Layout - Content, Table and Box
  *
  * This example shows how one can use the @ref Layout widget to create a
- * customized distribution of widgets on the screen, controled by an Edje theme.
+ * customized distribution of widgets on the screen, controlled by an Edje theme.
  * The full source code for this example can be found at @ref
- * layout_example_01_c.
+ * layout_example_01.c.
  *
  * Our custom layout is defined by a file, @ref layout_example_edc, which is an
  * Edje theme file. Look for the Edje documentation to understand it. For now,
@@ -3225,7 +3239,7 @@
  * Notice that we just set size hints for every object, and call the function
  * elm_layout_table_pack(), which does all the work. It will place the elements
  * in the specified row/column, with row and column span if required, and then
- * the object's size and position will be controled by the layout widget. It
+ * the object's size and position will be controlled by the layout widget. It
  * will also respect size hints, alignments and weight properties set to these
  * widgets. The resulting distribution on the screen depends on the table
  * properties (described in the theme), the size hints set on each widget, and
@@ -3245,7 +3259,7 @@
  * also described in the Edje documentation.
  *
  * This box area is similar to the @ref Box widget of elementary, with the
- * difference that its position and properties are controled by the theme of the
+ * difference that its position and properties are controlled by the theme of the
  * layout. It also contains more than one API to add items to it, since the
  * items position now is defined in terms of a list of items, not a matrix.
  * There's the first position (can have items added to it with
@@ -3304,8 +3318,10 @@
  * A screenshot of this example can be seen on:
  *
  * @image html screenshots/layout_example_01.png
- * @image latex screenshots/layout_example_01.eps width=\textwidth
+ * @image latex screenshots/layout_example_01.eps "layout example 01" width=\textwidth
  *
+ * @example layout_example_01.c
+ * @include layout_example_01.c
  */
 
 /**
@@ -3313,7 +3329,7 @@
  *
  * This example shows how one can use the @ref Layout with a predefined theme
  * layout to add a back and next button to a simple window. The full source code
- * for this example can be found at @ref layout_example_02_c.
+ * for this example can be found at @ref layout_example_02.c.
  *
  * After setting up the window and background, we add the layout widget to the
  * window. But instead of using elm_layout_file_set() to load its theme from a
@@ -3357,7 +3373,10 @@
  * A screenshot of this example can be seen on:
  *
  * @image html screenshots/layout_example_02.png
- * @image latex screenshots/layout_example_02.eps width=\textwidth
+ * @image latex screenshots/layout_example_02.eps "layout example 02" width=\textwidth
+ *
+ * @example layout_example_02.c
+ * @include layout_example_02.c
  */
 
 /**
@@ -3365,10 +3384,10 @@
  *
  * This example shows how one can send and receive signals to/from the layout,
  * and what to do when the layout theme has its size changed. The full source
- * code for this example can be found at @ref layout_example_03_c.
+ * code for this example can be found at @ref layout_example_03.c.
  *
  * In this exmaple we will use another group from the same layout theme file
- * used in @ref layout_example_01. Its instanciation and loading happens in the
+ * used in @ref layout_example_01. Its instantiation and loading happens in the
  * following lines:
  *
  * @dontinclude layout_example_03.c
@@ -3409,7 +3428,10 @@
  * A screenshot of this example can be seen on:
  *
  * @image html screenshots/layout_example_03.png
- * @image latex screenshots/layout_example_03.eps width=\textwidth
+ * @image latex screenshots/layout_example_03.eps "layout example 03" width=\textwidth
+ *
+ * @example layout_example_03.c
+ * @include layout_example_03.c
  */
 
 /**
@@ -3458,14 +3480,13 @@
  * Our example will initially look like this:
  *
  * @image html screenshots/hover_example_01.png
- * @image latex screenshots/hover_example_01.eps width=\textwidth
+ * @image latex screenshots/hover_example_01.eps "hover example 01" width=\textwidth
  *
  * And after you click the "Show hover" button it will look like this:
  *
  * @image html screenshots/hover_example_01_a.png
- * @image latex screenshots/hover_example_01_a.eps width=\textwidth
+ * @image latex screenshots/hover_example_01_a.eps "hover example 01 a" width=\textwidth
  *
- * @example hover_example_01.c
  */
 
 /**
@@ -3500,7 +3521,7 @@
   * will use all of them:
   * @until RIGHT
   *
-  * We are also going to set the hitsize to the entire flip(in all directions)
+  * We are also going to set the hintsize to the entire flip(in all directions)
   * to make our flip very easy to interact with:
   * @until RIGHT
   *
@@ -3511,17 +3532,16 @@
   * interaction mode and animates the flip is called:
   * @until }
   * @note The elm_flip_go() call here serves no purpose other than to
-  * ilustrate that it's possible to animate the flip programmatically.
+  * illustrate that it's possible to animate the flip programmatically.
   *
   * Our example will look like this:
   *
   * @image html screenshots/flip_example_01.png
-  * @image latex screenshots/flip_example_01.eps width=\textwidth
+  * @image latex screenshots/flip_example_01.eps "flip example 01" width=\textwidth
   *
   * @note Since this is an animated example the screenshot doesn't do it
   * justice, it is a good idea to compile it and see the animations.
   *
-  * @example flip_example_01.c
   */
 
  /**
@@ -3569,9 +3589,8 @@
   * Our example will look like this:
   *
   * @image html screenshots/label_example_01.png
-  * @image latex screenshots/label_example_01.eps width=\textwidth
+  * @image latex screenshots/label_example_01.eps "label example 01" width=\textwidth
   *
-  * @example label_example_01.c
   */
 
  /**
@@ -3601,7 +3620,7 @@
   * elm_image_resizable_set() is used to allow the image to be resized to a size
   * smaller than the original one, but not to a size bigger than it.
   *
-  * elm_elm_image_smooth_set() will disable the smooth scaling, so the scale
+  * elm_image_smooth_set() will disable the smooth scaling, so the scale
   * algorithm used to scale the image to the new object size is going to be
   * faster, but with a lower quality.
   *
@@ -3632,9 +3651,8 @@
   * This example will look like this:
   *
   * @image html screenshots/image_example_01.png
-  * @image latex screenshots/image_example_01.eps width=\textwidth
+  * @image latex screenshots/image_example_01.eps "image example 01" width=\textwidth
   *
-  * @example image_example_01.c
   */
 
  /**
@@ -3664,17 +3682,17 @@
   *
   * We can now go setting our options.
   *
-  * elm_icon_no_scale_set() is used just to set this value to true (we
+  * elm_image_no_scale_set() is used just to set this value to true (we
   * don't want to scale our icon anyway, just resize it).
   *
-  * elm_icon_resizable_set() is used to allow the icon to be resized to a size
+  * elm_image_resizable_set() is used to allow the icon to be resized to a size
   * smaller than the original one, but not to a size bigger than it.
   *
-  * elm_elm_icon_smooth_set() will disable the smooth scaling, so the scale
+  * elm_image_smooth_set() will disable the smooth scaling, so the scale
   * algorithm used to scale the icon to the new object size is going to be
   * faster, but with a lower quality.
   *
-  * elm_icon_fill_outside_set() is used to ensure that the icon will fill the
+  * elm_image_fill_outside_set() is used to ensure that the icon will fill the
   * entire area available to it, even if keeping the aspect ratio. The icon
   * will overflow its width or height (any of them that is necessary) to the
   * object area, instead of resizing the icon down until it can fit entirely in
@@ -3698,9 +3716,8 @@
   * This example will look like this:
   *
   * @image html screenshots/icon_example_01.png
-  * @image latex screenshots/icon_example_01.eps width=\textwidth
+  * @image latex screenshots/icon_example_01.eps "icon example 01" width=\textwidth
   *
-  * @example icon_example_01.c
   */
 
 /**
@@ -3759,14 +3776,13 @@
  * Our example will initially look like this:
  *
  * @image html screenshots/hoversel_example_01.png
- * @image latex screenshots/hoversel_example_01.eps width=\textwidth
+ * @image latex screenshots/hoversel_example_01.eps "hoversel example 01" width=\textwidth
  *
  * And when the hoversel is clicked it will look like this:
  *
  * @image html screenshots/hoversel_example_01_a.png
- * @image latex screenshots/hoversel_example_01_a.eps width=\textwidth
+ * @image latex screenshots/hoversel_example_01_a.eps "hoversel example 01 a" width=\textwidth
  *
- * @example hoversel_example_01.c
  */
 
 /**
@@ -3795,7 +3811,7 @@
  * can see on the following image:
  *
  * @image html screenshots/conformant_example_01.png
- * @image latex screenshots/conformant_example_01.eps width=\textwidth
+ * @image latex screenshots/conformant_example_01.eps "conformant example 01" width=\textwidth
  *
  * But if you call a virtual keyboard, the window will resize, changing
  * widgets size and position. All the content will shrink.
@@ -3808,7 +3824,7 @@
  * a window like the following:
  *
  * @image html screenshots/conformant_example_02.png
- * @image latex screenshots/conformant_example_02.eps width=\textwidth
+ * @image latex screenshots/conformant_example_02.eps "conformant example 02" width=\textwidth
  *
  * As you can see, it guess the space that will be required by the keyboard,
  * indicator and softkey bars.
@@ -3833,7 +3849,10 @@
  * @ref conformant_example_02.c "conformant_example_02.c"
  *
  * @example conformant_example_01.c
+ * @include conformant_example_01.c
+ *
  * @example conformant_example_02.c
+ * @include conformant_example_02.c
  */
 
 /**
@@ -3927,10 +3946,9 @@
  * @image html screenshots/index_example_01.png
  * @image latex screenshots/index_example_01.eps
  *
- * See the full @ref index_example_01_c "source code" for
+ * See the full @ref index_example_01.c "source code" for
  * this example.
  *
- * @example index_example_01.c
  */
 
 /**
@@ -3986,7 +4004,11 @@
  * See the full @ref index_example_02.c "source code" for
  * this example.
  *
+ * @example index_example_01.c
+ * @include index_example_01.c
+ *
  * @example index_example_02.c
+ * @include index_example_02.c
  */
 
 /**
@@ -4042,7 +4064,7 @@
  * The example will initially look like this:
  *
  * @image html screenshots/ctxpopup_example_01.png
- * @image latex screenshots/ctxpopup_example_01.eps width=\textwidth
+ * @image latex screenshots/ctxpopup_example_01.eps "ctxpopup example 01" width=\textwidth
  *
  * @note This doesn't show the ctxpopup tough, since it will only appear when
  * we click one of the list items.
@@ -4050,14 +4072,13 @@
  * Here is what our first ctxpopup will look like:
  *
  * @image html screenshots/ctxpopup_example_01_a.png
- * @image latex screenshots/ctxpopup_example_01_a.eps width=\textwidth
+ * @image latex screenshots/ctxpopup_example_01_a.eps "ctxpopup example 01 a" width=\textwidth
  *
  * And here the second ctxpopup:
  *
  * @image html screenshots/ctxpopup_example_01_b.png
- * @image latex screenshots/ctxpopup_example_01_b.eps width=\textwidth
+ * @image latex screenshots/ctxpopup_example_01_b.eps "ctxpopup example 01 b" width=\textwidth
  *
- * @example ctxpopup_example_01.c
  */
 
 /**
@@ -4082,9 +4103,8 @@
  * This example will look like this:
  *
  * @image html screenshots/separator_example_01.png
- * @image latex screenshots/separator_example_01.eps width=\textwidth
+ * @image latex screenshots/separator_example_01.eps "separator example 01" width=\textwidth
  *
- * @example separator_example_01.c
  */
 
 /**
@@ -4098,7 +4118,7 @@
  * outside the group don't affect the group.
  *
  * We'll start with the usual includes:
- * @until #endif
+ * @skipline #include
  *
  * And move right to declaring a static variable(the one whose value the radios
  * will change):
@@ -4142,9 +4162,8 @@
  * The example will look like this:
  *
  * @image html screenshots/radio_example_01.png
- * @image latex screenshots/radio_example_01.eps width=\textwidth
+ * @image latex screenshots/radio_example_01.eps "radio example 01" width=\textwidth
  *
- * @example radio_example_01.c
  */
 
 /**
@@ -4178,10 +4197,9 @@
  * This example will look like this;
  *
  * @image html screenshots/panel_example_01.png
- * @image latex screenshots/panel_example_01.eps width=\textwidth
+ * @image latex screenshots/panel_example_01.eps "panel example 01" width=\textwidth
  * @note The buttons with arrow allow the user to hide/show the panels.
  *
- * @example panel_example_01.c
  */
 
 /**
@@ -4213,7 +4231,7 @@
  * @until Item;
  *
  * That path will be used to index an image, to be swallowed into one
- * of the item's icon spots. The imagens themselves are distributed
+ * of the item's icon spots. The images themselves are distributed
  * with Elementary:
  * @dontinclude gengrid_example.c
  * @skip static const char *imgs
@@ -4418,7 +4436,7 @@
  *
  * This is how the example program's window looks like:
  * @image html screenshots/gengrid_example.png
- * @image latex screenshots/gengrid_example.eps width=\textwidth
+ * @image latex screenshots/gengrid_example.eps "gengrid example" width=\textwidth
  *
  * Note that it starts with three items which we included at will:
  * @dontinclude gengrid_example.c
@@ -4427,10 +4445,11 @@
  * @until _clicked(grid,
  * @until _clicked(grid,
  *
- * See the full @ref gengrid_example_c "source code" for
+ * See the full @ref gengrid_example.c "source code" for
  * this example.
  *
  * @example gengrid_example.c
+ * @include gengrid_example.c
  */
 /**
  * @page entry_example Entry - Example of simple editing
@@ -4451,7 +4470,7 @@
  * top of the window and returning focus back to the main entry afterwards.
  *
  * @image html screenshots/entry_example.png
- * @image latex screenshots/entry_example.eps width=\textwidth
+ * @image latex screenshots/entry_example.eps "entry example" width=\textwidth
  *
  * We'll begin by showing a few structures used throught the program. First,
  * the application owns data that holds the main window and the main entry
@@ -4508,9 +4527,11 @@
  * just that, a box that holds text, and in order to have some frame around it
  * or a background color, another widget needs to provide this. When an entry
  * is scrollable, the same scroller used internally does this.
+ * @internal
  * We are using @ref Frame "frames" here to provide some decoration around,
  * then creating our entries, set them to single line, add our two filters and
  * the callback for when their value change.
+ * @endinternal
  * @until _height_changed_cb
  *
  * This function ends with the button that will finally call the item
@@ -4579,6 +4600,7 @@
  * @until ELM_MAIN
  *
  * @example entry_example.c
+ * @include entry_example.c
  */
 
 /**
@@ -4587,7 +4609,7 @@
  * This example creates a simple genlist with a small number of items and
  * a callback that is called whenever an item is selected. All the properties of
  * this genlist are the default ones. The full code for this example can be seen
- * at @ref genlist_example_01_c.
+ * at @ref genlist_example_01.c.
  *
  * For the simplest list that you plan to create, it's necessary to define some
  * of the basic functions that are used for creating each list item, and
@@ -4666,7 +4688,10 @@
  * The current example will look like this when running:
  *
  * @image html screenshots/genlist_example_01.png
- * @image latex screenshots/genlist_example_01.eps width=\textwidth
+ * @image latex screenshots/genlist_example_01.eps "genlist example 01" width=\textwidth
+ *
+ * @example genlist_example_01.c
+ * @include genlist_example_01.c
  */
 
 /**
@@ -4676,7 +4701,7 @@
  * most of the properties of the genlist and displays them on startup (thus
  * getting the default value for them) and then set them to some other values,
  * to show how to use that API. The full source code is at @ref
- * genlist_example_02_c.
+ * genlist_example_02.c.
  *
  * Considering that the base code for instantiating a genlist was already
  * described in the previous example, we are going to focus on the new code.
@@ -4778,7 +4803,11 @@
  * The current example will look like this when running:
  *
  * @image html screenshots/genlist_example_02.png
- * @image latex screenshots/genlist_example_02.eps width=\textwidth
+ * @image latex screenshots/genlist_example_02.eps "genlist example 02" width=\textwidth
+ *
+ * @example genlist_example_02.c
+ * @include genlist_example_02.c
+ *
  */
 
 /**
@@ -4797,9 +4826,10 @@
  * And the screenshot of the running example:
  *
  * @image html screenshots/genlist_example_03.png
- * @image latex screenshots/genlist_example_03.eps width=\textwidth
+ * @image latex screenshots/genlist_example_03.eps "genlist example 03" width=\textwidth
  *
  * @example genlist_example_03.c
+ * @include genlist_example_03.c
  */
 
 /**
@@ -4807,7 +4837,7 @@
  *
  * This example is also similar ot the @ref genlist_example_01, but it
  * demonstrates most of the item manipulation functions. See the full source
- * code at @ref genlist_example_04_c.
+ * code at @ref genlist_example_04.c.
  *
  * In this example, we also will use the concept of creating groups of items in
  * the genlist. Each group of items is composed by a parent item (which will be
@@ -4883,7 +4913,10 @@
  * The example will look like this when running:
  *
  * @image html screenshots/genlist_example_04.png
- * @image latex screenshots/genlist_example_04.eps width=\textwidth
+ * @image latex screenshots/genlist_example_04.eps "genlist example 04" width=\textwidth
+ *
+ * @example genlist_example_04.c
+ * @include genlist_example_04.c
  */
 
 /**
@@ -4892,7 +4925,7 @@
  * This is probably the most complex example of elementary @ref Genlist. We
  * create a tree of items, using the subitems properties of the items, and keep
  * it in memory to be able to expand/hide subitems of an item. The full source
- * code can be found at @ref genlist_example_05_c
+ * code can be found at @ref genlist_example_05.c
  *
  * The main point is the way that Genlist manages subitems. Clicking on an
  * item's button to expand it won't really show its children. It will only
@@ -5046,14 +5079,17 @@
  * The example will look like this when running:
  *
  * @image html screenshots/genlist_example_05.png
- * @image latex screenshots/genlist_example_05.eps width=\textwidth
+ * @image latex screenshots/genlist_example_05.eps "genlist example 05" width=\textwidth
+ *
+ * @example genlist_example_05.c
+ * @include genlist_example_05.c
  */
 
 /**
  * @page thumb_example_01 Thumb - generating thumbnails.
  *
  * This example shows how to create a simple thumbnail object with Elementary.
- * The full source code can be found at @ref thumb_example_01_c
+ * The full source code can be found at @ref thumb_example_01.c
  *
  * Everything is very simple. First we need to tell elementary that we need
  * Ethumb to generate the thumbnails:
@@ -5086,14 +5122,17 @@
  * The example will look like this when running:
  *
  * @image html screenshots/thumb_example_01.png
- * @image latex screenshots/thumb_example_01.eps width=\textwidth
+ * @image latex screenshots/thumb_example_01.eps "thumb example 01" width=\textwidth
+ *
+ * @example thumb_example_01.c
+ * @include thumb_example_01.c
  */
 
 /**
  * @page progressbar_example Progress bar widget example
  *
  * This application is a thorough example of the progress bar widget,
- * consisting of a window with varios progress bars, each with a given
+ * consisting of a window with various progress bars, each with a given
  * look/style one can give to those widgets. With two auxiliary
  * buttons, one can start or stop a timer which will fill in the bars
  * in synchrony, simulating an underlying task being completed.
@@ -5122,7 +5161,7 @@
  * @until pb2
  *
  * Next, comes a progress bar with an @b icon, a primary label and a
- * @b custom unit label set. It's also made to grow its bar in an
+ * unit label @b function set. It's also made to grow its bar in an
  * @b inverted manner, so check that out during the timer's progression:
  * @dontinclude progressbar_example.c
  * @skip ic1 =
@@ -5130,8 +5169,33 @@
  * Another important thing in this one is the call to
  * elm_progressbar_span_size_set() -- this is how we forcefully set a
  * minimum horizontal size to our whole window! We're not resizing it
- * manually, as you can see in the @ref progressbar_example_c
+ * manually, as you can see in the @ref progressbar_example.c
  * "complete code".
+ *
+ * The format callback is a simple function that gets passed the progress value
+ * and returns a string. A free function should be provided as well, if the
+ * format callback allocates memory.
+ * @dontinclude progressbar_example.c
+ * @skip Format callback
+ * @until }
+ * @until }
+ *
+ * The last horizontal progress bar has a callback that gets called when its
+ * value is @b changed. This callback updates a label to provide an estimate
+ * when the operation finishes.
+ * @dontinclude progressbar_example.c
+ * @skip pb3
+ * @skip changed trigger
+ * @until pb4
+ *
+ * The "changed" signal is emitted every time the progressbar value is updated
+ * through @ref elm_progressbar_value_set(). This callback calculates and
+ * displays the ETA based on the progress and time that has passed.
+ * @dontinclude progressbar_example.c
+ * @skip Callback for "changed" signal
+ * @until }
+ * @until }
+ * @until }
  *
  * The next three progress bars are just variants on the ones already
  * shown, but now all being @b vertical. Another time we use one of
@@ -5141,7 +5205,7 @@
  * hardcoded span size:
  * @dontinclude progressbar_example.c
  * @skip vertical pb, with pulse
- * @until pb5
+ * @until pb6
  *
  * We end the widget demonstration by showing a progress bar with the
  * special @b "wheel" progress bar style. One does @b not need to set
@@ -5149,7 +5213,7 @@
  * its theme does not take it in account:
  * @dontinclude progressbar_example.c
  * @skip "wheel"
- * @until pb7
+ * @until pb8
  *
  * The two buttons exercising the bars, the facto, follow:
  * @dontinclude progressbar_example.c
@@ -5176,12 +5240,13 @@
  *
  * This is how the example program's window looks like:
  * @image html screenshots/progressbar_example.png
- * @image latex screenshots/progressbar_example.eps width=\textwidth
+ * @image latex screenshots/progressbar_example.eps "progressbar example" width=\textwidth
  *
- * See the full @ref progressbar_example_c "source code" for
+ * See the full @ref progressbar_example.c "source code" for
  * this example.
  *
  * @example progressbar_example.c
+ * @include progressbar_example.c
  */
 
 /**
@@ -5190,7 +5255,7 @@
  *
  * In this example we will have 3 notifys in 3 different positions. The first of
  * which will dissapear after 5 seconds or when a click outside it occurs, the
- * second and third will not dissapear and differ from each other only in
+ * second and third will not disappear and differ from each other only in
  * position.
  *
  * We start our example with the usual stuff you've seen in other examples:
@@ -5228,14 +5293,13 @@
  * Our example will initially look like this:
  *
  * @image html screenshots/notify_example_01.png
- * @image latex screenshots/notify_example_01.eps width=\textwidth
+ * @image latex screenshots/notify_example_01.eps "notify example 01" width=\textwidth
  *
  * Once the first notify is hidden:
  *
  * @image html screenshots/notify_example_01_a.png
- * @image latex screenshots/notify_example_01_a.eps width=\textwidth
+ * @image latex screenshots/notify_example_01_a.eps "notify example 01 a" width=\textwidth
  *
- * @example notify_example_01.c
  */
 
 /**
@@ -5245,14 +5309,13 @@
  * This example will initially look like this:
  *
  * @image html screenshots/popup_example_01.png
- * @image latex screenshots/popup_example_01.eps width=\textwidth
+ * @image latex screenshots/popup_example_01.eps "popup example 01" width=\textwidth
  *
  * Once the popup is hidden after timeout:
  *
  * @image html screenshots/popup_example_01_a.png
- * @image latex screenshots/popup_example_01_a.eps width=\textwidth
+ * @image latex screenshots/popup_example_01_a.eps "popup example 01 a" width=\textwidth
  *
- * @example popup_example_01.c
  */
 
  /** @page popup_example_02_c popup_example_02.c
@@ -5261,9 +5324,8 @@
  * This example will look like this:
  *
  * @image html screenshots/popup_example_02.png
- * @image latex screenshots/popup_example_02.eps width=\textwidth
+ * @image latex screenshots/popup_example_02.eps "popup example 02" width=\textwidth
  *
- * @example popup_example_02.c
  */
 
 /**
@@ -5273,9 +5335,8 @@
  * This example will look like this:
  *
  * @image html screenshots/popup_example_03.png
- * @image latex screenshots/popup_example_03.eps width=\textwidth
+ * @image latex screenshots/popup_example_03.eps "popup example 03" width=\textwidth
  *
- * @example popup_example_03.c
  */
 
 /**
@@ -5328,9 +5389,8 @@
  * Our example will look like this:
  *
  * @image html screenshots/frame_example_01.png
- * @image latex screenshots/frame_example_01.eps width=\textwidth
+ * @image latex screenshots/frame_example_01.eps "frame example 01" width=\textwidth
  *
- * @example frame_example_01.c
  */
 
 /**
@@ -5338,7 +5398,7 @@
  * @dontinclude check_example_01.c
  *
  * This example will show 2 checkboxes, one with just a label and the second
- * one with both a label and an icon. This example also ilustrates how to
+ * one with both a label and an icon. This example also illustrates how to
  * have the checkbox change the value of a variable and how to react to those
  * changes.
  *
@@ -5372,9 +5432,8 @@
  * Our example will look like this:
  *
  * @image html screenshots/check_example_01.png
- * @image latex screenshots/check_example_01.eps width=\textwidth
+ * @image latex screenshots/check_example_01.eps "check example 01" width=\textwidth
  *
- * @example check_example_01.c
  */
 
 /**
@@ -5408,16 +5467,15 @@
  * And now get to the "color,item,selected" callback that sets the color of the rectangle:
  * @until }
  *
- * And now get to the "color,item,longpressed" callback that gets and displays 
+ * And now get to the "color,item,longpressed" callback that gets and displays
  * the color of the rectangle:
  * @until }
  *
  * This example will look like this:
  *
  * @image html screenshots/colorselector_example_01.png
- * @image latex screenshots/colorselector_example_01.eps width=\textwidth
+ * @image latex screenshots/colorselector_example_01.eps "colorselector example" width=\textwidth
  *
- * @example colorselector_example_01.c
  */
 
 /**
@@ -5506,7 +5564,7 @@
  * we use a spinner widget. We set it to the initial value of 3
  * (seconds), which will be probed by the next knob -- a button
  * starting the slideshow, de facto. Note that changing the transition
- * time while a slideshow is already happening will ajust its
+ * time while a slideshow is already happening will adjust its
  * transition time:
  * @dontinclude slideshow_example.c
  * @skip spin = elm_spinner_add
@@ -5525,13 +5583,14 @@
  *
  * This is how the example program's window looks like:
  * @image html screenshots/slideshow_example.png
- * @image latex screenshots/slideshow_example.eps width=\textwidth
+ * @image latex screenshots/slideshow_example.eps "slideshow example" width=\textwidth
  *
- * See the full @ref slideshow_example_c "source code" for
+ * See the full @ref slideshow_example.c "source code" for
  * this example.
  *
  * @example slideshow_example.c
- */
+ * @include slideshow_example.c
+ * /
 
 /**
  * @page tutorial_photocam Photocam example
@@ -5581,9 +5640,10 @@
  * Our example will initially look like this:
  *
  * @image html screenshots/photocam_example_01.png
- * @image latex screenshots/photocam_example_01.eps width=\textwidth
+ * @image latex screenshots/photocam_example_01.eps "photocam example 01" width=\textwidth
  *
  * @example photocam_example_01.c
+ * @include photocam_example_01.c
  */
 
 /**
@@ -5595,12 +5655,12 @@
  * The program is nothing but a window with a lonely button, as shown here.
  *
  * @image html screenshots/inwin_example.png
- * @image latex screenshots/inwin_example.eps width=\textwidth
+ * @image latex screenshots/inwin_example.eps "inwin example" width=\textwidth
  *
  * And pressing the button makes an inwin appear.
  *
  * @image html screenshots/inwin_example_a.png
- * @image latex screenshots/inwin_example_a.eps width=\textwidth
+ * @image latex screenshots/inwin_example_a.eps "inwin example a" width=\textwidth
  *
  * And the code is just as simple. We being with some global variables to keep
  * track of our Inwin.
@@ -5645,9 +5705,12 @@
  * it will work kind of like a modal window, blocking any other widget from
  * receiving events until the window is manually dismissed by pressing some
  * button to close it or having blocking task signalling its completion so
- * normal operations can be resumed. This is unlike the @ref Hover widget,
+ * normal operations can be resumed.
+ * @internal
+ * This is unlike the @ref Hover widget,
  * that would show its content on top of the designated target, but clicking
  * anywhere else would dismiss it automatically.
+ * @endinternal
  *
  * To illustrate that last point, when we close the main window and an inwin
  * is still there, we'll take out the content from the inwin and place it in
@@ -5657,9 +5720,7 @@
  *
  * And the rest of the program doesn't have anything else related to inwin,
  * so it won't be shown here, but you can find it in
- * @ref inwin_example.c "inwin_example.c".
- *
- * @example inwin_example.c
+ * @include inwin_example.c
  */
 
 /**
@@ -5702,9 +5763,10 @@
  * Our example will look like this:
  *
  * @image html screenshots/scroller_example_01.png
- * @image latex screenshots/scroller_example_01.eps width=\textwidth
+ * @image latex screenshots/scroller_example_01.eps "scroller example" width=\textwidth
  *
  * @example scroller_example_01.c
+ * @include scroller_example_01.c
  */
 
 /**
@@ -5730,9 +5792,8 @@
  * Our example will look like this:
  *
  * @image html screenshots/table_example_01.png
- * @image latex screenshots/table_example_01.eps width=\textwidth
+ * @image latex screenshots/table_example_01.eps "table example 01" width=\textwidth
  *
- * @example table_example_01.c
  */
 
 /**
@@ -5757,9 +5818,8 @@
  * Our example will look like this:
  *
  * @image html screenshots/table_example_02.png
- * @image latex screenshots/table_example_02.eps width=\textwidth
+ * @image latex screenshots/table_example_02.eps "table example 02" width=\textwidth
  *
- * @example table_example_02.c
  */
 
 /**
@@ -5813,9 +5873,10 @@
  * Our example will look like this:
  *
  * @image html screenshots/menu_example_01.png
- * @image latex screenshots/menu_example_01.eps width=\textwidth
- *
+ * @image latex screenshots/menu_example_01.eps "menu example" width=\textwidth
+ * 
  * @example menu_example_01.c
+ * @include menu_example_01.c
  */
 
 /**
@@ -5832,8 +5893,8 @@
  * We'll have a bit more than the usual includes here, since part of the
  * example requires some low level fiddling.
  * @dontinclude win_example.c
- * @skip Elementary.h
- * @until Ecore_X.h
+ * @skip ifdef
+ * @until Elementary.h
  *
  * The program then, consists of one window with two lists of buttons, each
  * of which operates on another two windows. One of them is a normal window,
@@ -5913,13 +5974,12 @@
  * @until ELM_MAIN
  *
  * The full code listing of this example can be found at
- * @ref win_example.c "win_example.c".
+ * @example win_example.c "win_example.c".
  *
- * @example win_example.c
  */
 
 /**
- * @page web_example_01 Web - Simple example
+ * @page web_example_02 Web - Simple example
  *
  * WebKit-EFL is independent of any particular toolkit, such as Elementary,
  * so using it on applications requires that the programmer writes a lot of
@@ -5945,7 +6005,7 @@
  * some WebKit functions on it, thus we need to include the necessary headers
  * first.
  *
- * @dontinclude web_example.c
+ * @dontinclude web_example_02.c
  * @skip include
  * @until EWebKit
  *
@@ -6038,11 +6098,6 @@
  * @skip static void
  * @until ELM_MAIN
  *
- * Some parts of the code were left out, as they are not relevant to the
- * example, but the full listing can be found at @ref web_example.c
- * "web_example.c".
- *
- * @example web_example.c
  */
 
 /**
@@ -6052,29 +6107,29 @@
  * to only use eina or eet calls inside a thread. Other libraries are not
  * totally threadsafe except for some specific ecore calls designed for
  * working from threads like the ecore_pipe_write() and ecore_thread calls.
- * 
+ *
  * Below is an example of how to use EFL calls from a native thread you have
  * already created. You have to put the EFL calls inside the critical block
  * between ecore_thread_main_loop_begin() and ecore_thread_main_loop_end()
  * which ensure you gain a lock on the mainloop. Beware that this requires
  * that the thread WAIT to synchronize with the mainloop at the beginning of
  * the critical section. It is highly suggested you use as few of these
- * in your thread as possible and probably put just a single 
+ * in your thread as possible and probably put just a single
  * ecore_thread_main_loop_begin() / ecore_thread_main_loop_end() section
  * at the end of the threads calculation or work when it is done and
  * would otherwise exit to sit idle.
- * 
+ *
  * For a progression of examples that become more complex and show other
  * ways to use threading with EFL, please see:
- * 
+ *
  * @ref efl_thread_2
- * 
+ *
  * @ref efl_thread_3
- * 
+ *
  * @ref efl_thread_4
- * 
+ *
  * @ref efl_thread_5
- * 
+ *
  * @ref efl_thread_6
  *
  * @include efl_thread_1.c
@@ -6091,11 +6146,11 @@
  * of inlining your code.
  *
  * @ref efl_thread_3
- * 
+ *
  * @ref efl_thread_4
- * 
+ *
  * @ref efl_thread_5
- * 
+ *
  * @ref efl_thread_6
  *
  * @include efl_thread_2.c
@@ -6116,9 +6171,9 @@
  * calculation.
  *
  * @ref efl_thread_4
- * 
+ *
  * @ref efl_thread_5
- * 
+ *
  * @ref efl_thread_6
  *
  * @include efl_thread_3.c
@@ -6134,7 +6189,7 @@
  * to do this.
  *
  * @ref efl_thread_5
- * 
+ *
  * @ref efl_thread_6
  *
  * @include efl_thread_4.c
@@ -6165,120 +6220,6 @@
  */
 
 /**
- * @page bg_example_01_c bg_example_01.c
- * @include bg_example_01.c
- * @example bg_example_01.c
- */
-
-/**
- * @page bg_example_02_c bg_example_02.c
- * @include bg_example_02.c
- * @example bg_example_02.c
- */
-
-/**
- * @page bg_example_03_c bg_example_03.c
- * @include bg_example_03.c
- * @example bg_example_03.c
- */
-
-/**
- * @page actionslider_example_01 Actionslider example
- * @include actionslider_example_01.c
- * @example actionslider_example_01.c
- */
-
-/**
- * @page transit_example_01_c Transit example 1
- * @include transit_example_01.c
- * @example transit_example_01.c
- */
-
-/**
- * @page transit_example_02_c Transit example 2
- * @include transit_example_02.c
- * @example transit_example_02.c
- */
-
-/**
- * @page general_functions_example_c General (top-level) functions example
- * @include general_funcs_example.c
- * @example general_funcs_example.c
- */
-
-/**
- * @page clock_example_c Clock example
- * @include clock_example.c
- * @example clock_example.c
- */
-
- /**
- * @page datetime_example_c Datetime example
- * @include datetime_example.c
- * @example datetime_example.c
- */
-
-/**
- * @page dayselector_example_c Dayselector example
- * @include dayselector_example.c
- * @example dayselector_example.c
- */
-
-/**
- * @page flipselector_example_c Flipselector example
- * @include flipselector_example.c
- * @example flipselector_example.c
- */
-
-/**
- * @page fileselector_example_c Fileselector example
- * @include fileselector_example.c
- * @example fileselector_example.c
- */
-
-/**
- * @page fileselector_button_example_c Fileselector button example
- * @include fileselector_button_example.c
- * @example fileselector_button_example.c
- */
-
-/**
- * @page fileselector_entry_example_c Fileselector entry example
- * @include fileselector_entry_example.c
- * @example fileselector_entry_example.c
- */
-
-/**
- * @page index_example_01_c Index example
- * @include index_example_01.c
- * @example index_example_01.c
- */
-
-/**
- * @page index_example_02_c Index example
- * @include index_example_02.c
- * @example index_example_02.c
- */
-
-/**
- * @page layout_example_01_c layout_example_01.c
- * @include layout_example_01.c
- * @example layout_example_01.c
- */
-
-/**
- * @page layout_example_02_c layout_example_02.c
- * @include layout_example_02.c
- * @example layout_example_02.c
- */
-
-/**
- * @page layout_example_03_c layout_example_03.c
- * @include layout_example_03.c
- * @example layout_example_03.c
- */
-
-/**
  * @page layout_example_edc An example of layout theme file
  *
  * This theme file contains two groups. Each of them is a different theme, and
@@ -6290,85 +6231,13 @@
  */
 
 /**
- * @page gengrid_example_c Gengrid example
- * @include gengrid_example.c
- * @example gengrid_example.c
+ * @page bg_example_01_c bg_example_01.c
+ * @include bg_example_01.c
+ * @example bg_example_01.c
  */
 
 /**
- * @page genlist_example_01_c genlist_example_01.c
- * @include genlist_example_01.c
- * @example genlist_example_01.c
- */
-
-/**
- * @page genlist_example_02_c genlist_example_02.c
- * @include genlist_example_02.c
- * @example genlist_example_02.c
- */
-
-/**
- * @page genlist_example_04_c genlist_example_04.c
- * @include genlist_example_04.c
- * @example genlist_example_04.c
- */
-
-/**
- * @page genlist_example_05_c genlist_example_05.c
- * @include genlist_example_05.c
- * @example genlist_example_05.c
- */
-
-/**
- * @page thumb_example_01_c thumb_example_01.c
- * @include thumb_example_01.c
- * @example thumb_example_01.c
- */
-
-/**
- * @page progressbar_example_c Progress bar example
- * @include progressbar_example.c
- * @example progressbar_example.c
- */
-
-/**
- * @page slideshow_example_c Slideshow example
- * @include slideshow_example.c
- * @example slideshow_example.c
- */
-
-/**
- * @page efl_thread_1_c EFL Threading example 1
- * @include efl_thread_1.c
- * @example efl_thread_1.c
- */
-
-/**
- * @page efl_thread_2_c EFL Threading example 2
- * @include efl_thread_2.c
- * @example efl_thread_2.c
- */
-
-/**
- * @page efl_thread_3_c EFL Threading example 3
- * @include efl_thread_3.c
- * @example efl_thread_3.c
- */
-
-/**
- * @page efl_thread_4_c EFL Threading example 4
- * @include efl_thread_4.c
- * @example efl_thread_4.c
- */
-
-/**
- * @page efl_thread_5_c EFL Threading example 5
- * @include efl_thread_5.c
- * @example efl_thread_5.c
- */
-
-/**
- * @page efl_thread_6_c EFL Threading example 6
- * @include efl_thread_6.c
- * @example efl_thread_6.c
+ * @page bg_example_02_c bg_example_02.c
+ * @include bg_example_02.c
+ * @example bg_example_02.c
  */

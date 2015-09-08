@@ -1,172 +1,196 @@
 /**
  * @defgroup Notify Notify
- * @ingroup Elementary
+ * @ingroup elm_widget_group
  *
- * @image html img/widget/notify/preview-00.png
- * @image latex img/widget/notify/preview-00.eps
+ * @image html notify_inheritance_tree.png
+ * @image latex notify_inheritance_tree.eps
  *
- * Display a container in a particular region of the parent(top, bottom,
- * etc).  A timeout can be set to automatically hide the notify. This is so
- * that, after an evas_object_show() on a notify object, if a timeout was set
- * on it, it will @b automatically get hidden after that time.
+ * @brief Display a container in a particular region of the parent(top, bottom,
+ *        etc).
+ *
+ * A timeout can be set to automatically hide the notify widget. This is so
+ * that, after an evas_object_show() on a notify object, if a timeout is set
+ * on it, it @b automatically gets hidden after that time.
  *
  * Signals that you can add callbacks for are:
- * @li "timeout" - when timeout happens on notify and it's hidden
- * @li "block,clicked" - when a click outside of the notify happens
+ * @li "timeout" - When timeout happens on a notification and it's hidden.
+ * @li "block,clicked" - When a click outside of the notification happens.
  *
- * Default content parts of the notify widget that you can use for are:
- * @li "default" - A content of the notify
+ * The functions meant to act on it work for mapbuf objects:
  *
- * Supported elm_object common APIs.
  * @li @ref elm_object_part_content_set
  * @li @ref elm_object_part_content_get
  * @li @ref elm_object_part_content_unset
  *
- * @ref tutorial_notify show usage of the API.
+ * The default content parts of the notify widget that you can use are:
+ * @li @c "default" - The main content of the notify widget.
  *
  * @{
  */
 
-/**
- * @brief Possible orient values for notify.
- *
- * This values should be used in conjunction to elm_notify_orient_set() to
- * set the position in which the notify should appear(relative to its parent)
- * and in conjunction with elm_notify_orient_get() to know where the notify
- * is appearing.
- */
-typedef enum
-{
-   ELM_NOTIFY_ORIENT_TOP, /**< Notify should appear in the top of parent, default */
-   ELM_NOTIFY_ORIENT_CENTER, /**< Notify should appear in the center of parent */
-   ELM_NOTIFY_ORIENT_BOTTOM, /**< Notify should appear in the bottom of parent */
-   ELM_NOTIFY_ORIENT_LEFT, /**< Notify should appear in the left of parent */
-   ELM_NOTIFY_ORIENT_RIGHT, /**< Notify should appear in the right of parent */
-   ELM_NOTIFY_ORIENT_TOP_LEFT, /**< Notify should appear in the top left of parent */
-   ELM_NOTIFY_ORIENT_TOP_RIGHT, /**< Notify should appear in the top right of parent */
-   ELM_NOTIFY_ORIENT_BOTTOM_LEFT, /**< Notify should appear in the bottom left of parent */
-   ELM_NOTIFY_ORIENT_BOTTOM_RIGHT, /**< Notify should appear in the bottom right of parent */
-   ELM_NOTIFY_ORIENT_LAST /**< Sentinel value, @b don't use */
-} Elm_Notify_Orient;
+#define ELM_NOTIFY_ALIGN_FILL                   -1.0  /**< Use with elm_notify_align_set() @since 1.8 */
 
 /**
- * @brief Add a new notify to the parent
+ * @brief Adds a new notify widget to the parent.
  *
- * @param parent The parent object
- * @return The new object or NULL if it cannot be created
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Notify
+ * @param[in] parent The parent object
+ * @return The new object, otherwise @c NULL if it cannot be created
  */
 EAPI Evas_Object                 *elm_notify_add(Evas_Object *parent);
 
 /**
- * @brief Set the notify parent
+ * @brief Sets the notify parent.
  *
- * @param obj The notify object
- * @param parent The new parent
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Once the parent object is set, a previously set one will be disconnected
- * and replaced.
+ * @remarks Once the parent object is set, a previously set one is disconnected
+ *          and replaced.
  *
- * @ingroup Notify
+ * @param[in] obj The notify object
+ * @param[in] parent The new parent
  */
 EAPI void                         elm_notify_parent_set(Evas_Object *obj, Evas_Object *parent);
 
 /**
- * @brief Get the notify parent
+ * @brief Gets the notify parent.
  *
- * @param obj The notify object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The notify object
  * @return The parent
  *
  * @see elm_notify_parent_set()
- *
- * @ingroup Notify
  */
 EAPI Evas_Object                 *elm_notify_parent_get(const Evas_Object *obj);
 
 /**
- * @brief Set the orientation
+ * @brief Sets the time interval after which the notify window is going to be
+ *        hidden.
  *
- * @param obj The notify object
- * @param orient The new orientation
+ * @details This function sets a timeout and starts the timer controlling when the
+ *          notification is hidden. Since calling evas_object_show() on a notification restarts
+ *          the timer controlling when the notification is hidden, setting this before the
+ *          notification is shown means starting the timer when the notification is
+ *          shown.
  *
- * Sets the position in which the notify will appear in its parent.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @see @ref Elm_Notify_Orient for possible values.
+ * @remarks Set a value <= @c 0.0 to disable a running timer.
  *
- * @ingroup Notify
- */
-EAPI void                         elm_notify_orient_set(Evas_Object *obj, Elm_Notify_Orient orient);
-
-/**
- * @brief Return the orientation
- * @param obj The notify object
- * @return The orientation of the notification
+ * @remarks If the value > @c 0.0 and the notification is previously visible, the
+ *          timer is started with this value, cancelling any running timer.
  *
- * @see elm_notify_orient_set()
- * @see Elm_Notify_Orient
- *
- * @ingroup Notify
- */
-EAPI Elm_Notify_Orient            elm_notify_orient_get(const Evas_Object *obj);
-
-/**
- * @brief Set the time interval after which the notify window is going to be
- * hidden.
- *
- * @param obj The notify object
- * @param timeout The timeout in seconds
- *
- * This function sets a timeout and starts the timer controlling when the
- * notify is hidden. Since calling evas_object_show() on a notify restarts
- * the timer controlling when the notify is hidden, setting this before the
- * notify is shown will in effect mean starting the timer when the notify is
- * shown.
- *
- * @note Set a value <= 0.0 to disable a running timer.
- *
- * @note If the value > 0.0 and the notify is previously visible, the
- * timer will be started with this value, canceling any running timer.
- *
- * @ingroup Notify
+ * @param[in] obj The notify object
+ * @param[in] timeout The timeout in seconds
  */
 EAPI void                         elm_notify_timeout_set(Evas_Object *obj, double timeout);
 
 /**
- * @brief Return the timeout value (in seconds)
- * @param obj the notify object
+ * @brief Gets the timeout value (in seconds).
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The notify object
+ * @return The timeout in seconds
  *
  * @see elm_notify_timeout_set()
- *
- * @ingroup Notify
  */
 EAPI double                       elm_notify_timeout_get(const Evas_Object *obj);
 
 /**
- * @brief Sets whether events should be passed to by a click outside
- * its area.
+ * @brief Sets whether events should be passed by a click outside
+ *        its area.
  *
- * @param obj The notify object
- * @param allow EINA_TRUE If events are allowed, otherwise not
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * When true if the user clicks outside the window the events will be caught
- * by the others widgets, else the events are blocked.
+ * @remarks When @c true if the user clicks outside the window the events are caught
+ *          by the other widgets, else the events are blocked.
  *
- * @note The default value is EINA_TRUE.
+ * @remarks The default value is @c EINA_TRUE.
  *
- * @ingroup Notify
+ * @param[in] obj The notify object
+ * @param[in] allow If @c EINA_TRUE events are allowed,
+ *              otherwise @c EINA_FALSE if they are not
  */
 EAPI void                         elm_notify_allow_events_set(Evas_Object *obj, Eina_Bool allow);
 
 /**
- * @brief Return true if events are allowed below the notify object
- * @param obj the notify object
+ * @brief Gets true if events are allowed below the notify object.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The notify object
+ * @return #EINA_TRUE if events are allowed, otherwise #EINA_FALSE.
  *
  * @see elm_notify_allow_events_set()
- *
- * @ingroup Notify
  */
 EAPI Eina_Bool                    elm_notify_allow_events_get(const Evas_Object *obj);
+
+/**
+ * @brief Sets the alignment of the notify object.
+ *
+ * @details This sets the alignment in which the notify appears in its parent.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks To fill the notify box in the parent area, pass the
+ *          @c ELM_NOTIFY_ALIGN_FILL to @a horizontal, @a vertical.
+ *
+ * @param[in] obj The notify object
+ * @param[in] horizontal The horizontal alignment of the notification
+ * @param[in] vertical The vertical alignment of the notification
+ */
+EAPI void                         elm_notify_align_set(Evas_Object *obj, double horizontal, double vertical);
+
+/**
+ * @brief Gets the alignment of the notify object.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The notify object
+ * @param[out] horizontal The horizontal alignment of the notification
+ * @param[out] vertical The vertical alignment of the notification
+ *
+ * @see elm_notify_align_set()
+ */
+EAPI void                         elm_notify_align_get(const Evas_Object *obj, double *horizontal, double *vertical);
+
+/**
+ * @brief Dismiss a notify object
+ *
+ * @since_tizen 2.3.1
+ *
+ * @param[in] obj The notify object
+ *
+ * @details Use this function to dismiss the notify with hide effect.
+ *          when the notify is dismissed, the "dismissed" signal will be
+ *          emitted.
+ */
+EAPI void                         elm_notify_dismiss(Evas_Object *obj);
 
 /**
  * @}

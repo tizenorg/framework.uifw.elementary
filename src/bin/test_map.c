@@ -4,6 +4,7 @@
 #include <Elementary.h>
 #ifndef ELM_LIB_QUICKLAUNCH
 
+#define ENGINE_MAX 10
 #define SOURCE_MAX 10
 #define MARKER_MAX 1000
 #define NAME_ENTRY_TEXT "Enter freeform address"
@@ -12,6 +13,12 @@ typedef struct Overlay_Data
 {
    const char *file;
 } Overlay_Data;
+
+typedef struct Map_Engine
+{
+   Evas_Object *map;
+   char *name;
+} Map_Engine;
 
 typedef struct Map_Source
 {
@@ -50,6 +57,7 @@ static Elm_Map_Name *name;
 static Evas_Object *track;
 static Evas_Coord down_x, down_y;
 static Evas_Coord old_x, old_y, old_d;
+static Map_Engine eg[ENGINE_MAX];
 static Map_Source ts[SOURCE_MAX];
 static Map_Source rs[SOURCE_MAX];
 static Map_Source ns[SOURCE_MAX];
@@ -80,7 +88,7 @@ static Evas_Object *
 _route_icon_get(Evas_Object *obj)
 {
    Evas_Object *icon = elm_icon_add(obj);
-   elm_icon_file_set(icon, PACKAGE_DATA_DIR"/images/bubble.png", NULL);
+   elm_image_file_set(icon, PACKAGE_DATA_DIR"/images/bubble.png", NULL);
    evas_object_show(icon);
 
    return icon;
@@ -117,6 +125,7 @@ _label_get(Evas_Object *obj)
    Evas_Object *label;
    label = elm_label_add(obj);
    elm_object_text_set(label, "Here is a parking lot.");
+   evas_object_show(label);
    return label;
 }
 
@@ -124,7 +133,7 @@ static Evas_Object *
 _icon_get(Evas_Object *obj, Overlay_Data *data)
 {
    Evas_Object *icon = elm_icon_add(obj);
-   elm_icon_file_set(icon, data->file, NULL);
+   elm_image_file_set(icon, data->file, NULL);
    evas_object_show(icon);
 
    return icon;
@@ -472,6 +481,15 @@ _src_set(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 }
 
 static void
+_engine_set(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+{
+   Map_Engine *e = data;
+
+   if (!e) return;
+   elm_map_engine_set(e->map, e->name);
+}
+
+static void
 _show_urmatt(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
    elm_map_zoom_mode_set(data, ELM_MAP_ZOOM_MODE_MANUAL);
@@ -725,6 +743,25 @@ _scale_add(void *data, Evas_Object *obj __UNUSED__, void *ei __UNUSED__)
 }
 
 static void
+_submenu_engine_add(void *data, Elm_Object_Item *parent)
+{
+   int idx;
+   const char **engines;
+
+   if ((!data) || (!parent)) return;
+
+   engines = elm_map_engines_get(data);
+
+   for (idx = 0; engines[idx]; idx++)
+     {
+        if (idx >= SOURCE_MAX) break;
+        eg[idx].map = data;
+        eg[idx].name = strdup(engines[idx]);
+        elm_menu_item_add(menu, parent, "", engines[idx], _engine_set, &eg[idx]);
+     }
+}
+
+static void
 _submenu_src_add(void *data, Elm_Object_Item *parent)
 {
    int idx;
@@ -835,20 +872,25 @@ _map_mouse_down(void *data, Evas *evas __UNUSED__, Evas_Object *obj, void *event
      {
         down_x = down->canvas.x;
         down_y = down->canvas.y;
-        menu = elm_menu_add(obj);
-        menu_it = elm_menu_item_add(menu, NULL, "", "Source", NULL, NULL);
-        _submenu_src_add(data, menu_it);
-        menu_it = elm_menu_item_add(menu, NULL, "", "Move", NULL, NULL);
-        _submenu_move_add(data, menu_it);
-        menu_it = elm_menu_item_add(menu, NULL, "", "Zoom", NULL, NULL);
-        _submenu_zoom_add(data, menu_it);
-        menu_it = elm_menu_item_add(menu, NULL, "", "Prop", NULL, NULL);
-        _submenu_prop_add(data, menu_it);
-        menu_it = elm_menu_item_add(menu, NULL, "", "Track", NULL, NULL);
-        _submenu_track_add(data, menu_it);
-        menu_it = elm_menu_item_add(menu, NULL, "", "Overlay", NULL, NULL);
-        _submenu_ovl_add(data, menu_it);
-
+        if (!menu)
+          {
+             menu = elm_menu_add(obj);
+             elm_menu_parent_set(menu, obj);
+			 menu_it = elm_menu_item_add(menu, NULL, "", "Engine", NULL, NULL);
+             _submenu_engine_add(data, menu_it);
+             menu_it = elm_menu_item_add(menu, NULL, "", "Source", NULL, NULL);
+             _submenu_src_add(data, menu_it);
+             menu_it = elm_menu_item_add(menu, NULL, "", "Move", NULL, NULL);
+             _submenu_move_add(data, menu_it);
+             menu_it = elm_menu_item_add(menu, NULL, "", "Zoom", NULL, NULL);
+             _submenu_zoom_add(data, menu_it);
+             menu_it = elm_menu_item_add(menu, NULL, "", "Prop", NULL, NULL);
+             _submenu_prop_add(data, menu_it);
+             menu_it = elm_menu_item_add(menu, NULL, "", "Track", NULL, NULL);
+             _submenu_track_add(data, menu_it);
+             menu_it = elm_menu_item_add(menu, NULL, "", "Overlay", NULL, NULL);
+             _submenu_ovl_add(data, menu_it);
+          }
          elm_menu_move(menu, down->canvas.x, down->canvas.y);
          evas_object_show(menu);
      }
@@ -996,8 +1038,10 @@ _del_map(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__,
 
    if (route) elm_map_route_del(route);
    if (name) elm_map_name_del(name);
+   if (menu)  evas_object_del(menu);
    route = NULL;
    name = NULL;
+   menu = NULL;
 }
 
 void

@@ -17,7 +17,9 @@ AM_CPPFLAGS = \
 @ELEMENTARY_WINCE_CFLAGS@ \
 @ELEMENTARY_EDBUS_CFLAGS@ \
 @ELEMENTARY_EFREET_CFLAGS@ \
-@ELEMENTARY_ETHUMB_CFLAGS@
+@ELEMENTARY_ETHUMB_CFLAGS@ \
+@ELEMENTARY_APPSVC_CFLAGS@
+
 
 if ELEMENTARY_WINDOWS_BUILD
 AM_CPPFLAGS += -DELEMENTARY_BUILD
@@ -29,6 +31,6 @@ pkg_LTLIBRARIES = module.la
 module_la_SOURCES = copypaste.c \
                     cbhm_helper.c
 
-module_la_LIBADD = $(top_builddir)/src/lib/libelementary.la
-module_la_LDFLAGS = -no-undefined @lt_enable_auto_import@ -module -avoid-version -lappsvc
+module_la_LIBADD = $(top_builddir)/src/lib/libelementary.la @ELEMENTARY_APPSVC_LIBS@
+module_la_LDFLAGS = -no-undefined @lt_enable_auto_import@ -module -avoid-version
 module_la_LIBTOOLFLAGS = --tag=disable-static

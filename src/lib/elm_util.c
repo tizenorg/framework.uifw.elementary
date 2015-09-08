@@ -61,3 +61,15 @@ _elm_atof(const char *s)
      }
    return atof(buf);
 }
+
+Eina_Bool
+_elm_util_freeze_events_get(const Evas_Object *obj)
+{
+   Evas_Object *parent = (Evas_Object *) obj;
+   while (parent)
+     {
+        if (evas_object_freeze_events_get(parent)) return EINA_TRUE;
+        parent = evas_object_smart_parent_get(parent);
+     }
+   return EINA_FALSE;
+}

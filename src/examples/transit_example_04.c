@@ -104,8 +104,6 @@ elm_main(int argc, char **argv)
    bg = elm_bg_add(win);
    elm_bg_color_set(bg, 255, 255, 255);
    evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_min_set(bg, 640, 640);
-   evas_object_size_hint_max_set(bg, 640, 640);
    elm_win_resize_object_add(win, bg);
    evas_object_show(bg);
 
@@ -125,7 +123,7 @@ elm_main(int argc, char **argv)
    elm_object_text_set(obj, "Transformed object!");
    icon = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/icon_07.png", elm_app_data_dir_get());
-   elm_icon_file_set(icon, buf, NULL);
+   elm_image_file_set(icon, buf, NULL);
    elm_object_part_content_set(obj, "icon", icon);
    evas_object_move(obj, 160, 60);
    evas_object_resize(obj, 250, 100);
@@ -138,7 +136,7 @@ elm_main(int argc, char **argv)
    elm_object_text_set(obj, "Another object!");
    icon = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/icon_08.png", elm_app_data_dir_get());
-   elm_icon_file_set(icon, buf, NULL);
+   elm_image_file_set(icon, buf, NULL);
    elm_object_part_content_set(obj, "icon", icon);
    evas_object_move(obj, 160, 60);
    evas_object_resize(obj, 250, 100);

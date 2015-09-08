@@ -131,23 +131,20 @@ _elm_tooltip_show(Elm_Tooltip *tt)
      }
    if (tt->free_size)
      {
-        tt->tt_win = elm_win_add(NULL, "tooltip", ELM_WIN_BASIC);
-        elm_win_borderless_set(tt->tt_win, EINA_TRUE);
+        tt->tt_win = elm_win_add(NULL, "tooltip", ELM_WIN_TOOLTIP);
         elm_win_override_set(tt->tt_win, EINA_TRUE);
         tt->tt_evas = evas_object_evas_get(tt->tt_win);
         tt->tooltip = edje_object_add(tt->tt_evas);
-        evas_object_move(tt->tooltip, 0, 0);
+        evas_object_size_hint_weight_set(tt->tooltip, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+        evas_object_size_hint_align_set(tt->tooltip, EVAS_HINT_FILL, EVAS_HINT_FILL);
         elm_win_resize_object_add(tt->tt_win, tt->tooltip);
-#ifdef HAVE_ELEMENTARY_X
-        ecore_x_window_shape_input_rectangle_set(elm_win_xwindow_get(tt->tt_win), 0, 0, 0, 0);
-#endif
-        evas_object_show(tt->tt_win);
      }
    else
       tt->tooltip = edje_object_add(tt->evas);
    if (!tt->tooltip) return;
 
-   evas_object_layer_set(tt->tt_win ?: tt->tooltip, ELM_OBJECT_LAYER_TOOLTIP);
+   if (tt->free_size)
+     evas_object_layer_set(tt->tooltip, ELM_OBJECT_LAYER_TOOLTIP);
 
    evas_object_event_callback_add
      (tt->eventarea, EVAS_CALLBACK_MOVE, _elm_tooltip_obj_move_cb, tt);
@@ -265,7 +262,7 @@ _elm_tooltip_hide_anim_stop(Elm_Tooltip *tt)
 static void
 _elm_tooltip_reconfigure(Elm_Tooltip *tt)
 {
-   Evas_Coord ox, oy, ow, oh, px, py, tx, ty, tw, th, cw = 0, ch = 0;
+   Evas_Coord ox, oy, ow, oh, px = 0, py = 0, tx, ty, tw, th, cw = 0, ch = 0;
    Evas_Coord eminw, eminh, ominw, ominh;
    double rel_x, rel_y;
    Eina_Bool inside_eventarea;
@@ -278,7 +275,8 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
      {
         const char *style = tt->style ? tt->style : "default";
         const char *str;
-        if (!_elm_theme_object_set(tt->tt_win ? NULL : tt->owner, tt->tooltip, "tooltip", "base", style))
+        if (!_elm_theme_object_set(tt->tt_win ? NULL : tt->owner, tt->tooltip,
+                                  "tooltip", "base", style))
           {
              ERR("Could not apply the theme to the tooltip! style=%s", style);
              if (tt->tt_win) evas_object_del(tt->tt_win);
@@ -303,12 +301,21 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
           {  /* FIXME: hardcoded here is bad */
              if (str && (!strcmp(str, "enabled")))
                {
+                  evas_object_hide(tt->tt_win);
                   elm_win_alpha_set(tt->tt_win, EINA_TRUE);
                }
              else
                {
+                  evas_object_hide(tt->tt_win);
                   elm_win_alpha_set(tt->tt_win, EINA_FALSE);
                }
+#ifdef HAVE_ELEMENTARY_X
+             Ecore_X_Window win;
+             win = elm_win_xwindow_get(tt->tt_win);
+             if (win)
+               ecore_x_window_shape_input_rectangle_set(win, 0, 0, 0, 0);
+#endif
+             evas_object_show(tt->tt_win);
           }
 
         str = edje_object_data_get(tt->tooltip, "pad_x");
@@ -367,7 +374,7 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
    edje_object_size_min_get(tt->tooltip, &eminw, &eminh);
 
    if (eminw && (ominw < eminw)) ominw = eminw;
-   if (eminw && (ominh < eminh)) ominh = eminh;
+   if (eminh && (ominh < eminh)) ominh = eminh;
 
    if (ominw < 1) ominw = 10; /* at least it is noticeable */
    if (ominh < 1) ominh = 10; /* at least it is noticeable */
@@ -390,7 +397,8 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
         Evas_Object *win = elm_object_top_widget_get(tt->owner);
 #ifdef HAVE_ELEMENTARY_X
         Ecore_X_Window xwin = elm_win_xwindow_get(win);
-        ecore_x_pointer_xy_get(xwin, &px, &py);
+        if (xwin)
+          ecore_x_pointer_xy_get(xwin, &px, &py);
 #endif
         elm_win_screen_position_get(win, &x, &y);
         ox += x;

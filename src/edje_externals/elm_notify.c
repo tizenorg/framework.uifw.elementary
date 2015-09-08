@@ -29,6 +29,91 @@ static const char *orients[] = {
 		NULL
 };
 
+/* keeping old externals orient api for notify, but taking away the
+ * introduced deprecation warning by copying the deprecated code
+ * here */
+static Elm_Notify_Orient
+_elm_notify_orient_get(const Evas_Object *obj)
+{
+   Elm_Notify_Orient orient;
+   double horizontal, vertical;
+
+   elm_notify_align_get(obj, &horizontal, &vertical);
+
+   if ((horizontal == 0.5) && (vertical == 0.0))
+     orient = ELM_NOTIFY_ORIENT_TOP;
+   else if ((horizontal == 0.5) && (vertical == 0.5))
+     orient = ELM_NOTIFY_ORIENT_CENTER;
+   else if ((horizontal == 0.5) && (vertical == 1.0))
+     orient = ELM_NOTIFY_ORIENT_BOTTOM;
+   else if ((horizontal == 0.0) && (vertical == 0.5))
+     orient = ELM_NOTIFY_ORIENT_LEFT;
+   else if ((horizontal == 1.0) && (vertical == 0.5))
+     orient = ELM_NOTIFY_ORIENT_RIGHT;
+   else if ((horizontal == 0.0) && (vertical == 0.0))
+     orient = ELM_NOTIFY_ORIENT_TOP_LEFT;
+   else if ((horizontal == 1.0) && (vertical == 0.0))
+     orient = ELM_NOTIFY_ORIENT_TOP_RIGHT;
+   else if ((horizontal == 0.0) && (vertical == 1.0))
+     orient = ELM_NOTIFY_ORIENT_BOTTOM_LEFT;
+   else if ((horizontal == 1.0) && (vertical == 1.0))
+     orient = ELM_NOTIFY_ORIENT_BOTTOM_RIGHT;
+   else
+     orient = ELM_NOTIFY_ORIENT_TOP;
+   return orient;
+}
+
+static void
+_elm_notify_orient_set(Evas_Object *obj,
+                       Elm_Notify_Orient orient)
+{
+   double horizontal = 0, vertical = 0;
+
+   switch (orient)
+     {
+      case ELM_NOTIFY_ORIENT_TOP:
+         horizontal = 0.5; vertical = 0.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_CENTER:
+         horizontal = 0.5; vertical = 0.5;
+        break;
+
+      case ELM_NOTIFY_ORIENT_BOTTOM:
+         horizontal = 0.5; vertical = 1.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_LEFT:
+         horizontal = 0.0; vertical = 0.5;
+        break;
+
+      case ELM_NOTIFY_ORIENT_RIGHT:
+         horizontal = 1.0; vertical = 0.5;
+        break;
+
+      case ELM_NOTIFY_ORIENT_TOP_LEFT:
+         horizontal = 0.0; vertical = 0.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_TOP_RIGHT:
+         horizontal = 1.0; vertical = 0.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_BOTTOM_LEFT:
+         horizontal = 0.0; vertical = 1.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_BOTTOM_RIGHT:
+         horizontal = 1.0; vertical = 1.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_LAST:
+        break;
+     }
+
+   elm_notify_align_set(obj, horizontal, vertical);
+}
+
 static Elm_Notify_Orient _orient_get(const char *orient)
 {
    unsigned int i;
@@ -63,7 +148,7 @@ static void external_notify_state_set(void *data __UNUSED__,
 	{
 		Elm_Notify_Orient set = _orient_get(p->orient);
 		if (set == ELM_NOTIFY_ORIENT_LAST) return;
-		elm_notify_orient_set(obj, set);
+		_elm_notify_orient_set(obj, set);
 	}
 }
 
@@ -96,7 +181,7 @@ static Eina_Bool external_notify_param_set(void *data __UNUSED__,
 	{
 		Elm_Notify_Orient set = _orient_get(param->s);
 		if (set == ELM_NOTIFY_ORIENT_LAST) return EINA_FALSE;
-		elm_notify_orient_set(obj, set);
+		_elm_notify_orient_set(obj, set);
 		return EINA_TRUE;
 	}
 
@@ -129,7 +214,7 @@ static Eina_Bool external_notify_param_get(void *data __UNUSED__,
 	else if ((!strcmp(param->name, "orient"))
 			&& (param->type == EDJE_EXTERNAL_PARAM_TYPE_CHOICE))
 	{
-		Elm_Notify_Orient set = elm_notify_orient_get(obj);
+		Elm_Notify_Orient set = _elm_notify_orient_get(obj);
 		if (set == ELM_NOTIFY_ORIENT_LAST) return EINA_FALSE;
 		param->s = orients[set];
 		return EINA_TRUE;

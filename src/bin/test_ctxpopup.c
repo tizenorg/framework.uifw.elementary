@@ -81,14 +81,14 @@ _ctxpopup_item_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *even
      {                                                                        \
         ic = elm_icon_add(obj);                                               \
         elm_icon_standard_set(ic, _icon);                                     \
-        elm_icon_resizable_set(ic, EINA_FALSE, EINA_FALSE);                   \
+        elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);                   \
      }                                                                        \
    else                                                                       \
       ic = NULL;                                                              \
    it = elm_ctxpopup_item_append(_hov, _label, ic, _ctxpopup_item_cb, NULL);  \
 
 static void
-_list_item_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_list_item_cb(void *data __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
    Evas_Object *ctxpopup, *ic;
    Elm_Object_Item *it;
@@ -117,7 +117,7 @@ _list_item_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_in
 }
 
 static void
-_list_item_cb2(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_list_item_cb2(void *data __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
    Evas_Object *ctxpopup, *ic;
    Elm_Object_Item *it;
@@ -145,7 +145,7 @@ _list_item_cb2(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_i
 }
 
 static void
-_list_item_cb3(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_list_item_cb3(void *data __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
    Evas_Object *ctxpopup, *ic;
    Elm_Object_Item *it;
@@ -172,7 +172,7 @@ _list_item_cb3(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_i
 }
 
 static void
-_list_item_cb4(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_list_item_cb4(void *data __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
    Evas_Object *ctxpopup, *ic;
    Elm_Object_Item *it;
@@ -198,11 +198,13 @@ _list_item_cb4(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_i
    evas_object_move(ctxpopup, x, y);
    evas_object_show(ctxpopup);
    _print_current_dir(ctxpopup);
+
+   (void)it;
 }
 
 
 static void
-_list_item_cb5(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_list_item_cb5(void *data __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
    Evas_Object *ctxpopup, *btn, *sc, *bx;
    Evas_Coord x,y;
@@ -237,11 +239,12 @@ _list_item_cb5(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_i
    evas_object_show(ctxpopup);
    _print_current_dir(ctxpopup);
 
-   evas_object_smart_callback_add(btn, "clicked", _btn_clicked, "list_item_5");
+   evas_object_data_set(ctxpopup, "id", "list_item_5");
+   evas_object_smart_callback_add(btn, "clicked", _btn_clicked, ctxpopup);
 }
 
 static void
-_list_item_cb6(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_list_item_cb6(void *data __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
 {
    Evas_Object *ctxpopup, *btn, *sc, *bx;
    Evas_Coord x,y;

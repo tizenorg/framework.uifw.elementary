@@ -4,8 +4,49 @@
 #include <Elementary.h>
 #ifndef ELM_LIB_QUICKLAUNCH
 
+#define POPUP_POINT_MAX 6
+
+typedef struct
+{
+   double x;
+   double y;
+} Evas_Rel_Coord_Point;
+
 static Evas_Object *g_popup = NULL;
 static int times = 0;
+static Evas_Rel_Coord_Point _popup_point[POPUP_POINT_MAX] =
+{
+   { 0.01, 0.01 },
+   { 0.2, 0.2 },
+   { 0.5, 0.5 },
+   { 0.99, 0.01 },
+   { 0.01, 0.99 },
+   { 0.99, 0.99 }
+};
+
+static void
+_popup_close_cb(void *data, Evas_Object *obj EINA_UNUSED,
+                void *event_info EINA_UNUSED)
+{
+   evas_object_del(data);
+}
+
+static void
+_popup_align_cb(void *data, Evas_Object *obj EINA_UNUSED,
+               void *event_info EINA_UNUSED)
+{
+   static int k = 0;
+   double h = -1, v = -1;
+
+   elm_popup_align_set(data, _popup_point[k].x, _popup_point[k].y);
+   elm_popup_align_get(data, &h, &v);
+
+   printf("elm_popup_align_get :: Aligned: %lf %lf\n", h, v);
+
+   k++;
+   if (k >= POPUP_POINT_MAX)
+     k = 0;
+}
 
 static void
 _response_cb(void *data, Evas_Object *obj __UNUSED__,
@@ -139,7 +180,7 @@ _popup_bottom_title_text_3button_cb(void *data, Evas_Object *obj __UNUSED__,
    icon = elm_icon_add(popup);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png",
             elm_app_data_dir_get());
-   elm_icon_file_set(icon, buf, NULL);
+   elm_image_file_set(icon, buf, NULL);
    elm_object_part_content_set(popup, "title,icon", icon);
    btn1 = elm_button_add(popup);
    elm_object_text_set(btn1, "OK");
@@ -171,7 +212,7 @@ _popup_center_title_content_3button_cb(void *data, Evas_Object *obj __UNUSED__,
    icon = elm_icon_add(btn);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png",
             elm_app_data_dir_get());
-   elm_icon_file_set(icon, buf, NULL);
+   elm_image_file_set(icon, buf, NULL);
    elm_object_content_set(btn, icon);
    elm_object_content_set(popup, btn);
    elm_object_part_text_set(popup, "title,text", "Title");
@@ -204,7 +245,7 @@ _popup_center_title_item_3button_cb(void *data, Evas_Object *obj __UNUSED__,
    elm_object_part_text_set(popup, "title,text", "Title");
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png",
             elm_app_data_dir_get());
-   elm_icon_file_set(icon1, buf, NULL);
+   elm_image_file_set(icon1, buf, NULL);
    for (i = 0; i < 10; i++)
      {
         snprintf(buf, sizeof(buf), "Item%u", i+1);
@@ -305,6 +346,51 @@ _popup_center_text_1button_hide_show_cb(void *data, Evas_Object *obj __UNUSED__,
    evas_object_show(g_popup);
 }
 
+static void
+_popup_transparent_cb(void *data, Evas_Object *obj __UNUSED__,
+                      void *event_info __UNUSED__)
+{
+   Evas_Object *popup;
+   Evas_Object *btn;
+
+   popup = elm_popup_add(data);
+   elm_object_style_set(popup, "transparent");
+   evas_object_size_hint_weight_set(popup, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_object_text_set(popup, "This Popup has transparent background");
+   btn = elm_button_add(popup);
+   elm_object_text_set(btn, "Close");
+   elm_object_part_content_set(popup, "button1", btn);
+   evas_object_smart_callback_add(btn, "clicked", _response_cb, popup);
+   evas_object_show(popup);
+}
+
+static void
+_popup_transparent_align_cb(void *data, Evas_Object *obj EINA_UNUSED,
+                           void *event_info EINA_UNUSED)
+{
+   Evas_Object *popup;
+   Evas_Object *btn, *btn1;
+
+   popup = elm_popup_add(data);
+   elm_object_style_set(popup, "transparent");
+   elm_object_text_set(popup, "This Popup has transparent background");
+
+   // popup buttons
+   btn = elm_button_add(popup);
+   elm_object_text_set(btn, "Move");
+   elm_object_part_content_set(popup, "button1", btn);
+   evas_object_smart_callback_add(btn, "clicked", _popup_align_cb, popup);
+
+   btn1 = elm_button_add(popup);
+   elm_object_text_set(btn1, "Close");
+   elm_object_part_content_set(popup, "button2", btn1);
+   evas_object_smart_callback_add(btn1, "clicked", _popup_close_cb, popup);
+
+   // popup show should be called after adding all the contents and the buttons
+   // of popup to set the focus into popup's contents correctly.
+   evas_object_show(popup);
+}
+
 void
 test_popup(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
            void *event_info __UNUSED__)
@@ -341,10 +427,14 @@ test_popup(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
                         _popup_center_title_text_2button_restack_cb, win);
    elm_list_item_append(list, "popup-center-text + 1 button (check hide, show)", NULL, NULL,
                         _popup_center_text_1button_hide_show_cb, win);
+   elm_list_item_append(list, "popup-transparent", NULL, NULL,
+                        _popup_transparent_cb, win);
+   elm_list_item_append(list, "popup-transparent-align", NULL, NULL,
+                        _popup_transparent_align_cb, win);
    elm_list_go(list);
    evas_object_show(list);
    evas_object_show(win);
-   evas_object_resize(win, 480, 800);
+   evas_object_resize(win, 480, 400);
 }
 
 #endif

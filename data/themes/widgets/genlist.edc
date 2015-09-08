@@ -17,7 +17,6 @@ group { name: "elm/genlist/item/default/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -155,6 +154,7 @@ group { name: "elm/genlist/item/default/default";
          description { state: "default" 0.0;
             fixed: 1 0;
             align: 0.0 0.5;
+            aspect: 1.0 1.0;
             rel1 {
                to_x: "elm.swallow.pad";
                relative: 1.0  0.0;
@@ -178,7 +178,6 @@ group { name: "elm/genlist/item/default/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -375,7 +374,7 @@ group { name: "elm/genlist/item/default/default";
          target:  "disclip";
       }
       program {
-         name:    "reorder_end";
+         name:    "go_reorder_disabled";
          signal:  "elm,state,reorder,disabled";
          source:  "elm";
          action:  STATE_SET "default" 0.0;
@@ -383,7 +382,7 @@ group { name: "elm/genlist/item/default/default";
          transition: DECELERATE 0.5;
       }
       program {
-         name:    "reorder_start";
+         name:    "go_reorder_enabled";
          signal:  "elm,state,reorder,enabled";
          source:  "elm";
          action:  STATE_SET "enabled" 0.0;
@@ -410,6 +409,1449 @@ group { name: "elm/genlist/item/default/default";
       }
    }
 }
+
+group { name: "elm/genlist/item/full/default";
+   alias: "elm/genlist/item_compress/full/default";
+   data.item: "selectraise" "on";
+   data.item: "contents" "elm.swallow.content";
+   images {
+      image: "bt_sm_base1.png" COMP;
+      image: "bt_sm_shine.png" COMP;
+      image: "bt_sm_hilight.png" COMP;
+      image: "ilist_1.png" COMP;
+      image: "ilist_2.png" COMP;
+      image: "ilist_item_shadow.png" COMP;
+   }
+   parts {
+      part {
+         name:           "event";
+         type:           RECT;
+         description {
+            state: "default" 0.0;
+            color: 0 0 0 0;
+         }
+      }
+      part { name: "reorder_bg";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -7 -7;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 9 9;
+            }
+            image {
+               normal: "bt_bases.png";
+               border: 6 6 6 6;
+            }
+         }
+         description { state: "enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part {
+         name: "base_sh";
+         mouse_events: 0;
+         description {
+            state: "default" 0.0;
+            align: 0.0 0.0;
+            min: 0 10;
+            fixed: 1 1;
+            rel1 {
+               to: "base";
+               relative: 0.0 1.0;
+               offset: 0 0;
+            }
+            rel2 {
+               to: "base";
+               relative: 1.0 1.0;
+               offset: -1 0;
+            }
+            image {
+               normal: "ilist_item_shadow.png";
+            }
+            fill.smooth: 0;
+         }
+         description {
+            state: "default" 1.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part {
+         name: "base";
+         mouse_events: 0;
+         description {
+            state: "default" 0.0;
+            image {
+               normal: "ilist_1.png";
+               border: 2 2 2 2;
+            }
+            fill.smooth: 0;
+         }
+         description {
+            state: "default" 1.0;
+            inherit: "default" 0.0;
+            image.normal: "ilist_2.png";
+         }
+      }
+      part { name: "bg";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -5 -5;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 4 4;
+            }
+            image {
+               normal: "bt_sm_base1.png";
+               border: 6 6 6 6;
+            }
+            image.middle: SOLID;
+         }
+         description { state: "default" 1.0;
+            inherit: "default" 0.0;
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -2 -2;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 1 1;
+            }
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "selected" 0.0;
+         }
+      }
+      part { name: "elm.swallow.pad";
+         type: SWALLOW;
+         description { state: "default" 0.0;
+            fixed: 1 0;
+            align: 0.0 0.5;
+            rel1 {
+               relative: 0.0  0.0;
+               offset:   4    4;
+            }
+            rel2 {
+               relative: 0.0  1.0;
+               offset:   4   -5;
+            }
+         }
+      }
+      part { name: "elm.swallow.content";
+         clip_to: "disclip";
+         type: SWALLOW;
+         description { state: "default" 0.0;
+            align: 0.0 0.5;
+            rel1 {
+               to_x: "elm.swallow.pad";
+               relative: 1.0  0.0;
+               offset:   -1    4;
+            }
+            rel2 {
+               relative: 1.0  1.0;
+               offset:   -5   -5;
+            }
+         }
+      }
+      part { name: "fg1";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1.to: "bg";
+            rel2.relative: 1.0 0.5;
+            rel2.to: "bg";
+            image {
+               normal: "bt_sm_hilight.png";
+               border: 6 6 6 0;
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part { name: "fg2";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1.to: "bg";
+            rel2.to: "bg";
+            image {
+               normal: "bt_sm_shine.png";
+               border: 6 6 6 0;
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part { name: "disclip";
+         type: RECT;
+         description { state: "default" 0.0;
+            rel1.to: "bg";
+            rel2.to: "bg";
+         }
+         description { state: "disabled" 0.0;
+            inherit: "default" 0.0;
+            color: 255 255 255 64;
+         }
+      }
+   }
+   programs {
+        // signal: elm,state,%s,active
+        //   a "check" item named %s went active
+        // signal: elm,state,%s,passive
+        //   a "check" item named %s went passive
+        // default is passive
+      program {
+         name:    "odd";
+         signal:  "elm,state,odd";
+         source:  "elm";
+         action:  STATE_SET "default" 1.0;
+         target:  "base_sh";
+         target:  "base";
+      }
+      program {
+         name:    "even";
+         signal:  "elm,state,even";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "base_sh";
+         target:  "base";
+      }
+      program {
+         name:    "go_active";
+         signal:  "elm,state,selected";
+         source:  "elm";
+         script {
+            new st[31];
+            new Float:vl;
+            get_state(PART:"base", st, 30, vl);
+            set_state(PART:"bg", "selected", vl);
+            set_state(PART:"fg1", "selected", vl);
+            set_state(PART:"fg2", "selected", vl);
+         }
+      }
+      program {
+         name:    "go_passive";
+         signal:  "elm,state,unselected";
+         source:  "elm";
+         script {
+            new st[31];
+            new Float:vl;
+            get_state(PART:"base", st, 30, vl);
+            set_state(PART:"bg", "default", vl);
+            set_state(PART:"fg1", "default", vl);
+            set_state(PART:"fg2", "default", vl);
+         }
+      }
+      program {
+         name:    "go_disabled";
+         signal:  "elm,state,disabled";
+         source:  "elm";
+         action:  STATE_SET "disabled" 0.0;
+         target:  "disclip";
+      }
+      program {
+         name:    "go_enabled";
+         signal:  "elm,state,enabled";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "disclip";
+      }
+      program {
+         name:    "go_reorder_disabled";
+         signal:  "elm,state,reorder,disabled";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "reorder_bg";
+         transition: DECELERATE 0.5;
+      }
+      program {
+         name:    "go_reorder_enabled";
+         signal:  "elm,state,reorder,enabled";
+         source:  "elm";
+         action:  STATE_SET "enabled" 0.0;
+         target:  "reorder_bg";
+         transition: DECELERATE 0.5;
+      }
+   }
+}
+
+group { name: "elm/genlist/item/one_icon/default";
+   data.item: "selectraise" "on";
+   data.item: "texts" "elm.text";
+   data.item: "contents" "elm.swallow.icon";
+   data.item: "treesize" "20";
+   data.item: "flips" "elm.text.flip";
+   //      data.item: "states" "";
+   images {
+      image: "bt_sm_base1.png" COMP;
+      image: "bt_sm_shine.png" COMP;
+      image: "bt_sm_hilight.png" COMP;
+      image: "ilist_1.png" COMP;
+      image: "ilist_2.png" COMP;
+      image: "ilist_item_shadow.png" COMP;
+   }
+   parts {
+      part {
+         name:           "event";
+         type:           RECT;
+         description {
+            state: "default" 0.0;
+            color: 0 0 0 0;
+         }
+      }
+      part { name: "reorder_bg";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -7 -7;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 9 9;
+            }
+            image {
+               normal: "bt_bases.png";
+               border: 6 6 6 6;
+            }
+         }
+         description { state: "enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part {
+         name: "base_sh";
+         mouse_events: 0;
+         description {
+            state: "default" 0.0;
+            align: 0.0 0.0;
+            min: 0 10;
+            fixed: 1 1;
+            rel1 {
+               to: "base";
+               relative: 0.0 1.0;
+               offset: 0 0;
+            }
+            rel2 {
+               to: "base";
+               relative: 1.0 1.0;
+               offset: -1 0;
+            }
+            image {
+               normal: "ilist_item_shadow.png";
+            }
+            fill.smooth: 0;
+         }
+         description {
+            state: "default" 1.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part {
+         name: "base";
+         mouse_events: 0;
+         description {
+            state: "default" 0.0;
+            image {
+               normal: "ilist_1.png";
+               border: 2 2 2 2;
+            }
+            fill.smooth: 0;
+         }
+         description {
+            state: "default" 1.0;
+            inherit: "default" 0.0;
+            image.normal: "ilist_2.png";
+         }
+      }
+      part { name: "bg";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -5 -5;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 4 4;
+            }
+            image {
+               normal: "bt_sm_base1.png";
+               border: 6 6 6 6;
+            }
+            image.middle: SOLID;
+         }
+         description { state: "default" 1.0;
+            inherit: "default" 0.0;
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -2 -2;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 1 1;
+            }
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "selected" 0.0;
+         }
+      }
+      part { name: "elm.swallow.pad";
+         type: SWALLOW;
+         description { state: "default" 0.0;
+            fixed: 1 0;
+            align: 0.0 0.5;
+            rel1 {
+               relative: 0.0  0.0;
+               offset:   4    4;
+            }
+            rel2 {
+               relative: 0.0  1.0;
+               offset:   4   -5;
+            }
+         }
+      }
+      part { name: "elm.swallow.icon";
+         clip_to: "disclip";
+         type: SWALLOW;
+         description { state: "default" 0.0;
+            fixed: 1 0;
+            align: 0.0 0.5;
+            aspect: 1.0 1.0;
+            rel1 {
+               to_x: "elm.swallow.pad";
+               relative: 1.0  0.0;
+               offset:   -1    4;
+            }
+            rel2 {
+               to_x: "elm.swallow.pad";
+               relative: 1.0  1.0;
+               offset:   -1   -5;
+            }
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part { name: "elm.text";
+         clip_to: "disclip";
+         type:           TEXT;
+         effect:         SOFT_SHADOW;
+         mouse_events:   0;
+         scale: 1;
+         description {
+            state: "default" 0.0;
+                   //               min: 16 16;
+            rel1 {
+               to_x:     "elm.swallow.icon";
+               relative: 1.0  0.0;
+               offset:   0 4;
+            }
+            rel2 {
+               relative: 1.0  1.0;
+               offset:   -5 -5;
+            }
+            color: 0 0 0 255;
+            color3: 0 0 0 0;
+            text {
+               font: "Sans";
+               size: 10;
+               min: 1 1;
+                    //                  min: 0 1;
+               align: -1.0 0.5;
+               text_class: "list_item";
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            color: 224 224 224 255;
+            color3: 0 0 0 64;
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part { name: "elm.text.flip";
+         clip_to: "disclip";
+         type: SWALLOW;
+         scale: 1;
+         description { state: "default" 0.0;
+            visible: 0;
+            rel1.to_y: "elm.text";
+            rel2.to_y: "elm.text";
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+         }
+      }
+      part { name: "fg1";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1.to: "bg";
+            rel2.relative: 1.0 0.5;
+            rel2.to: "bg";
+            image {
+               normal: "bt_sm_hilight.png";
+               border: 6 6 6 0;
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part { name: "fg2";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1.to: "bg";
+            rel2.to: "bg";
+            image {
+               normal: "bt_sm_shine.png";
+               border: 6 6 6 0;
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part { name: "disclip";
+         type: RECT;
+         description { state: "default" 0.0;
+            rel1.to: "bg";
+            rel2.to: "bg";
+         }
+         description { state: "disabled" 0.0;
+            inherit: "default" 0.0;
+            color: 255 255 255 64;
+         }
+      }
+   }
+   programs {
+        // signal: elm,state,%s,active
+        //   a "check" item named %s went active
+        // signal: elm,state,%s,passive
+        //   a "check" item named %s went passive
+        // default is passive
+      program {
+         name:    "odd";
+         signal:  "elm,state,odd";
+         source:  "elm";
+         action:  STATE_SET "default" 1.0;
+         target:  "base_sh";
+         target:  "base";
+      }
+      program {
+         name:    "even";
+         signal:  "elm,state,even";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "base_sh";
+         target:  "base";
+      }
+      program {
+         name:    "go_active";
+         signal:  "elm,state,selected";
+         source:  "elm";
+         script {
+            new st[31];
+            new Float:vl;
+            get_state(PART:"base", st, 30, vl);
+            set_state(PART:"bg", "selected", vl);
+            set_state(PART:"fg1", "selected", vl);
+            set_state(PART:"fg2", "selected", vl);
+            set_state(PART:"elm.text", "selected", vl);
+         }
+      }
+      program {
+         name:    "go_passive";
+         signal:  "elm,state,unselected";
+         source:  "elm";
+         script {
+            new st[31];
+            new Float:vl;
+            get_state(PART:"base", st, 30, vl);
+            set_state(PART:"bg", "default", vl);
+            set_state(PART:"fg1", "default", vl);
+            set_state(PART:"fg2", "default", vl);
+            set_state(PART:"elm.text", "default", vl);
+         }
+      }
+      program {
+         name:    "go_disabled";
+         signal:  "elm,state,disabled";
+         source:  "elm";
+         action:  STATE_SET "disabled" 0.0;
+         target:  "disclip";
+      }
+      program {
+         name:    "go_enabled";
+         signal:  "elm,state,enabled";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "disclip";
+      }
+      program {
+         name:    "go_reorder_disabled";
+         signal:  "elm,state,reorder,disabled";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "reorder_bg";
+         transition: DECELERATE 0.5;
+      }
+      program {
+         name:    "go_reorder_enabled";
+         signal:  "elm,state,reorder,enabled";
+         source:  "elm";
+         action:  STATE_SET "enabled" 0.0;
+         target:  "reorder_bg";
+         transition: DECELERATE 0.5;
+      }
+      program { name: "flip_enabled";
+         signal: "elm,state,flip,enabled";
+         source: "elm";
+         action: STATE_SET "flip_enabled" 0.0;
+         target: "elm.text";
+         target: "elm.text.flip";
+         target: "elm.swallow.icon";
+      }
+      program { name: "flip_disabled";
+         signal: "elm,state,flip,disabled";
+         source: "elm";
+         action: STATE_SET "default" 0.0;
+         target: "elm.text";
+         target: "elm.text.flip";
+         target: "elm.swallow.icon";
+      }
+   }
+}
+
+group { name: "elm/genlist/item/end_icon/default";
+   data.item: "selectraise" "on";
+   data.item: "texts" "elm.text";
+   data.item: "contents" "elm.swallow.icon";
+   data.item: "treesize" "20";
+   data.item: "flips" "elm.text.flip";
+   //      data.item: "states" "";
+   images {
+      image: "bt_sm_base1.png" COMP;
+      image: "bt_sm_shine.png" COMP;
+      image: "bt_sm_hilight.png" COMP;
+      image: "ilist_1.png" COMP;
+      image: "ilist_2.png" COMP;
+      image: "ilist_item_shadow.png" COMP;
+   }
+   parts {
+      part {
+         name:           "event";
+         type:           RECT;
+         description {
+            state: "default" 0.0;
+            color: 0 0 0 0;
+         }
+      }
+      part { name: "reorder_bg";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -7 -7;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 9 9;
+            }
+            image {
+               normal: "bt_bases.png";
+               border: 6 6 6 6;
+            }
+         }
+         description { state: "enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part {
+         name: "base_sh";
+         mouse_events: 0;
+         description {
+            state: "default" 0.0;
+            align: 0.0 0.0;
+            min: 0 10;
+            fixed: 1 1;
+            rel1 {
+               to: "base";
+               relative: 0.0 1.0;
+               offset: 0 0;
+            }
+            rel2 {
+               to: "base";
+               relative: 1.0 1.0;
+               offset: -1 0;
+            }
+            image {
+               normal: "ilist_item_shadow.png";
+            }
+            fill.smooth: 0;
+         }
+         description {
+            state: "default" 1.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part {
+         name: "base";
+         mouse_events: 0;
+         description {
+            state: "default" 0.0;
+            image {
+               normal: "ilist_1.png";
+               border: 2 2 2 2;
+            }
+            fill.smooth: 0;
+         }
+         description {
+            state: "default" 1.0;
+            inherit: "default" 0.0;
+            image.normal: "ilist_2.png";
+         }
+      }
+      part { name: "bg";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -5 -5;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 4 4;
+            }
+            image {
+               normal: "bt_sm_base1.png";
+               border: 6 6 6 6;
+            }
+            image.middle: SOLID;
+         }
+         description { state: "default" 1.0;
+            inherit: "default" 0.0;
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -2 -2;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 1 1;
+            }
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "selected" 0.0;
+         }
+      }
+      part { name: "elm.swallow.pad";
+         type: SWALLOW;
+         description { state: "default" 0.0;
+            fixed: 1 0;
+            align: 0.0 0.5;
+            rel1 {
+               relative: 0.0  0.0;
+               offset:   4    4;
+            }
+            rel2 {
+               relative: 0.0  1.0;
+               offset:   4   -5;
+            }
+         }
+      }
+      part { name: "elm.swallow.icon";
+         clip_to: "disclip";
+         type: SWALLOW;
+         description { state: "default" 0.0;
+            fixed: 1 0;
+            align: 1.0 0.5;
+            aspect: 1.0 1.0;
+            rel1 {
+               relative: 1.0  0.0;
+               offset:   -5    4;
+            }
+            rel2 {
+               relative: 1.0  1.0;
+               offset:   -5   -5;
+            }
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part { name: "elm.text";
+         clip_to: "disclip";
+         type:           TEXT;
+         effect:         SOFT_SHADOW;
+         mouse_events:   0;
+         scale: 1;
+         description {
+            state: "default" 0.0;
+                   //               min: 16 16;
+            rel1 {
+               relative: 0.0  0.0;
+               offset:   4 4;
+            }
+            rel2 {
+               to_x:     "elm.swallow.icon";
+               relative: 0.0  1.0;
+               offset:   -1 -5;
+            }
+            color: 0 0 0 255;
+            color3: 0 0 0 0;
+            text {
+               font: "Sans";
+               size: 10;
+               min: 1 1;
+                    //                  min: 0 1;
+               align: -1.0 0.5;
+               text_class: "list_item";
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            color: 224 224 224 255;
+            color3: 0 0 0 64;
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part { name: "elm.text.flip";
+         clip_to: "disclip";
+         type: SWALLOW;
+         scale: 1;
+         description { state: "default" 0.0;
+            visible: 0;
+            rel1.to_y: "elm.text";
+            rel2.to_y: "elm.text";
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+         }
+      }
+      part { name: "fg1";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1.to: "bg";
+            rel2.relative: 1.0 0.5;
+            rel2.to: "bg";
+            image {
+               normal: "bt_sm_hilight.png";
+               border: 6 6 6 0;
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part { name: "fg2";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1.to: "bg";
+            rel2.to: "bg";
+            image {
+               normal: "bt_sm_shine.png";
+               border: 6 6 6 0;
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part { name: "disclip";
+         type: RECT;
+         description { state: "default" 0.0;
+            rel1.to: "bg";
+            rel2.to: "bg";
+         }
+         description { state: "disabled" 0.0;
+            inherit: "default" 0.0;
+            color: 255 255 255 64;
+         }
+      }
+   }
+   programs {
+        // signal: elm,state,%s,active
+        //   a "check" item named %s went active
+        // signal: elm,state,%s,passive
+        //   a "check" item named %s went passive
+        // default is passive
+      program {
+         name:    "odd";
+         signal:  "elm,state,odd";
+         source:  "elm";
+         action:  STATE_SET "default" 1.0;
+         target:  "base_sh";
+         target:  "base";
+      }
+      program {
+         name:    "even";
+         signal:  "elm,state,even";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "base_sh";
+         target:  "base";
+      }
+      program {
+         name:    "go_active";
+         signal:  "elm,state,selected";
+         source:  "elm";
+         script {
+            new st[31];
+            new Float:vl;
+            get_state(PART:"base", st, 30, vl);
+            set_state(PART:"bg", "selected", vl);
+            set_state(PART:"fg1", "selected", vl);
+            set_state(PART:"fg2", "selected", vl);
+            set_state(PART:"elm.text", "selected", vl);
+         }
+      }
+      program {
+         name:    "go_passive";
+         signal:  "elm,state,unselected";
+         source:  "elm";
+         script {
+            new st[31];
+            new Float:vl;
+            get_state(PART:"base", st, 30, vl);
+            set_state(PART:"bg", "default", vl);
+            set_state(PART:"fg1", "default", vl);
+            set_state(PART:"fg2", "default", vl);
+            set_state(PART:"elm.text", "default", vl);
+         }
+      }
+      program {
+         name:    "go_disabled";
+         signal:  "elm,state,disabled";
+         source:  "elm";
+         action:  STATE_SET "disabled" 0.0;
+         target:  "disclip";
+      }
+      program {
+         name:    "go_enabled";
+         signal:  "elm,state,enabled";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "disclip";
+      }
+      program {
+         name:    "go_reorder_disabled";
+         signal:  "elm,state,reorder,disabled";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "reorder_bg";
+         transition: DECELERATE 0.5;
+      }
+      program {
+         name:    "go_reorder_enabled";
+         signal:  "elm,state,reorder,enabled";
+         source:  "elm";
+         action:  STATE_SET "enabled" 0.0;
+         target:  "reorder_bg";
+         transition: DECELERATE 0.5;
+      }
+      program { name: "flip_enabled";
+         signal: "elm,state,flip,enabled";
+         source: "elm";
+         action: STATE_SET "flip_enabled" 0.0;
+         target: "elm.text";
+         target: "elm.text.flip";
+         target: "elm.swallow.icon";
+      }
+      program { name: "flip_disabled";
+         signal: "elm,state,flip,disabled";
+         source: "elm";
+         action: STATE_SET "default" 0.0;
+         target: "elm.text";
+         target: "elm.text.flip";
+         target: "elm.swallow.icon";
+      }
+   }
+}
+
+group { name: "elm/genlist/item/no_icon/default";
+   data.item: "selectraise" "on";
+   data.item: "texts" "elm.text";
+   data.item: "treesize" "20";
+   data.item: "flips" "elm.text.flip";
+   //      data.item: "states" "";
+   images {
+      image: "bt_sm_base1.png" COMP;
+      image: "bt_sm_shine.png" COMP;
+      image: "bt_sm_hilight.png" COMP;
+      image: "ilist_1.png" COMP;
+      image: "ilist_2.png" COMP;
+      image: "ilist_item_shadow.png" COMP;
+   }
+   parts {
+      part {
+         name:           "event";
+         type:           RECT;
+         description {
+            state: "default" 0.0;
+            color: 0 0 0 0;
+         }
+      }
+      part { name: "reorder_bg";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -7 -7;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 9 9;
+            }
+            image {
+               normal: "bt_bases.png";
+               border: 6 6 6 6;
+            }
+         }
+         description { state: "enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part {
+         name: "base_sh";
+         mouse_events: 0;
+         description {
+            state: "default" 0.0;
+            align: 0.0 0.0;
+            min: 0 10;
+            fixed: 1 1;
+            rel1 {
+               to: "base";
+               relative: 0.0 1.0;
+               offset: 0 0;
+            }
+            rel2 {
+               to: "base";
+               relative: 1.0 1.0;
+               offset: -1 0;
+            }
+            image {
+               normal: "ilist_item_shadow.png";
+            }
+            fill.smooth: 0;
+         }
+         description {
+            state: "default" 1.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part {
+         name: "base";
+         mouse_events: 0;
+         description {
+            state: "default" 0.0;
+            image {
+               normal: "ilist_1.png";
+               border: 2 2 2 2;
+            }
+            fill.smooth: 0;
+         }
+         description {
+            state: "default" 1.0;
+            inherit: "default" 0.0;
+            image.normal: "ilist_2.png";
+         }
+      }
+      part { name: "bg";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -5 -5;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 4 4;
+            }
+            image {
+               normal: "bt_sm_base1.png";
+               border: 6 6 6 6;
+            }
+            image.middle: SOLID;
+         }
+         description { state: "default" 1.0;
+            inherit: "default" 0.0;
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -2 -2;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 1 1;
+            }
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "selected" 0.0;
+         }
+      }
+      part { name: "elm.swallow.pad";
+         type: SWALLOW;
+         description { state: "default" 0.0;
+            fixed: 1 0;
+            align: 0.0 0.5;
+            rel1 {
+               relative: 0.0  0.0;
+               offset:   4    4;
+            }
+            rel2 {
+               relative: 0.0  1.0;
+               offset:   4   -5;
+            }
+         }
+      }
+      part { name: "elm.text";
+         clip_to: "disclip";
+         type:           TEXT;
+         effect:         SOFT_SHADOW;
+         mouse_events:   0;
+         scale: 1;
+         description {
+            state: "default" 0.0;
+                   //               min: 16 16;
+            rel1 {
+               relative: 0.0  0.0;
+               offset:   4 4;
+            }
+            rel2 {
+               relative: 1.0  1.0;
+               offset:   -5 -5;
+            }
+            color: 0 0 0 255;
+            color3: 0 0 0 0;
+            text {
+               font: "Sans";
+               size: 10;
+               min: 1 1;
+                    //                  min: 0 1;
+               align: -1.0 0.5;
+               text_class: "list_item";
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            color: 224 224 224 255;
+            color3: 0 0 0 64;
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part { name: "elm.text.flip";
+         clip_to: "disclip";
+         type: SWALLOW;
+         scale: 1;
+         description { state: "default" 0.0;
+            visible: 0;
+            rel1.to_y: "elm.text";
+            rel2.to_y: "elm.text";
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+         }
+      }
+      part { name: "fg1";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1.to: "bg";
+            rel2.relative: 1.0 0.5;
+            rel2.to: "bg";
+            image {
+               normal: "bt_sm_hilight.png";
+               border: 6 6 6 0;
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part { name: "fg2";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1.to: "bg";
+            rel2.to: "bg";
+            image {
+               normal: "bt_sm_shine.png";
+               border: 6 6 6 0;
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part { name: "disclip";
+         type: RECT;
+         description { state: "default" 0.0;
+            rel1.to: "bg";
+            rel2.to: "bg";
+         }
+         description { state: "disabled" 0.0;
+            inherit: "default" 0.0;
+            color: 255 255 255 64;
+         }
+      }
+   }
+   programs {
+        // signal: elm,state,%s,active
+        //   a "check" item named %s went active
+        // signal: elm,state,%s,passive
+        //   a "check" item named %s went passive
+        // default is passive
+      program {
+         name:    "odd";
+         signal:  "elm,state,odd";
+         source:  "elm";
+         action:  STATE_SET "default" 1.0;
+         target:  "base_sh";
+         target:  "base";
+      }
+      program {
+         name:    "even";
+         signal:  "elm,state,even";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "base_sh";
+         target:  "base";
+      }
+      program {
+         name:    "go_active";
+         signal:  "elm,state,selected";
+         source:  "elm";
+         script {
+            new st[31];
+            new Float:vl;
+            get_state(PART:"base", st, 30, vl);
+            set_state(PART:"bg", "selected", vl);
+            set_state(PART:"fg1", "selected", vl);
+            set_state(PART:"fg2", "selected", vl);
+            set_state(PART:"elm.text", "selected", vl);
+         }
+      }
+      program {
+         name:    "go_passive";
+         signal:  "elm,state,unselected";
+         source:  "elm";
+         script {
+            new st[31];
+            new Float:vl;
+            get_state(PART:"base", st, 30, vl);
+            set_state(PART:"bg", "default", vl);
+            set_state(PART:"fg1", "default", vl);
+            set_state(PART:"fg2", "default", vl);
+            set_state(PART:"elm.text", "default", vl);
+         }
+      }
+      program {
+         name:    "go_disabled";
+         signal:  "elm,state,disabled";
+         source:  "elm";
+         action:  STATE_SET "disabled" 0.0;
+         target:  "disclip";
+      }
+      program {
+         name:    "go_enabled";
+         signal:  "elm,state,enabled";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "disclip";
+      }
+      program {
+         name:    "go_reorder_disabled";
+         signal:  "elm,state,reorder,disabled";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "reorder_bg";
+         transition: DECELERATE 0.5;
+      }
+      program {
+         name:    "go_reorder_enabled";
+         signal:  "elm,state,reorder,enabled";
+         source:  "elm";
+         action:  STATE_SET "enabled" 0.0;
+         target:  "reorder_bg";
+         transition: DECELERATE 0.5;
+      }
+      program { name: "flip_enabled";
+         signal: "elm,state,flip,enabled";
+         source: "elm";
+         action: STATE_SET "flip_enabled" 0.0;
+         target: "elm.text";
+         target: "elm.text.flip";
+      }
+      program { name: "flip_disabled";
+         signal: "elm,state,flip,disabled";
+         source: "elm";
+         action: STATE_SET "default" 0.0;
+         target: "elm.text";
+         target: "elm.text.flip";
+      }
+   }
+}
+
 group { name: "elm/genlist/item/group_index/default";
    alias: "elm/genlist/item_compress/group_index/default";
    data.item: "selectraise" "on";
@@ -428,7 +1870,6 @@ group { name: "elm/genlist/item/group_index/default";
       part {
          name: "event";
          type: RECT;
-         repeat_events: 0;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -544,7 +1985,6 @@ group { name: "elm/genlist/item/group_index/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0 0.0;
                offset: -5 4;
@@ -717,7 +2157,6 @@ group { name: "elm/genlist/item_compress/message/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -1031,9 +2470,67 @@ group { name: "elm/genlist/item_compress/default/default";
    parts {
       part { name: "elm.text";
          description { state: "default" 0.0;
-            text {
-               min: 0 1;
-            }
+            text.min: 0 1;
+         }
+         description { state: "selected" 0.0;
+            text.min: 0 1;
+         }
+         description { state: "flip_enabled" 0.0;
+            text.min: 0 1;
+         }
+      }
+   }
+}
+
+group { name: "elm/genlist/item_compress/one_icon/default";
+   inherit: "elm/genlist/item/one_icon/default";
+   data.item: "texts" "elm.text";
+   parts {
+      part { name: "elm.text";
+         description { state: "default" 0.0;
+            text.min: 0 1;
+         }
+         description { state: "selected" 0.0;
+            text.min: 0 1;
+         }
+         description { state: "flip_enabled" 0.0;
+            text.min: 0 1;
+         }
+      }
+   }
+}
+
+group { name: "elm/genlist/item_compress/end_icon/default";
+   inherit: "elm/genlist/item/end_icon/default";
+   data.item: "texts" "elm.text";
+   parts {
+      part { name: "elm.text";
+         description { state: "default" 0.0;
+            text.min: 0 1;
+         }
+         description { state: "selected" 0.0;
+            text.min: 0 1;
+         }
+         description { state: "flip_enabled" 0.0;
+            text.min: 0 1;
+         }
+      }
+   }
+}
+
+group { name: "elm/genlist/item_compress/no_icon/default";
+   inherit: "elm/genlist/item/no_icon/default";
+   data.item: "texts" "elm.text";
+   parts {
+      part { name: "elm.text";
+         description { state: "default" 0.0;
+            text.min: 0 1;
+         }
+         description { state: "selected" 0.0;
+            text.min: 0 1;
+         }
+         description { state: "flip_enabled" 0.0;
+            text.min: 0 1;
          }
       }
    }
@@ -1060,7 +2557,6 @@ group { name: "elm/genlist/tree/default/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -1242,7 +2738,6 @@ group { name: "elm/genlist/tree/default/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -1398,7 +2893,7 @@ group { name: "elm/genlist/tree/default/default";
          target:  "disclip";
       }
       program {
-         name:    "reorder_end";
+         name:    "go_reorder_disabled";
          signal:  "elm,state,reorder,disabled";
          source:  "elm";
          action:  STATE_SET "default" 0.0;
@@ -1406,7 +2901,7 @@ group { name: "elm/genlist/tree/default/default";
          transition: DECELERATE 0.5;
       }
       program {
-         name:    "reorder_start";
+         name:    "go_reorder_enabled";
          signal:  "elm,state,reorder,enabled";
          source:  "elm";
          action:  STATE_SET "enabled" 0.0;
@@ -1488,7 +2983,6 @@ group { name: "elm/genlist/tree_compress/default/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -1646,7 +3140,6 @@ group { name: "elm/genlist/tree_compress/default/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -1891,7 +3384,6 @@ group { name: "elm/genlist/item/default_style/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -2008,7 +3500,6 @@ group { name: "elm/genlist/item/default_style/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -2161,7 +3652,6 @@ group { name: "elm/genlist/item_odd/default_style/default";
    parts {
       part { name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -2254,7 +3744,6 @@ group { name: "elm/genlist/item_odd/default_style/default";
             fixed: 1 0;
             align:    1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -2412,7 +3901,6 @@ group { name: "elm/genlist/tree/default_style/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -2553,7 +4041,6 @@ group { name: "elm/genlist/tree/default_style/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -2730,7 +4217,6 @@ group { name: "elm/genlist/tree_odd/default_style/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -2847,7 +4333,6 @@ group { name: "elm/genlist/tree_odd/default_style/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -3026,7 +4511,6 @@ group { name: "elm/genlist/item/double_label/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -3123,6 +4607,7 @@ group { name: "elm/genlist/item/double_label/default";
          description { state: "default" 0.0;
             fixed: 1 0;
             align: 0.0 0.5;
+            aspect: 1.0 1.0;
             rel1 {
                to_x: "elm.swallow.pad";
                relative: 1.0  0.0;
@@ -3142,7 +4627,6 @@ group { name: "elm/genlist/item/double_label/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -3338,7 +4822,6 @@ group { name: "elm/genlist/item_compress/double_label/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -3454,7 +4937,6 @@ group { name: "elm/genlist/item_compress/double_label/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -3648,7 +5130,6 @@ group { name: "elm/genlist/item_odd/double_label/default";
    parts {
       part { name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -3740,7 +5221,6 @@ group { name: "elm/genlist/item_odd/double_label/default";
             fixed: 1 0;
             align:    1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -3934,7 +5414,6 @@ group { name: "elm/genlist/item_compress_odd/double_label/default";
    parts {
       part { name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -4007,6 +5486,7 @@ group { name: "elm/genlist/item_compress_odd/double_label/default";
          description { state: "default" 0.0;
             fixed: 1 0;
             align: 0.0 0.5;
+            aspect: 1.0 1.0;
             rel1 {
                to_x: "elm.swallow.pad";
                relative: 1.0  0.0;
@@ -4026,7 +5506,6 @@ group { name: "elm/genlist/item_compress_odd/double_label/default";
             fixed: 1 0;
             align:    1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -4225,7 +5704,6 @@ group { name: "elm/genlist/tree/double_label/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -4346,6 +5824,7 @@ group { name: "elm/genlist/tree/double_label/default";
          description { state: "default" 0.0;
             fixed: 1 0;
             align: 0.0 0.5;
+            aspect: 1.0 1.0;
             rel1 {
                to_x: "arrow";
                relative: 1.0  0.0;
@@ -4365,7 +5844,6 @@ group { name: "elm/genlist/tree/double_label/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -4583,7 +6061,6 @@ group { name: "elm/genlist/tree_compress/double_label/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -4723,7 +6200,6 @@ group { name: "elm/genlist/tree_compress/double_label/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -4940,7 +6416,6 @@ group { name: "elm/genlist/tree_odd/double_label/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -5037,6 +6512,7 @@ group { name: "elm/genlist/tree_odd/double_label/default";
          description { state: "default" 0.0;
             fixed: 1 0;
             align: 0.0 0.5;
+            aspect: 1.0 1.0;
             rel1 {
                to_x: "arrow";
                relative: 1.0  0.0;
@@ -5056,7 +6532,6 @@ group { name: "elm/genlist/tree_odd/double_label/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -5273,7 +6748,6 @@ group { name: "elm/genlist/item/icon_top_text_bottom/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -5527,7 +7001,6 @@ group { name: "elm/genlist/item_odd/icon_top_text_bottom/default";
    parts {
       part { name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -5762,7 +7235,6 @@ group { name: "elm/genlist/tree/icon_top_text_bottom/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -6062,7 +7534,6 @@ group { name: "elm/genlist/tree_odd/icon_top_text_bottom/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -6341,7 +7812,6 @@ group { name: "elm/genlist/tree_compress_odd/double_label/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -6438,6 +7908,7 @@ group { name: "elm/genlist/tree_compress_odd/double_label/default";
          description { state: "default" 0.0;
             fixed: 1 0;
             align: 0.0 0.5;
+            aspect: 1.0 1.0;
             rel1 {
                to_x: "arrow";
                relative: 1.0  0.0;
@@ -6457,7 +7928,6 @@ group { name: "elm/genlist/tree_compress_odd/double_label/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -6672,7 +8142,6 @@ group { name: "elm/genlist/item_compress/media/default";
       part {
          name:           "event";
          type:           RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -6934,7 +8403,6 @@ group { name: "elm/genlist/item_compress_odd/media/default";
    parts {
       part { name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -7179,7 +8647,6 @@ group { name: "elm/genlist/item_compress/media-album/default";
       part {
          name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -7555,7 +9022,6 @@ group { name: "elm/genlist/item_compress_odd/media-album/default";
    parts {
       part { name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -7907,7 +9373,6 @@ group { name: "elm/genlist/item_compress/media-preview/default";
       part {
          name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -8192,7 +9657,6 @@ group { name: "elm/genlist/item_compress_odd/media-preview/default";
    parts {
       part { name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -8458,7 +9922,6 @@ group { name: "elm/genlist/item/mode/default";
       part {
          name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -8855,7 +10318,6 @@ group { name: "elm/genlist/item_odd/mode/default";
       part {
          name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -9158,6 +10620,7 @@ group { name: "elm/genlist/item_odd/mode/default";
    }
 }
 group { name: "elm/genlist/item/edit/default";
+   alias: "elm/genlist/tree/edit/default";
    data.item: "contents" "elm.edit.icon.1 elm.edit.icon.2";
    data.item: "stacking" "above";
    data.item: "selectraise" "on";
@@ -9174,7 +10637,6 @@ group { name: "elm/genlist/item/edit/default";
       part {
          name: "event";
          type: RECT;
-         repeat_events: 1;
          description {
             state: "default" 0.0;
             color: 0 0 0 0;
@@ -9417,7 +10879,6 @@ group { name: "elm/genlist/item/edit/default";
             fixed: 1 0;
             align: 0.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 0.0 0.0;
                to_x: "elm.padding.right";
@@ -9610,6 +11071,102 @@ group { name: "elm/genlist/tree/tree_effect/default";
    data.item: "texts" "elm.text";
    data.item: "contents" "elm.swallow.icon elm.swallow.end";
    data.item: "treesize" "20";
+   broadcast_signal: 1;
+   parts {
+     alias: "elm.swallow.pad" "group:elm.swallow.pad";
+     alias: "elm.swallow.icon" "group:elm.swallow.icon";
+     alias: "elm.swallow.end" "group:elm.swallow.end";
+     alias: "elm.text" "group:elm.text";
+     part { name: "point";
+        type: RECT;
+        scale: 1;
+        description {
+           state: "default" 0.0;
+           color: 0 0 0 0;
+           rel1 { relative: 0.0 0.0; }
+           rel2 { relative: 1.0 0.0; }
+        }
+     }
+     part {
+        name:           "event";
+        type:           RECT;
+        description {
+           state: "default" 0.0;
+           color: 0 0 0 0;
+        }
+     }
+     part { name: "group";
+       type: GROUP;
+       source: "elm/genlist/tree/effect_parts/default";
+       description {
+         min: 16 28;
+         state: "default" 0.0;
+       }
+       GENLIST_PART_MAP_START(-90.0, 0, 0)
+       GENLIST_PART_MAP_FINISH(0, 0, 0)
+     }
+   }
+   programs {
+      program {
+         name: "rotaion_transition";
+         signal: "flip_item";
+         action: STATE_SET "map_transition" 0.0;
+         after: "rotation";
+         target: "group";
+      }
+      program {
+         name: "rotation";
+         action: STATE_SET "map_rotate" 0.0;
+         transition: LINEAR 0.2;
+         after: "rotation_end";
+         target: "group";
+      }
+      program {
+         name: "rotation_end";
+         action: STATE_SET "default" 0.0;
+         target: "group";
+      }
+      program {
+         name: "rotation_transition2";
+         signal: "elm,state,contract_flip";
+         action: STATE_SET "map_rotate" 0.0;
+         after: "rotation2";
+         target: "group";
+      }
+      program {
+         name: "rotation2";
+         action: STATE_SET "map_transition" 0.0;
+         transition: LINEAR 0.5;
+         after: "rotation3";
+         target: "group";
+      }
+      program {
+         name: "rotation3";
+         action: STATE_SET "hide" 0.0;
+         target: "group";
+      }
+      program {
+         name: "show";
+         signal: "elm,state,show";
+         action: STATE_SET "default" 0.0;
+         target: "group";
+      }
+      program {
+         name: "hide";
+         signal: "elm,state,hide";
+         action: STATE_SET "hide" 0.0;
+         target: "group";
+      }
+      program {
+         name: "expand";
+         signal: "mouse,up,1";
+         source: "group:arrow";
+         action:  SIGNAL_EMIT "elm,action,expand,toggle" "elm";
+      }
+   }
+}
+
+group { name: "elm/genlist/tree/effect_parts/default";
    images {
       image: "bt_sm_base1.png" COMP;
       image: "bt_sm_shine.png" COMP;
@@ -9622,25 +11179,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
       image: "icon_arrow_down.png" COMP;
    }
    parts {
-      part { name: "point";
-         type: RECT;
-         scale: 1;
-         description {
-            state: "default" 0.0;
-            color: 0 0 0 0;
-            rel1 { relative: 0.0 0.0; }
-            rel2 { relative: 1.0 0.0; }
-         }
-      }
-      part {
-         name:           "event";
-         type:           RECT;
-         repeat_events: 1;
-         description {
-            state: "default" 0.0;
-            color: 0 0 0 0;
-         }
-      }
       part { name: "reorder_bg";
          mouse_events: 0;
          description { state: "default" 0.0;
@@ -9693,8 +11231,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
             inherit: "default" 0.0;
             visible: 0;
          }
-         GENLIST_PART_MAP_START(-90.0, 0.0, 0.0)
-         GENLIST_PART_MAP_FINISH(0.0, 0.0, 0.0)
       }
       part {
          name: "base";
@@ -9712,8 +11248,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
             inherit: "default" 0.0;
             image.normal: "ilist_2.png";
          }
-         GENLIST_PART_MAP_START(-90.0, 0.0, 0.0)
-         GENLIST_PART_MAP_FINISH(0.0, 0.0, 0.0)
       }
       part { name: "bg";
          clip_to: "disclip";
@@ -9748,8 +11282,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
                offset: 1 1;
             }
          }
-         GENLIST_PART_MAP_START(-90.0, 0.0, 0.0)
-         GENLIST_PART_MAP_FINISH(0.0, 0.0, 0.0)
       }
       part { name: "elm.swallow.pad";
          type: SWALLOW;
@@ -9765,8 +11297,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
                offset:   4   -5;
             }
          }
-         GENLIST_PART_MAP_START(-90.0, 0.0, 0.0)
-         GENLIST_PART_MAP_FINISH(0.0, 0.0, 0.0)
       }
       part { name: "arrow";
          clip_to: "disclip";
@@ -9799,8 +11329,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
             inherit: "default" 0.0;
             image.normal: "icon_arrow_down.png";
          }
-         GENLIST_PART_MAP_START(-90.0, 0.0, 0.0)
-         GENLIST_PART_MAP_FINISH(0.0, 0.0, 0.0)
       }
       part { name: "elm.swallow.icon";
          clip_to: "disclip";
@@ -9819,8 +11347,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
                offset:   4   -5;
             }
          }
-         GENLIST_PART_MAP_START(-90.0, 0.0, 0.0)
-         GENLIST_PART_MAP_FINISH(0.0, 0.0, 0.0)
       }
       part { name: "elm.swallow.end";
          clip_to: "disclip";
@@ -9829,7 +11355,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
             fixed: 1 0;
             align: 1.0 0.5;
             aspect: 1.0 1.0;
-            aspect_preference: VERTICAL;
             rel1 {
                relative: 1.0  0.0;
                offset:   -5    4;
@@ -9839,8 +11364,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
                offset:   -5   -5;
             }
          }
-         GENLIST_PART_MAP_START(-90.0, 0.0, 0.0)
-         GENLIST_PART_MAP_FINISH(0.0, 0.0, 0.0)
       }
       part { name: "elm.text";
          clip_to: "disclip";
@@ -9875,8 +11398,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
             color: 224 224 224 255;
             color3: 0 0 0 64;
          }
-         GENLIST_PART_MAP_START(-90.0, 0.0, 0.0)
-         GENLIST_PART_MAP_FINISH(0.0, 0.0, 0.0)
       }
       part { name: "fg1";
          clip_to: "disclip";
@@ -9897,8 +11418,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
             visible: 1;
             color: 255 255 255 255;
          }
-         GENLIST_PART_MAP_START(-90.0, 0.0, 0.0)
-         GENLIST_PART_MAP_FINISH(0.0, 0.0, 0.0)
       }
       part { name: "fg2";
          clip_to: "disclip";
@@ -9918,8 +11437,6 @@ group { name: "elm/genlist/tree/tree_effect/default";
             visible: 1;
             color: 255 255 255 255;
          }
-         GENLIST_PART_MAP_START(-90.0, 0.0, 0.0)
-         GENLIST_PART_MAP_FINISH(0.0, 0.0, 0.0)
       }
       part { name: "disclip";
          type: RECT;
@@ -9991,7 +11508,7 @@ group { name: "elm/genlist/tree/tree_effect/default";
          target:  "disclip";
       }
       program {
-         name:    "reorder_end";
+         name:    "go_reorder_disabled";
          signal:  "elm,state,reorder,disabled";
          source:  "elm";
          action:  STATE_SET "default" 0.0;
@@ -9999,18 +11516,12 @@ group { name: "elm/genlist/tree/tree_effect/default";
          transition: DECELERATE 0.5;
       }
       program {
-         name:    "reorder_start";
+         name:    "go_reorder_enabled";
          signal:  "elm,state,reorder,enabled";
          source:  "elm";
          action:  STATE_SET "enabled" 0.0;
          target:  "reorder_bg";
          transition: DECELERATE 0.5;
-      }
-      program {
-         name:    "expand";
-         signal:  "mouse,up,1";
-         source:  "arrow";
-         action:  SIGNAL_EMIT "elm,action,expand,toggle" "elm";
       }
       program {
          name:    "go_expanded";
@@ -10058,135 +11569,506 @@ group { name: "elm/genlist/tree/tree_effect/default";
             }
          }
       }
+   }
+}
+
+group { name: "elm/genlist/item/tree_effect/default";
+   data.item: "selectraise" "on";
+   data.item: "texts" "elm.text";
+   data.item: "contents" "elm.swallow.icon elm.swallow.end";
+   data.item: "treesize" "20";
+   data.item: "flips" "elm.text.flip";
+   broadcast_signal: 1;
+   parts {
+      alias: "elm.swallow.pad" "group:elm.swallow.pad";
+      alias: "elm.swallow.icon" "group:elm.swallow.icon";
+      alias: "elm.swallow.end" "group:elm.swallow.end";
+      alias: "elm.text" "group:elm.text";
+      part { name: "point";
+         type: RECT;
+         scale: 1;
+         description {
+            state: "default" 0.0;
+            color: 0 0 0 0;
+            rel1 { relative: 0.0 0.0; }
+            rel2 { relative: 1.0 0.0; }
+         }
+      }
+      part {
+         name: "event";
+         type: RECT;
+         description {
+            state: "default" 0.0;
+            color: 0 0 0 0;
+         }
+      }
+      part { name: "group";
+         type: GROUP;
+         source: "elm/genlist/item/effect_parts/default";
+         description {
+            min: 16 28;
+            state: "default" 0.0;
+         }
+         GENLIST_PART_MAP_START(-90.0, 0, 0)
+         GENLIST_PART_MAP_FINISH(0, 0, 0)
+      }
+   }
+   programs {
       program {
          name: "rotaion_transition";
          signal: "flip_item";
          action: STATE_SET "map_transition" 0.0;
          after: "rotation";
-         target: "reorder_bg";
-         target: "base_sh";
-         target: "base";
-         target: "bg";
-         target: "arrow";
-         target: "elm.swallow.pad";
-         target: "elm.swallow.icon";
-         target: "elm.swallow.end";
-         target: "elm.text";
-         target: "fg1";
-         target: "fg2";
+         target: "group";
       }
       program {
          name: "rotation";
          action: STATE_SET "map_rotate" 0.0;
          transition: LINEAR 0.2;
          after: "rotation_end";
-         target: "reorder_bg";
-         target: "base_sh";
-         target: "base";
-         target: "bg";
-         target: "arrow";
-         target: "elm.swallow.pad";
-         target: "elm.swallow.icon";
-         target: "elm.swallow.end";
-         target: "elm.text";
-         target: "fg1";
-         target: "fg2";
+         target: "group";
       }
       program {
          name: "rotation_end";
          action: STATE_SET "default" 0.0;
-         target: "reorder_bg";
-         target: "base_sh";
-         target: "base";
-         target: "bg";
-         target: "arrow";
-         target: "elm.swallow.pad";
-         target: "elm.swallow.icon";
-         target: "elm.swallow.end";
-         target: "elm.text";
-         target: "fg1";
-         target: "fg2";
+         target: "group";
       }
       program {
          name: "rotation_transition2";
          signal: "elm,state,contract_flip";
          action: STATE_SET "map_rotate" 0.0;
          after: "rotation2";
-         target: "reorder_bg";
-         target: "base_sh";
-         target: "base";
-         target: "bg";
-         target: "arrow";
-         target: "elm.swallow.pad";
-         target: "elm.swallow.icon";
-         target: "elm.swallow.end";
-         target: "elm.text";
-         target: "fg1";
-         target: "fg2";
+         target: "group";
       }
       program {
          name: "rotation2";
          action: STATE_SET "map_transition" 0.0;
          transition: LINEAR 0.5;
          after: "rotation3";
-         target: "reorder_bg";
-         target: "base_sh";
-         target: "base";
-         target: "bg";
-         target: "arrow";
-         target: "elm.swallow.pad";
-         target: "elm.swallow.icon";
-         target: "elm.swallow.end";
-         target: "elm.text";
-         target: "fg1";
-         target: "fg2";
+         target: "group";
       }
       program {
          name: "rotation3";
          action: STATE_SET "hide" 0.0;
-         target: "reorder_bg";
-         target: "base_sh";
-         target: "base";
-         target: "bg";
-         target: "arrow";
-         target: "elm.swallow.pad";
-         target: "elm.swallow.icon";
-         target: "elm.swallow.end";
-         target: "elm.text";
-         target: "fg1";
-         target: "fg2";
+         target: "group";
       }
       program {
          name: "show";
          signal: "elm,state,show";
          action: STATE_SET "default" 0.0;
-         target: "reorder_bg";
-         target: "base_sh";
-         target: "base";
-         target: "bg";
-         target: "arrow";
-         target: "elm.swallow.pad";
-         target: "elm.swallow.icon";
-         target: "elm.swallow.end";
-         target: "elm.text";
-         target: "fg1";
-         target: "fg2";
+         target: "group";
       }
       program {
          name: "hide";
          signal: "elm,state,hide";
          action: STATE_SET "hide" 0.0;
-         target: "reorder_bg";
-         target: "base_sh";
-         target: "base";
-         target: "bg";
-         target: "arrow";
-         target: "elm.swallow.pad";
+         target: "group";
+      }
+   }
+}
+
+group { name: "elm/genlist/item/effect_parts/default";
+   images {
+      image: "bt_sm_base1.png" COMP;
+      image: "bt_sm_shine.png" COMP;
+      image: "bt_sm_hilight.png" COMP;
+      image: "ilist_1.png" COMP;
+      image: "ilist_2.png" COMP;
+      image: "ilist_item_shadow.png" COMP;
+   }
+   parts {
+      part {
+         name: "event";
+         type: RECT;
+         description {
+            state: "default" 0.0;
+            color: 0 0 0 0;
+         }
+      }
+      part { name: "reorder_bg";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -7 -7;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 9 9;
+            }
+            image {
+               normal: "bt_bases.png";
+               border: 6 6 6 6;
+            }
+         }
+         description { state: "enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part {
+         name: "base_sh";
+         mouse_events: 0;
+         description {
+            state: "default" 0.0;
+            align: 0.0 0.0;
+            min: 0 10;
+            fixed: 1 1;
+            rel1 {
+               to: "base";
+               relative: 0.0 1.0;
+               offset: 0 0;
+            }
+            rel2 {
+               to: "base";
+               relative: 1.0 1.0;
+               offset: -1 0;
+            }
+            image {
+               normal: "ilist_item_shadow.png";
+            }
+            fill.smooth: 0;
+         }
+         description {
+            state: "default" 1.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part {
+         name: "base";
+         mouse_events: 0;
+         description {
+            state: "default" 0.0;
+            image {
+               normal: "ilist_1.png";
+               border: 2 2 2 2;
+            }
+            fill.smooth: 0;
+         }
+         description {
+            state: "default" 1.0;
+            inherit: "default" 0.0;
+            image.normal: "ilist_2.png";
+         }
+      }
+      part { name: "bg";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -5 -5;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 4 4;
+            }
+            image {
+               normal: "bt_sm_base1.png";
+               border: 6 6 6 6;
+            }
+            image.middle: SOLID;
+         }
+         description { state: "default" 1.0;
+            inherit: "default" 0.0;
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+            rel1 {
+               relative: 0.0 0.0;
+               offset: -2 -2;
+            }
+            rel2 {
+               relative: 1.0 1.0;
+               offset: 1 1;
+            }
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "selected" 0.0;
+         }
+      }
+      part { name: "elm.swallow.pad";
+         type: SWALLOW;
+         description { state: "default" 0.0;
+            fixed: 1 0;
+            align: 0.0 0.5;
+            rel1 {
+               relative: 0.0  0.0;
+               offset:   4    4;
+            }
+            rel2 {
+               relative: 0.0  1.0;
+               offset:   4   -5;
+            }
+         }
+      }
+      part { name: "elm.swallow.icon";
+         clip_to: "disclip";
+         type: SWALLOW;
+         description { state: "default" 0.0;
+            fixed: 1 0;
+            align: 0.0 0.5;
+            aspect: 1.0 1.0;
+            rel1 {
+               to_x: "elm.swallow.pad";
+               relative: 1.0  0.0;
+               offset:   -1    4;
+            }
+            rel2 {
+               to_x: "elm.swallow.pad";
+               relative: 1.0  1.0;
+               offset:   -1   -5;
+            }
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part { name: "elm.swallow.end";
+         clip_to: "disclip";
+         type: SWALLOW;
+         description { state: "default" 0.0;
+            fixed: 1 0;
+            align: 1.0 0.5;
+            aspect: 1.0 1.0;
+            rel1 {
+               relative: 1.0  0.0;
+               offset:   -5    4;
+            }
+            rel2 {
+               relative: 1.0  1.0;
+               offset:   -5   -5;
+            }
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part { name: "elm.text";
+         clip_to: "disclip";
+         type:           TEXT;
+         effect:         SOFT_SHADOW;
+         mouse_events:   0;
+         scale: 1;
+         description {
+            state: "default" 0.0;
+                   //               min: 16 16;
+            rel1 {
+               to_x:     "elm.swallow.icon";
+               relative: 1.0  0.0;
+               offset:   0 4;
+            }
+            rel2 {
+               to_x:     "elm.swallow.end";
+               relative: 0.0  1.0;
+               offset:   -1 -5;
+            }
+            color: 0 0 0 255;
+            color3: 0 0 0 0;
+            text {
+               font: "Sans";
+               size: 10;
+               min: 1 1;
+                    //                  min: 0 1;
+               align: -1.0 0.5;
+               text_class: "list_item";
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            color: 224 224 224 255;
+            color3: 0 0 0 64;
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 0;
+         }
+      }
+      part { name: "elm.text.flip";
+         clip_to: "disclip";
+         type: SWALLOW;
+         scale: 1;
+         description { state: "default" 0.0;
+            visible: 0;
+            rel1.to_y: "elm.text";
+            rel2.to_y: "elm.text";
+         }
+         description { state: "flip_enabled" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+         }
+      }
+      part { name: "fg1";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1.to: "bg";
+            rel2.relative: 1.0 0.5;
+            rel2.to: "bg";
+            image {
+               normal: "bt_sm_hilight.png";
+               border: 6 6 6 0;
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part { name: "fg2";
+         clip_to: "disclip";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 255 255 255 0;
+            rel1.to: "bg";
+            rel2.to: "bg";
+            image {
+               normal: "bt_sm_shine.png";
+               border: 6 6 6 0;
+            }
+         }
+         description { state: "selected" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description {
+            state: "selected" 1.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+      }
+      part { name: "disclip";
+         type: RECT;
+         description { state: "default" 0.0;
+            rel1.to: "bg";
+            rel2.to: "bg";
+         }
+         description { state: "disabled" 0.0;
+            inherit: "default" 0.0;
+            color: 255 255 255 64;
+         }
+      }
+   }
+   programs {
+        // signal: elm,state,%s,active
+        //   a "check" item named %s went active
+        // signal: elm,state,%s,passive
+        //   a "check" item named %s went passive
+        // default is passive
+      program {
+         name:    "odd";
+         signal:  "elm,state,odd";
+         source:  "elm";
+         action:  STATE_SET "default" 1.0;
+         target:  "base_sh";
+         target:  "base";
+      }
+      program {
+         name:    "even";
+         signal:  "elm,state,even";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "base_sh";
+         target:  "base";
+      }
+      program {
+         name:    "go_active";
+         signal:  "elm,state,selected";
+         source:  "elm";
+         script {
+            new st[31];
+            new Float:vl;
+            get_state(PART:"base", st, 30, vl);
+            set_state(PART:"bg", "selected", vl);
+            set_state(PART:"fg1", "selected", vl);
+            set_state(PART:"fg2", "selected", vl);
+            set_state(PART:"elm.text", "selected", vl);
+         }
+      }
+      program {
+         name:    "go_passive";
+         signal:  "elm,state,unselected";
+         source:  "elm";
+         script {
+            new st[31];
+            new Float:vl;
+            get_state(PART:"base", st, 30, vl);
+            set_state(PART:"bg", "default", vl);
+            set_state(PART:"fg1", "default", vl);
+            set_state(PART:"fg2", "default", vl);
+            set_state(PART:"elm.text", "default", vl);
+         }
+      }
+      program {
+         name:    "go_disabled";
+         signal:  "elm,state,disabled";
+         source:  "elm";
+         action:  STATE_SET "disabled" 0.0;
+         target:  "disclip";
+      }
+      program {
+         name:    "go_enabled";
+         signal:  "elm,state,enabled";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "disclip";
+      }
+      program {
+         name:    "go_reorder_disabled";
+         signal:  "elm,state,reorder,disabled";
+         source:  "elm";
+         action:  STATE_SET "default" 0.0;
+         target:  "reorder_bg";
+         transition: DECELERATE 0.5;
+      }
+      program {
+         name:    "go_reorder_enabled";
+         signal:  "elm,state,reorder,enabled";
+         source:  "elm";
+         action:  STATE_SET "enabled" 0.0;
+         target:  "reorder_bg";
+         transition: DECELERATE 0.5;
+      }
+      program { name: "flip_enabled";
+         signal: "elm,state,flip,enabled";
+         source: "elm";
+         action: STATE_SET "flip_enabled" 0.0;
+         target: "elm.text";
+         target: "elm.text.flip";
          target: "elm.swallow.icon";
          target: "elm.swallow.end";
+      }
+      program { name: "flip_disabled";
+         signal: "elm,state,flip,disabled";
+         source: "elm";
+         action: STATE_SET "default" 0.0;
          target: "elm.text";
-         target: "fg1";
-         target: "fg2";
+         target: "elm.text.flip";
+         target: "elm.swallow.icon";
+         target: "elm.swallow.end";
       }
    }
 }

@@ -44,21 +44,21 @@ set_api_state(api_data *api)
       case SCROLLER_POLICY_SET_ON: /* 0 */
            {  /* Get first disk */
               Evas_Object *disk = eina_list_nth(disks, 0);
-              elm_diskselector_scroller_policy_set(disk, ELM_SCROLLER_POLICY_ON, ELM_SCROLLER_POLICY_ON);
+              elm_scroller_policy_set(disk, ELM_SCROLLER_POLICY_ON, ELM_SCROLLER_POLICY_ON);
            }
          break;
 
       case SCROLLER_POLICY_SET_OFF: /* 1 */
            {  /* Get first disk */
               Evas_Object *disk = eina_list_nth(disks, 0);
-              elm_diskselector_scroller_policy_set(disk, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+              elm_scroller_policy_set(disk, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
            }
          break;
 
       case BOUNCE_SET: /* 2 */
            {  /* Get second disk, cancel bounce */
               Evas_Object *disk = eina_list_nth(disks, 1);
-              elm_diskselector_bounce_set(disk, EINA_FALSE, EINA_FALSE);
+              elm_scroller_bounce_set(disk, EINA_FALSE, EINA_FALSE);
            }
          break;
 
@@ -87,7 +87,7 @@ set_api_state(api_data *api)
               char buf[PATH_MAX];
               Evas_Object *ic = elm_icon_add(elm_object_parent_widget_get(eina_list_nth(disks, 0)));
               snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-              elm_icon_file_set(ic, buf, NULL);
+              elm_image_file_set(ic, buf, NULL);
               elm_object_item_part_content_set(elm_diskselector_selected_item_get(eina_list_nth(disks, 0)), NULL, ic);
               evas_object_show(ic);
            }
@@ -164,6 +164,13 @@ _print_disk_info_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
 {
    Elm_Object_Item *ds_it = event_info;
    printf("Selected label: %s\n", elm_object_item_text_get(ds_it));
+}
+
+static void
+_item_clicked_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+{
+   Elm_Object_Item *ds_it = event_info;
+   printf("Clicked label: %s\n", elm_object_item_text_get(ds_it));
 }
 
 static Evas_Object *
@@ -271,8 +278,8 @@ test_diskselector(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *even
    disk = elm_diskselector_add(win);
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-   elm_icon_file_set(ic, buf, NULL);
-   elm_icon_resizable_set(ic, 1, 1);
+   elm_image_file_set(ic, buf, NULL);
+   elm_image_resizable_set(ic, 1, 1);
    elm_diskselector_item_append(disk, "Sunday", ic, NULL, NULL);
    elm_diskselector_item_append(disk, "Monday", NULL, NULL, NULL);
    elm_diskselector_item_append(disk, "Tuesday", NULL, NULL, NULL);
@@ -290,8 +297,8 @@ test_diskselector(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *even
    disk = elm_diskselector_add(win);
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-   elm_icon_file_set(ic, buf, NULL);
-   elm_icon_resizable_set(ic, 1, 1);
+   elm_image_file_set(ic, buf, NULL);
+   elm_image_resizable_set(ic, 1, 1);
    elm_diskselector_item_append(disk, "머리스타일", ic, NULL, NULL);
    elm_diskselector_item_append(disk, "プロが伝授する", NULL, NULL, NULL);
    elm_diskselector_item_append(disk, "生上访要求政府", NULL, NULL, NULL);
@@ -325,6 +332,7 @@ test_diskselector(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *even
    elm_box_pack_end(bx, disk);
    evas_object_show(disk);
    evas_object_smart_callback_add(disk, "selected", _print_disk_info_cb, NULL);
+   evas_object_smart_callback_add(disk, "clicked", _item_clicked_cb, NULL);
 
    // displayed item number setting example
    disk = elm_diskselector_add(win);

@@ -1,368 +1,310 @@
 #include <Elementary.h>
 #include "elm_priv.h"
+#include "elm_widget_bubble.h"
 
-typedef struct _Widget_Data Widget_Data;
-
-struct _Widget_Data
-{
-   Evas_Object *bbl;
-   Evas_Object *content, *icon;
-   const char *label, *info, *corner;
-   Elm_Bubble_Pos pos;
-};
-
-static const char *widtype = NULL;
-static void _del_hook(Evas_Object *obj);
-static void _mirrored_set(Evas_Object *obj, Eina_Bool rtl);
-static void _content_set_hook(Evas_Object *obj, const char *part, Evas_Object *content);
-static Evas_Object *_content_get_hook(const Evas_Object *obj, const char *part);
-static Evas_Object *_content_unset_hook(Evas_Object *obj, const char *part);
-static void _theme_hook(Evas_Object *obj);
-static void _sizing_eval(Evas_Object *obj);
-static void _changed_size_hints(void *data, Evas *e, Evas_Object *obj, void *event_info);
-static void _sub_del(void *data, Evas_Object *obj, void *event_info);
+EAPI const char ELM_BUBBLE_SMART_NAME[] = "elm_bubble";
 
 static const char SIG_CLICKED[] = "clicked";
+static const char SIG_ACCESS_CHANGED[] = "access,changed";
 
-static const Evas_Smart_Cb_Description _signals[] =
+static const Elm_Layout_Part_Alias_Description _content_aliases[] =
 {
-     {SIG_CLICKED, ""},
-     {NULL, NULL}
+   {"default", "elm.swallow.content"},
+   {"icon", "elm.swallow.icon"},
+   {NULL, NULL}
+};
+
+static const Elm_Layout_Part_Alias_Description _text_aliases[] =
+{
+   {"default", "elm.text"},
+   {"info", "elm.info"},
+   {NULL, NULL}
+};
+
+static const Evas_Smart_Cb_Description _smart_callbacks[] =
+{
+   {SIG_CLICKED, ""},
+   {SIG_ACCESS_CHANGED, ""},
+   {NULL, NULL}
 };
 
 static const char *corner_string[] =
 {
-    "top_left",
-    "top_right",
-    "bottom_left",
-    "bottom_right"
+   "top_left",
+   "top_right",
+   "bottom_left",
+   "bottom_right"
 };
 
-static void
-_del_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (wd->label) eina_stringshare_del(wd->label);
-   if (wd->info) eina_stringshare_del(wd->info);
-   if (wd->corner) eina_stringshare_del(wd->corner);
-   free(wd);
-}
+EVAS_SMART_SUBCLASS_NEW
+  (ELM_BUBBLE_SMART_NAME, _elm_bubble, Elm_Bubble_Smart_Class,
+  Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks);
 
 static void
-_mirrored_set(Evas_Object *obj, Eina_Bool rtl)
+_elm_bubble_smart_sizing_eval(Evas_Object *obj)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   edje_object_mirrored_set(wd->bbl, rtl);
-}
-
-static void
-_theme_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   _elm_widget_mirrored_reload(obj);
-   _mirrored_set(obj, elm_widget_mirrored_get(obj));
-   _elm_theme_object_set(obj, wd->bbl, "bubble", corner_string[wd->pos],
-                         elm_widget_style_get(obj));
-   edje_object_part_text_escaped_set(wd->bbl, "elm.text", wd->label);
-   if (wd->label) edje_object_signal_emit(wd->bbl, "elm,state,text,visible", "elm");
-   else edje_object_signal_emit(wd->bbl, "elm,state,text,hidden", "elm");
-   edje_object_part_text_escaped_set(wd->bbl, "elm.info", wd->info);
-   if (wd->info) edje_object_signal_emit(wd->bbl, "elm,state,info,visible", "elm");
-   else edje_object_signal_emit(wd->bbl, "elm,state,info,hidden", "elm");
-   if (wd->content)
-     {
-        edje_object_part_swallow(wd->bbl, "elm.swallow.content", wd->content);
-        edje_object_message_signal_process(wd->bbl);
-     }
-   if (wd->icon)
-     edje_object_signal_emit(wd->bbl, "elm,state,icon,visible", "elm");
-   else
-     edje_object_signal_emit(wd->bbl, "elm,state,icon,hidden", "elm");
-   edje_object_scale_set(wd->bbl,
-                         elm_widget_scale_get(obj) * _elm_config->scale);
-   _sizing_eval(obj);
-}
-
-static void
-_content_set(Evas_Object *obj, Evas_Object *content)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-
-   if (wd->content == content) return;
-   if (wd->content) evas_object_del(wd->content);
-   wd->content = content;
-   if (content)
-     {
-        elm_widget_sub_object_add(obj, content);
-        evas_object_event_callback_add(content,
-                                       EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-                                       _changed_size_hints, obj);
-        edje_object_part_swallow(wd->bbl, "elm.swallow.content", content);
-     }
-   _sizing_eval(obj);
-}
-
-static Evas_Object *
-_content_unset(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   Evas_Object *content;
-   if (!wd) return NULL;
-   if (!wd->content) return NULL;
-   content = wd->content;
-   elm_widget_sub_object_del(obj, content);
-   evas_object_event_callback_del_full(content,
-                                       EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-                                       _changed_size_hints, obj);
-   edje_object_part_unswallow(wd->bbl, content);
-   wd->content = NULL;
-   return content;
-}
-
-static void
-_icon_set(Evas_Object *obj, Evas_Object* icon)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (wd->icon == icon) return;
-   if (wd->icon) evas_object_del(wd->icon);
-   wd->icon = icon;
-   if (icon)
-     {
-        elm_widget_sub_object_add(obj, icon);
-        edje_object_part_swallow(wd->bbl, "elm.swallow.icon", icon);
-        evas_object_event_callback_add(icon, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-                                       _changed_size_hints, obj);
-        edje_object_signal_emit(wd->bbl, "elm,state,icon,visible", "elm");
-        edje_object_message_signal_process(wd->bbl);
-     }
-   _sizing_eval(obj);
-}
-
-static Evas_Object *
-_icon_unset(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   Evas_Object *icon;
-   if (!wd) return NULL;
-   if (!wd->icon) return NULL;
-   icon = wd->icon;
-   elm_widget_sub_object_del(obj, icon);
-   evas_object_event_callback_del_full(icon, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-                                       _changed_size_hints, obj);
-   edje_object_part_unswallow(wd->bbl, icon);
-   wd->icon = NULL;
-   return icon;
-}
-
-static void
-_content_set_hook(Evas_Object *obj, const char *part, Evas_Object *content)
-{
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-
-   if (!part || !strcmp(part, "default"))
-     _content_set(obj, content);
-   else if (!strcmp(part, "icon"))
-     _icon_set(obj, content);
-}
-
-static Evas_Object *
-_content_get_hook(const Evas_Object *obj, const char *part)
-{
-   ELM_CHECK_WIDTYPE(obj, widtype) NULL;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return NULL;
-   if (!part || !strcmp(part, "default"))
-     return wd->content;
-   else if (!strcmp(part, "icon"))
-     return wd->icon;
-   return NULL;
-}
-
-static Evas_Object *
-_content_unset_hook(Evas_Object *obj, const char *part)
-{
-   ELM_CHECK_WIDTYPE(obj, widtype) NULL;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return NULL;
-   if (!part || !strcmp(part, "default"))
-     return _content_unset(obj);
-   else if (!strcmp(part, "icon"))
-     return _icon_unset(obj);
-   return NULL;
-}
-
-static Eina_Bool
-_elm_bubble_focus_next_hook(const Evas_Object *obj, Elm_Focus_Direction dir, Evas_Object **next)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   Evas_Object *cur;
-
-   if ((!wd) || (!wd->content))
-     return EINA_FALSE;
-
-   cur = wd->content;
-
-   /* Try Focus cycle in subitem */
-   return elm_widget_focus_next_get(cur, dir, next);
-}
-
-static void
-_sizing_eval(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
    Evas_Coord minw = -1, minh = -1, maxw = -1, maxh = -1;
-   if (!wd) return;
+
+   ELM_BUBBLE_DATA_GET(obj, sd);
+
    elm_coords_finger_size_adjust(1, &minw, 1, &minh);
-   edje_object_size_min_restricted_calc(wd->bbl, &minw, &minh, minw, minh);
+   edje_object_size_min_restricted_calc
+     (ELM_WIDGET_DATA(sd)->resize_obj, &minw, &minh, minw, minh);
    evas_object_size_hint_min_set(obj, minw, minh);
    evas_object_size_hint_max_set(obj, maxw, maxh);
 }
 
 static void
-_changed_size_hints(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
-{
-   Widget_Data *wd = elm_widget_data_get(data);
-   if (!wd) return;
-   _sizing_eval(data);
-}
-
-static void
-_sub_del(void *data __UNUSED__, Evas_Object *obj, void *event_info)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   Evas_Object *sub = event_info;
-   if (!wd) return;
-   evas_object_event_callback_del_full(sub, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-                                       _changed_size_hints, obj);
-   if (sub == wd->content) wd->content = NULL;
-   else if (sub == wd->icon)
-     {
-        edje_object_signal_emit(wd->bbl, "elm,state,icon,hidden", "elm");
-        wd->icon = NULL;
-        edje_object_message_signal_process(wd->bbl);
-     }
-   _sizing_eval(obj);
-}
-
-static void
-_mouse_up(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_on_mouse_up(void *data,
+             Evas *e __UNUSED__,
+             Evas_Object *obj __UNUSED__,
+             void *event_info)
 {
    Evas_Event_Mouse_Up *ev = event_info;
+
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
      return;
+
    evas_object_smart_callback_call(data, SIG_CLICKED, NULL);
 }
 
-static void
-_elm_bubble_label_set(Evas_Object *obj, const char *item, const char *label)
+/* overriding layout's focus_next() in order to just cycle through the
+ * content's tree */
+static Eina_Bool
+_elm_bubble_smart_focus_next(const Evas_Object *obj,
+                             Elm_Focus_Direction dir,
+                             Evas_Object **next)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   Evas_Object *content;
 
-   if (!item || !strcmp(item, "default"))
+   ELM_BUBBLE_DATA_GET(obj, sd);
+
+   if ((elm_widget_can_focus_get(obj)) &&
+       (!ELM_WIDGET_DATA(sd)->focused))
      {
-        eina_stringshare_replace(&wd->label, label);
-        edje_object_part_text_escaped_set(wd->bbl, "elm.text", label);
-        if (label) edje_object_signal_emit(wd->bbl, "elm,state,text,visible",
-                                           "elm");
-        else edje_object_signal_emit(wd->bbl, "elm,state,text,hidden", "elm");
-        _sizing_eval(obj);
+        // ACCESS
+        *next = (Evas_Object *)obj;
+        return EINA_TRUE;
      }
-   else if (!strcmp(item, "info"))
+   else
      {
-        eina_stringshare_replace(&wd->info, label);
-        edje_object_part_text_escaped_set(wd->bbl, "elm.info", label);
-        if (label) edje_object_signal_emit(wd->bbl, "elm,state,info,visible",
-                                           "elm");
-        else edje_object_signal_emit(wd->bbl, "elm,state,info,hidden", "elm");
-        _sizing_eval(obj);
+        content = elm_layout_content_get(obj, NULL);
+        if (!content) return EINA_FALSE;
+
+        /* attempt to follow focus cycle into sub-object */
+        return elm_widget_focus_next_get(content, dir, next);
      }
 }
 
-static const char*
-_elm_bubble_label_get(const Evas_Object *obj, const char *item)
+static Eina_Bool
+_elm_bubble_smart_focus_direction_manager_is(const Evas_Object *obj __UNUSED__)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) NULL;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return NULL;
+   return EINA_TRUE;
+}
 
-   if (!item || !strcmp(item, "default"))
+static Eina_Bool
+_elm_bubble_smart_focus_direction(const Evas_Object *obj,
+                                  const Evas_Object *base,
+                                  double degree,
+                                  Evas_Object **direction,
+                                  double *weight)
+{
+   Evas_Object *content;
+
+   content = elm_layout_content_get(obj, NULL);
+
+   if (!content) return EINA_FALSE;
+
+   /* Try Focus cycle in subitem */
+   return elm_widget_focus_direction_get
+            (content, base, degree, direction, weight);
+}
+
+static Eina_Bool
+_elm_bubble_smart_text_set(Evas_Object *obj,
+                           const char *item,
+                           const char *label)
+{
+   if (!_elm_bubble_parent_sc->text_set(obj, item, label))
+     return EINA_FALSE;
+
+   if (item && (!strcmp(item, "info") || !strcmp(item, "elm.info")))
      {
-        return wd->label;
-     }
-   else if (!strcmp(item, "info"))
-     {
-        return wd->info;
+        if (label)
+          elm_layout_signal_emit(obj, "elm,state,info,visible", "elm");
+        else
+          elm_layout_signal_emit(obj, "elm,state,info,hidden", "elm");
      }
 
-   return NULL;
+   elm_layout_sizing_eval(obj);
+
+   return EINA_TRUE;
+}
+
+static char *
+_access_info_cb(void *data __UNUSED__, Evas_Object *obj)
+{
+   char *ret;
+   Eina_Strbuf *buf;
+   buf = eina_strbuf_new();
+   Evas_Object *content;
+   const char *default_txt = NULL;
+   const char *content_txt = NULL;
+   const char *info_txt = NULL;
+
+   default_txt = elm_widget_access_info_get(obj);
+   if (!default_txt) default_txt = elm_layout_text_get(obj, NULL);
+   if (default_txt) eina_strbuf_append(buf, default_txt);
+
+   content = elm_layout_content_get(obj, NULL);
+   if (content) content_txt = elm_layout_text_get(content, NULL);
+   if (content_txt)
+     {
+        if (!eina_strbuf_length_get(buf))
+          eina_strbuf_append(buf, content_txt);
+        else
+          eina_strbuf_append_printf(buf, ", %s", content_txt);
+     }
+
+
+   info_txt = edje_object_part_text_get(elm_layout_edje_get(obj), "elm.info");
+   if (info_txt)
+     {
+        if (!eina_strbuf_length_get(buf))
+          eina_strbuf_append(buf, info_txt);
+        else
+          eina_strbuf_append_printf(buf, ", %s", info_txt);
+     }
+
+   ret = eina_strbuf_string_steal(buf);
+   eina_strbuf_free(buf);
+   return ret;
+}
+
+static void
+_elm_bubble_smart_add(Evas_Object *obj)
+{
+   EVAS_SMART_DATA_ALLOC(obj, Elm_Bubble_Smart_Data);
+
+   ELM_WIDGET_CLASS(_elm_bubble_parent_sc)->base.add(obj);
+}
+
+static void
+_elm_bubble_smart_access(Evas_Object *obj, Eina_Bool is_access)
+{
+   ELM_BUBBLE_CHECK(obj);
+
+   if (is_access)
+     elm_widget_can_focus_set(obj, EINA_TRUE);
+   else
+     elm_widget_can_focus_set(obj, EINA_FALSE);
+
+   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
+}
+
+static void
+_elm_bubble_smart_set_user(Elm_Bubble_Smart_Class *sc)
+{
+   ELM_WIDGET_CLASS(sc)->base.add = _elm_bubble_smart_add;
+
+   ELM_WIDGET_CLASS(sc)->focus_next = _elm_bubble_smart_focus_next;
+   ELM_WIDGET_CLASS(sc)->focus_direction_manager_is =
+      _elm_bubble_smart_focus_direction_manager_is;
+   ELM_WIDGET_CLASS(sc)->focus_direction = _elm_bubble_smart_focus_direction;
+   ELM_WIDGET_CLASS(sc)->access = _elm_bubble_smart_access;
+
+   ELM_LAYOUT_CLASS(sc)->text_set = _elm_bubble_smart_text_set;
+   ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_bubble_smart_sizing_eval;
+
+   ELM_LAYOUT_CLASS(sc)->content_aliases = _content_aliases;
+   ELM_LAYOUT_CLASS(sc)->text_aliases = _text_aliases;
+}
+
+EAPI const Elm_Bubble_Smart_Class *
+elm_bubble_smart_class_get(void)
+{
+   static Elm_Bubble_Smart_Class _sc =
+     ELM_BUBBLE_SMART_CLASS_INIT_NAME_VERSION(ELM_BUBBLE_SMART_NAME);
+   static const Elm_Bubble_Smart_Class *class = NULL;
+   Evas_Smart_Class *esc = (Evas_Smart_Class *)&_sc;
+
+   if (class)
+     return class;
+
+   _elm_bubble_smart_set(&_sc);
+   esc->callbacks = _smart_callbacks;
+   class = &_sc;
+
+   return class;
 }
 
 EAPI Evas_Object *
 elm_bubble_add(Evas_Object *parent)
 {
    Evas_Object *obj;
-   Evas *e;
-   Widget_Data *wd;
 
-   ELM_WIDGET_STANDARD_SETUP(wd, Widget_Data, parent, e, obj, NULL);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
 
-   ELM_SET_WIDTYPE(widtype, "bubble");
-   elm_widget_type_set(obj, "bubble");
-   elm_widget_sub_object_add(parent, obj);
-   elm_widget_data_set(obj, wd);
-   elm_widget_del_hook_set(obj, _del_hook);
-   elm_widget_theme_hook_set(obj, _theme_hook);
-   elm_widget_focus_next_hook_set(obj, _elm_bubble_focus_next_hook);
+   obj = elm_widget_add(_elm_bubble_smart_class_new(), parent);
+   if (!obj) return NULL;
+
+   if (!elm_widget_sub_object_add(parent, obj))
+     ERR("could not add %p as sub object of %p", obj, parent);
+
+   ELM_BUBBLE_DATA_GET_OR_RETURN_VAL(obj, sd, NULL);
+
+   sd->pos = ELM_BUBBLE_POS_TOP_LEFT; //default
+
    elm_widget_can_focus_set(obj, EINA_FALSE);
-   elm_widget_text_set_hook_set(obj, _elm_bubble_label_set);
-   elm_widget_text_get_hook_set(obj, _elm_bubble_label_get);
-   elm_widget_content_set_hook_set(obj, _content_set_hook);
-   elm_widget_content_get_hook_set(obj, _content_get_hook);
-   elm_widget_content_unset_hook_set(obj, _content_unset_hook);
 
-   wd->corner = eina_stringshare_add("base");
-   wd->pos = ELM_BUBBLE_POS_TOP_LEFT; //default
+   evas_object_event_callback_add
+     (ELM_WIDGET_DATA(sd)->resize_obj, EVAS_CALLBACK_MOUSE_UP,
+     _on_mouse_up, obj);
 
-   wd->bbl = edje_object_add(e);
-   elm_widget_resize_object_set(obj, wd->bbl);
+   // ACCESS
+   _elm_access_object_register(obj, ELM_WIDGET_DATA(sd)->resize_obj);
+   _elm_access_text_set
+     (_elm_access_object_get(obj), ELM_ACCESS_TYPE, E_("Bubble"));
+   _elm_access_callback_set
+     (_elm_access_object_get(obj), ELM_ACCESS_INFO, _access_info_cb, NULL);
 
-   evas_object_smart_callback_add(obj, "sub-object-del", _sub_del, obj);
-   evas_object_event_callback_add(wd->bbl, EVAS_CALLBACK_MOUSE_UP,
-                                  _mouse_up, obj);
+   elm_layout_theme_set(obj, "bubble", "base", elm_widget_style_get(obj));
 
-   evas_object_smart_callbacks_descriptions_set(obj, _signals);
-   _mirrored_set(obj, elm_widget_mirrored_get(obj));
-   _elm_theme_object_set(obj, wd->bbl, "bubble", wd->corner,
-                         elm_widget_style_get(obj));
-   _sizing_eval(obj);
+   elm_layout_sizing_eval(obj);
+
+   if ((_elm_config->access_mode == ELM_ACCESS_MODE_ON))
+     elm_widget_can_focus_set(obj, EINA_TRUE);
+
+   //Tizen Only: This should be removed when eo is applied.
+   ELM_WIDGET_DATA_GET(obj, wsd);
+   wsd->on_create = EINA_FALSE;
+
    return obj;
 }
 
 EAPI void
-elm_bubble_pos_set(Evas_Object *obj, Elm_Bubble_Pos pos)
+elm_bubble_pos_set(Evas_Object *obj,
+                   Elm_Bubble_Pos pos)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (pos<ELM_BUBBLE_POS_TOP_LEFT || pos>ELM_BUBBLE_POS_BOTTOM_RIGHT) return;
-   wd->pos = pos;
-   _theme_hook(obj);
+   ELM_BUBBLE_CHECK(obj);
+   ELM_BUBBLE_DATA_GET_OR_RETURN(obj, sd);
+
+   if (pos < ELM_BUBBLE_POS_TOP_LEFT || pos > ELM_BUBBLE_POS_BOTTOM_RIGHT)
+     return;
+
+   sd->pos = pos;
+
+   eina_stringshare_replace
+     (&(ELM_LAYOUT_DATA(sd)->group), corner_string[sd->pos]);
+
+   ELM_WIDGET_DATA(sd)->api->theme(obj);
 }
 
 EAPI Elm_Bubble_Pos
 elm_bubble_pos_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) ELM_BUBBLE_POS_INVALID;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return ELM_BUBBLE_POS_INVALID;
-   return wd->pos;
+   ELM_BUBBLE_CHECK(obj) ELM_BUBBLE_POS_INVALID;
+   ELM_BUBBLE_DATA_GET_OR_RETURN_VAL(obj, sd, ELM_BUBBLE_POS_INVALID);
+
+   return sd->pos;
 }

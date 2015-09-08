@@ -1,6 +1,10 @@
 /**
+ * @internal
  * @defgroup Frame Frame
  * @ingroup Elementary
+ *
+ * @image html frame_inheritance_tree.png
+ * @image latex frame_inheritance_tree.eps
  *
  * @image html img/widget/frame/preview-00.png
  * @image latex img/widget/frame/preview-00.eps
@@ -17,93 +21,100 @@
  * @li outdent_top
  * @li outdent_bottom
  *
- * Of all this styles only default shows the title.
+ * Of all these styles only default shows the title.
  *
- * Smart callbacks one can listen to:
- * - @c "clicked" - The user has clicked the frame's label
+ * This widget inherits from the @ref Layout one, so that all the
+ * functions acting on it also work for frame objects.
  *
- * Default content parts of the frame widget that you can use for are:
- * @li "default" - A content of the frame
+ * This widget emits the following signals, besides the ones sent from
+ * @ref Layout :
+ * - @c "clicked" - The user has clicked the frame's label.
  *
- * Default text parts of the frame widget that you can use for are:
- * @li "default" - Label of the frame
+ * The default content parts of the frame widget that you can use are:
+ * @li "default" - Content of the frame.
  *
- * Supported elm_object common APIs.
+ * The default text parts of the frame widget that you can use are:
+ * @li "default" - Label of the frame.
+ *
+ * Supported common elm_object APIs.
  * @li @ref elm_object_part_text_set
  * @li @ref elm_object_part_text_get
  * @li @ref elm_object_part_content_set
  * @li @ref elm_object_part_content_get
  * @li @ref elm_object_part_content_unset
  *
- * For a detailed example see the @ref tutorial_frame.
- *
  * @{
  */
 
 /**
- * @brief Add a new frame to the parent
+ * @brief Adds a new frame to the parent.
  *
- * @param parent The parent object
- * @return The new object or NULL if it cannot be created
+ * @param[in] parent The parent object
+ * @return The new object, otherwise @c NULL if it cannot be created
  *
  * @ingroup Frame
  */
 EAPI Evas_Object                 *elm_frame_add(Evas_Object *parent);
 
 /**
- * @brief Toggle autocollapsing of a frame
- * @param obj The frame
- * @param autocollapse Whether to enable autocollapse
+ * @brief Toggles autocollapsing of a frame.
  *
- * When @p enable is EINA_TRUE, clicking a frame's label will collapse the frame
- * vertically, shrinking it to the height of the label.
- * By default, this is DISABLED.
+ * @remarks When @a enable is @c EINA_TRUE, clicking a frame's label collapses the frame
+ *          vertically, shrinking it to the height of the label.
+ *          By default, this is DISABLED.
+ *
+ * @param[in] obj The frame
+ * @param[in] autocollapse The boolean value that indicates whether to enable autocollapse
  *
  * @ingroup Frame
  */
 EAPI void elm_frame_autocollapse_set(Evas_Object *obj, Eina_Bool autocollapse);
 
 /**
- * @brief Determine autocollapsing of a frame
- * @param obj The frame
- * @return Whether autocollapse is enabled
+ * @brief Determines autocollapsing of a frame.
  *
- * When this returns EINA_TRUE, clicking a frame's label will collapse the frame
- * vertically, shrinking it to the height of the label.
- * By default, this is DISABLED.
+ * @remarks When this returns @c EINA_TRUE, clicking a frame's label collapses the frame
+ *          vertically, shrinking it to the height of the label.
+ *          By default, this is DISABLED.
+ *
+ * @param[in] obj The frame
+ * @return The boolean value that indicates whether autocollapse is enabled
  *
  * @ingroup Frame
  */
 EAPI Eina_Bool elm_frame_autocollapse_get(const Evas_Object *obj);
 
 /**
- * @brief Manually collapse a frame without animations
- * @param obj The frame
- * @param collapse true to collapse, false to expand
+ * @brief Manually collapses a frame without animations.
  *
- * Use this to toggle the collapsed state of a frame, bypassing animations.
+ * @remarks Use this to toggle the collapsed state of a frame, bypassing animations.
+ *
+ * @param[in] obj The frame
+ * @param[in] collapse If @c true the frame collapses, otherwise @c false to expand it
  *
  * @ingroup Frame
  */
 EAPI void elm_frame_collapse_set(Evas_Object *obj, Eina_Bool collapse);
 
 /**
- * @brief Determine the collapse state of a frame
- * @param obj The frame
- * @return true if collapsed, false otherwise
+ * @brief Determines the collapse state of a frame.
  *
- * Use this to determine the collapse state of a frame.
+ * @remarks Use this to determine the collapse state of a frame.
+ *
+ * @param[in] obj The frame
+ * @return @c true if collapsed, otherwise @c false
  *
  * @ingroup Frame
  */
 EAPI Eina_Bool elm_frame_collapse_get(const Evas_Object *obj);
 
 /**
- * @brief Manually collapse a frame with animations
- * @param obj The frame
- * @param collapse true to collapse, false to expand
+ * @brief Manually collapses a frame with animations.
  *
- * Use this to toggle the collapsed state of a frame, triggering animations.
+ * @remarks Use this to toggle the collapsed state of a frame, triggering animations.
+ *
+ * @param[in] obj The frame
+ * @param[in] collapse If @c true the frame collapses, otherwise @c false to expand it
  *
  * @ingroup Frame
  */

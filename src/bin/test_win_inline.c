@@ -31,7 +31,7 @@ fill(Evas_Object *win, Eina_Bool do_bg)
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, 0.5);
    elm_object_text_set(en, "This is a single line");
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_entry_single_line_set(en, EINA_TRUE);
    evas_object_show(en);
    elm_box_pack_end(bx, en);
@@ -41,15 +41,15 @@ fill(Evas_Object *win, Eina_Bool do_bg)
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, 0.5);
    elm_object_text_set(en, "Entry 2");
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_entry_single_line_set(en, EINA_TRUE);
    evas_object_show(en);
    elm_box_pack_end(bx, en);
 
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-   elm_icon_file_set(ic, buf, NULL);
-   elm_icon_resizable_set(ic, 0, 0);
+   elm_image_file_set(ic, buf, NULL);
+   elm_image_resizable_set(ic, 0, 0);
    evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_HORIZONTAL, 1, 1);
 
    bb = elm_bubble_add(win);
@@ -73,7 +73,7 @@ fill(Evas_Object *win, Eina_Bool do_bg)
 
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-   elm_icon_file_set(ic, buf, NULL);
+   elm_image_file_set(ic, buf, NULL);
    evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
 
    bb = elm_bubble_add(win);
@@ -107,8 +107,8 @@ fill(Evas_Object *win, Eina_Bool do_bg)
 
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-   elm_icon_file_set(ic, buf, NULL);
-   elm_icon_resizable_set(ic, 0, 0);
+   elm_image_file_set(ic, buf, NULL);
+   elm_image_resizable_set(ic, 0, 0);
    evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_HORIZONTAL, 1, 1);
 
    bb = elm_bubble_add(win);
@@ -132,6 +132,14 @@ fill(Evas_Object *win, Eina_Bool do_bg)
    evas_object_show(bx);
 
    evas_object_show(sc);
+}
+
+static void
+cb_mouse_down(void *data __UNUSED__, Evas *evas __UNUSED__, Evas_Object *obj, void *event_info)
+{
+   Evas_Event_Mouse_Down *ev = event_info;
+
+   if (ev->button == 1) elm_object_focus_set(obj, EINA_TRUE);
 }
 
 static void
@@ -219,6 +227,7 @@ test_win_inline(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_
    evas_object_show(bg);
 
    win2 = elm_win_add(win, "inlined", ELM_WIN_INLINED_IMAGE);
+   evas_object_event_callback_add(elm_win_inlined_image_object_get(win2), EVAS_CALLBACK_MOUSE_DOWN, cb_mouse_down, NULL);
    fill(win2, EINA_TRUE);
 
    evas_object_move(win2, 20, 60);
@@ -230,6 +239,7 @@ test_win_inline(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_
    evas_object_show(win2);
 
    win3 = elm_win_add(win, "inlined", ELM_WIN_INLINED_IMAGE);
+   evas_object_event_callback_add(elm_win_inlined_image_object_get(win3), EVAS_CALLBACK_MOUSE_DOWN, cb_mouse_down, NULL);
    elm_win_alpha_set(win3, EINA_TRUE);
    fill(win3, EINA_FALSE);
 
@@ -240,7 +250,7 @@ test_win_inline(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_
 
    create_handles(elm_win_inlined_image_object_get(win3));
 
-   evas_object_resize(win, 400, 600);
+   evas_object_resize(win, 400, 400);
    evas_object_show(win);
 }
 #endif

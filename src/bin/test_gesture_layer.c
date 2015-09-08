@@ -12,7 +12,6 @@
 /* The base size of the shadow image. */
 #define SHADOW_W 118
 #define SHADOW_H 118
-#define RAD2DEG(x) ((x) * 57.295779513)
 
 static double zoom_out_animation_duration = 0.4;
 
@@ -139,8 +138,8 @@ rotate_move(void *_po, void *event_info)
 {
    Photo_Object *po = (Photo_Object *) _po;
    Elm_Gesture_Rotate_Info *p = (Elm_Gesture_Rotate_Info *) event_info;
-   printf("rotate move <%d,%d> base=<%f> <%f>\n", p->x, p->y, RAD2DEG(p->base_angle), RAD2DEG(p->angle));
-   po->rotate = po->base_rotate + (int) RAD2DEG(p->base_angle - p->angle);
+   printf("rotate move <%d,%d> base=<%f> <%f>\n", p->x, p->y, p->base_angle, p->angle);
+   po->rotate = po->base_rotate + (int) p->angle - p->base_angle;
    if (po->rotate < 0)
       po->rotate += 360;
    apply_changes(po);
@@ -152,8 +151,8 @@ rotate_end(void *_po, void *event_info)
 {
    Photo_Object *po = (Photo_Object *) _po;
    Elm_Gesture_Rotate_Info *p = (Elm_Gesture_Rotate_Info *) event_info;
-   printf("rotate end/abort <%d,%d> base=<%f> <%f>\n", p->x, p->y, RAD2DEG(p->base_angle), RAD2DEG(p->angle));
-   po->base_rotate += (int) RAD2DEG(p->base_angle - p->angle);
+   printf("rotate end/abort <%d,%d> base=<%f> <%f>\n", p->x, p->y, p->base_angle, p->angle);
+   po->base_rotate += (int) p->angle - p->base_angle;
    if (po->rotate < 0)
       po->rotate += 360;
    return EVAS_EVENT_FLAG_NONE;
@@ -302,7 +301,7 @@ photo_object_add(Evas_Object *parent, Evas_Object *ic, const char *icon, Evas_Co
    else
      {
         po->ic = elm_icon_add(parent);
-        elm_icon_file_set(po->ic, icon, NULL);
+        elm_image_file_set(po->ic, icon, NULL);
      }
 
    po->bx = x;
@@ -314,7 +313,7 @@ photo_object_add(Evas_Object *parent, Evas_Object *ic, const char *icon, Evas_Co
      {
         po->shadow = elm_icon_add(po->ic);
         snprintf(buf, sizeof(buf), "%s/images/pol_shadow.png", elm_app_data_dir_get());
-        elm_icon_file_set(po->shadow, buf, NULL);
+        elm_image_file_set(po->shadow, buf, NULL);
         evas_object_resize(po->shadow, SHADOW_W, SHADOW_H);
         evas_object_show(po->shadow);
      }
@@ -324,6 +323,7 @@ photo_object_add(Evas_Object *parent, Evas_Object *ic, const char *icon, Evas_Co
    evas_object_repeat_events_set(po->hit, EINA_TRUE);
    evas_object_color_set(po->hit, 0, 0, 0, 0);
 
+   evas_object_move(po->ic, 0, 0);
    evas_object_resize(po->ic, po->bw, po->bh);
    evas_object_show(po->ic);
 

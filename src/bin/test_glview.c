@@ -472,10 +472,20 @@ _anim(void *data)
    return EINA_TRUE;
 }
 
-static void
-_on_done(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+static Eina_Bool
+_quit_idler(void *data)
 {
-   evas_object_del((Evas_Object*)data);
+   evas_object_del(data);
+
+   return ECORE_CALLBACK_CANCEL;
+}
+
+static void
+_on_done(void *data,
+         Evas_Object *obj __UNUSED__,
+         void *event_info __UNUSED__)
+{
+   ecore_idler_add(_quit_idler, data);
 }
 
 static void
@@ -567,11 +577,7 @@ test_glview(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    gldata_init(gld);
 
    // new window - do the usual and give it a name, title and delete handler
-   // Set the engine to opengl_x11
-   elm_config_preferred_engine_set("opengl_x11");
    win = elm_win_util_standard_add("glview", "GLView");
-   // Set preferred engine back to default from config
-   elm_config_preferred_engine_set(NULL);
 
    elm_win_autodel_set(win, EINA_TRUE);
 

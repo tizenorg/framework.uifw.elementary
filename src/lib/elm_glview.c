@@ -1,330 +1,431 @@
 #include <Elementary.h>
 #include "elm_priv.h"
+#include "elm_widget_glview.h"
 
-typedef struct _Widget_Data Widget_Data;
-
-struct _Widget_Data
-{
-   Evas_Object              *glview_image;
-
-   Elm_GLView_Mode           mode;
-   Elm_GLView_Resize_Policy  scale_policy;
-   Elm_GLView_Render_Policy  render_policy;
-
-   Evas_GL                  *evasgl;
-   Evas_GL_Config           *config;
-   Evas_GL_Surface          *surface;
-   Evas_GL_Context          *context;
-
-   Evas_Coord                w, h;
-
-   Elm_GLView_Func_Cb        init_func;
-   Elm_GLView_Func_Cb        del_func;
-   Elm_GLView_Func_Cb        resize_func;
-   Elm_GLView_Func_Cb        render_func;
-
-   Ecore_Idle_Enterer       *render_idle_enterer;
-
-   Eina_Bool                 initialized;
-   Eina_Bool                 resized;
-};
-
-static const char *widtype = NULL;
-static void _del_hook(Evas_Object *obj);
-static void _on_focus_hook(void *data, Evas_Object *obj);
+EAPI const char ELM_GLVIEW_SMART_NAME[] = "elm_glview";
 
 static const char SIG_FOCUSED[] = "focused";
 static const char SIG_UNFOCUSED[] = "unfocused";
+static const char SIG_LANG_CHANGED[] = "language,changed";
 
-static void
-_del_hook(Evas_Object *obj)
+/* smart callbacks coming from elm glview objects: */
+static const Evas_Smart_Cb_Description _smart_callbacks[] = {
+   {SIG_FOCUSED, ""},
+   {SIG_UNFOCUSED, ""},
+   {SIG_LANG_CHANGED, ""},
+   {NULL, NULL}
+};
+
+EVAS_SMART_SUBCLASS_NEW
+  (ELM_GLVIEW_SMART_NAME, _elm_glview, Elm_Glview_Smart_Class,
+  Elm_Widget_Smart_Class, elm_widget_smart_class_get, _smart_callbacks);
+
+static Eina_Bool
+_elm_glview_smart_translate(Evas_Object *obj)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-
-   // Call delete func if it's registered
-   if (wd->del_func)
-     {
-        evas_gl_make_current(wd->evasgl, wd->surface, wd->context);
-        wd->del_func(obj);
-     }
-
-   if (wd->render_idle_enterer) ecore_idle_enterer_del(wd->render_idle_enterer);
-
-   if (wd->surface) evas_gl_surface_destroy(wd->evasgl, wd->surface);
-   if (wd->context) evas_gl_context_destroy(wd->evasgl, wd->context);
-   if (wd->config) evas_gl_config_free(wd->config);
-   if (wd->evasgl) evas_gl_free(wd->evasgl);
-
-   free(wd);
+   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+   return EINA_TRUE;
 }
 
-static void
-_on_focus_hook(void *data __UNUSED__, Evas_Object *obj)
+static Eina_Bool
+_elm_glview_smart_on_focus(Evas_Object *obj, Elm_Focus_Info *info)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
    if (elm_widget_focus_get(obj))
      {
-        evas_object_focus_set(wd->glview_image, EINA_TRUE);
-        evas_object_smart_callback_call(obj, SIG_FOCUSED, NULL);
+        evas_object_focus_set(ELM_WIDGET_DATA(sd)->resize_obj, EINA_TRUE);
+        evas_object_smart_callback_call(obj, SIG_FOCUSED, info);
      }
    else
      {
-        evas_object_focus_set(wd->glview_image, EINA_FALSE);
+        evas_object_focus_set(ELM_WIDGET_DATA(sd)->resize_obj, EINA_FALSE);
         evas_object_smart_callback_call(obj, SIG_UNFOCUSED, NULL);
      }
+
+   return EINA_TRUE;
 }
 
 static void
 _glview_update_surface(Evas_Object *obj)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   ELM_GLVIEW_DATA_GET(obj, sd);
+   if (!sd) return;
 
-   if (wd->surface)
+   if (sd->surface)
      {
-        evas_object_image_native_surface_set(wd->glview_image, NULL);
-        evas_gl_surface_destroy(wd->evasgl, wd->surface);
-        wd->surface = NULL;
+        evas_object_image_native_surface_set
+          (ELM_WIDGET_DATA(sd)->resize_obj, NULL);
+        evas_gl_surface_destroy(sd->evasgl, sd->surface);
+        sd->surface = NULL;
      }
 
-   evas_object_image_size_set(wd->glview_image, wd->w, wd->h);
+   evas_object_image_size_set(ELM_WIDGET_DATA(sd)->resize_obj, sd->w, sd->h);
 
-   if (!wd->surface)
+   if (!sd->surface)
      {
         Evas_Native_Surface ns;
 
-        wd->surface = evas_gl_surface_create(wd->evasgl, wd->config,
-                                             wd->w, wd->h);
-        evas_gl_native_surface_get(wd->evasgl, wd->surface, &ns);
-        evas_object_image_native_surface_set(wd->glview_image, &ns);
+        sd->surface = evas_gl_surface_create
+            (sd->evasgl, sd->config, sd->w, sd->h);
+        evas_gl_native_surface_get(sd->evasgl, sd->surface, &ns);
+        evas_object_image_native_surface_set
+          (ELM_WIDGET_DATA(sd)->resize_obj, &ns);
         elm_glview_changed_set(obj);
      }
 }
 
 static void
-_glview_resize(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_elm_glview_smart_resize(Evas_Object *obj,
+                         Evas_Coord w,
+                         Evas_Coord h)
 {
-   Widget_Data *wd = elm_widget_data_get(data);
-   Evas_Coord w, h;
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
-   if (!wd) return;
+   _elm_glview_parent_sc->base.resize(obj, w, h);
 
-   wd->resized = EINA_TRUE;
+   sd->resized = EINA_TRUE;
 
-   if (wd->scale_policy == ELM_GLVIEW_RESIZE_POLICY_RECREATE)
+   if (sd->scale_policy == ELM_GLVIEW_RESIZE_POLICY_RECREATE)
      {
-        evas_object_geometry_get(wd->glview_image, NULL, NULL, &w, &h);
         if ((w == 0) || (h == 0))
           {
              w = 64;
              h = 64;
           }
-        if ((wd->w == w) && (wd->h == h)) return;
-        wd->w = w;
-        wd->h = h;
-        _glview_update_surface(data);
+
+        if ((sd->w == w) && (sd->h == h)) return;
+
+        sd->w = w;
+        sd->h = h;
+
+        _glview_update_surface(obj);
      }
 }
 
 static Eina_Bool
 _render_cb(void *obj)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return EINA_FALSE;
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
    // Do a make current
-   if (!evas_gl_make_current(wd->evasgl, wd->surface, wd->context))
+   if (!evas_gl_make_current(sd->evasgl, sd->surface, sd->context))
      {
-        wd->render_idle_enterer = NULL;
+        sd->render_idle_enterer = NULL;
         ERR("Failed doing make current.\n");
         return EINA_FALSE;
      }
 
    // Call the init function if it hasn't been called already
-   if (!wd->initialized)
+   if (!sd->initialized)
      {
-        if (wd->init_func) wd->init_func(obj);
-        wd->initialized = EINA_TRUE;
+        if (sd->init_func) sd->init_func(obj);
+        sd->initialized = EINA_TRUE;
      }
 
-   if (wd->resized)
+   if (sd->resized)
      {
-        if (wd->resize_func) wd->resize_func(obj);
-        wd->resized = EINA_FALSE;
+        if (sd->resize_func) sd->resize_func(obj);
+        sd->resized = EINA_FALSE;
      }
 
    // Call the render function
-   if (wd->render_func) wd->render_func(obj);
+   if (sd->render_func) sd->render_func(obj);
 
    // Depending on the policy return true or false
-   if (wd->render_policy == ELM_GLVIEW_RENDER_POLICY_ON_DEMAND)
+   if (sd->render_policy == ELM_GLVIEW_RENDER_POLICY_ON_DEMAND)
      return EINA_TRUE;
-   else if (wd->render_policy == ELM_GLVIEW_RENDER_POLICY_ALWAYS)
+   else if (sd->render_policy == ELM_GLVIEW_RENDER_POLICY_ALWAYS)
      {
         // Return false so it only runs once
-        wd->render_idle_enterer = NULL;
+        sd->render_idle_enterer = NULL;
         return EINA_FALSE;
      }
    else
      {
         ERR("Invalid Render Policy.\n");
-        wd->render_idle_enterer = NULL;
+        sd->render_idle_enterer = NULL;
         return EINA_FALSE;
      }
+
    return EINA_TRUE;
 }
 
 static void
 _set_render_policy_callback(Evas_Object *obj)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
-   switch (wd->render_policy)
+   switch (sd->render_policy)
      {
       case ELM_GLVIEW_RENDER_POLICY_ON_DEMAND:
-         // Delete idle_enterer if it for some reason is around
-         if (wd->render_idle_enterer)
-           {
-              ecore_idle_enterer_del(wd->render_idle_enterer);
-              wd->render_idle_enterer = NULL;
-           }
+        // Delete idle_enterer if it for some reason is around
+        if (sd->render_idle_enterer)
+          {
+             ecore_idle_enterer_del(sd->render_idle_enterer);
+             sd->render_idle_enterer = NULL;
+          }
 
-         // Set pixel getter callback
-         evas_object_image_pixels_get_callback_set
-            (wd->glview_image, (Evas_Object_Image_Pixels_Get_Cb)_render_cb, obj);
-         break;
+        // Set pixel getter callback
+        evas_object_image_pixels_get_callback_set
+          (ELM_WIDGET_DATA(sd)->resize_obj,
+          (Evas_Object_Image_Pixels_Get_Cb)_render_cb,
+          obj);
+        break;
+
       case ELM_GLVIEW_RENDER_POLICY_ALWAYS:
-         // Unset the pixel getter callback if set already
-         evas_object_image_pixels_get_callback_set(wd->glview_image, NULL, NULL);
+        // Unset the pixel getter callback if set already
+        evas_object_image_pixels_get_callback_set
+          (ELM_WIDGET_DATA(sd)->resize_obj, NULL, NULL);
 
-         break;
+        break;
+
       default:
-         ERR("Invalid Render Policy.\n");
-         return;
+        ERR("Invalid Render Policy.\n");
+        return;
      }
+}
+
+static void
+_elm_glview_smart_add(Evas_Object *obj)
+{
+   EVAS_SMART_DATA_ALLOC(obj, Elm_Glview_Smart_Data);
+
+   // Create image to render Evas_GL Surface
+   Evas_Object *img = evas_object_image_filled_add(evas_object_evas_get(obj));
+   elm_widget_resize_object_set(obj, img, EINA_TRUE);
+   evas_object_image_size_set(img, 1, 1);
+
+   _elm_glview_parent_sc->base.add(obj);
+
+   // Evas_GL
+   priv->evasgl = evas_gl_new(evas_object_evas_get(obj));
+   if (!priv->evasgl)
+     {
+        ERR("Failed Creating an Evas GL Object.\n");
+
+        return;
+     }
+
+   // Create a default config
+   priv->config = evas_gl_config_new();
+   if (!priv->config)
+     {
+        ERR("Failed Creating a Config Object.\n");
+        evas_object_del(obj);
+
+        evas_gl_free(priv->evasgl);
+        priv->evasgl = NULL;
+        return;
+     }
+   priv->config->color_format = EVAS_GL_RGB_888;
+
+   // Initialize variables
+   priv->mode = 0;
+   priv->scale_policy = ELM_GLVIEW_RESIZE_POLICY_RECREATE;
+   priv->render_policy = ELM_GLVIEW_RENDER_POLICY_ON_DEMAND;
+   priv->surface = NULL;
+
+   // Initialize it to (64,64)  (It's an arbitrary value)
+   priv->w = 64;
+   priv->h = 64;
+
+   // Initialize the rest of the values
+   priv->init_func = NULL;
+   priv->del_func = NULL;
+   priv->render_func = NULL;
+   priv->render_idle_enterer = NULL;
+   priv->initialized = EINA_FALSE;
+   priv->resized = EINA_FALSE;
+}
+
+static void
+_elm_glview_smart_del(Evas_Object *obj)
+{
+   ELM_GLVIEW_DATA_GET(obj, sd);
+
+   // Call delete func if it's registered
+   if (sd->del_func)
+     {
+        evas_gl_make_current(sd->evasgl, sd->surface, sd->context);
+        sd->del_func(obj);
+     }
+
+   if (sd->render_idle_enterer)
+     ecore_idle_enterer_del(sd->render_idle_enterer);
+
+   if (sd->surface)
+     {
+        evas_object_image_native_surface_set(ELM_WIDGET_DATA(sd)->resize_obj, NULL);
+        evas_gl_surface_destroy(sd->evasgl, sd->surface);
+     }
+   if (sd->context) evas_gl_context_destroy(sd->evasgl, sd->context);
+   if (sd->config) evas_gl_config_free(sd->config);
+   if (sd->evasgl) evas_gl_free(sd->evasgl);
+
+   _elm_glview_parent_sc->base.del(obj); /* handles freeing sd */
+}
+
+static void
+_elm_glview_smart_set_user(Elm_Glview_Smart_Class *sc)
+{
+   ELM_WIDGET_CLASS(sc)->base.add = _elm_glview_smart_add;
+   ELM_WIDGET_CLASS(sc)->base.del = _elm_glview_smart_del;
+   ELM_WIDGET_CLASS(sc)->base.resize = _elm_glview_smart_resize;
+
+   ELM_WIDGET_CLASS(sc)->on_focus = _elm_glview_smart_on_focus;
+   ELM_WIDGET_CLASS(sc)->translate = _elm_glview_smart_translate;
+}
+
+EAPI const Elm_Glview_Smart_Class *
+elm_glview_smart_class_get(void)
+{
+   static Elm_Glview_Smart_Class _sc =
+     ELM_GLVIEW_SMART_CLASS_INIT_NAME_VERSION(ELM_GLVIEW_SMART_NAME);
+   static const Elm_Glview_Smart_Class *class = NULL;
+   Evas_Smart_Class *esc = (Evas_Smart_Class *)&_sc;
+
+   if (class) return class;
+
+   _elm_glview_smart_set(&_sc);
+   esc->callbacks = _smart_callbacks;
+   class = &_sc;
+
+   return class;
 }
 
 EAPI Evas_Object *
 elm_glview_add(Evas_Object *parent)
 {
+   return elm_glview_version_add(parent, EVAS_GL_GLES_2_X);
+}
+
+EAPI Evas_Object *
+elm_glview_version_add(Evas_Object *parent, Evas_GL_Context_Version version)
+{
    Evas_Object *obj;
-   Evas *e;
-   Widget_Data *wd;
 
-   ELM_WIDGET_STANDARD_SETUP(wd, Widget_Data, parent, e, obj, NULL);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
 
-   ELM_SET_WIDTYPE(widtype, "glview");
-   elm_widget_type_set(obj, "glview");
-   elm_widget_sub_object_add(parent, obj);
-   elm_widget_on_focus_hook_set(obj, _on_focus_hook, NULL);
-   elm_widget_data_set(obj, wd);
-   elm_widget_del_hook_set(obj, _del_hook);
+   obj = elm_widget_add(_elm_glview_smart_class_new(), parent);
+   if (!obj) return NULL;
 
-   // Evas_GL
-   wd->evasgl = evas_gl_new(e);
-   if (!wd->evasgl)
+   ELM_GLVIEW_DATA_GET(obj, sd);
+
+   if (!sd->evasgl)
+     return NULL;
+
+   sd->gles_version =
+     ((version > 0) && (version <= 3)) ? version : EVAS_GL_GLES_2_X;
+   sd->config->gles_version = sd->gles_version;
+
+   // Create Context - this was in smart_add before.
+   if (sd->gles_version == EVAS_GL_GLES_2_X)
+     sd->context = evas_gl_context_create(sd->evasgl, NULL);
+   else
+     sd->context = evas_gl_context_version_create(sd->evasgl, NULL, sd->gles_version);
+   if (!sd->context)
      {
-        ERR("Failed Creating an Evas GL Object.\n");
+        ERR("Error Creating an Evas_GL Context.\n");
+        evas_object_del(obj);
+
+        evas_gl_config_free(sd->config);
+        evas_gl_free(sd->evasgl);
+        sd->evasgl = NULL;
         return NULL;
      }
 
-   // Create a default config
-   wd->config = evas_gl_config_new();
-   if (!wd->config)
-     {
-        ERR("Failed Creating a Config Object.\n");
-        evas_gl_free(wd->evasgl);
-        return NULL;
-     }
-   wd->config->color_format = EVAS_GL_RGB_888;
+   if (!elm_widget_sub_object_add(parent, obj))
+     ERR("could not add %p as sub object of %p", obj, parent);
 
-   // Create image to render Evas_GL Surface
-   wd->glview_image = evas_object_image_filled_add(e);
-   evas_object_image_size_set(wd->glview_image, 1, 1);
-   evas_object_event_callback_add(wd->glview_image, EVAS_CALLBACK_RESIZE,
-                                  _glview_resize, obj);
-   elm_widget_resize_object_set(obj, wd->glview_image);
-   evas_object_show(wd->glview_image);
+   //Tizen Only: This should be removed when eo is applied.
+   ELM_WIDGET_DATA_GET(obj, sd1);
+   sd1->on_create = EINA_FALSE;
 
-   // Initialize variables
-   wd->mode                = 0;
-   wd->scale_policy        = ELM_GLVIEW_RESIZE_POLICY_RECREATE;
-   wd->render_policy       = ELM_GLVIEW_RENDER_POLICY_ON_DEMAND;
-   wd->surface             = NULL;
-
-   // Initialize it to (64,64)  (It's an arbitrary value)
-   wd->w                   = 64;
-   wd->h                   = 64;
-
-   // Initialize the rest of the values
-   wd->init_func           = NULL;
-   wd->del_func            = NULL;
-   wd->render_func         = NULL;
-   wd->render_idle_enterer = NULL;
-   wd->initialized         = EINA_FALSE;
-   wd->resized             = EINA_FALSE;
-
-   // Create Context
-   if (!wd->context)
-     {
-        wd->context = evas_gl_context_create(wd->evasgl, NULL);
-        if (!wd->context)
-          {
-             ERR("Error Creating an Evas_GL Context.\n");
-             return NULL;
-          }
-     }
    return obj;
 }
 
 EAPI Evas_GL_API *
 elm_glview_gl_api_get(const Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) NULL;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return NULL;
+   ELM_GLVIEW_CHECK(obj) NULL;
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
-   return evas_gl_api_get(wd->evasgl);
+   return evas_gl_context_api_get(sd->evasgl, sd->context);
 }
 
 EAPI Eina_Bool
-elm_glview_mode_set(Evas_Object *obj, Elm_GLView_Mode mode)
+elm_glview_mode_set(Evas_Object *obj,
+                    Elm_GLView_Mode mode)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) EINA_FALSE;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return EINA_FALSE;
+   ELM_GLVIEW_CHECK(obj) EINA_FALSE;
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
    // Set the configs
-   if (mode & ELM_GLVIEW_ALPHA)
-      wd->config->color_format = EVAS_GL_RGBA_8888;
-   else
-      wd->config->color_format = EVAS_GL_RGB_888;
+   if (mode & ELM_GLVIEW_ALPHA) sd->config->color_format = EVAS_GL_RGBA_8888;
+   else sd->config->color_format = EVAS_GL_RGB_888;
 
    if (mode & ELM_GLVIEW_DEPTH)
-      wd->config->depth_bits = EVAS_GL_DEPTH_BIT_24;
+     {
+        const int mask = 7 << 6;
+        if ((mode & mask) == (ELM_GLVIEW_DEPTH_8 & mask))
+          sd->config->depth_bits = EVAS_GL_DEPTH_BIT_8;
+        else if ((mode & mask) == (ELM_GLVIEW_DEPTH_16 & mask))
+          sd->config->depth_bits = EVAS_GL_DEPTH_BIT_16;
+        else if ((mode & mask) == (ELM_GLVIEW_DEPTH_24 & mask))
+          sd->config->depth_bits = EVAS_GL_DEPTH_BIT_24;
+        else if ((mode & mask) == (ELM_GLVIEW_DEPTH_32 & mask))
+          sd->config->depth_bits = EVAS_GL_DEPTH_BIT_32;
+        else
+          sd->config->depth_bits = EVAS_GL_DEPTH_BIT_24;
+     }
    else
-      wd->config->depth_bits = EVAS_GL_DEPTH_NONE;
+     sd->config->depth_bits = EVAS_GL_DEPTH_NONE;
 
    if (mode & ELM_GLVIEW_STENCIL)
-      wd->config->stencil_bits = EVAS_GL_STENCIL_BIT_8;
+     {
+        const int mask = 7 << 9;
+        if ((mode & mask) == (ELM_GLVIEW_STENCIL_1 & mask))
+          sd->config->stencil_bits = EVAS_GL_STENCIL_BIT_1;
+        else if ((mode & mask) == (ELM_GLVIEW_STENCIL_2 & mask))
+          sd->config->stencil_bits = EVAS_GL_STENCIL_BIT_2;
+        else if ((mode & mask) == (ELM_GLVIEW_STENCIL_4 & mask))
+          sd->config->stencil_bits = EVAS_GL_STENCIL_BIT_4;
+        else if ((mode & mask) == (ELM_GLVIEW_STENCIL_8 & mask))
+          sd->config->stencil_bits = EVAS_GL_STENCIL_BIT_8;
+        else if ((mode & mask) == (ELM_GLVIEW_STENCIL_16 & mask))
+          sd->config->stencil_bits = EVAS_GL_STENCIL_BIT_16;
+        else
+          sd->config->stencil_bits = EVAS_GL_STENCIL_BIT_8;
+     }
    else
-      wd->config->stencil_bits = EVAS_GL_STENCIL_NONE;
+     sd->config->stencil_bits = EVAS_GL_STENCIL_NONE;
 
-   if (mode & ELM_GLVIEW_DIRECT)
-      wd->config->options_bits = EVAS_GL_OPTIONS_DIRECT;
+   if (mode & ELM_GLVIEW_MULTISAMPLE_HIGH)
+     {
+        if ((mode & ELM_GLVIEW_MULTISAMPLE_HIGH) == ELM_GLVIEW_MULTISAMPLE_LOW)
+          sd->config->multisample_bits = EVAS_GL_MULTISAMPLE_LOW;
+        else if ((mode & ELM_GLVIEW_MULTISAMPLE_HIGH) == ELM_GLVIEW_MULTISAMPLE_MED)
+          sd->config->multisample_bits = EVAS_GL_MULTISAMPLE_MED;
+        else
+          sd->config->multisample_bits = EVAS_GL_MULTISAMPLE_HIGH;
+     }
    else
-      wd->config->options_bits = EVAS_GL_OPTIONS_NONE;
+     sd->config->multisample_bits = EVAS_GL_MULTISAMPLE_NONE;
+
+   sd->config->options_bits = EVAS_GL_OPTIONS_NONE;
+   if (mode & ELM_GLVIEW_DIRECT)
+     sd->config->options_bits = EVAS_GL_OPTIONS_DIRECT;
+   if (mode & ELM_GLVIEW_CLIENT_SIDE_ROTATION)
+     sd->config->options_bits |= EVAS_GL_OPTIONS_CLIENT_SIDE_ROTATION;
 
    // Check for Alpha Channel and enable it
    if (mode & ELM_GLVIEW_ALPHA)
-     evas_object_image_alpha_set(wd->glview_image, EINA_TRUE);
+     evas_object_image_alpha_set(ELM_WIDGET_DATA(sd)->resize_obj, EINA_TRUE);
    else
-     evas_object_image_alpha_set(wd->glview_image, EINA_FALSE);
+     evas_object_image_alpha_set(ELM_WIDGET_DATA(sd)->resize_obj, EINA_FALSE);
 
-   wd->mode = mode;
+   sd->mode = mode;
 
    elm_glview_changed_set(obj);
 
@@ -332,33 +433,34 @@ elm_glview_mode_set(Evas_Object *obj, Elm_GLView_Mode mode)
 }
 
 EAPI Eina_Bool
-elm_glview_resize_policy_set(Evas_Object *obj, Elm_GLView_Resize_Policy policy)
+elm_glview_resize_policy_set(Evas_Object *obj,
+                             Elm_GLView_Resize_Policy policy)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) EINA_FALSE;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return EINA_FALSE;
+   ELM_GLVIEW_CHECK(obj) EINA_FALSE;
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
-   if (policy == wd->scale_policy) return EINA_TRUE;
+   if (policy == sd->scale_policy) return EINA_TRUE;
    switch (policy)
      {
       case ELM_GLVIEW_RESIZE_POLICY_RECREATE:
       case ELM_GLVIEW_RESIZE_POLICY_SCALE:
-         wd->scale_policy = policy;
-         _glview_update_surface(obj);
-         elm_glview_changed_set(obj);
-         return EINA_TRUE;
+        sd->scale_policy = policy;
+        _glview_update_surface(obj);
+        elm_glview_changed_set(obj);
+        return EINA_TRUE;
+
       default:
-         ERR("Invalid Scale Policy.\n");
-         return EINA_FALSE;
+        ERR("Invalid Scale Policy.\n");
+        return EINA_FALSE;
      }
 }
 
 EAPI Eina_Bool
-elm_glview_render_policy_set(Evas_Object *obj, Elm_GLView_Render_Policy policy)
+elm_glview_render_policy_set(Evas_Object *obj,
+                             Elm_GLView_Render_Policy policy)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype) EINA_FALSE;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return EINA_FALSE;
+   ELM_GLVIEW_CHECK(obj) EINA_FALSE;
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
    if ((policy != ELM_GLVIEW_RENDER_POLICY_ON_DEMAND) &&
        (policy != ELM_GLVIEW_RENDER_POLICY_ALWAYS))
@@ -366,97 +468,106 @@ elm_glview_render_policy_set(Evas_Object *obj, Elm_GLView_Render_Policy policy)
         ERR("Invalid Render Policy.\n");
         return EINA_FALSE;
      }
-   if (wd->render_policy == policy) return EINA_TRUE;
-   wd->render_policy = policy;
+
+   if (sd->render_policy == policy) return EINA_TRUE;
+
+   sd->render_policy = policy;
    _set_render_policy_callback(obj);
    _glview_update_surface(obj);
+
    return EINA_TRUE;
 }
 
 EAPI void
-elm_glview_size_set(Evas_Object *obj, int w, int h)
+elm_glview_size_set(Evas_Object *obj,
+                    int w,
+                    int h)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   ELM_GLVIEW_CHECK(obj);
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
-   if ((w == wd->w) && (h == wd->h)) return;
-   wd->w = w;
-   wd->h = h;
+   if ((w == sd->w) && (h == sd->h)) return;
+
+   sd->w = w;
+   sd->h = h;
    _glview_update_surface(obj);
+
    elm_glview_changed_set(obj);
 }
 
 EAPI void
-elm_glview_size_get(const Evas_Object *obj, int *w, int *h)
+elm_glview_size_get(const Evas_Object *obj,
+                    int *w,
+                    int *h)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   ELM_GLVIEW_CHECK(obj);
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
-   if (w) *w = wd->w;
-   if (h) *h = wd->h;
+   if (w) *w = sd->w;
+   if (h) *h = sd->h;
 }
 
 EAPI void
-elm_glview_init_func_set(Evas_Object *obj, Elm_GLView_Func_Cb func)
+elm_glview_init_func_set(Evas_Object *obj,
+                         Elm_GLView_Func_Cb func)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   ELM_GLVIEW_CHECK(obj);
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
-   wd->initialized = EINA_FALSE;
-   wd->init_func = func;
+   sd->initialized = EINA_FALSE;
+   sd->init_func = func;
 }
 
 EAPI void
-elm_glview_del_func_set(Evas_Object *obj, Elm_GLView_Func_Cb func)
+elm_glview_del_func_set(Evas_Object *obj,
+                        Elm_GLView_Func_Cb func)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-    if (!wd) return;
+   ELM_GLVIEW_CHECK(obj);
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
-   wd->del_func = func;
+   sd->del_func = func;
 }
 
 EAPI void
-elm_glview_resize_func_set(Evas_Object *obj, Elm_GLView_Func_Cb func)
+elm_glview_resize_func_set(Evas_Object *obj,
+                           Elm_GLView_Func_Cb func)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-    if (!wd)
-     {
-        ERR("Invalid Widget Object.\n");
-        return;
-     }
+   ELM_GLVIEW_CHECK(obj);
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
-   wd->resize_func = func;
+   sd->resize_func = func;
 }
 
 EAPI void
-elm_glview_render_func_set(Evas_Object *obj, Elm_GLView_Func_Cb func)
+elm_glview_render_func_set(Evas_Object *obj,
+                           Elm_GLView_Func_Cb func)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   ELM_GLVIEW_CHECK(obj);
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
-   wd->render_func = func;
+   sd->render_func = func;
    _set_render_policy_callback(obj);
 }
 
 EAPI void
 elm_glview_changed_set(Evas_Object *obj)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   ELM_GLVIEW_CHECK(obj);
+   ELM_GLVIEW_DATA_GET(obj, sd);
 
-   evas_object_image_pixels_dirty_set(wd->glview_image, EINA_TRUE);
-   if (wd->render_policy == ELM_GLVIEW_RENDER_POLICY_ALWAYS)
-     {
-        if (!wd->render_idle_enterer)
-          wd->render_idle_enterer = ecore_idle_enterer_before_add((Ecore_Task_Cb)_render_cb, obj);
-     }
+   evas_object_image_pixels_dirty_set
+     (ELM_WIDGET_DATA(sd)->resize_obj, EINA_TRUE);
+   if (sd->render_policy == ELM_GLVIEW_RENDER_POLICY_ALWAYS &&
+       !sd->render_idle_enterer)
+     sd->render_idle_enterer =
+       ecore_idle_enterer_before_add((Ecore_Task_Cb)_render_cb, obj);
 }
 
-/* vim:set ts=8 sw=3 sts=3 expandtab cino=>5n-3f0^-2{2(0W1st0 :*/
+EAPI Evas_GL *
+elm_glview_evas_gl_get(Evas_Object *obj)
+{
+   ELM_GLVIEW_CHECK(obj) NULL;
+   ELM_GLVIEW_DATA_GET_OR_RETURN_VAL(obj, sd, NULL);
+
+   return sd->evasgl;
+}

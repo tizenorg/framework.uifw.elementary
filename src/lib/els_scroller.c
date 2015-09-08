@@ -4,12 +4,157 @@
 #include "els_pan.h"
 
 #define SMART_NAME "els_scroller"
-#define API_ENTRY Smart_Data *sd; sd = evas_object_smart_data_get(obj); if ((!obj) || (!sd) || (evas_object_type_get(obj) && strcmp(evas_object_type_get(obj), SMART_NAME)))
+#define API_ENTRY Smart_Data *sd = NULL; if ((!obj) || (!(sd = evas_object_smart_data_get(obj))) || (evas_object_type_get(obj) && strcmp(evas_object_type_get(obj), SMART_NAME)))
 #define INTERNAL_ENTRY Smart_Data *sd; sd = evas_object_smart_data_get(obj); if (!sd) return;
 typedef struct _Smart_Data Smart_Data;
 
 #define EVTIME 1
 //#define SCROLLDBG 1
+
+/* smoothness debug calls - for debugging how much smooth your app is */
+#define SMOOTHDBG 1
+
+#ifdef SMOOTHDBG
+#define SMOOTH_DEBUG_COUNT 100
+#define FPS 1/60
+typedef struct _smooth_debug_info smooth_debug_info;
+struct _smooth_debug_info
+{
+   double t;
+   double dt;
+   Evas_Coord pos;
+   Evas_Coord dpos;
+   double vpos;
+};
+
+static smooth_debug_info smooth_x_history[SMOOTH_DEBUG_COUNT];
+static smooth_debug_info smooth_y_history[SMOOTH_DEBUG_COUNT];
+static int smooth_info_x_count = 0;
+static int smooth_info_y_count = 0;
+static double start_time = 0;
+static int _els_scroller_smooth_debug = 0;
+
+void
+_els_scroller_smooth_debug_init(void)
+{
+   start_time = ecore_time_get();
+   smooth_info_x_count = 0;
+   smooth_info_y_count = 0;
+
+   memset(&(smooth_x_history[0]), 0, sizeof(smooth_x_history[0]) * SMOOTH_DEBUG_COUNT);
+   memset(&(smooth_y_history[0]), 0, sizeof(smooth_y_history[0]) * SMOOTH_DEBUG_COUNT);
+
+   return;
+}
+
+void
+_els_scroller_smooth_debug_shutdown(void)
+{
+   int i = 0;
+   int info_x_count = 0;
+   int info_y_count = 0;
+   double x_ave = 0, y_ave = 0;
+   double x_sum = 0, y_sum = 0;
+   double x_dev = 0, y_dev = 0;
+   double x_dev_sum = 0, y_dev_sum = 0;
+
+   if (smooth_info_x_count >= SMOOTH_DEBUG_COUNT)
+     info_x_count = SMOOTH_DEBUG_COUNT;
+   else
+     info_x_count = smooth_info_x_count;
+
+   if (smooth_info_y_count >= SMOOTH_DEBUG_COUNT)
+     info_y_count = SMOOTH_DEBUG_COUNT;
+   else
+     info_y_count = smooth_info_y_count;
+
+   printf("\n\n<<< X-axis Smoothness >>>\n");
+   printf("| Num  | t(time)  | dt       | x    | dx   |vx(dx/1fps) |\n");
+
+   for (i = info_x_count -1; i >= 0; i--)
+     {
+        printf("| %4d | %1.6f | %1.6f | %4d | %4d | %9.3f |\n",info_x_count - i,
+               smooth_x_history[i].t,
+               smooth_x_history[i].dt,
+               smooth_x_history[i].pos,
+               smooth_x_history[i].dpos,
+               smooth_x_history[i].vpos);
+        if (i == info_x_count -1) continue;
+        x_sum += smooth_x_history[i].vpos;
+     }
+   x_ave = x_sum / (info_x_count - 1);
+   for (i = 0; i < info_x_count -1; i++)
+     {
+        x_dev_sum += (smooth_x_history[i].vpos - x_ave) * (smooth_x_history[i].vpos - x_ave);
+     }
+   x_dev = x_dev_sum / (info_x_count -1);
+   printf(" Standard deviation of X-axis velocity: %9.3f\n", sqrt(x_dev));
+
+   printf("\n\n<<< Y-axis Smoothness >>>\n");
+   printf("| Num  | t(time)  | dt       | y    |  dy  |vy(dy/1fps) |\n");
+   for (i = info_y_count -1; i >= 0; i--)
+     {
+        printf("| %4d | %1.6f | %1.6f | %4d | %4d | %9.3f |\n", info_y_count - i,
+               smooth_y_history[i].t,
+               smooth_y_history[i].dt,
+               smooth_y_history[i].pos,
+               smooth_y_history[i].dpos,
+               smooth_y_history[i].vpos);
+        if (i == info_y_count -1) continue;
+        y_sum += smooth_y_history[i].vpos;
+     }
+   y_ave = y_sum / (info_y_count - 1);
+   for (i = 0; i < info_y_count -1; i++)
+     {
+        y_dev_sum += (smooth_y_history[i].vpos - y_ave) * (smooth_y_history[i].vpos - y_ave);
+     }
+   y_dev = y_dev_sum / (info_y_count -1);
+   printf(" Standard deviation of Y-axis velocity: %9.3f\n", sqrt(y_dev));
+}
+
+void
+_els_scroller_smooth_debug_movetime_add(int x, int y)
+{
+   double tim = 0;
+   static int bx = 0;
+   static int by = 0;
+
+   tim = ecore_time_get();
+
+   if (bx != x)
+     {
+        smooth_info_x_count++;
+        memmove(&(smooth_x_history[1]), &(smooth_x_history[0]), sizeof(smooth_x_history[0]) * (SMOOTH_DEBUG_COUNT - 1));
+        smooth_x_history[0].t = tim - start_time;
+        smooth_x_history[0].dt = smooth_x_history[0].t - smooth_x_history[1].t;
+        smooth_x_history[0].pos = x;
+        smooth_x_history[0].dpos = smooth_x_history[0].pos - smooth_x_history[1].pos;
+
+        if (smooth_x_history[0].dpos >= 0)
+          smooth_x_history[0].vpos = (double)(smooth_x_history[0].dpos) / smooth_x_history[0].dt * FPS;
+        else
+          smooth_x_history[0].vpos = -((double)(smooth_x_history[0].dpos) / smooth_x_history[0].dt * FPS);
+     }
+
+   if (by != y)
+     {
+        smooth_info_y_count++;
+        memmove(&(smooth_y_history[1]), &(smooth_y_history[0]), sizeof(smooth_y_history[0]) * (SMOOTH_DEBUG_COUNT - 1));
+        smooth_y_history[0].t = tim - start_time;
+        smooth_y_history[0].dt = smooth_y_history[0].t - smooth_y_history[1].t;
+        smooth_y_history[0].pos = y;
+        smooth_y_history[0].dpos = smooth_y_history[0].pos - smooth_y_history[1].pos;
+
+        if (smooth_y_history[0].dpos >= 0)
+          smooth_y_history[0].vpos = (double)(smooth_y_history[0].dpos) / smooth_y_history[0].dt * FPS;
+        else
+          smooth_y_history[0].vpos = -((double)(smooth_y_history[0].dpos) / smooth_y_history[0].dt * FPS);
+     }
+
+   bx = x;
+   by = y;
+}
+#endif
 
 struct _Smart_Data
 {
@@ -124,6 +269,10 @@ struct _Smart_Data
    Eina_Bool bounce_animator_disabled :1;
    Eina_Bool is_mirrored : 1;
    Eina_Bool wheel_disabled : 1;
+   Eina_Bool go_left : 1;
+   Eina_Bool go_right : 1;
+   Eina_Bool go_up : 1;
+   Eina_Bool go_down : 1;
 };
 
 /* local subsystem functions */
@@ -171,6 +320,57 @@ elm_smart_scroller_add(Evas *evas)
 {
    _smart_init();
    return evas_object_smart_add(evas, _smart);
+}
+
+static void
+_elm_direction_arrows_eval(Smart_Data *sd)
+{
+   Eina_Bool go_left = EINA_TRUE, go_right = EINA_TRUE;
+   Eina_Bool go_up = EINA_TRUE, go_down = EINA_TRUE;
+   Evas_Coord x = 0, y = 0, mx = 0, my = 0, minx = 0, miny = 0;
+   
+   if (!sd->edje_obj || !sd->pan_obj) return;
+   
+   sd->pan_func.max_get(sd->pan_obj, &mx, &my);
+   sd->pan_func.min_get(sd->pan_obj, &minx, &miny);
+   sd->pan_func.get(sd->pan_obj, &x, &y);
+   
+   if (x == minx) go_left = EINA_FALSE;
+   if (x == (mx + minx)) go_right = EINA_FALSE;
+   if (y == miny) go_up = EINA_FALSE;
+   if (y == (my + miny)) go_down = EINA_FALSE;
+   if (go_left != sd->go_left)
+     {
+        if (go_left)
+          edje_object_signal_emit(sd->edje_obj, "elm,action,show,left", "elm");
+        else
+          edje_object_signal_emit(sd->edje_obj, "elm,action,hide,left", "elm");
+        sd->go_left = go_left;
+     }
+   if (go_right != sd->go_right)
+     {
+        if (go_right)
+          edje_object_signal_emit(sd->edje_obj, "elm,action,show,right", "elm");
+        else
+          edje_object_signal_emit(sd->edje_obj, "elm,action,hide,right", "elm");
+        sd->go_right= go_right;
+     }
+   if (go_up != sd->go_up)
+     {
+        if (go_up)
+          edje_object_signal_emit(sd->edje_obj, "elm,action,show,up", "elm");
+        else
+          edje_object_signal_emit(sd->edje_obj, "elm,action,hide,up", "elm");
+        sd->go_up = go_up;
+     }
+   if (go_down != sd->go_down)
+     {
+        if (go_down)
+          edje_object_signal_emit(sd->edje_obj, "elm,action,show,down", "elm");
+        else
+          edje_object_signal_emit(sd->edje_obj, "elm,action,hide,down", "elm");
+        sd->go_down= go_down;
+     }
 }
 
 static Evas_Coord
@@ -301,6 +501,20 @@ elm_smart_scroller_extern_pan_set(Evas_Object *obj, Evas_Object *pan,
    evas_object_show(sd->pan_obj);
 }
 
+static void
+_elm_smart_scroller_custom_edje_file_reload(void *data,
+					    Evas_Object *obj,
+					    const char *emission __UNUSED__,
+					    const char *source __UNUSED__)
+{
+   Evas_Object *scroller = data;
+   const char *file;
+   const char *group;
+
+   edje_object_file_get(obj, &file, &group);
+   elm_smart_scroller_custom_edje_file_set(scroller, (char*) file, (char*) group);
+}
+
 void
 elm_smart_scroller_custom_edje_file_set(Evas_Object *obj, char *file, char *group)
 {
@@ -309,6 +523,13 @@ elm_smart_scroller_custom_edje_file_set(Evas_Object *obj, char *file, char *grou
    edje_object_file_set(sd->edje_obj, file, group);
    if (sd->pan_obj)
      edje_object_part_swallow(sd->edje_obj, "elm.swallow.content", sd->pan_obj);
+   edje_object_signal_callback_del(sd->edje_obj,
+                                   "edje,change,file", "edje",
+                                   _elm_smart_scroller_custom_edje_file_reload);
+   edje_object_signal_callback_add(sd->edje_obj,
+                                   "edje,change,file", "edje",
+                                   _elm_smart_scroller_custom_edje_file_reload,
+                                   obj);
    sd->vbar_visible = !sd->vbar_visible;
    sd->hbar_visible = !sd->hbar_visible;
    _smart_scrollbar_bar_visibility_adjust(sd);
@@ -324,6 +545,7 @@ elm_smart_scroller_custom_edje_file_set(Evas_Object *obj, char *file, char *grou
      edje_object_signal_emit(sd->edje_obj, "elm,action,hide,vbar", "elm");
    else
      edje_object_signal_emit(sd->edje_obj, "elm,action,show_notalways,vbar", "elm");
+   _elm_direction_arrows_eval(sd);
 }
 
 Eina_Bool
@@ -1074,6 +1296,7 @@ elm_smart_scroller_child_pos_set(Evas_Object *obj, Evas_Coord x, Evas_Coord y)
         if (y == my + miny)
           evas_object_smart_callback_call(obj, "edge,bottom", NULL);
      }
+   _elm_direction_arrows_eval(sd);
 }
 
 void
@@ -1272,6 +1495,7 @@ elm_smart_scroller_policy_set(Evas_Object *obj, Elm_Smart_Scroller_Policy hbar, 
    else
      edje_object_signal_emit(sd->edje_obj, "elm,action,show_notalways,vbar", "elm");
    _smart_scrollbar_size_adjust(sd);
+   _elm_direction_arrows_eval(sd);
 }
 
 void
@@ -1445,7 +1669,7 @@ void
 elm_smart_scroller_page_show(Evas_Object *obj, int pagenumber_h, int pagenumber_v)
 {
    API_ENTRY return;
-   Evas_Coord x, y, w, h;
+   Evas_Coord x = 0, y = 0, w = 0, h = 0;
    elm_smart_scroller_child_viewport_size_get(sd->smart_obj, &w, &h);
    if (pagenumber_h >= 0) x = sd->pagesize_h * pagenumber_h;
    if (pagenumber_v >= 0) y = sd->pagesize_v * pagenumber_v;
@@ -1457,7 +1681,7 @@ void
 elm_smart_scroller_page_bring_in(Evas_Object *obj, int pagenumber_h, int pagenumber_v)
 {
    API_ENTRY return;
-   Evas_Coord x, y, w, h;
+   Evas_Coord x = 0, y = 0, w = 0, h = 0;
    elm_smart_scroller_child_viewport_size_get(sd->smart_obj, &w, &h);
    if (pagenumber_h >= 0) x = sd->pagesize_h * pagenumber_h;
    if (pagenumber_v >= 0) y = sd->pagesize_v * pagenumber_v;
@@ -1698,6 +1922,12 @@ _smart_event_mouse_down(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSE
 
    sd = data;
    ev = event_info;
+
+#ifdef SMOOTHDBG
+   if (getenv("ELS_SCROLLER_SMOOTH_DEBUG")) _els_scroller_smooth_debug = 1;
+   if (_els_scroller_smooth_debug) _els_scroller_smooth_debug_init();
+#endif
+
    //   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return ;
    if (_elm_config->thumbscroll_enable)
      {
@@ -1840,6 +2070,72 @@ _smart_hold_animator(void *data)
    fx = sd->down.hold_x;
    fy = sd->down.hold_y;
 
+   if ((!sd->hold) && (!sd->freeze) && (_elm_config->scroll_smooth_time_interval > 0.0))
+     {
+        int i, count = 0; //count for the real event number we have to deal with
+        int queue_size = 10; //for event queue size
+        int src_index = 0, dst_index = 0;
+        int xsum = 0, ysum = 0;
+        Evas_Coord  x = 0, y = 0;
+
+        struct {
+             Evas_Coord x, y;
+             double t;
+        } pos[queue_size];
+
+        double tdiff, tnow;
+        double time_interval = _elm_config->scroll_smooth_time_interval;
+        // FIXME: assume server and client have the same "timezone"
+        // (0 timepoint) for now. this needs to be figured out in advance
+        // though.
+        tdiff = sd->down.hist.est_timestamp_diff;
+        tnow = ecore_time_get() - tdiff;
+
+        for(i = 0; i < queue_size; i++)
+          {
+             x = sd->down.history[i].x;
+             y = sd->down.history[i].y;
+
+             //if there is no history value , we don't deal with it
+             //if there is better wat to know existance of history value , I will modify this code to it
+             if ( (x == 0) && (y == 0) )
+               {
+                  break;
+               }
+             _down_coord_eval(sd, &x, &y);
+
+             pos[i].x = x;
+             pos[i].y = y;
+             pos[i].t = tnow - sd->down.history[i].timestamp;
+          }
+        count = --i;
+
+        // we only deal with smooth scroll there is enough history
+        for(i = 0; i < queue_size; i++)
+          {
+             if (src_index > count) break;
+             if (i == 0)
+               {
+                  xsum = pos[i].x;
+                  ysum = pos[i].y;
+                  dst_index++;
+                  continue;
+               }
+             while ((pos[src_index].t < time_interval * i) && (src_index <= count))
+               {
+                  src_index++;
+          }
+             if (src_index <= count)
+          {
+                  xsum += pos[src_index].x;
+                  ysum += pos[src_index].y;
+                  dst_index++;
+               }
+          }
+        fx = xsum / dst_index;
+        fy = ysum / dst_index;
+     }
+
    elm_smart_scroller_child_pos_get(sd->smart_obj, &ox, &oy);
    if (sd->down.dir_x)
      {
@@ -1853,6 +2149,11 @@ _smart_hold_animator(void *data)
             (!elm_widget_drag_child_locked_y_get(sd->widget)))
           oy = fy;
      }
+
+#ifdef SMOOTHDBG
+   if (_els_scroller_smooth_debug)
+     _els_scroller_smooth_debug_movetime_add(ox, oy);
+#endif
 
    elm_smart_scroller_child_pos_set(sd->smart_obj, ox, oy);
    return ECORE_CALLBACK_RENEW;
@@ -1879,7 +2180,10 @@ _smart_event_mouse_up(void *data, Evas *e, Evas_Object *obj __UNUSED__, void *ev
    Evas_Event_Mouse_Down *ev;
    Smart_Data *sd;
    Evas_Coord x = 0, y = 0, ox = 0, oy = 0;
-   Evas_Coord vw, vh, aw, ah;
+
+#ifdef SMOOTHDBG
+   if (_els_scroller_smooth_debug) _els_scroller_smooth_debug_shutdown();
+#endif
 
    sd = data;
    ev = event_info;
@@ -1916,7 +2220,6 @@ _smart_event_mouse_up(void *data, Evas *e, Evas_Object *obj __UNUSED__, void *ev
 #else
                        t = ecore_loop_time_get();
 #endif
-                       ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
                        ax = ev->canvas.x;
                        ay = ev->canvas.y;
                        at = 0.0;
@@ -1948,16 +2251,43 @@ _smart_event_mouse_up(void *data, Evas *e, Evas_Object *obj __UNUSED__, void *ev
                             if ((_elm_config->thumbscroll_friction > 0.0) &&
                                 (vel > _elm_config->thumbscroll_momentum_threshold))
                               {
+                                 int minx, miny, mx, my, px, py;
+                                 sd->pan_func.min_get(sd->pan_obj, &minx, &miny);
+                                 sd->pan_func.max_get(sd->pan_obj, &mx, &my);
+                                 sd->pan_func.get(sd->pan_obj, &px, &py);
                                  sd->down.dx = ((double)dx / at);
                                  sd->down.dy = ((double)dy / at);
-                                 sd->down.extra_time = 0.0;
+                                 if (((sd->down.dx > 0) && (sd->down.pdx > 0)) ||
+                                     ((sd->down.dx < 0) && (sd->down.pdx < 0)))
+                                   if (px > minx && px < mx)
+                                     sd->down.dx += (double)sd->down.pdx * 1.5; // FIXME: * 1.5 - probably should be config
+                                 if (((sd->down.dy > 0) && (sd->down.pdy > 0)) ||
+                                     ((sd->down.dy < 0) && (sd->down.pdy < 0)))
+                                   if (py > miny && py < my)
+                                     sd->down.dy += (double)sd->down.pdy * 1.5; // FIXME: * 1.5 - probably should be config
+                                 if (((sd->down.dx > 0) && (sd->down.pdx > 0)) ||
+                                     ((sd->down.dx < 0) && (sd->down.pdx < 0)) ||
+                                     ((sd->down.dy > 0) && (sd->down.pdy > 0)) ||
+                                     ((sd->down.dy < 0) && (sd->down.pdy < 0)))
+                                   {
+                                      double tt = ecore_loop_time_get();
+                                      double dtt = tt - sd->down.anim_start;
+
+                                      if (dtt < 0.0) dtt = 0.0;
+                                      else if (dtt > _elm_config->thumbscroll_friction)
+                                        dtt = _elm_config->thumbscroll_friction;
+                                      sd->down.extra_time = _elm_config->thumbscroll_friction - dtt;
+                                   }
+                                 else
+                                   sd->down.extra_time = 0.0;
                                  sd->down.pdx = sd->down.dx;
                                  sd->down.pdy = sd->down.dy;
                                  ox = -sd->down.dx;
                                  oy = -sd->down.dy;
                                  if (!_smart_do_page(sd))
                                    {
-                                      if ((!sd->down.momentum_animator) && (!sd->momentum_animator_disabled))
+                                      if ((!sd->down.momentum_animator) && (!sd->momentum_animator_disabled) &&
+                                          (sd->widget) && (!elm_widget_drag_child_locked_y_get(sd->widget)))
                                         {
                                            sd->down.momentum_animator = ecore_animator_add(_smart_momentum_animator, sd);
                                            ev->event_flags |= EVAS_EVENT_FLAG_ON_SCROLL;
@@ -2042,10 +2372,7 @@ _smart_event_mouse_up(void *data, Evas *e, Evas_Object *obj __UNUSED__, void *ev
                   sd->down.scroll = EINA_FALSE;
                }
              if (sd->down.hold)
-               {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  sd->down.hold = EINA_FALSE;
-               }
+               sd->down.hold = EINA_FALSE;
              sd->down.dragged_began = EINA_FALSE;
              sd->down.dir_x = EINA_FALSE;
              sd->down.dir_y = EINA_FALSE;
@@ -2459,6 +2786,7 @@ _smart_scrollbar_read(Smart_Data *sd)
    sd->pan_func.set(sd->pan_obj, x, y);
    if ((px != x) || (py != y))
      edje_object_signal_emit(sd->edje_obj, "elm,action,scroll", "elm");
+   _elm_direction_arrows_eval(sd);
 }
 
 static void
@@ -2481,6 +2809,7 @@ _smart_scrollbar_reset(Smart_Data *sd)
      }
    if ((px != minx) || (py != miny))
      edje_object_signal_emit(sd->edje_obj, "elm,action,scroll", "elm");
+   _elm_direction_arrows_eval(sd);
 }
 
 static int
@@ -2549,6 +2878,7 @@ _smart_scrollbar_bar_v_visibility_adjust(Smart_Data *sd)
         else
           edje_object_signal_emit(sd->edje_obj, "elm,action,hide,vbar", "elm");
      }
+   _elm_direction_arrows_eval(sd);
    return scroll_v_vis_change;
 }
 
@@ -2619,6 +2949,7 @@ _smart_scrollbar_bar_h_visibility_adjust(Smart_Data *sd)
           edje_object_signal_emit(sd->edje_obj, "elm,action,hide,hbar", "elm");
         _smart_scrollbar_size_adjust(sd);
      }
+   _elm_direction_arrows_eval(sd);
    return scroll_h_vis_change;
 }
 
@@ -2639,6 +2970,7 @@ _smart_scrollbar_bar_visibility_adjust(Smart_Data *sd)
 static void
 _smart_scrollbar_size_adjust(Smart_Data *sd)
 {
+   if (!sd->pan_obj) return;
    if ((sd->child_obj) || (sd->extern_pan))
      {
         Evas_Coord x, y, w, h, mx = 0, my = 0, vw = 0, vh = 0, px, py, minx = 0, miny = 0;

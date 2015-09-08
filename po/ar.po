@@ -1,15 +1,15 @@
 # Elementary translation file for Left To Right languages.
 # This file is distributed under the same license as the Elementary package.
-# FIRST AUTHOR <tom.hacohen@partner.samsung.com>, 2010.
+# FIRST AUTHOR <tom.hacohen@samsung.com>, 2010.
 #
-#: src/lib/elm_config.c:2010
+#: src/lib/elm_config.c:2101
 msgid ""
 msgstr ""
 "Project-Id-Version: elementary\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2012-04-26 13:40+0900\n"
+"POT-Creation-Date: 2013-08-08 14:31+0000\n"
 "PO-Revision-Date: 2010-12-26 10:05+0200\n"
-"Last-Translator: Tom Hacohen <tom.hacohen@partner.samsung.com>\n"
+"Last-Translator: Shilpa Singh <shilpa.singh@samsung.com>\n"
 "Language-Team: General\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -18,97 +18,135 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
-#: src/lib/elc_fileselector.c:854
-msgid "Up"
-msgstr ""
-
-#: src/lib/elc_fileselector.c:869
-msgid "Home"
-msgstr ""
-
-#: src/lib/elc_fileselector.c:1021 src/lib/elm_entry.c:1371
+#: src/lib/elm_entry.c:2007
 msgid "Cancel"
-msgstr ""
+msgstr "إلغاء"
 
-#: src/lib/elc_fileselector.c:1031
-msgid "OK"
-msgstr ""
+#: src/lib/elm_entry.c:1246
+msgid "Copy"
+msgstr "نسخ"
 
-#: src/lib/elm_button.c:284
-msgid "Clicked"
-msgstr ""
+#: src/lib/elm_entry.c:1250
+msgid "Cut"
+msgstr "قص"
 
-#: src/lib/elm_button.c:405 src/lib/elm_check.c:390 src/lib/elm_radio.c:295
-#: src/lib/elm_toolbar.c:891
-msgid "State: Disabled"
-msgstr ""
+#: src/lib/elm_entry.c:1266
+msgid "Select"
+msgstr "اختيار"
 
-#: src/lib/elm_button.c:459
-msgid "Button"
-msgstr ""
+#: src/lib/elm_entry.c:1273
+msgid "Paste"
+msgstr "لصق"
 
-#: src/lib/elm_calendar.c:161
-msgid "%B %Y"
-msgstr ""
+#: src/modules/datetime_input_popup/datetime_input_popup.c:749
+#: src/modules/datetime_input_popup/datetime_input_popup.c:992
+msgid "AM"
+msgstr "ص"
 
-#: src/lib/elm_check.c:307 src/lib/elm_check.c:310 src/lib/elm_check.c:401
-#: src/lib/elm_radio.c:231 src/lib/elm_radio.c:297
-msgid "State: On"
-msgstr ""
+#: src/modules/datetime_input_popup/datetime_input_popup.c:754
+#: src/modules/datetime_input_popup/datetime_input_popup.c:993
+msgid "PM"
+msgstr "م"
 
-#: src/lib/elm_check.c:320 src/lib/elm_check.c:323 src/lib/elm_check.c:410
-#: src/lib/elm_radio.c:298
-msgid "State: Off"
-msgstr ""
+#: src/modules/datetime_input_popup/datetime_input_popup.c:786
+msgid "Set"
+msgstr "ضبط"
 
-#: src/lib/elm_check.c:397 src/lib/elm_check.c:407
-msgid "State"
-msgstr ""
+#: src/modules/datetime_input_popup/datetime_input_popup.c:375
+msgid "Set date"
+msgstr "ضبط التاريخ"
 
-#: src/lib/elm_check.c:463
-msgid "Check"
-msgstr ""
+#: src/modules/datetime_input_popup/datetime_input_popup.c:384
+msgid "Set time"
+msgstr "ضبط الوقت"
 
-#: src/lib/elm_config.c:1486
+#: src/lib/elm_config.c:2117
 msgid "default:LTR"
 msgstr "default:RTL"
 
-#: src/lib/elm_entry.c:1365
-msgid "Copy"
-msgstr ""
+msgid "tap to change"
+msgstr "انقر لتغيير الوضع."
 
-#: src/lib/elm_entry.c:1368
-msgid "Cut"
-msgstr ""
+msgid "date"
+msgstr "التاريخ"
 
-#: src/lib/elm_entry.c:1382
-msgid "Select"
-msgstr ""
+msgid "hour"
+msgstr "ساعة"
 
-#: src/lib/elm_entry.c:1388
-msgid "Paste"
-msgstr ""
+msgid "minute"
+msgstr "دقيقة"
 
-#: src/lib/elm_radio.c:404
-msgid "Radio"
-msgstr ""
+msgid "month"
+msgstr "الشهر"
 
-#: src/lib/elm_toolbar.c:807
-msgid "Selected"
-msgstr ""
+msgid "year"
+msgstr "سنة"
 
-#: src/lib/elm_toolbar.c:889
-msgid "Separator"
-msgstr ""
+msgid "IDS_ST_BODY_P1SD_OF_P2SD_TTS"
+msgstr "%1$d من %2$d."
 
-#: src/lib/elm_toolbar.c:893
-msgid "State: Selected"
-msgstr ""
+msgid "IDS_COM_BODY_DECREASE_DAY"
+msgstr "إنقاص يوم"
 
-#: src/lib/elm_toolbar.c:895
-msgid "Has menu"
-msgstr ""
+msgid "IDS_COM_BODY_DECREASE_HOUR"
+msgstr "إنقاص ساعة"
 
-#: src/lib/elm_toolbar.c:959
-msgid "Tool Item"
-msgstr ""
+msgid "IDS_COM_BODY_DECREASE_MINUTE"
+msgstr "إنقاص دقيقة"
+
+msgid "IDS_COM_BODY_DECREASE_MONTH"
+msgstr "إنقاص شهر"
+
+msgid "IDS_COM_BODY_DECREASE_YEAR"
+msgstr "إنقاص سنة"
+
+msgid "IDS_COM_BODY_INCREASE_DAY"
+msgstr "إضافة يوم"
+
+msgid "IDS_COM_BODY_INCREASE_HOUR"
+msgstr "إضافة ساعة"
+
+msgid "IDS_COM_BODY_INCREASE_MINUTE"
+msgstr "إضافة دقيقة"
+
+msgid "IDS_COM_BODY_INCREASE_MONTH"
+msgstr "إضافة شهر"
+
+msgid "IDS_COM_BODY_INCREASE_YEAR"
+msgstr "إضافة سنة"
+
+msgid "IDS_IDLE_BODY_TAP_TO_CHANGE"
+msgstr "انقر للتغيير."
+
+msgid "IDS_COM_BODY_SELECT_ALL"
+msgstr "اختيار الكل"
+
+msgid "IDS_COM_BODY_COPY"
+msgstr "نسخ"
+
+msgid "IDS_COM_SK_SELECT"
+msgstr "اختيار"
+
+msgid "IDS_COM_BODY_CUT"
+msgstr "قص"
+
+msgid "IDS_COM_BODY_PASTE"
+msgstr "لصق"
+
+msgid "IDS_COM_BODY_CLIPBOARD"
+msgstr "الحافظة"
+
+msgid "WDS_ST_OPT_DAY_ABB"
+msgstr "اليوم"
+
+msgid "WDS_ST_OPT_HRS_ABB"
+msgstr "الساعات"
+
+msgid "WDS_ST_OPT_MINS_ABB"
+msgstr "الدقائق"
+
+msgid "WDS_ST_OPT_MONTH_ABB"
+msgstr "الشهر"
+
+msgid "WDS_ST_OPT_YEAR_ABB"
+msgstr "العام"

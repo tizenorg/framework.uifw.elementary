@@ -1,108 +1,389 @@
 /**
- * Set a label of an object
+ * @brief Sets the text of an object.
  *
- * @param obj The Elementary object
- * @param part The text part name to set (NULL for the default label)
- * @param label The new text of the label
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @note Elementary objects may have many labels (e.g. Action Slider)
+ * @remarks Elementary objects may have many text parts (e.g. Action Slider).
+ *
+ * @param[in] obj The Elementary object
+ * @param[in] part The text part name to set (@c NULL for the default part)
+ * @param[in] text The new text of the part
  *
  * @ingroup General
  */
-EAPI void                         elm_object_part_text_set(Evas_Object *obj, const char *part, const char *label);
-
-#define elm_object_text_set(obj, label) elm_object_part_text_set((obj), NULL, (label))
+EAPI void                         elm_object_part_text_set(Evas_Object *obj, const char *part, const char *text);
 
 /**
- * Get a label of an object
+ * @def elm_object_text_set
+ * @brief Convenient macro for elm_object_part_text_set
  *
- * @param obj The Elementary object
- * @param part The text part name to get (NULL for the default label)
- * @return text of the label or NULL for any error
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @note Elementary objects may have many labels (e.g. Action Slider)
+ * @see elm_object_part_text_set
+ * @ingroup General
+ */
+#define elm_object_text_set(obj, text) elm_object_part_text_set((obj), NULL, (text))
+
+/**
+ * @brief Gets the text of an object.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks Elementary objects may have many text parts (e.g. Action Slider).
+ *
+ * @param[in] obj The Elementary object
+ * @param[in] part The text part name to get (@c NULL for the default part)
+ * @return The text of the part, otherwise @c NULL for any error
  *
  * @ingroup General
  */
 EAPI const char                  *elm_object_part_text_get(const Evas_Object *obj, const char *part);
 
+/**
+ * @def elm_object_text_get
+ * @brief Convenient macro for elm_object_part_text_get
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @see elm_object_part_text_get
+ * @ingroup General
+ */
 #define elm_object_text_get(obj) elm_object_part_text_get((obj), NULL)
 
 /**
- * Set a content of an object
+ * @brief Sets the text for an object's part, marking it translatable.
  *
- * @param obj The Elementary object
- * @param part The content part name to set (NULL for the default content)
- * @param content The new content of the object
+ * @since 1.8
  *
- * This sets a new object to a widget as a content object. If any object was
- * already set as a content object in the same part, previous object will be
- * deleted automatically.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @note Elementary objects may have many contents
+ * @remarks The string to set as @a text must be the original one. Do not pass the
+ *          return of gettext() here. Elementary translates the string
+ *          internally and sets it on the object using elm_object_part_text_set(),
+ *          also stores the original string so that it can be automatically
+ *          translated when the language is changed with elm_language_set().
+ *
+ * @remarks The @a domain is also stored to find the translation in the
+ *          correct catalog. It can be @c NULL, in which case it uses whatever
+ *          domain is set by the application with textdomain(). This is useful
+ *          in case you are building a library on top of Elementary that has
+ *          its own translatable strings, that should not be mixed with those of
+ *          programs using the library.
+ *
+ * @param[in] obj The object containing the text part
+ * @param[in] part The name of the part to set
+ * @param[in] domain The translation domain to use
+ * @param[in] text The original, non-translated text to set
+ *
+ * @ingroup General
+ */
+EAPI void      elm_object_domain_translatable_part_text_set(Evas_Object *obj, const char *part, const char *domain, const char *text);
+
+/**
+ * @def elm_object_domain_translatable_text_set
+ * @brief Convenient macro for elm_object_domain_translatable_part_text_set.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @see elm_object_domain_translatable_part_text_set
+ * @ingroup General
+ */
+#define elm_object_domain_translatable_text_set(obj, domain, text) elm_object_domain_translatable_part_text_set((obj), NULL, (domain), (text))
+
+/**
+ * @def  elm_object_translatable_text_set
+ * @brief Convenient macro for  elm_object_domain_translatable_part_text_set
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @see elm_object_domain_translatable_part_text_set
+ * @ingroup General
+ */
+#define elm_object_translatable_text_set(obj, text)                elm_object_domain_translatable_part_text_set((obj), NULL, NULL, (text))
+
+/**
+ * @def  elm_object_translatable_part_text_set
+ * @brief Convenient macro for  elm_object_domain_translatable_part_text_set
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @see elm_object_domain_translatable_part_text_set
+ * @ingroup General
+ */
+#define elm_object_translatable_part_text_set(obj, part, text)     elm_object_domain_translatable_part_text_set((obj), (part), NULL, (text))
+
+/**
+ * @brief Gets the original string set as translatable for an object.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks When setting translated strings, the function elm_object_part_text_get()
+ *          returns the translation returned by gettext(). To get the
+ *          original string use this function.
+ *
+ * @param[in] obj The object
+ * @param[in] part The name of the part that is set
+ *
+ * @return The original, untranslated string
+ *
+ * @see elm_object_translatable_part_text_set()
+ *
+ * @ingroup General
+ */
+EAPI const char *elm_object_translatable_part_text_get(const Evas_Object *obj, const char *part);
+
+/**
+ * @def elm_object_translatable_text_get
+ * @brief Convenient macro for elm_object_translatable_part_text_get
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @see elm_object_translatable_part_text_get
+ * @ingroup General
+ */
+#define elm_object_translatable_text_get(obj) elm_object_translatable_part_text_get((obj), NULL)
+
+/**
+ * @brief Marks the part text to be transltable.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks Once you mark the part text to be translatable, the text is translated
+ *          internally regardless of elm_object_part_text_set() and
+ *          elm_object_domain_translatable_part_text_set(). In other cases, if you set the
+ *          Elementary policy that all text should be translatable by default, you can set
+ *          the part text to not be translated by calling this API.
+ *
+ * @param[in] obj The object containing the text part
+ * @param[in] part The part name of the translatable text
+ * @param[in] domain The translation domain to use
+ * @param[in] translatable If @c EINA_TRUE the part text is translated internally, otherwise @c EINA_FALSE
+ *
+ * @see elm_object_domain_part_text_translatable_set()
+ * @see elm_object_part_text_set()
+ * @see elm_policy()
+ *
+ * @ingroup General
+ */
+EAPI void elm_object_domain_part_text_translatable_set(Evas_Object *obj, const char *part, const char *domain, Eina_Bool translatable);
+
+/**
+ * @def elm_object_part_text_translatable_set
+ * @brief Convenient macro for elm_object_domain_part_text_translatable_set
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @see elm_object_domain_part_text_translatable_set
+ * @ingroup General
+ */
+#define elm_object_part_text_translatable_set(obj, part, translatable) elm_object_domain_part_text_translatable_set((obj), (part), NULL, (translatable))
+
+/**
+ * @def elm_object_domain_text_translatable_set
+ * @brief Convenient macro for elm_object_domain_part_text_translatable_set
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @see elm_object_domain_part_text_translatable_set
+ * @ingroup General
+ */
+#define elm_object_domain_text_translatable_set(obj, domain, translatable) elm_object_domain_part_text_translatable_set((obj), NULL, (domain), (translatable))
+
+
+/**
+ * @brief Sets the content at a part of a given container widget.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks All widgets deriving from elm-container-class may hold
+ *          child objects as content at given parts.  This sets new content to
+ *          a given part. If any object is already set as a content object in
+ *          the same part, the previous object is deleted automatically
+ *          with this call. If you wish to preserve it, issue
+ *          elm_object_part_content_unset() on it first.
+ *
+ * @param[in] obj The Elementary container widget
+ * @param[in] part The container's part name to set (some might accept
+ *             @c NULL for the default part)
+ * @param[in] content The new content for that part
+ *
+ * @see elm_object_part_content_set()
  *
  * @ingroup General
  */
 EAPI void                         elm_object_part_content_set(Evas_Object *obj, const char *part, Evas_Object *content);
 
+/**
+ * @def elm_object_content_set
+ * @brief Convenient macro for elm_object_part_content_set
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @see elm_object_part_content_set
+ * @ingroup General
+ */
 #define elm_object_content_set(obj, content) elm_object_part_content_set((obj), NULL, (content))
 
 /**
- * Get a content of an object
+ * @brief Gets the content at a part of a given container widget.
  *
- * @param obj The Elementary object
- * @param part The content part name to get (NULL for the default content)
- * @return content of the object or NULL for any error
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @note Elementary objects may have many contents
+ * @param[in] obj The Elementary container widget
+ * @param[in] part The container's part name to get (some might accept
+ *             @c NULL for the default part)
+ * @return The content of the object at the given part, otherwise @c NULL in case of an error
+ *
+ * @see elm_object_part_content_set()
  *
  * @ingroup General
  */
 EAPI Evas_Object                 *elm_object_part_content_get(const Evas_Object *obj, const char *part);
 
+/**
+ * @def elm_object_content_get
+ * @brief Convenient macro for elm_object_part_content_get
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @see elm_object_part_content_get
+ * @ingroup General
+ */
 #define elm_object_content_get(obj) elm_object_part_content_get((obj), NULL)
 
 /**
- * Unset a content of an object
+ * @brief Unsets the content at a part of a given container widget.
  *
- * @param obj The Elementary object
- * @param part The content part name to unset (NULL for the default content)
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @note Elementary objects may have many contents
+ * @param[in] obj The Elementary container widget
+ * @param[in] part The container's part name to unset (some might accept
+ *             @c NULL for the default part)
+ * @return The content of the object at the given part, otherwise @c NULL in case of an error
+ *
+ * @see elm_object_part_content_set()
  *
  * @ingroup General
  */
 EAPI Evas_Object                 *elm_object_part_content_unset(Evas_Object *obj, const char *part);
 
+/**
+ * @def elm_object_content_unset
+ * @brief Convenient macro for elm_object_part_content_unset
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @see elm_object_part_content_unset
+ * @ingroup General
+ */
 #define elm_object_content_unset(obj) elm_object_part_content_unset((obj), NULL)
 
 /**
- * Set the text to read out when in accessibility mode
+ * @internal
+ * @remarks Tizen only feature
  *
- * @param obj The object which is to be described
- * @param txt The text that describes the widget to people with poor or no vision
+ * @brief Registers a part of an object as an access object.
+ * @since 1.8
+ *
+ * @param obj The Elementary object
+ * @param part The object's part name to register
+ *
+ * @ingroup General
+ */
+EAPI Evas_Object *                elm_object_part_access_register(Evas_Object *obj, const char *part);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Get the access object which is registered to part
+ * @since 1.8
+ *
+ * @param obj The Elementary object
+ * @param part The object's part name to get access object
+ *
+ * @ingroup General
+ */
+EAPI Evas_Object *                elm_object_part_access_object_get(const Evas_Object *obj, const char *part);
+
+
+/**
+ * @brief Sets the text to read out when in the accessibility mode.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The object which is to be described
+ * @param[in] txt The text that describes the widget to people with poor or no vision
  *
  * @ingroup General
  */
 EAPI void                         elm_object_access_info_set(Evas_Object *obj, const char *txt);
 
 /**
- * Get a named object from the children
+ * @brief Gets a named object from the children.
  *
- * @param obj The parent object whose children to look at
- * @param name The name of the child to find
- * @param recurse Set to the maximum number of levels to recurse (0 == none, 1 is only look at 1 level of children etc.)
- * @return The found object of that name, or NULL if none is found
+ * @details This function searches the children (or recursively children of
+ *          children and so on) of the given @a obj object looking for a child with
+ *          the name of @a name. If the child is found the object is returned, or
+ *          @c NULL is returned. You can set the name of an object with
+ *          evas_object_name_set(). If the name is not unique within the child
+ *          objects (or the tree is @a recurse or is greater than @c 0) then it is
+ *          undefined as to which child of that name is returned, so ensure that the name
+ *          is unique amongst children. If recurse is set to @c -1 it recurses
+ *          without limit.
  *
- * This function searches the children (or recursively children of
- * children and so on) of the given @p obj object looking for a child with
- * the name of @p name. If the child is found the object is returned, or
- * NULL is returned. You can set the name of an object with
- * evas_object_name_set(). If the name is not unique within the child
- * objects (or the tree is @p recurse is greater than 0) then it is
- * undefined as to which child of that name is returned, so ensure the name
- * is unique amongst children. If recurse is set to -1 it will recurse
- * without limit.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The parent object whose children to look at
+ * @param[in] name The name of the child to find
+ * @param[in] recurse Set to the maximum number of levels to recurse (@c 0 == none, @c 1 is only to look at one level of children and so on)
+ * @return The found object of that name, otherwise @c NULL if none are found
  *
  * @ingroup General
  */
@@ -110,246 +391,290 @@ EAPI Evas_Object                 *elm_object_name_find(const Evas_Object *obj, c
 
 /**
  * @defgroup Styles Styles
+ * @ingroup elm_infra_group
  *
- * Widgets can have different styles of look. These generic API's
- * set styles of widgets, if they support them (and if the theme(s)
- * do).
+ * @brief Widgets can have different visual styles. These generic API
+ *        set styles of widgets, they support them (and the theme(s)
+ *        do).
  *
- * @ref general_functions_example_page "This" example contemplates
- * some of these functions.
+ * @{
  */
 
 /**
- * Set the style to used by a given widget
+ * @brief Sets the style to be used by a given widget.
  *
- * @param obj The Elementary widget to style
- * @param style The name of the style to use on it
- * @return @c EINA_TRUE on success, @c EINA_FALSE otherwise
+ * @details This sets the style (by name) that defines the appearance of a
+ *          widget. Styles vary from widget to widget and may also be defined
+ *          by other themes by means of extensions and overlays.
  *
- * This sets the style (by name) that will define the appearance of a
- * widget. Styles vary from widget to widget and may also be defined
- * by other themes by means of extensions and overlays.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The Elementary widget to style
+ * @param[in] style The name of the style to use on it
+ * @return @c EINA_TRUE on success, otherwise @c EINA_FALSE
  *
  * @see elm_theme_extension_add()
  * @see elm_theme_extension_del()
  * @see elm_theme_overlay_add()
  * @see elm_theme_overlay_del()
- *
- * @ingroup Styles
  */
 EAPI Eina_Bool    elm_object_style_set(Evas_Object *obj, const char *style);
 
 /**
- * Get the style used by the widget
+ * @brief Gets the style used by the widget.
  *
- * This gets the style being used for that widget. Note that the string
- * pointer is only valid as long as the object is valid and the style doesn't
- * change.
+ * @details This gets the style being used for that widget. Note that the string
+ *          pointer is only valid as long as the object is valid and the style doesn't
+ *          change.
  *
- * @param obj The Elementary widget to query for its style
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The Elementary widget to query for its style
  * @return The style name used
  *
  * @see elm_object_style_set()
- *
- * @ingroup Styles
  */
 EAPI const char  *elm_object_style_get(const Evas_Object *obj);
 
 /**
- * Set the disabled state of an Elementary object.
+ * @}
+ */
+
+/**
+ * @brief Sets the disabled state of an Elementary object.
  *
- * @param obj The Elementary object to operate on
- * @param disabled The state to put in in: @c EINA_TRUE for
- *        disabled, @c EINA_FALSE for enabled
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Elementary objects can be @b disabled, in which state they won't
- * receive input and, in general, will be themed differently from
- * their normal state, usually greyed out. Useful for contexts
- * where you don't want your users to interact with some of the
- * parts of you interface.
+ * @remarks Elementary objects can be @b disabled, in which state they won't
+ *          receive input and, in general, get themed differently from
+ *          their normal state, usually greyed out. Useful for contexts
+ *          where you don't want your users to interact with some of the
+ *          parts of your interface.
  *
- * This sets the state for the widget, either disabling it or
- * enabling it back.
+ * @remarks This sets the state for the widget, either disabling it or
+ *          enabling it back.
  *
- * @ingroup Styles
+ * @param[in] obj The Elementary object to operate on
+ * @param[in] disabled If @c EINA_TRUE that state is disabled,
+ *                 otherwise @c EINA_FALSE if it is enabled
+ * @ingroup General
  */
 EAPI void         elm_object_disabled_set(Evas_Object *obj, Eina_Bool disabled);
 
 /**
- * Get the disabled state of an Elementary object.
+ * @brief Gets the disabled state of an Elementary object.
  *
- * @param obj The Elementary object to operate on
- * @return @c EINA_TRUE, if the widget is disabled, @c EINA_FALSE
- *            if it's enabled (or on errors)
+ * @details This gets the state of the widget, which might be enabled or disabled.
  *
- * This gets the state of the widget, which might be enabled or disabled.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Styles
+ * @param[in] obj The Elementary object to operate on
+ * @return @c EINA_TRUE if the widget is disabled, otherwise @c EINA_FALSE
+ *         if it's enabled (or on errors)
+ * @ingroup General
  */
 EAPI Eina_Bool    elm_object_disabled_get(const Evas_Object *obj);
 
 /**
  * @defgroup WidgetNavigation Widget Tree Navigation
+ * @ingroup elm_infra_group
  *
- * These functions provide checks for if a Evas_Object is an Elementary widget,
- * the possibility of getting a widget's parent, top level parent and getting a
- * string representation of a widget's type.
+ * @brief These functions provide checks on whether a Evas_Object is an Elementary widget,
+ *        the possibility of getting a widget's parent, top level parent, and getting a
+ *        string representation of a widget's type.
+ *
+ * @{
  */
 
 /**
- * Check if the given Evas Object is an Elementary widget.
+ * @brief Checks whether the given Evas Object is an Elementary widget.
  *
- * @param obj the object to query.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The object to query
  * @return @c EINA_TRUE if it is an elementary widget variant,
- *         @c EINA_FALSE otherwise
- * @ingroup WidgetNavigation
+ *         otherwise @c EINA_FALSE
  */
 EAPI Eina_Bool    elm_object_widget_check(const Evas_Object *obj);
 
 /**
- * Get the first parent of the given object that is an Elementary
- * widget.
+ * @brief Gets the first parent of the given object that is an Elementary
+ *        widget.
  *
- * @param obj the Elementary object to query parent from.
- * @return the parent object that is an Elementary widget, or @c
- *         NULL, if it was not found.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Use this to query for an object's parent widget.
+ * @remarks Use this to query an object's parent widget.
  *
- * @note Most of Elementary users wouldn't be mixing non-Elementary
- * smart objects in the objects tree of an application, as this is
- * an advanced usage of Elementary with Evas. So, except for the
- * application's window, which is the root of that tree, all other
- * objects would have valid Elementary widget parents.
+ * @remarks Most of the Elementary users don't mix non-Elementary
+ *          smart objects in the objects tree of an application, as this is
+ *          an advanced usage of Elementary with Evas. So, except for the
+ *          application's window, which is the root of that tree, all other
+ *          objects have valid Elementary widget parents.
  *
- * @ingroup WidgetNavigation
+ * @param[in] obj The Elementary object to query the parent from
+ * @return The parent object that is an Elementary widget,
+ *         otherwise @c NULL if it is not found
  */
 EAPI Evas_Object *elm_object_parent_widget_get(const Evas_Object *obj);
 
 /**
- * Get the top level parent of an Elementary widget.
+ * @brief Gets the top level parent of an Elementary widget.
  *
- * @param obj The object to query.
- * @return The top level Elementary widget, or @c NULL if parent cannot be
- * found.
- * @ingroup WidgetNavigation
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The object to query
+ * @return The top level Elementary widget, otherwise @c NULL if the parent cannot be found
  */
 EAPI Evas_Object *elm_object_top_widget_get(const Evas_Object *obj);
 
 /**
- * Get the string that represents this Elementary widget.
+ * @brief Gets the string that represents this Elementary widget.
  *
- * @note Elementary is weird and exposes itself as a single
- *       Evas_Object_Smart_Class of type "elm_widget", so
- *       evas_object_type_get() always return that, making debug and
- *       language bindings hard. This function tries to mitigate this
- *       problem, but the solution is to change Elementary to use
- *       proper inheritance.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj the object to query.
- * @return Elementary widget name, or @c NULL if not a valid widget.
- * @ingroup WidgetNavigation
+ * @remarks Elementary is weird and exposes itself as a single
+ *          Evas_Object_Smart_Class of type "elm_widget", so
+ *          evas_object_type_get() always returns that, making debug and
+ *          language bindings hard. This function tries to mitigate this
+ *          problem, but the solution is to change Elementary to use
+ *          proper inheritance.
+ *
+ * @param[in] obj The object to query
+ * @return The Elementary widget name, otherwise @c NULL if it is not a valid widget
  */
 EAPI const char  *elm_object_widget_type_get(const Evas_Object *obj);
 
 /**
- * Send a signal to the widget edje object.
+ * @}
+ */
+
+/**
+ * @brief Sends a signal to the widget edje object.
  *
- * This function sends a signal to the edje object of the obj. An
- * edje program can respond to a signal by specifying matching
- * 'signal' and 'source' fields.
+ * @details This function sends a signal to the edje object of the @a obj. An
+ *          edje program can respond to a signal by specifying matching
+ *          'signal' and 'source' fields.
  *
- * @param obj The object
- * @param emission The signal's name.
- * @param source The signal's source.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The object
+ * @param[in] emission The signal name
+ * @param[in] source The signal source
  * @ingroup General
  */
 EAPI void         elm_object_signal_emit(Evas_Object *obj, const char *emission, const char *source);
 
 /**
- * Add a callback for a signal emitted by widget edje object.
+ * @brief Adds a callback for a signal emitted by the widget edje object.
  *
- * This function connects a callback function to a signal emitted by the
- * edje object of the obj.
- * Globs can occur in either the emission or source name.
+ * @details This function connects a callback function to a signal emitted by the
+ *          edje object of the @a obj.
+ *          Globs can occur in either the emission or source name.
  *
- * @param obj The object
- * @param emission The signal's name.
- * @param source The signal's source.
- * @param func The callback function to be executed when the signal is
- * emitted.
- * @param data A pointer to data to pass in to the callback function.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The object
+ * @param[in] emission The signal name
+ * @param[in] source The signal source
+ * @param[in] func The callback function to be executed when the signal is emitted
+ * @param[in] data A pointer to the data to pass to the callback function
  * @ingroup General
  */
 EAPI void         elm_object_signal_callback_add(Evas_Object *obj, const char *emission, const char *source, Edje_Signal_Cb func, void *data);
 
 /**
- * Remove a signal-triggered callback from a widget edje object.
+ * @brief Removes a signal-triggered callback from a widget edje object.
  *
- * @param obj The object handle
- * @param emission The signal's name.
- * @param source The signal's source.
- * @param func The callback function to be executed when the signal is
- * emitted.
- * @return The data pointer of the signal callback or @c NULL, on
- * errors.
+ * @details This function removes the @b last callback, previously attached to
+ *          a signal emitted by an underlying Edje object of @a obj, whose
+ *          parameters @a emission, @a source, and @c func match exactly with
+ *          those passed to a previous call to
+ *          elm_object_signal_callback_add(). The data pointer that is passed
+ *          to this call is returned.
  *
- * This function removes the @b last callback, previously attached to
- * a signal emitted by an undelying Edje object of @a obj, whose
- * parameters @a emission, @a source and @c func match exactly with
- * those passed to a previous call to
- * elm_object_signal_callback_add(). The data pointer that was passed
- * to this call will be returned.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The object handle
+ * @param[in] emission The signal name
+ * @param[in] source The signal source
+ * @param[in] func The callback function to be executed when the signal is emitted
+ * @return The data pointer of the signal callback, otherwise @c NULL in case of an error
  *
  * @ingroup General
  */
 EAPI void        *elm_object_signal_callback_del(Evas_Object *obj, const char *emission, const char *source, Edje_Signal_Cb func);
 
 /**
- * Add a callback for input events (key up, key down, mouse wheel)
- * on a given Elementary widget
+ * @brief Adds a callback for input events (key up, key down, mouse wheel)
+ *        on a given Elementary widget.
  *
- * @param obj The widget to add an event callback on
- * @param func The callback function to be executed when the event
- * happens
- * @param data Data to pass in to @p func
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Every widget in an Elementary interface set to receive focus,
- * with elm_object_focus_allow_set(), will propagate @b all of its
- * key up, key down and mouse wheel input events up to its parent
- * object, and so on. All of the focusable ones in this chain which
- * had an event callback set, with this call, will be able to treat
- * those events. There are two ways of making the propagation of
- * these event upwards in the tree of widgets to @b cease:
- * - Just return @c EINA_TRUE on @p func. @c EINA_FALSE will mean
- *   the event was @b not processed, so the propagation will go on.
- * - The @c event_info pointer passed to @p func will contain the
- *   event's structure and, if you OR its @c event_flags inner
- *   value to @c EVAS_EVENT_FLAG_ON_HOLD, you're telling Elementary
- *   one has already handled it, thus killing the event's
- *   propagation, too.
+ * @remarks Every widget in an Elementary interface is set to receive focus,
+ *          with elm_object_focus_allow_set(), propagate @b all of its
+ *          key up, key down, and mouse wheel input events up to its parent
+ *          object, and so on. All of the focusable ones in this chain that
+ *          had an event callback set, with this call, are able to treat
+ *          those events. There are two ways of making the propagation of
+ *          these event upwards in the tree of widgets to @b cease:
+ *          - Just return @c EINA_TRUE on @a func. @c EINA_FALSE means that
+ *            the event is @b not processed, so the propagation goes on.
+ *          - The @a event_info pointer passed to @p func contains the
+ *            event's structure and, if you OR its @a event_flags inner
+ *            value to @c EVAS_EVENT_FLAG_ON_HOLD, you're telling Elementary
+ *            has already handled it, thus killing the event's
+ *            propagation.
  *
- * @note Your event callback will be issued on those events taking
- * place only if no other child widget of @p obj has consumed the
- * event already.
+ * @remarks Your event callback is issued on those events taking
+ *          place only if no other child widget of @a obj has consumed the
+ *          event already.
  *
- * @note Not to be confused with @c
- * evas_object_event_callback_add(), which will add event callbacks
- * per type on general Evas objects (no event propagation
- * infrastructure taken in account).
+ * @remarks Not to be confused with
+ *          evas_object_event_callback_add(), which adds event callbacks
+ *          per type on general Evas objects (no event propagation
+ *          infrastructure taken into account).
  *
- * @note Not to be confused with @c
- * elm_object_signal_callback_add(), which will add callbacks to @b
- * signals coming from a widget's theme, not input events.
+ * @remarks Not to be confused with
+ *          elm_object_signal_callback_add(), which adds callbacks to @b
+ *          signals coming from a widget's theme, not input events.
  *
- * @note Not to be confused with @c
- * edje_object_signal_callback_add(), which does the same as
- * elm_object_signal_callback_add(), but directly on an Edje
- * object.
+ * @remarks Not to be confused with
+ *          edje_object_signal_callback_add(), which does the same as
+ *          elm_object_signal_callback_add(), but directly on an Edje
+ *          object.
  *
- * @note Not to be confused with @c
- * evas_object_smart_callback_add(), which adds callbacks to smart
- * objects' <b>smart events</b>, and not input events.
+ * @remarks Not to be confused with
+ *          evas_object_smart_callback_add(), which adds callbacks to smart
+ *          objects' <b>smart events</b>, and not input events.
+ *
+ * @param[in] obj The widget to add an event callback on
+ * @param[in] func The callback function to be executed when the event
+ *             happens
+ * @param[in] data The data to pass into @a func
  *
  * @see elm_object_event_callback_del()
  *
@@ -358,19 +683,174 @@ EAPI void        *elm_object_signal_callback_del(Evas_Object *obj, const char *e
 EAPI void         elm_object_event_callback_add(Evas_Object *obj, Elm_Event_Cb func, const void *data);
 
 /**
- * Remove an event callback from a widget.
+ * @brief Removes an event callback from a widget.
  *
- * This function removes a callback, previously attached to event emission
- * by the @p obj.
- * The parameters func and data must match exactly those passed to
- * a previous call to elm_object_event_callback_add(). The data pointer that
- * was passed to this call will be returned.
+ * @details This function removes a callback, previously attached to the event emission
+ *          by the @a obj.
+ *          The parameters @a func and @a data must match exactly those passed to
+ *          a previous call to elm_object_event_callback_add(). The data pointer that
+ *          is passed to this call is returned.
  *
- * @param obj The object
- * @param func The callback function to be executed when the event is
- * emitted.
- * @param data Data to pass in to the callback function.
- * @return The data pointer
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The object
+ * @param[in] func The callback function to be executed when the event is
+ *             emitted
+ * @param[in] data The data to pass to the callback function
+ * @return A data pointer
  * @ingroup General
  */
 EAPI void        *elm_object_event_callback_del(Evas_Object *obj, Elm_Event_Cb func, const void *data);
+
+/**
+ * @brief Disables the orientation mode of a given widget.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks Orientation mode is used for widgets to change their styles or to send signals
+ *          whenever its window degree is changed. If the orientation mode is enabled
+ *          and the widget has different looks and styles for the window degree(0, 90,
+ *          180, 270), it applies a style that is readied for the current degree,
+ *          otherwise, it sends signals to its own edje to change its states if
+ *          the style is not readied.
+ *
+ * @param[in] obj The Elementary object to operate in the orientation mode
+ * @param[in] disabled If @c EINA_TRUE the state is disabled,
+ *                 otherwise @c EINA_FALSE if it is enabled
+ *
+ * @ingroup General
+ */
+EAPI void        elm_object_orientation_mode_disabled_set(Evas_Object *obj, Eina_Bool disabled);
+
+/**
+ * @brief Gets the orientation mode of a given widget.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The Elementary widget to query for its orientation mode
+ * @return @c EINA_TRUE, if the orientation mode is disabled, otherwise @c EINA_FALSE
+ *         if the orientation mode is enabled (or on errors)
+ *
+ * @see elm_object_orientation_mode_disabled_set()
+ *
+ * @ingroup General
+ */
+EAPI Eina_Bool   elm_object_orientation_mode_disabled_get(const Evas_Object *obj);
+
+/**
+ * @internal
+ * @remarks Tizen only feature 2013.12.08
+ *
+ * @brief If show_region_repeat_disabled is set,
+ *        do not call on_show_region of the parent object.
+ *
+ * Need Documents
+ *
+ * @ingroup General
+ */
+EAPI void        elm_object_show_region_repeat_disabled_set(Evas_Object *obj, Eina_Bool disabled);
+
+/**
+ * @internal
+ * @remarks Tizen only feature 2013.12.08
+ *
+ * @brief If show_region_repeat_disabled is set,
+ *        do not call on_show_region of the parent object.
+ *
+ * Need Documents
+ *
+ * @ingroup General
+ */
+EAPI Eina_Bool   elm_object_show_region_repeat_disabled_get(Evas_Object *obj);
+
+/**
+ * @brief Sets the scroll item align enable.
+ * @remarks Tizen only feature.
+ *
+ *
+ * @remarks If the object's scroll item align is enabled, the nearest
+ *          item to the end of the scroll will be located according to
+ *          its vertical align.
+ *
+ * @remarks Currently implemented only Genlist.
+ *
+ * @since_tizen 2.3.1
+ *
+ * @param[in] obj The object handle
+ * @param[in] enabled The scroll item align state
+ *
+ * @see elm_object_scroll_item_align_enabled_get()
+ */
+EAPI void elm_object_scroll_item_align_enabled_set(Evas_Object *obj, Eina_Bool scroll_item_align_enable);
+
+/**
+ * @brief Sets the scroll item align enable.
+ * @remarks Tizen only feature.
+ *
+ *
+ * @remarks If @c EINA_TRUE, the nearest item to the end of the scroll will be
+ *          aligned according to its vertical align. If @c EINA_FALSE, the scroll
+ *          item align is disabled.
+ *
+ * @remarks Currently implemented only Genlist.
+ *
+ * @since_tizen 2.3.1
+ *
+ * @param[in] obj The object handle
+ * @return The scroll item align state.
+ *
+ * @see elm_object_scroll_item_align_enabled_set()
+ */
+EAPI Eina_Bool elm_object_scroll_item_align_enabled_get(const Evas_Object *obj);
+
+/**
+ * @brief Sets the scroll item vertical align.
+ * @remarks Tizen only feature.
+ *
+ *
+ * @remarks This API sets the scroll item vertical align. The scroll item
+ *          vertical align is referred when the object's scroll item align
+ *          is enabled. When the widget is scrolled, the nearest item to the
+ *          end of the scroll will be located according to the given alignment.
+ *
+ * @remarks Currently implemented only Genlist.
+ *
+ * @since_tizen 2.3.1
+ *
+ * @param[in] obj The object handle
+ * @param[in] vertical align The position name.
+ *
+ * @see elm_object_scroll_item_valign_get()
+ */
+EAPI void elm_object_scroll_item_valign_set(Evas_Object *obj, char *scroll_item_valign);
+
+/**
+ * @brief Sets the scroll item vertical align.
+ * @remarks Tizen only feature.
+ *
+ *
+ * @remarks This API gets the scroll item vertical align. The scroll item
+ *          vertical align is referred when the object's scroll item align
+ *          is enabled. When the widget is scrolled, the nearest item to the
+ *          end of the scroll will be located according to the given alignment.
+ *
+ * @remarks Currently implemented only Genlist.
+ *
+ * @since_tizen 2.3.1
+ *
+ * @param[in] obj The object handle
+ * @return The scroll item vertical align name.
+ *
+ * @see elm_object_scroll_item_valign_set()
+ */
+EAPI const char* elm_object_scroll_item_valign_get(const Evas_Object *obj);

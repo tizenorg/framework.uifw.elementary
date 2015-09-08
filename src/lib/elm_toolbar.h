@@ -1,706 +1,867 @@
 /**
  * @defgroup Toolbar Toolbar
- * @ingroup Elementary
+ * @ingroup elm_widget_group
  *
- * @image html img/widget/toolbar/preview-00.png
- * @image latex img/widget/toolbar/preview-00.eps width=\textwidth
+ * @image html toolbar_inheritance_tree.png
+ * @image latex toolbar_inheritance_tree.eps
  *
  * @image html img/toolbar.png
- * @image latex img/toolbar.eps width=\textwidth
+ * @image latex img/toolbar.eps "toolbar" width=\textwidth
  *
- * A toolbar is a widget that displays a list of items inside
- * a box. It can be scrollable, show a menu with items that don't fit
- * to toolbar size or even crop them.
+ * @brief A toolbar is a widget that displays a list of items inside a box.
+ *
+ * It can be scrollable, can show a menu with items that don't fit
+ * to the toolbar size or an can even crop those menu items.
  *
  * Only one item can be selected at a time.
  *
  * Items can have multiple states, or show menus when selected by the user.
  *
- * Smart callbacks one can listen to:
- * - "clicked" - when the user clicks on a toolbar item and becomes selected.
- * - "longpressed" - when the toolbar is pressed for a certain amount of time.
- * - "language,changed" - when the program language changes.
+ * This widget implements the elm-scrollable-interface
+ * interface, so that all (non-deprecated) functions for the base
+ * @ref Scroller widget also work for toolbars (@since 1.8)
+ *
+ * Smart callbacks that one can listen to:
+ * - @c "clicked" - When the user clicks on a toolbar item and it gets
+ *                  selected.
+ * - @c "longpressed" - When the toolbar is pressed for a certain
+ *                      amount of time.
+ * - @c "language,changed" - When the program language changes.
  *
  * Available styles for it:
  * - @c "default"
- * - @c "transparent" - no background or shadow, just show the content
+ * - @c "transparent" - No background or shadow, just shows the content.
  *
- * Default text parts of the toolbar items that you can use for are:
- * @li "default" - label of the toolbar item
+ * Default text parts of the toolbar items that you can use are:
+ * @li "default" - Label of the toolbar item
  *
- * Supported elm_object_item common APIs.
+ * Supported common elm_object_item APIs.
  * @li @ref elm_object_item_disabled_set
  * @li @ref elm_object_item_disabled_get
  * @li @ref elm_object_item_part_text_set
  * @li @ref elm_object_item_part_text_get
  *
- * List of examples:
- * @li @ref toolbar_example_01
- * @li @ref toolbar_example_02
- * @li @ref toolbar_example_03
- */
-
-/**
- * @addtogroup Toolbar
  * @{
  */
 
 /**
- * @enum _Elm_Toolbar_Shrink_Mode
+ * @MOBILE_ONLY
+ *
+ * @enum Elm_Toolbar_Shrink_Mode
  * @typedef Elm_Toolbar_Shrink_Mode
  *
- * Set toolbar's items display behavior, it can be scrollable,
- * show a menu with exceeding items, or simply hide them.
+ * @brief Enumeration that sets the toolbar items display behavior, it can be scrollable,
+ *        can show a menu with exceeding items, or simply hide them.
  *
- * @note Default value is #ELM_TOOLBAR_SHRINK_MENU. It reads value
- * from elm config.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * Values <b> don't </b> work as bitmask, only one can be chosen.
+ * @remarks Default value is #ELM_TOOLBAR_SHRINK_MENU. It reads values
+ *          from elm config.
+ *
+ * @remarks Values <b> don't </b> work as bitmask, only one can be chosen.
  *
  * @see elm_toolbar_shrink_mode_set()
  * @see elm_toolbar_shrink_mode_get()
- *
- * @ingroup Toolbar
  */
 typedef enum
 {
-   ELM_TOOLBAR_SHRINK_NONE, /**< Set toolbar minimum size to fit all the items. */
-   ELM_TOOLBAR_SHRINK_HIDE, /**< Hide exceeding items. */
-   ELM_TOOLBAR_SHRINK_SCROLL, /**< Allow accessing exceeding items through a scroller. */
-   ELM_TOOLBAR_SHRINK_MENU, /**< Inserts a button to pop up a menu with exceeding items. */
-   ELM_TOOLBAR_SHRINK_EXPAND, /**< Expand all items according the size of the toolbar. */
-   ELM_TOOLBAR_SHRINK_LAST /**< Indicates error if returned by elm_toolbar_shrink_mode_get() */
+   ELM_TOOLBAR_SHRINK_NONE, /**< Sets minimum toolbar size to fit all the items */
+   ELM_TOOLBAR_SHRINK_HIDE, /**< Hides exceeding items */
+   ELM_TOOLBAR_SHRINK_SCROLL, /**< Allows accessing exceeding items through a scroller */
+   ELM_TOOLBAR_SHRINK_MENU, /**< Inserts a button to pop up a menu with exceeding items */
+   ELM_TOOLBAR_SHRINK_EXPAND, /**< Expands all items according to the size of the toolbar */
+   ELM_TOOLBAR_SHRINK_LAST /**< Indicates an error if returned by elm_toolbar_shrink_mode_get() */
 } Elm_Toolbar_Shrink_Mode;
 
-typedef struct _Elm_Toolbar_Item_State Elm_Toolbar_Item_State;    /**< State of a Elm_Toolbar_Item. Can be created with elm_toolbar_item_state_add() and removed with elm_toolbar_item_state_del(). */
+/**
+ * @MOBILE_ONLY
+ *
+ * @brief Enumeration that defines where to position the item in the toolbar.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ */
+typedef enum
+{
+   ELM_TOOLBAR_ITEM_SCROLLTO_NONE = 0,   /**< Scroll to nowhere */
+   ELM_TOOLBAR_ITEM_SCROLLTO_IN = (1 << 0),   /**< Scroll to the nearest viewport */
+   ELM_TOOLBAR_ITEM_SCROLLTO_FIRST = (1 << 1),   /**< Scroll to the first of the viewport */
+   ELM_TOOLBAR_ITEM_SCROLLTO_MIDDLE = (1 << 2),   /**< Scroll to the middle of the viewport */
+   ELM_TOOLBAR_ITEM_SCROLLTO_LAST = (1 << 3)   /**< Scroll to the last of the viewport */
+} Elm_Toolbar_Item_Scrollto_Type;
+
+typedef struct _Elm_Toolbar_Item_State Elm_Toolbar_Item_State;    /**< States of a Elm_Toolbar_Item. Can be created with elm_toolbar_item_state_add() and removed with elm_toolbar_item_state_del() */
 
 /**
- * Add a new toolbar widget to the given parent Elementary
- * (container) object.
+ * @MOBILE_ONLY
  *
- * @param parent The parent object.
- * @return a new toolbar widget handle or @c NULL, on errors.
+ * @brief Adds a new toolbar widget to the given parent Elementary
+ *        (container) object.
  *
- * This function inserts a new toolbar widget on the canvas.
+ * @details This function inserts a new toolbar widget on the canvas.
  *
- * @ingroup Toolbar
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] parent The parent object
+ * @return A new toolbar widget handle, otherwise @c NULL in case of an error
  */
 EAPI Evas_Object                 *elm_toolbar_add(Evas_Object *parent);
 
 /**
- * Set the icon size, in pixels, to be used by toolbar items.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object
- * @param icon_size The icon size in pixels
+ * @brief Sets the icon size, in pixels, to be used by toolbar items.
  *
- * @note Default value is @c 32. It reads value from elm config.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks The default value is @c 32. It reads values from elm config.
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] icon_size The icon size in pixels
  *
  * @see elm_toolbar_icon_size_get()
- *
- * @ingroup Toolbar
  */
 EAPI void                         elm_toolbar_icon_size_set(Evas_Object *obj, int icon_size);
 
 /**
- * Get the icon size, in pixels, to be used by toolbar items.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @return The icon size in pixels.
+ * @brief Gets the icon size, in pixels, to be used by toolbar items.
  *
- * @see elm_toolbar_icon_size_set() for details.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Toolbar
+ * @param[in] obj The toolbar object
+ * @return The icon size in pixels
+ *
+ * @see elm_toolbar_icon_size_set()
  */
 EAPI int                          elm_toolbar_icon_size_get(const Evas_Object *obj);
 
 /**
- * Sets icon lookup order, for toolbar items' icons.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @param order The icon lookup order.
+ * @brief Sets the icon lookup order, for toolbar item icons.
  *
- * Icons added before calling this function will not be affected.
- * The default lookup order is #ELM_ICON_LOOKUP_THEME_FDO.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks Icons added before calling this function are not affected.
+ *          The default lookup order is #ELM_ICON_LOOKUP_THEME_FDO.
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] order The icon lookup order
  *
  * @see elm_toolbar_icon_order_lookup_get()
- *
- * @ingroup Toolbar
  */
 EAPI void                         elm_toolbar_icon_order_lookup_set(Evas_Object *obj, Elm_Icon_Lookup_Order order);
 
 /**
- * Gets the icon lookup order.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @return The icon lookup order.
+ * @brief Gets the icon lookup order.
  *
- * @see elm_toolbar_icon_order_lookup_set() for details.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Toolbar
+ * @param[in] obj The toolbar object
+ * @return The icon lookup order
+ *
+ * @see elm_toolbar_icon_order_lookup_set()
  */
 EAPI Elm_Icon_Lookup_Order        elm_toolbar_icon_order_lookup_get(const Evas_Object *obj);
 
 /**
- * Append item to the toolbar.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @param icon A string with icon name or the absolute path of an image file.
- * @param label The label of the item.
- * @param func The function to call when the item is clicked.
- * @param data The data to associate with the item for related callbacks.
- * @return The created item or @c NULL upon failure.
+ * @brief Appends items to the toolbar.
  *
- * A new item will be created and appended to the toolbar, i.e., will
- * be set as @b last item.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * Items created with this method can be deleted with
- * elm_object_item_del().
+ * @remarks A new item is created and appended to the toolbar, i.e., it
+ *          is set as the @b last item.
  *
- * Associated @p data can be properly freed when item is deleted if a
- * callback function is set with elm_object_item_del_cb_set().
+ * @remarks Items created with this method can be deleted with
+ *          elm_object_item_del().
  *
- * If a function is passed as argument, it will be called every time this item
- * is selected, i.e., the user clicks over an unselected item.
- * If such function isn't needed, just passing
- * @c NULL as @p func is enough. The same should be done for @p data.
+ * @remarks Associated @a data can be properly freed when an item is deleted if a
+ *          callback function is set with elm_object_item_del_cb_set().
  *
- * Toolbar will load icon image from fdo or current theme.
- * This behavior can be set by elm_toolbar_icon_order_lookup_set() function.
- * If an absolute path is provided it will load it direct from a file.
+ * @remarks If a function is passed as an argument, it is called every time this item
+ *          is selected, i.e., the user clicks over an unselected item.
+ *          If such a function isn't needed, just passing
+ *          @c NULL as @a func is enough. The same should be done for @a data.
+ *
+ * @remarks Toolbar loads the icon image from fdo or the current theme.
+ *          This behavior can be set by the elm_toolbar_icon_order_lookup_set() function.
+ *          If an absolute path is provided it loads it directly from a file.
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] icon A string with the icon name or the absolute path of an image file
+ * @param[in] label The label of the item
+ * @param[in] func The function to call when the item is clicked
+ * @param[in] data The data to associate with the item for related callbacks
+ * @return The created item, otherwise @c NULL on failure
  *
  * @see elm_toolbar_item_icon_set()
  * @see elm_object_item_del()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Object_Item             *elm_toolbar_item_append(Evas_Object *obj, const char *icon, const char *label, Evas_Smart_Cb func, const void *data);
 
 /**
- * Prepend item to the toolbar.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @param icon A string with icon name or the absolute path of an image file.
- * @param label The label of the item.
- * @param func The function to call when the item is clicked.
- * @param data The data to associate with the item for related callbacks.
- * @return The created item or @c NULL upon failure.
+ * @brief Prepends items to the toolbar.
  *
- * A new item will be created and prepended to the toolbar, i.e., will
- * be set as @b first item.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * Items created with this method can be deleted with
- * elm_object_item_del().
+ * @remarks A new item is created and prepended to the toolbar, i.e., it
+ *          is set as the @b first item.
  *
- * Associated @p data can be properly freed when item is deleted if a
- * callback function is set with elm_object_item_del_cb_set().
+ * @remarks Items created with this method can be deleted with
+ *          elm_object_item_del().
  *
- * If a function is passed as argument, it will be called every time this item
- * is selected, i.e., the user clicks over an unselected item.
- * If such function isn't needed, just passing
- * @c NULL as @p func is enough. The same should be done for @p data.
+ * @remarks Associated @a data can be properly freed when an item is deleted if a
+ *          callback function is set with elm_object_item_del_cb_set().
  *
- * Toolbar will load icon image from fdo or current theme.
- * This behavior can be set by elm_toolbar_icon_order_lookup_set() function.
- * If an absolute path is provided it will load it direct from a file.
+ * @remarks If a function is passed as an argument, it is called every time this item
+ *          is selected, i.e., the user clicks over an unselected item.
+ *          If such a function isn't needed, just passing
+ *          @c NULL as @a func is enough. The same should be done for @a data.
+ *
+ * @remarks Toolbar loads the icon image from fdo or the current theme.
+ *          This behavior can be set by the elm_toolbar_icon_order_lookup_set() function.
+ *          If an absolute path is provided it loads it directly from a file.
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] icon A string with the icon name or the absolute path of an image file
+ * @param[in] label The label of the item
+ * @param[in] func The function to call when the item is clicked
+ * @param[in] data The data to associate with the item for related callbacks
+ * @return The created item, otherwise @c NULL on failure
  *
  * @see elm_toolbar_item_icon_set()
  * @see elm_object_item_del()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Object_Item             *elm_toolbar_item_prepend(Evas_Object *obj, const char *icon, const char *label, Evas_Smart_Cb func, const void *data);
 
 /**
- * Insert a new item into the toolbar object before item @p before.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @param before The toolbar item to insert before.
- * @param icon A string with icon name or the absolute path of an image file.
- * @param label The label of the item.
- * @param func The function to call when the item is clicked.
- * @param data The data to associate with the item for related callbacks.
- * @return The created item or @c NULL upon failure.
+ * @brief Inserts a new item into the toolbar object before item @a before.
  *
- * A new item will be created and added to the toolbar. Its position in
- * this toolbar will be just before item @p before.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * Items created with this method can be deleted with
- * elm_object_item_del().
+ * @remarks A new item is created and added to the toolbar. Its position in
+ *          this toolbar is just before item @a before.
  *
- * Associated @p data can be properly freed when item is deleted if a
- * callback function is set with elm_object_item_del_cb_set().
+ * @remarks Items created with this method can be deleted with
+ *          elm_object_item_del().
  *
- * If a function is passed as argument, it will be called every time this item
- * is selected, i.e., the user clicks over an unselected item.
- * If such function isn't needed, just passing
- * @c NULL as @p func is enough. The same should be done for @p data.
+ * @remarks Associated @a data can be properly freed when an item is deleted if a
+ *          callback function is set with elm_object_item_del_cb_set().
  *
- * Toolbar will load icon image from fdo or current theme.
- * This behavior can be set by elm_toolbar_icon_order_lookup_set() function.
- * If an absolute path is provided it will load it direct from a file.
+ * @remarks If a function is passed as an argument, it is called every time this item
+ *          is selected, i.e., the user clicks over an unselected item.
+ *          If such a function isn't needed, just passing
+ *          @c NULL as @a func is enough. The same should be done for @a data.
+ *
+ * @remarks Toolbar loads the icon image from fdo or the current theme.
+ *          This behavior can be set by the elm_toolbar_icon_order_lookup_set() function.
+ *          If an absolute path is provided it loads it directly from a file.
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] before The toolbar item to insert before
+ * @param[in] icon A string with the icon name or the absolute path of an image file
+ * @param[in] label The label of the item
+ * @param[in] func The function to call when the item is clicked
+ * @param[in] data The data to associate with the item for related callbacks
+ * @return The created item, otherwise @c NULL on failure
  *
  * @see elm_toolbar_item_icon_set()
  * @see elm_object_item_del()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Object_Item             *elm_toolbar_item_insert_before(Evas_Object *obj, Elm_Object_Item *before, const char *icon, const char *label, Evas_Smart_Cb func, const void *data);
 
 /**
- * Insert a new item into the toolbar object after item @p after.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @param after The toolbar item to insert after.
- * @param icon A string with icon name or the absolute path of an image file.
- * @param label The label of the item.
- * @param func The function to call when the item is clicked.
- * @param data The data to associate with the item for related callbacks.
- * @return The created item or @c NULL upon failure.
+ * @brief Inserts a new item into the toolbar object after item @a after.
  *
- * A new item will be created and added to the toolbar. Its position in
- * this toolbar will be just after item @p after.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * Items created with this method can be deleted with
- * elm_object_item_del().
+ * @remarks If new item is created and added to the toolbar, its position in
+ *          this toolbar is just after item @a after.
  *
- * Associated @p data can be properly freed when item is deleted if a
- * callback function is set with elm_object_item_del_cb_set().
+ * @remarks Items created with this method can be deleted with
+ *          elm_object_item_del().
  *
- * If a function is passed as argument, it will be called every time this item
- * is selected, i.e., the user clicks over an unselected item.
- * If such function isn't needed, just passing
- * @c NULL as @p func is enough. The same should be done for @p data.
+ * @remarks Associated @a data can be properly freed when an item is deleted if a
+ *          callback function is set with elm_object_item_del_cb_set().
  *
- * Toolbar will load icon image from fdo or current theme.
- * This behavior can be set by elm_toolbar_icon_order_lookup_set() function.
- * If an absolute path is provided it will load it direct from a file.
+ * @remarks If a function is passed as an argument, it is called every time this item
+ *          is selected, i.e., the user clicks over an unselected item.
+ *          If such a function isn't needed, just passing
+ *          @c NULL as @a func is enough. The same should be done for @a data.
+ *
+ * @remarks Toolbar loads the icon image from fdo or the current theme.
+ *          This behavior can be set by the elm_toolbar_icon_order_lookup_set() function.
+ *          If an absolute path is provided it loads it directly from a file.
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] after The toolbar item to insert after
+ * @param[in] icon A string with the icon name or the absolute path of an image file
+ * @param[in] label The label of the item
+ * @param[in] func The function to call when the item is clicked
+ * @param[in] data The data to associate with the item for related callbacks
+ * @return The created item, otherwise @c NULL on failure
  *
  * @see elm_toolbar_item_icon_set()
  * @see elm_object_item_del()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Object_Item             *elm_toolbar_item_insert_after(Evas_Object *obj, Elm_Object_Item *after, const char *icon, const char *label, Evas_Smart_Cb func, const void *data);
 
 /**
- * Get the first item in the given toolbar widget's list of
- * items.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object
- * @return The first item or @c NULL, if it has no items (and on
- * errors)
+ * @brief Gets the first item in the given toolbar widget's list of
+ *        items.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The toolbar object
+ * @return The first item, otherwise @c NULL if it has no items (and on
+ *         errors)
  *
  * @see elm_toolbar_item_append()
  * @see elm_toolbar_last_item_get()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Object_Item             *elm_toolbar_first_item_get(const Evas_Object *obj);
 
 /**
- * Get the last item in the given toolbar widget's list of
- * items.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object
- * @return The last item or @c NULL, if it has no items (and on
- * errors)
+ * @brief Gets the last item in the given toolbar widget's list of
+ *        items.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The toolbar object
+ * @return The last item, otherwise @c NULL if it has no items (and on
+ *         errors)
  *
  * @see elm_toolbar_item_prepend()
  * @see elm_toolbar_first_item_get()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Object_Item             *elm_toolbar_last_item_get(const Evas_Object *obj);
 
 /**
- * Get the item after @p item in toolbar.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @return The item after @p item, or @c NULL if none or on failure.
+ * @brief Gets the item after @a it in the toolbar.
  *
- * @note If it is the last item, @c NULL will be returned.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks If it is the last item, @c NULL is returned.
+ *
+ * @param[in] it The toolbar item
+ * @return The item after @a it, otherwise @c NULL if none are present or on failure
  *
  * @see elm_toolbar_item_append()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Object_Item             *elm_toolbar_item_next_get(const Elm_Object_Item *it);
 
 /**
- * Get the item before @p item in toolbar.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @return The item before @p item, or @c NULL if none or on failure.
+ * @brief Gets the item before @a it in the toolbar.
  *
- * @note If it is the first item, @c NULL will be returned.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks If it is the first item, @c NULL is returned.
+ *
+ * @param[in] it The toolbar item
+ * @return The item before @a it, otherwise @c NULL if none are present or on failure
  *
  * @see elm_toolbar_item_prepend()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Object_Item             *elm_toolbar_item_prev_get(const Elm_Object_Item *it);
 
 /**
- * Set the priority of a toolbar item.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @param priority The item priority. The default is zero.
+ * @brief Sets the priority of a toolbar item.
  *
- * This is used only when the toolbar shrink mode is set to
- * #ELM_TOOLBAR_SHRINK_MENU or #ELM_TOOLBAR_SHRINK_HIDE.
- * When space is less than required, items with low priority
- * will be removed from the toolbar and added to a dynamically-created menu,
- * while items with higher priority will remain on the toolbar,
- * with the same order they were added.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks This is used only when the toolbar shrink mode is set
+ *          to #ELM_TOOLBAR_SHRINK_MENU or #ELM_TOOLBAR_SHRINK_HIDE.
+ *          When space is less than required, items with low priority
+ *          are removed from the toolbar and added to a dynamically-created menu,
+ *          while items with higher priority remain on the toolbar,
+ *          in the same order as they were added.
+ *
+ * @param[in] it The toolbar item
+ * @param[in] priority The item priority \n
+ *                 The default is zero.
  *
  * @see elm_toolbar_item_priority_get()
- *
- * @ingroup Toolbar
  */
 EAPI void                         elm_toolbar_item_priority_set(Elm_Object_Item *it, int priority);
 
 /**
- * Get the priority of a toolbar item.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @return The @p item priority, or @c 0 on failure.
+ * @brief Gets the priority of a toolbar item.
  *
- * @see elm_toolbar_item_priority_set() for details.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Toolbar
+ * @param[in] it The toolbar item
+ * @return The @a it priority, otherwise @c 0 on failure
+ *
+ * @see elm_toolbar_item_priority_set()
  */
 EAPI int                          elm_toolbar_item_priority_get(const Elm_Object_Item *it);
 
 /**
- * Returns a pointer to a toolbar item by its label.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @param label The label of the item to find.
+ * @brief Returns a pointer to a toolbar item by its label.
  *
- * @return The pointer to the toolbar item matching @p label or @c NULL
- * on failure.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Toolbar
+ * @param[in] obj The toolbar object
+ * @param[in] label The label of the item to find
+ *
+ * @return The pointer to the toolbar item matching @a label, otherwise @c NULL
+ *         on failure
  */
 EAPI Elm_Object_Item             *elm_toolbar_item_find_by_label(const Evas_Object *obj, const char *label);
 
-/*
- * Get whether the @p item is selected or not.
+/**
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @return @c EINA_TRUE means item is selected. @c EINA_FALSE indicates
- * it's not. If @p obj is @c NULL, @c EINA_FALSE is returned.
+ * @brief Gets whether the @a it is selected.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] it The toolbar item
+ * @return @c EINA_TRUE indicates that the item is selected, otherwise @c EINA_FALSE indicates it's not \n
+ *         If @a obj is @c NULL, @c EINA_FALSE is returned.
  *
  * @see elm_toolbar_selected_item_set() for details.
  * @see elm_toolbar_item_selected_get()
- *
- * @ingroup Toolbar
  */
 EAPI Eina_Bool                    elm_toolbar_item_selected_get(const Elm_Object_Item *it);
 
 /**
- * Set the selected state of an item.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item
- * @param selected The selected state
+ * @brief Sets the selected state of an item.
  *
- * This sets the selected state of the given item @p it.
- * @c EINA_TRUE for selected, @c EINA_FALSE for not selected.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * If a new item is selected the previously selected will be unselected.
- * Previously selected item can be get with function
- * elm_toolbar_selected_item_get().
+ * @details This sets the selected state of the given item @a it.
+ *          @c EINA_TRUE for selected, @c EINA_FALSE for not selected.
  *
- * Selected items will be highlighted.
+ * @remarks If a new item is selected the previously selected item is unselected.
+ *          Previously selected items can be obtained with
+ *          elm_toolbar_selected_item_get().
+ *          Selected items are highlighted.
+ *
+ * @param[in] it The toolbar item
+ * @param[in] selected The selected state
  *
  * @see elm_toolbar_item_selected_get()
  * @see elm_toolbar_selected_item_get()
- *
- * @ingroup Toolbar
  */
 EAPI void                         elm_toolbar_item_selected_set(Elm_Object_Item *it, Eina_Bool selected);
 
 /**
- * Get the selected item.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @return The selected toolbar item.
+ * @brief Gets the selected item.
  *
- * The selected item can be unselected with function
- * elm_toolbar_item_selected_set().
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * The selected item always will be highlighted on toolbar.
+ * @remarks The selected item can be unselected with function
+ *          elm_toolbar_item_selected_set().
+ *          The selected item is highlighted on the toolbar.
+ *
+ * @param[in] obj The toolbar object
+ * @return The selected toolbar item
  *
  * @see elm_toolbar_selected_items_get()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Object_Item             *elm_toolbar_selected_item_get(const Evas_Object *obj);
 
 /**
- * Get the more item.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @return The toolbar more item.
+ * @brief Gets the more item.
  *
- * The more item can be changed with function
- * elm_object_item_text_set() and elm_object_item_content_set.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Toolbar
+ * @remarks The more item can be changed with function
+ *          elm_object_item_text_set() and elm_object_item_content_set.
+ *
+ * @param[in] obj The toolbar object
+ * @return The toolbar more item
  */
 EAPI Elm_Object_Item             *elm_toolbar_more_item_get(const Evas_Object *obj);
 
 /**
- * Set the icon associated with @p item.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @param icon A string with icon name or the absolute path of an image file.
+ * @brief Sets the icon associated with @a it.
  *
- * Toolbar will load icon image from fdo or current theme.
- * This behavior can be set by elm_toolbar_icon_order_lookup_set() function.
- * If an absolute path is provided it will load it direct from a file.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks Toolbar loads the icon image from fdo or the current theme.
+ *          This behavior can be set by the elm_toolbar_icon_order_lookup_set() function.
+ *          If an absolute path is provided it loads it directly from a file.
+ *
+ * @param[in] it The toolbar item
+ * @param[in] icon A string with the icon name or the absolute path of an image file
  *
  * @see elm_toolbar_icon_order_lookup_set()
  * @see elm_toolbar_icon_order_lookup_get()
- *
- * @ingroup Toolbar
  */
 EAPI void                         elm_toolbar_item_icon_set(Elm_Object_Item *it, const char *icon);
 
 /**
- * Get the string used to set the icon of @p item.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @return The string associated with the icon object.
+ * @brief Gets the string used to set the icon of @a it.
  *
- * @see elm_toolbar_item_icon_set() for details.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Toolbar
+ * @param[in] it The toolbar item
+ * @return The string associated with the icon object
+ *
+ * @see elm_toolbar_item_icon_set()
  */
 EAPI const char                  *elm_toolbar_item_icon_get(const Elm_Object_Item *it);
 
 /**
- * Get the object of @p item.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
+ * @brief Gets the object of @a it.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] it The toolbar item
  * @return The object
- *
- * @ingroup Toolbar
  */
 EAPI Evas_Object                 *elm_toolbar_item_object_get(const Elm_Object_Item *it);
 
 /**
- * Get the icon object of @p item.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
+ * @brief Gets the icon object of @a it.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] it The toolbar item
  * @return The icon object
  *
- * @see elm_toolbar_item_icon_set(), elm_toolbar_item_icon_file_set(),
- * or elm_toolbar_item_icon_memfile_set() for details.
- *
- * @ingroup Toolbar
+ * @see elm_toolbar_item_icon_set()
+ * @see elm_toolbar_item_icon_file_set()
+ * @see elm_toolbar_item_icon_memfile_set()
  */
 EAPI Evas_Object                 *elm_toolbar_item_icon_object_get(Elm_Object_Item *it);
 
 /**
- * Set the icon associated with @p item to an image in a binary buffer.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @param img The binary data that will be used as an image
- * @param size The size of binary data @p img
- * @param format Optional format of @p img to pass to the image loader
- * @param key Optional key of @p img to pass to the image loader (eg. if @p img is an edje file)
+ * @brief Sets the icon associated with @a it to an image in a binary buffer.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks The icon image set by this function can be changed by
+ *          elm_toolbar_item_icon_set().
+ *
+ * @param[in] it The toolbar item
+ * @param[in] img The binary data that is used as an image
+ * @param[in] size The size of binary data @a img
+ * @param[in] format The optional format of @a img to pass to the image loader
+ * @param[in] key The optional key of @a img to pass to the image loader (eg. if @a img is an edje file)
  *
  * @return (@c EINA_TRUE = success, @c EINA_FALSE = error)
- *
- * @note The icon image set by this function can be changed by
- * elm_toolbar_item_icon_set().
- *
- * @ingroup Toolbar
  */
 EAPI Eina_Bool                    elm_toolbar_item_icon_memfile_set(Elm_Object_Item *it, const void *img, size_t size, const char *format, const char *key);
 
 /**
- * Set the icon associated with @p item to an image in a binary buffer.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @param file The file that contains the image
- * @param key Optional key of @p img to pass to the image loader (eg. if @p img is an edje file)
+ * @brief Sets the icon associated with @a it to an image in a binary buffer.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks The icon image set by this function can be changed by
+ *          elm_toolbar_item_icon_set().
+ *
+ * @param[in] it The toolbar item
+ * @param[in] file The file that contains the image
+ * @param[in] key The optional key of @a img to pass to the image loader (eg. if @a img is an edje file)
  *
  * @return (@c EINA_TRUE = success, @c EINA_FALSE = error)
- *
- * @note The icon image set by this function can be changed by
- * elm_toolbar_item_icon_set().
- *
- * @ingroup Toolbar
  */
 EAPI Eina_Bool                    elm_toolbar_item_icon_file_set(Elm_Object_Item *it, const char *file, const char *key);
 
 /**
- * Set or unset item as a separator.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @param separator @c EINA_TRUE to set item @p item as separator or
- * @c EINA_FALSE to unset, i.e., item will be used as a regular item.
+ * @brief Sets or unsets item as a separator.
  *
- * Items aren't set as separator by default.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * If set as separator it will display separator theme, so won't display
- * icons or label.
+ * @remarks Items aren't set as a separator by default.
+ *          If set as a separator it displays a separator theme, so it won't display
+ *          icons or labels.
+ *
+ * @param[in] it The toolbar item
+ * @param[in] separator If @c EINA_TRUE set item @a it as a separator,
+ *                  otherwise @c EINA_FALSE to unset it, i.e., the item is used as a regular item
  *
  * @see elm_toolbar_item_separator_get()
- *
- * @ingroup Toolbar
  */
 EAPI void                         elm_toolbar_item_separator_set(Elm_Object_Item *it, Eina_Bool separator);
 
 /**
- * Get a value whether item is a separator or not.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @return @c EINA_TRUE means item @p it is a separator. @c EINA_FALSE
- * indicates it's not. If @p it is @c NULL, @c EINA_FALSE is returned.
+ * @brief Gets a value that indicates whether the item is a separator.
  *
- * @see elm_toolbar_item_separator_set() for details.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Toolbar
+ * @param[in] it The toolbar item
+ * @return @c EINA_TRUE indicates that item @a it is a separator, otherwise @c EINA_FALSE indicates it's not \n
+ *         If @a it is @c NULL, @c EINA_FALSE is returned.
+ *
+ * @see elm_toolbar_item_separator_set()
  */
 EAPI Eina_Bool                    elm_toolbar_item_separator_get(const Elm_Object_Item *it);
 
 /**
- * Set the shrink state of toolbar @p obj.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @param shrink_mode Toolbar's items display behavior.
+ * @brief Sets the item displaying mode of a given toolbar widget @a obj.
  *
- * The toolbar won't scroll if #ELM_TOOLBAR_SHRINK_NONE,
- * but will enforce a minimum size so all the items will fit, won't scroll
- * and won't show the items that don't fit if #ELM_TOOLBAR_SHRINK_HIDE,
- * will scroll if #ELM_TOOLBAR_SHRINK_SCROLL, and will create a button to
- * pop up excess elements with #ELM_TOOLBAR_SHRINK_MENU.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Toolbar
+ * @remarks The toolbar won't scroll under the #ELM_TOOLBAR_SHRINK_NONE mode, but
+ *          it would enforce a minimum size, so that all the items fit
+ *          inside it. It won't scroll and won't show the items that don't fit
+ *          under the #ELM_TOOLBAR_SHRINK_HIDE mode. Finally, it scrolls under the
+ *          #ELM_TOOLBAR_SHRINK_SCROLL mode, and it creates a button to
+ *          aggregate items which didn't fit with the #ELM_TOOLBAR_SHRINK_MENU
+ *          mode.
+ *
+ * @remarks This function's behavior clashes with that of
+ *          elm_scroller_policy_set(), so use either one of them, but not both.
+ *
+ * @param[in] obj The toolbar object handle
+ * @param[in] shrink_mode The toolbar's items display behavior
  */
 EAPI void                         elm_toolbar_shrink_mode_set(Evas_Object *obj, Elm_Toolbar_Shrink_Mode shrink_mode);
 
 /**
- * Get the shrink mode of toolbar @p obj.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @return Toolbar's items display behavior.
+ * @brief Gets the shrink mode of the toolbar @a obj.
  *
- * @see elm_toolbar_shrink_mode_set() for details.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Toolbar
+ * @param[in] obj The toolbar object
+ * @return The toolbar's items display behavior
+ *
+ * @see elm_toolbar_shrink_mode_set()
  */
 EAPI Elm_Toolbar_Shrink_Mode      elm_toolbar_shrink_mode_get(const Evas_Object *obj);
 
 /**
- * Enable/disable homogeneous mode.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object
- * @param homogeneous Assume the items within the toolbar are of the
- * same size (EINA_TRUE = on, EINA_FALSE = off). Default is @c EINA_FALSE.
+ * @brief Sets the item's transverse expansion of a given toolbar widget @a obj.
  *
- * This will enable the homogeneous mode where items are of the same size.
+ * @details This expands the transverse length of the item according to the transverse length of the toolbar.
+ *          The default is what the transverse length of the item is set to according to its minimum value.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] transverse_expanded The transverse expansion of the item
+ *                            (EINA_TRUE = on, EINA_FALSE = off, default = EINA_FALSE)
+ */
+EAPI void                         elm_toolbar_transverse_expanded_set(Evas_Object *obj, Eina_Bool transverse_expanded);
+
+/**
+ * @MOBILE_ONLY
+ *
+ * @brief Gets the transverse expansion of the toolbar @a obj.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The toolbar object
+ * @return The transverse expansion of the item
+ *         (EINA_TRUE = on, EINA_FALSE = off, default = EINA_FALSE)
+ *
+ * @see elm_toolbar_transverse_expand_set()
+ */
+EAPI Eina_Bool                    elm_toolbar_transverse_expanded_get(const Evas_Object *obj);
+
+/**
+ * @MOBILE_ONLY
+ *
+ * @brief Enables or disables the homogeneous mode.
+ *
+ * @details This enables the homogeneous mode where items are of the same size.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] homogeneous The boolean value that assumes that the items within the toolbar are of the
+ *                    same size (EINA_TRUE = on, EINA_FALSE = off) \n
+ *                    The default is @c EINA_FALSE.
+ *
  * @see elm_toolbar_homogeneous_get()
- *
- * @ingroup Toolbar
  */
 EAPI void                         elm_toolbar_homogeneous_set(Evas_Object *obj, Eina_Bool homogeneous);
 
 /**
- * Get whether the homogeneous mode is enabled.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @return Assume the items within the toolbar are of the same height
- * and width (EINA_TRUE = on, EINA_FALSE = off).
+ * @brief Gets whether the homogeneous mode is enabled.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The toolbar object
+ * @return The boolean value that assumes that the items within the toolbar are of the same height
+ *         and width (EINA_TRUE = on, EINA_FALSE = off)
  *
  * @see elm_toolbar_homogeneous_set()
- *
- * @ingroup Toolbar
  */
 EAPI Eina_Bool                    elm_toolbar_homogeneous_get(const Evas_Object *obj);
 
 /**
- * Set the parent object of the toolbar items' menus.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @param parent The parent of the menu objects.
+ * @brief Sets the parent object of the toolbar items menus.
  *
- * Each item can be set as item menu, with elm_toolbar_item_menu_set().
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * For more details about setting the parent for toolbar menus, see
- * elm_menu_parent_set().
+ * @remarks Each item can be set as an item menu, with elm_toolbar_item_menu_set().
  *
- * @see elm_menu_parent_set() for details.
- * @see elm_toolbar_item_menu_set() for details.
+ * @param[in] obj The toolbar object
+ * @param[in] parent The parent of the menu objects
  *
- * @ingroup Toolbar
+ * @see elm_toolbar_item_menu_set()
  */
 EAPI void                         elm_toolbar_menu_parent_set(Evas_Object *obj, Evas_Object *parent);
 
 /**
- * Get the parent object of the toolbar items' menus.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @return The parent of the menu objects.
+ * @brief Gets the parent object of the toolbar items menus.
  *
- * @see elm_toolbar_menu_parent_set() for details.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Toolbar
+ * @param[in] obj The toolbar object
+ * @return The parent of the menu objects
+ *
+ * @see elm_toolbar_menu_parent_set()
  */
 EAPI Evas_Object                 *elm_toolbar_menu_parent_get(const Evas_Object *obj);
 
 /**
- * Set the alignment of the items.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @param align The new alignment, a float between <tt> 0.0 </tt>
- * and <tt> 1.0 </tt>.
+ * @brief Sets the alignment of the items.
  *
- * Alignment of toolbar items, from <tt> 0.0 </tt> to indicates to align
- * left, to <tt> 1.0 </tt>, to align to right. <tt> 0.5 </tt> centralize
- * items.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * Centered items by default.
+ * @remarks Alignment of the toolbar items, from <tt> 0.0 </tt> that indicates to align
+ *          to the left, to <tt> 1.0 </tt>, that indicates to align to the right. <tt> 0.5 </tt> to centralize
+ *          items.
+ *
+ * @remarks Items are centered by default.
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] align The new alignment, a float between <tt> 0.0 </tt>
+ *              and <tt> 1.0 </tt>
  *
  * @see elm_toolbar_align_get()
- *
- * @ingroup Toolbar
  */
 EAPI void                         elm_toolbar_align_set(Evas_Object *obj, double align);
 
 /**
- * Get the alignment of the items.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object.
- * @return toolbar items alignment, a float between <tt> 0.0 </tt> and
- * <tt> 1.0 </tt>.
+ * @brief Gets the alignment of the items.
  *
- * @see elm_toolbar_align_set() for details.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @ingroup Toolbar
+ * @param[in] obj The toolbar object
+ * @return The toolbar items alignment, a float between <tt> 0.0 </tt> and
+ *         <tt> 1.0 </tt>
+ *
+ * @see elm_toolbar_align_set()
  */
 EAPI double                       elm_toolbar_align_get(const Evas_Object *obj);
 
 /**
- * Set whether the toolbar item opens a menu.
+ * @internal
+ * @remarks This API is unusable.
+ * @brief Sets whether the toolbar item opens a menu.
  *
- * @param it The toolbar item.
- * @param menu If @c EINA_TRUE, @p item will opens a menu when selected.
+ * @remarks A toolbar item can be set to be a menu, using this function.
  *
- * A toolbar item can be set to be a menu, using this function.
+ * @remarks Once it is set to be a menu, it can be manipulated through the
+ *          menu-like function elm_toolbar_menu_parent_set() and the other
+ *          elm_menu functions, using the Evas_Object @a menu returned by
+ *          elm_toolbar_item_menu_get().
  *
- * Once it is set to be a menu, it can be manipulated through the
- * menu-like function elm_toolbar_menu_parent_set() and the other
- * elm_menu functions, using the Evas_Object @c menu returned by
- * elm_toolbar_item_menu_get().
+ *          So, items to be displayed in this item's menu should be added with
+ *          elm_menu_item_add().
  *
- * So, items to be displayed in this item's menu should be added with
- * elm_menu_item_add().
- *
- * The following code exemplifies the most basic usage:
+ * @remarks The following code exemplifies the most basic usage:
  * @code
  * tb = elm_toolbar_add(win)
  * item = elm_toolbar_item_append(tb, "refresh", "Menu", NULL, NULL);
@@ -712,225 +873,350 @@ EAPI double                       elm_toolbar_align_get(const Evas_Object *obj);
  * NULL);
  * @endcode
  *
- * @see elm_toolbar_item_menu_get()
+ * @param[in] it The toolbar item
+ * @param[in] menu If @c EINA_TRUE @a it opens a menu when selected,
+ *             otherwise @c EINA_FALSE
  *
- * @ingroup Toolbar
+ * @see elm_toolbar_item_menu_get()
  */
 EAPI void                         elm_toolbar_item_menu_set(Elm_Object_Item *it, Eina_Bool menu);
 
 /**
- * Get toolbar item's menu.
+ * @internal
+ * @remarks This API is unusable.
  *
- * @param it The toolbar item.
- * @return Item's menu object or @c NULL on failure.
+ * @brief Gets the toolbar item's menu.
  *
- * If @p item wasn't set as menu item with elm_toolbar_item_menu_set(),
- * this function will set it.
+ * @remarks If @a it isn't set as a menu item using elm_toolbar_item_menu_set(),
+ *          this function sets it.
  *
- * @see elm_toolbar_item_menu_set() for details.
+ * @param[in] it The toolbar item
+ * @return The item's menu object, otherwise @c NULL on failure
  *
- * @ingroup Toolbar
+ * @see elm_toolbar_item_menu_set()
  */
 EAPI Evas_Object                 *elm_toolbar_item_menu_get(const Elm_Object_Item *it);
 
 /**
- * Add a new state to @p item.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @param icon A string with icon name or the absolute path of an image file.
- * @param label The label of the new state.
- * @param func The function to call when the item is clicked when this
- * state is selected.
- * @param data The data to associate with the state.
- * @return The toolbar item state, or @c NULL upon failure.
+ * @brief Adds a new state to @a it.
  *
- * Toolbar will load icon image from fdo or current theme.
- * This behavior can be set by elm_toolbar_icon_order_lookup_set() function.
- * If an absolute path is provided it will load it direct from a file.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * States created with this function can be removed with
- * elm_toolbar_item_state_del().
+ * @remarks Toolbar loads the icon image from fdo or the current theme.
+ *          This behavior can be set by the elm_toolbar_icon_order_lookup_set() function.
+ *          If an absolute path is provided it loads it directly from a file.
+ *
+ * @remarks States created with this function can be removed using
+ *          elm_toolbar_item_state_del().
+ *
+ * @param[in] it The toolbar item
+ * @param[in] icon A string with the icon name or the absolute path of an image file
+ * @param[in] label The label of the new state
+ * @param[in] func The function to call when the item is clicked and when this
+ *             state is selected
+ * @param[in] data The data to associate with the state
+ * @return The toolbar item state, otherwise @c NULL on failure
  *
  * @see elm_toolbar_item_state_del()
  * @see elm_toolbar_item_state_sel()
  * @see elm_toolbar_item_state_get()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Toolbar_Item_State      *elm_toolbar_item_state_add(Elm_Object_Item *it, const char *icon, const char *label, Evas_Smart_Cb func, const void *data);
 
 /**
- * Delete a previously added state to @p item.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @param state The state to be deleted.
- * @return @c EINA_TRUE on success or @c EINA_FALSE on failure.
+ * @brief Deletes a previously added state to @a it.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] it The toolbar item
+ * @param[in] state The state to be deleted
+ * @return @c EINA_TRUE on success, otherwise @c EINA_FALSE on failure
  *
  * @see elm_toolbar_item_state_add()
  */
 EAPI Eina_Bool                    elm_toolbar_item_state_del(Elm_Object_Item *it, Elm_Toolbar_Item_State *state);
 
 /**
- * Set @p state as the current state of @p it.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @param state The state to use.
- * @return @c EINA_TRUE on success or @c EINA_FALSE on failure.
+ * @brief Sets @a state as the current state of @a it.
  *
- * If @p state is @c NULL, it won't select any state and the default item's
- * icon and label will be used. It's the same behaviour than
- * elm_toolbar_item_state_unset().
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks If @a state is @c NULL, it won't select any state and the default item's
+ *          icon and label is used. It's the same behaviour as
+ *          elm_toolbar_item_state_unset().
+ *
+ * @param[in] it The toolbar item
+ * @param[in] state The state to use
+ * @return @c EINA_TRUE on success, otherwise @c EINA_FALSE on failure
  *
  * @see elm_toolbar_item_state_unset()
- *
- * @ingroup Toolbar
  */
 EAPI Eina_Bool                    elm_toolbar_item_state_set(Elm_Object_Item *it, Elm_Toolbar_Item_State *state);
 
 /**
- * Unset the state of @p it.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
+ * @brief Unsets the state of @a it.
  *
- * The default icon and label from this item will be displayed.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
  *
- * @see elm_toolbar_item_state_set() for more details.
+ * @remarks The default icon and label from this item is displayed.
  *
- * @ingroup Toolbar
+ * @param[in] it The toolbar item
+ *
+ * @see elm_toolbar_item_state_set()
  */
 EAPI void                         elm_toolbar_item_state_unset(Elm_Object_Item *it);
 
 /**
- * Get the current state of @p it.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item.
- * @return The selected state or @c NULL if none is selected or on failure.
+ * @brief Gets the current state of @a it.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] it The toolbar item
+ * @return The selected state, otherwise @c NULL if none are selected or on failure
  *
  * @see elm_toolbar_item_state_set() for details.
  * @see elm_toolbar_item_state_unset()
  * @see elm_toolbar_item_state_add()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Toolbar_Item_State      *elm_toolbar_item_state_get(const Elm_Object_Item *it);
 
 /**
- * Get the state after selected state in toolbar's @p item.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item to change state.
- * @return The state after current state, or @c NULL on failure.
+ * @brief Gets the state after the selected state in the toolbar's @a it.
  *
- * If last state is selected, this function will return first state.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks If the last state is selected, this function returns the first state.
+ *
+ * @param[in] it The toolbar item to change state
+ * @return The state after the current state, otherwise @c NULL on failure
  *
  * @see elm_toolbar_item_state_set()
  * @see elm_toolbar_item_state_add()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Toolbar_Item_State      *elm_toolbar_item_state_next(Elm_Object_Item *it);
 
 /**
- * Get the state before selected state in toolbar's @p item.
+ * @MOBILE_ONLY
  *
- * @param it The toolbar item to change state.
- * @return The state before current state, or @c NULL on failure.
+ * @brief Gets the state before the selected state in the toolbar's @a it.
  *
- * If first state is selected, this function will return last state.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks If the first state is selected, this function returns the last state.
+ *
+ * @param[in] it The toolbar item to change state
+ * @return The state before the current state, otherwise @c NULL on failure
  *
  * @see elm_toolbar_item_state_set()
  * @see elm_toolbar_item_state_add()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Toolbar_Item_State      *elm_toolbar_item_state_prev(Elm_Object_Item *it);
 
 /**
- * Change a toolbar's orientation
- * @param obj The toolbar object
- * @param horizontal If @c EINA_TRUE, the toolbar is horizontal
- * By default, a toolbar will be horizontal. Use this function to create a vertical toolbar.
- * @ingroup Toolbar
+ * @MOBILE_ONLY
+ *
+ * @brief Changes a toolbar's orientation.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks By default, a toolbar is horizontal. Use this function to create a vertical toolbar.
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] horizontal If @c EINA_TRUE the toolbar is horizontal,
+ *                   otherwise @c EINA_FALSE
  */
 EAPI void                         elm_toolbar_horizontal_set(Evas_Object *obj, Eina_Bool horizontal);
 
 /**
- * Get a toolbar's orientation
- * @param obj The toolbar object
- * @return If @c EINA_TRUE, the toolbar is horizontal
- * By default, a toolbar will be horizontal. Use this function to determine whether a toolbar is vertical.
- * @ingroup Toolbar
+ * @MOBILE_ONLY
+ *
+ * @brief Gets a toolbar's orientation.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks By default, a toolbar is horizontal. Use this function to determine whether a toolbar is vertical.
+ *
+ * @param[in] obj The toolbar object
+ * @return If @c EINA_TRUE, the toolbar is horizontal,
+ *         otherwise @c EINA_FALSE
  */
 EAPI Eina_Bool                    elm_toolbar_horizontal_get(const Evas_Object *obj);
 
 /**
- * Get the number of items in a toolbar
- * @param obj The toolbar object
- * @return The number of items in @p obj toolbar
- * @ingroup Toolbar
+ * @MOBILE_ONLY
+ *
+ * @brief Gets the number of items in a toolbar.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The toolbar object
+ * @return The number of items in the @a obj toolbar
  */
 EAPI unsigned int                 elm_toolbar_items_count(const Evas_Object *obj);
 
 /**
- * Set the standard priority of visible items in a toolbar
- * @param obj The toolbar object
- * @param priority The standard_priority of visible items
+ * @MOBILE_ONLY
  *
- * When it is the ELM_TOOLBAR_SHRINK_EXPAND mode, the items are shown only up to standard priority.
- * The other items are located in more panel. The more panel can be shown when the more item is clicked.
+ * @brief Sets the standard priority of visible items in a toolbar.
+ *
+ * @since 1.7
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks If the priority of the item is upto the standard priority, it is shown in the basic panel.
+ *          The other items are located in the more menu or panel. The more menu or panel can be shown when the more item is clicked.
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] priority The standard priority of visible items
  *
  * @see elm_toolbar_standard_priority_get()
- *
- * @ingroup Toolbar
  */
 EAPI void                         elm_toolbar_standard_priority_set(Evas_Object *obj, int priority);
 
 /**
- * Get the standard_priority of visible items in a toolbar
- * @param obj The toolbar object
- * @return The standard priority of items in @p obj toolbar
+ * @MOBILE_ONLY
+ *
+ * @brief Gets the standard priority of visible items in a toolbar.
+ *
+ * @since 1.7
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The toolbar object
+ * @return The standard priority of items in the @a obj toolbar
  *
  * @see elm_toolbar_standard_priority_set()
- *
- * @ingroup Toolbar
  */
 EAPI int                          elm_toolbar_standard_priority_get(const Evas_Object *obj);
 
 /**
- * Set the toolbar select mode.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object
- * @param mode The select mode
+ * @brief Sets the toolbar select mode.
  *
- * elm_toolbar_select_mode_set() changes item select mode in the toolbar widget.
- * - ELM_OBJECT_SELECT_MODE_DEFAULT : Items will only call their selection func and
- *      callback when first becoming selected. Any further clicks will
- *      do nothing, unless you set always select mode.
- * - ELM_OBJECT_SELECT_MODE_ALWAYS :  This means that, even if selected,
- *      every click will make the selected callbacks be called.
- * - ELM_OBJECT_SELECT_MODE_NONE : This will turn off the ability to select items
- *      entirely and they will neither appear selected nor call selected
- *      callback functions.
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @remarks elm_toolbar_select_mode_set() changes the item select mode in the toolbar widget.
+ *          - ELM_OBJECT_SELECT_MODE_DEFAULT : Items only call their selection @a func and
+ *                                             callback on first getting selected. Any further clicks
+ *                                             do nothing, unless you set the always select mode.
+ *          - ELM_OBJECT_SELECT_MODE_ALWAYS :  This means that, even if selected,
+ *                                             every click calls the selected callbacks.
+ *          - ELM_OBJECT_SELECT_MODE_NONE : This turns off the ability to select items
+ *                                          entirely and they neither appear selected nor call selected
+ *                                          callback functions.
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] mode The select mode
  *
  * @see elm_toolbar_select_mode_get()
- *
- * @ingroup Toolbar
  */
 EAPI void
 elm_toolbar_select_mode_set(Evas_Object *obj, Elm_Object_Select_Mode mode);
 
 /**
- * Get the toolbar select mode.
+ * @MOBILE_ONLY
  *
- * @param obj The toolbar object
+ * @brief Gets the toolbar select mode.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The toolbar object
  * @return The select mode
- * (If getting mode is failed, it returns ELM_OBJECT_SELECT_MODE_MAX)
+ *         (If the getting mode fails, it returns @c ELM_OBJECT_SELECT_MODE_MAX)
  *
  * @see elm_toolbar_select_mode_set()
- *
- * @ingroup Toolbar
  */
 EAPI Elm_Object_Select_Mode
 elm_toolbar_select_mode_get(const Evas_Object *obj);
+
+/**
+ * @MOBILE_ONLY
+ *
+ * @brief Sets the reorder mode.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The toolbar object
+ * @param[in] reorder_mode The reorder mode
+ *                     (EINA_TRUE = on, EINA_FALSE = off)
+ */
+EAPI void                          elm_toolbar_reorder_mode_set(Evas_Object *obj, Eina_Bool reorder_mode);
+
+/**
+ * @MOBILE_ONLY
+ *
+ * @brief Gets the reorder mode.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] obj The toolbar object
+ * @return The reorder mode
+ *         (EINA_TRUE = on, EINA_FALSE = off)
+ */
+EAPI Eina_Bool                     elm_toolbar_reorder_mode_get(const Evas_Object *obj);
+
+/**
+ * @MOBILE_ONLY
+ *
+ * @brief Shows a specific item, when the toolbar can be scrolled.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] it The toolbar item
+ * @param[in] type Item scroll to type
+ *
+ * @see elm_toolbar_item_bring_in()
+ */
+EAPI void                          elm_toolbar_item_show(Elm_Object_Item *it, Elm_Toolbar_Item_Scrollto_Type type);
+
+/**
+ * @MOBILE_ONLY
+ *
+ * @brief Shows a specific item with scroll animation, when the toolbar can be scrolled.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @endif
+ *
+ * @param[in] it The toolbar item
+ * @param[in] type Item scroll to type
+ *
+ * @see elm_toolbar_item_show()
+ */
+EAPI void                          elm_toolbar_item_bring_in(Elm_Object_Item *it, Elm_Toolbar_Item_Scrollto_Type type);
 
 /**
  * @}

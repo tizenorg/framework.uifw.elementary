@@ -9,6 +9,8 @@
 #include <Elementary.h>
 #include "elm_priv.h"
 
+#define _TIZEN_CHANGEABLE
+
 EAPI int ELM_EVENT_CONFIG_ALL_CHANGED = 0;
 
 Elm_Config *_elm_config = NULL;
@@ -17,7 +19,11 @@ static Eet_Data_Descriptor *_config_edd = NULL;
 static Eet_Data_Descriptor *_config_font_overlay_edd = NULL;
 static Eet_Data_Descriptor *_config_color_edd = NULL;
 static Eet_Data_Descriptor *_config_color_palette_edd = NULL;
+static Eet_Data_Descriptor *_config_color_overlay_edd = NULL;
 const char *_elm_preferred_engine = NULL;
+const char *_elm_preference = NULL;
+const char *_elm_accel_preference = NULL;
+Eina_List  *_color_overlays_del = NULL;
 
 static Ecore_Poller *_elm_cache_flush_poller = NULL;
 
@@ -46,9 +52,9 @@ const char *_elm_engines[] = {
 /* whenever you want to add a new text class support into Elementary,
    declare it both here and in the (default) theme */
 static const Elm_Text_Class _elm_text_classes[] = {
-   {"button", "Button Labels"},
-   {"label", "Text Labels"},
-   {"entry", "Text Entries"},
+   {"button", "Button"},
+   {"label", "Label"},
+   {"entry", "Entry"},
    {"title_bar", "Title Bar"},
    {"list_item", "List Items"},
    {"grid_item", "Grid Items"},
@@ -57,11 +63,18 @@ static const Elm_Text_Class _elm_text_classes[] = {
    {NULL, NULL}
 };
 
+/* whenever you want to add a new class class support into Elementary,
+   declare it both here and in the (default) theme */
+static const Elm_Color_Class _elm_color_classes[] = {
+   {NULL, NULL}
+};
+
 static void        _desc_init(void);
 static void        _desc_shutdown(void);
 static void        _profile_fetch_from_conf(void);
 static void        _config_free(void);
 static void        _config_apply(void);
+static void        _config_sub_apply(void);
 static Elm_Config *_config_user_load(void);
 static Elm_Config *_config_system_load(void);
 static void        _config_load(void);
@@ -83,21 +96,21 @@ static size_t _elm_user_dir_snprintf(char       *dst,
 
 #ifdef HAVE_ELEMENTARY_X
 static Ecore_Event_Handler *_prop_change_handler = NULL;
-static Ecore_Timer *_prop_all_update_timer = NULL;
 static Ecore_Timer *_prop_change_delay_timer = NULL;
-static Ecore_X_Window _root_1st = 0;
-#define ATOM_COUNT 2
+static Ecore_X_Window _config_win = 0;
+#define ATOM_COUNT 3
 static Ecore_X_Atom _atom[ATOM_COUNT];
 static Ecore_X_Atom _atom_config = 0;
 static const char *_atom_names[ATOM_COUNT] =
 {
    "ELM_PROFILE",
-   "ELM_CONFIG"
+   "ELM_CONFIG",
+   "ELM_CONFIG_WIN"
 };
-#define ATOM_E_PROFILE                              0
-#define ATOM_E_CONFIG                               1
+#define ATOM_E_PROFILE    0
+#define ATOM_E_CONFIG     1
+#define ATOM_E_CONFIG_WIN 2
 
-static Eina_Bool _prop_all_update_cb(void *data __UNUSED__);
 static Eina_Bool _prop_config_get(void);
 static void      _prop_config_set(void);
 static Eina_Bool _prop_change(void *data  __UNUSED__,
@@ -105,36 +118,33 @@ static Eina_Bool _prop_change(void *data  __UNUSED__,
                               void       *ev);
 
 static Eina_Bool
-_prop_all_update_cb(void *data __UNUSED__)
-{
-   _prop_config_set();
-   ecore_x_window_prop_string_set(_root_1st, _atom[ATOM_E_PROFILE],
-                                  _elm_profile);
-   _prop_all_update_timer = NULL;
-   return EINA_FALSE;
-}
-
-static Eina_Bool
 _prop_config_get(void)
 {
+   DBG("ENTER::prop_config_get");
    int size = 0;
    Ecore_X_Atom atom;
    char buf[512];
    unsigned char *data = NULL;
    Elm_Config *config_data;
+   Eina_Bool pre_access_mode;
 
    snprintf(buf, sizeof(buf), "ELM_CONFIG_%s", _elm_profile);
    atom = ecore_x_atom_get(buf);
    _atom_config = atom;
-   if (!ecore_x_window_prop_property_get(_root_1st,
+   if (!ecore_x_window_prop_property_get(_config_win,
                                          atom, _atom[ATOM_E_CONFIG],
                                          8, &data, &size))
      {
-        if (!ecore_x_window_prop_property_get(_root_1st,
+        if (!ecore_x_window_prop_property_get(_config_win,
                                               _atom[ATOM_E_CONFIG],
                                               _atom[ATOM_E_CONFIG],
                                               8, &data, &size))
-          return EINA_FALSE;
+          {
+             if(data) free(data);
+             ERR("ecore_x_window_prop_property_get is failed!");
+             DBG("OUT::prop_config_get returns EINA_FALSE");
+             return EINA_FALSE;
+          }
         else
           _atom_config = _atom[ATOM_E_CONFIG];
      }
@@ -143,28 +153,63 @@ _prop_config_get(void)
    if (size < 1)
      {
         free(data);
+        DBG("OUT::prop_config_get returns EINA_FALSE");
         return EINA_FALSE;
      }
    config_data = eet_data_descriptor_decode(_config_edd, data, size);
    free(data);
-   if (!config_data) return EINA_FALSE;
+   if (!config_data)
+     {
+        ERR("eet_data_descriptor_decode is failed!");
+        DBG("OUT::prop_config_get returns EINA_FALSE");
+        return EINA_FALSE;
+     }
 
    /* What do we do on version mismatch when someone changes the
     * config in the rootwindow? */
    /* Most obvious case, new version and we are still linked to
     * whatever was there before, we just ignore until user restarts us */
    if (config_data->config_version > ELM_CONFIG_VERSION)
-     return EINA_TRUE;
+     {
+        DBG("config_version mismatch!");
+        DBG("OUT::prop_config_get returns EINA_TRUE");
+        return EINA_TRUE;
+     }
    /* What in the case the version is older? Do we even support those
     * cases or we only check for equality above? */
 
+   pre_access_mode = _elm_config->access_mode;
    _config_free();
    _elm_config = config_data;
+   _env_get();
    _config_apply();
+   _config_sub_apply();
+   evas_font_reinit();
    _elm_config_font_overlay_apply();
+#ifdef _TIZEN_CHANGEABLE
+   Eina_List *eelist, *last;
+   Ecore_Evas *ee;
+   void *cu = NULL;
+
+   eelist = ecore_evas_ecore_evas_list_get();
+   if (eelist)
+     {
+        last = eina_list_last(eelist);
+        ee = eina_list_data_get(last);
+        cu = ecore_evas_data_get(ee, "changeable_ui");
+     }
+   if (!cu) _elm_config_color_overlay_apply();
+   eina_list_free(eelist);
+#else
+   _elm_config_color_overlay_apply();
+#endif
    _elm_rescale();
    _elm_recache();
+   if (pre_access_mode != _elm_config->access_mode)
+     _elm_win_access(_elm_config->access_mode);
+   if (!_elm_config->access_mode) _elm_access_shutdown();
    ecore_event_add(ELM_EVENT_CONFIG_ALL_CHANGED, NULL, NULL, NULL);
+   DBG("DONE::prop_config_get returns EINA_TRUE");
    return EINA_TRUE;
 }
 
@@ -184,7 +229,7 @@ _prop_config_set(void)
         atom = ecore_x_atom_get(buf);
         _atom_config = atom;
 
-        ecore_x_window_prop_property_set(_root_1st, _atom_config,
+        ecore_x_window_prop_property_set(_config_win, _atom_config,
                                          _atom[ATOM_E_CONFIG], 8,
                                          config_data, size);
         free(config_data);
@@ -196,11 +241,14 @@ _prop_change_delay_cb(void *data __UNUSED__)
 {
    char *s;
 
-   s = ecore_x_window_prop_string_get(_root_1st, _atom[ATOM_E_PROFILE]);
-   if (s)
+   if (!getenv("ELM_PROFILE"))
      {
-        if (_elm_profile) free(_elm_profile);
-        _elm_profile = s;
+        s = ecore_x_window_prop_string_get(_config_win, _atom[ATOM_E_PROFILE]);
+        if (s)
+          {
+             if (_elm_profile) free(_elm_profile);
+             _elm_profile = s;
+          }
      }
    _prop_config_get();
    _prop_change_delay_timer = NULL;
@@ -214,7 +262,7 @@ _prop_change(void *data  __UNUSED__,
 {
    Ecore_X_Event_Window_Property *event = ev;
 
-   if (event->win == _root_1st)
+   if (event->win == _config_win)
      {
         if (event->atom == _atom[ATOM_E_PROFILE])
           {
@@ -288,6 +336,19 @@ _desc_init(void)
         return;
      }
 
+   memset(&eddc, 0, sizeof(eddc)); /* just in case... */
+   EET_EINA_STREAM_DATA_DESCRIPTOR_CLASS_SET(&eddc, Elm_Color_Overlay);
+   eddc.func.str_direct_alloc = NULL;
+   eddc.func.str_direct_free = NULL;
+
+   _config_color_overlay_edd = eet_data_descriptor_stream_new(&eddc);
+   if (!_config_color_overlay_edd)
+     {
+        printf("EEEK! eet_data_descriptor_stream_new() failed\n");
+        eet_data_descriptor_free(_config_edd);
+        return;
+     }
+
 #define T_INT    EET_T_INT
 #define T_DOUBLE EET_T_DOUBLE
 #define T_STRING EET_T_STRING
@@ -307,6 +368,7 @@ _desc_init(void)
    ELM_CONFIG_VAL(D, T, g, EET_T_UINT);
    ELM_CONFIG_VAL(D, T, b, EET_T_UINT);
    ELM_CONFIG_VAL(D, T, a, EET_T_UINT);
+   ELM_CONFIG_VAL(D, T, color_name, EET_T_STRING);
 #undef T
 #undef D
 
@@ -317,22 +379,60 @@ _desc_init(void)
 #undef T
 #undef D
 
+#define T Elm_Color_Overlay
+#define D _config_color_overlay_edd
+   ELM_CONFIG_VAL(D, T, color_class, EET_T_STRING);
+   ELM_CONFIG_VAL(D, T, color.r, EET_T_UCHAR);
+   ELM_CONFIG_VAL(D, T, color.g, EET_T_UCHAR);
+   ELM_CONFIG_VAL(D, T, color.b, EET_T_UCHAR);
+   ELM_CONFIG_VAL(D, T, color.a, EET_T_UCHAR);
+   ELM_CONFIG_VAL(D, T, outline.r, EET_T_UCHAR);
+   ELM_CONFIG_VAL(D, T, outline.g, EET_T_UCHAR);
+   ELM_CONFIG_VAL(D, T, outline.b, EET_T_UCHAR);
+   ELM_CONFIG_VAL(D, T, outline.a, EET_T_UCHAR);
+   ELM_CONFIG_VAL(D, T, shadow.r, EET_T_UCHAR);
+   ELM_CONFIG_VAL(D, T, shadow.g, EET_T_UCHAR);
+   ELM_CONFIG_VAL(D, T, shadow.b, EET_T_UCHAR);
+   ELM_CONFIG_VAL(D, T, shadow.a, EET_T_UCHAR);
+#undef T
+#undef D
+
 #define T Elm_Config
 #define D _config_edd
    ELM_CONFIG_VAL(D, T, config_version, T_INT);
    ELM_CONFIG_VAL(D, T, engine, T_STRING);
+
+   //--------------------------------------------------------------
+   // FIXME: For now we don't save accel & accel_override & gl depth/stencil/msaa
+   // Reason is the current Settings app DOES NOT SUPPORT THEM!
+   // ELM_CONFIG_VAL(D, T, accel, T_STRING);
+   // ELM_CONFIG_VAL(D, T, accel_override, T_UCHAR);
+   // ELM_CONFIG_VAL(D, T, gl_depth, T_INT);
+   // ELM_CONFIG_VAL(D, T, gl_stencil, T_INT);
+   // ELM_CONFIG_VAL(D, T, gl_msaa, T_INT);
+   // -- jpeg 2014/08/27 -- wonsik 2015/01/12
+   //--------------------------------------------------------------
+
    ELM_CONFIG_VAL(D, T, vsync, T_UCHAR);
    ELM_CONFIG_VAL(D, T, thumbscroll_enable, T_UCHAR);
    ELM_CONFIG_VAL(D, T, thumbscroll_threshold, T_INT);
+   ELM_CONFIG_VAL(D, T, thumbscroll_hold_threshold, T_INT);
    ELM_CONFIG_VAL(D, T, thumbscroll_momentum_threshold, T_DOUBLE);
+   ELM_CONFIG_VAL(D, T, thumbscroll_flick_distance_tolerance, T_INT);
    ELM_CONFIG_VAL(D, T, thumbscroll_friction, T_DOUBLE);
+   ELM_CONFIG_VAL(D, T, thumbscroll_min_friction, T_DOUBLE);
+   ELM_CONFIG_VAL(D, T, thumbscroll_friction_standard, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, thumbscroll_bounce_friction, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, thumbscroll_border_friction, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, thumbscroll_sensitivity_friction, T_DOUBLE);
+   ELM_CONFIG_VAL(D, T, thumbscroll_acceleration_threshold, T_DOUBLE);
+   ELM_CONFIG_VAL(D, T, thumbscroll_acceleration_time_limit, T_DOUBLE);
+   ELM_CONFIG_VAL(D, T, thumbscroll_acceleration_weight, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, page_scroll_friction, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, bring_in_scroll_friction, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, zoom_friction, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, thumbscroll_bounce_enable, T_UCHAR);
+   ELM_CONFIG_VAL(D, T, scroll_smooth_start_enable, T_UCHAR);
    ELM_CONFIG_VAL(D, T, scroll_smooth_time_interval, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, scroll_smooth_amount, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, scroll_smooth_history_weight, T_DOUBLE);
@@ -378,14 +478,36 @@ _desc_init(void)
    ELM_CONFIG_VAL(D, T, glayer_line_angular_tolerance, T_DOUBLE);
    ELM_CONFIG_VAL(D, T, glayer_flick_time_limit_ms, T_INT);
    ELM_CONFIG_VAL(D, T, glayer_long_tap_start_timeout, T_DOUBLE);
-   ELM_CONFIG_VAL(D, T, access_mode, T_INT);
+   ELM_CONFIG_VAL(D, T, glayer_double_tap_timeout, T_DOUBLE);
+   ELM_CONFIG_VAL(D, T, access_mode, T_UCHAR);
+   ELM_CONFIG_VAL(D, T, access_password_read_enable, T_UCHAR);
+   ELM_CONFIG_VAL(D, T, selection_clear_enable, T_UCHAR);
    ELM_CONFIG_VAL(D, T, glayer_continues_enable, T_UCHAR);
    ELM_CONFIG_VAL(D, T, week_start, T_INT);
    ELM_CONFIG_VAL(D, T, weekend_start, T_INT);
    ELM_CONFIG_VAL(D, T, weekend_len, T_INT);
    ELM_CONFIG_VAL(D, T, year_min, T_INT);
    ELM_CONFIG_VAL(D, T, year_max, T_INT);
+   ELM_CONFIG_LIST(D, T, color_overlays, _config_color_overlay_edd);
    ELM_CONFIG_LIST(D, T, color_palette, _config_color_palette_edd);
+   ELM_CONFIG_VAL(D, T, softcursor_mode, T_UCHAR);
+   ELM_CONFIG_VAL(D, T, auto_norender_withdrawn, T_UCHAR);
+   ELM_CONFIG_VAL(D, T, auto_norender_iconified_same_as_withdrawn, T_UCHAR);
+   ELM_CONFIG_VAL(D, T, auto_flush_withdrawn, T_UCHAR);
+   ELM_CONFIG_VAL(D, T, auto_dump_withdrawn, T_UCHAR);
+   ELM_CONFIG_VAL(D, T, auto_throttle, T_UCHAR);
+   ELM_CONFIG_VAL(D, T, auto_throttle_amount, T_DOUBLE);
+   ELM_CONFIG_VAL(D, T, indicator_service_0, T_STRING);
+   ELM_CONFIG_VAL(D, T, indicator_service_90, T_STRING);
+   ELM_CONFIG_VAL(D, T, indicator_service_180, T_STRING);
+   ELM_CONFIG_VAL(D, T, indicator_service_270, T_STRING);
+   ELM_CONFIG_VAL(D, T, translate, T_UCHAR);
+   ELM_CONFIG_VAL(D, T, genlist_animation_duration, T_DOUBLE);
+// TIZEN_ONLY(20150323)
+// In now implementation of this feature is only genlist.
+   ELM_CONFIG_VAL(D, T, scroll_item_align_enable, T_UCHAR);
+   ELM_CONFIG_VAL(D, T, scroll_item_valign, T_STRING);
+//////////////////
 #undef T
 #undef D
 #undef T_INT
@@ -419,6 +541,12 @@ _desc_shutdown(void)
      {
         eet_data_descriptor_free(_config_color_palette_edd);
         _config_color_palette_edd = NULL;
+     }
+
+   if (_config_color_overlay_edd)
+     {
+        eet_data_descriptor_free(_config_color_overlay_edd);
+        _config_color_overlay_edd = NULL;
      }
 }
 
@@ -526,6 +654,45 @@ _elm_config_font_overlays_list(void)
    return _elm_config->font_overlays;
 }
 
+Eina_Bool _elm_config_access_get(void)
+{
+   return _elm_config->access_mode;
+}
+
+void _elm_config_access_set(Eina_Bool is_access)
+{
+   is_access = !!is_access;
+   if (_elm_config->access_mode == is_access) return;
+   _elm_config->access_mode = is_access;
+   _elm_win_access(is_access);
+
+   if (!is_access) _elm_access_shutdown();
+}
+
+Eina_Bool _elm_config_access_password_read_enabled_get(void)
+{
+   return _elm_config->access_password_read_enable;
+}
+
+void _elm_config_access_password_read_enabled_set(Eina_Bool enabled)
+{
+   enabled = !!enabled;
+   if (_elm_config->access_password_read_enable == enabled) return;
+   _elm_config->access_password_read_enable = enabled;
+}
+
+Eina_Bool _elm_config_selection_unfocused_clear_get(void)
+{
+   return _elm_config->selection_clear_enable;
+}
+
+void _elm_config_selection_unfocused_clear_set(Eina_Bool enabled)
+{
+   enabled = !!enabled;
+   if (_elm_config->selection_clear_enable == enabled) return;
+   _elm_config->selection_clear_enable = enabled;
+}
+
 void
 _elm_config_font_overlay_set(const char    *text_class,
                              const char    *font,
@@ -565,7 +732,7 @@ _elm_config_font_overlay_remove(const char *text_class)
 
    EINA_LIST_FOREACH(_elm_config->font_overlays, l, efd)
      {
-        if (strcmp(efd->text_class, text_class))
+        if (efd->text_class && strcmp(efd->text_class, text_class))
           continue;
 
         _elm_config->font_overlays =
@@ -622,6 +789,154 @@ _elm_config_text_classes_free(Eina_List *l)
 }
 
 Eina_List *
+_elm_config_color_classes_get(void)
+{
+   Eina_List *ret = NULL;
+   int i;
+
+   for (i = 0; _elm_color_classes[i].desc; i++)
+     {
+        Elm_Color_Class *cc;
+        cc = malloc(sizeof(*cc));
+        if (!cc) continue;
+
+        *cc = _elm_color_classes[i];
+
+        ret = eina_list_append(ret, cc);
+     }
+
+   return ret;
+}
+
+void
+_elm_config_color_classes_free(Eina_List *l)
+{
+   Elm_Color_Class *cc;
+
+   EINA_LIST_FREE(l, cc)
+     free(cc);
+}
+
+Eina_List *
+_elm_config_color_overlays_list(void)
+{
+   return _elm_config->color_overlays;
+}
+
+void
+_elm_config_color_overlay_set(const char *color_class,
+                              int r, int g, int b, int a,
+                              int r2, int g2, int b2, int a2,
+                              int r3, int g3, int b3, int a3)
+{
+   Elm_Color_Overlay *ecd;
+   Eina_List *l;
+
+#define CHECK_COLOR_VAL(v) v = (v > 255)? 255 : (v < 0)? 0: v
+   CHECK_COLOR_VAL(r);
+   CHECK_COLOR_VAL(g);
+   CHECK_COLOR_VAL(b);
+   CHECK_COLOR_VAL(a);
+   CHECK_COLOR_VAL(r2);
+   CHECK_COLOR_VAL(g2);
+   CHECK_COLOR_VAL(b2);
+   CHECK_COLOR_VAL(a2);
+   CHECK_COLOR_VAL(r3);
+   CHECK_COLOR_VAL(g3);
+   CHECK_COLOR_VAL(b3);
+   CHECK_COLOR_VAL(a3);
+#undef CHECK_COLOR_VAL
+
+   EINA_LIST_FOREACH(_elm_config->color_overlays, l, ecd)
+     {
+        if (strcmp(ecd->color_class, color_class))
+          continue;
+
+        ecd->color.r = r;
+        ecd->color.g = g;
+        ecd->color.b = b;
+        ecd->color.a = a;
+        ecd->outline.r = r2;
+        ecd->outline.g = g2;
+        ecd->outline.b = b2;
+        ecd->outline.a = a2;
+        ecd->shadow.r = r3;
+        ecd->shadow.g = g3;
+        ecd->shadow.b = b3;
+        ecd->shadow.a = a3;
+
+        _elm_config->color_overlays =
+           eina_list_promote_list(_elm_config->color_overlays, l);
+
+        return;
+     }
+
+   /* the color class doesn't exist */
+   ecd = calloc(1, sizeof(Elm_Color_Overlay));
+   if (!ecd) return;
+
+   ecd->color_class = eina_stringshare_add(color_class);
+   ecd->color.r = r;
+   ecd->color.g = g;
+   ecd->color.b = b;
+   ecd->color.a = a;
+   ecd->outline.r = r2;
+   ecd->outline.g = g2;
+   ecd->outline.b = b2;
+   ecd->outline.a = a2;
+   ecd->shadow.r = r3;
+   ecd->shadow.g = g3;
+   ecd->shadow.b = b3;
+   ecd->shadow.a = a3;
+
+   _elm_config->color_overlays =
+      eina_list_prepend(_elm_config->color_overlays, ecd);
+}
+
+void
+_elm_config_color_overlay_remove(const char *color_class)
+{
+   Elm_Color_Overlay *ecd;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(_elm_config->color_overlays, l, ecd)
+     {
+        if (!ecd->color_class) continue;
+        if (strcmp(ecd->color_class, color_class)) continue;
+
+        _color_overlays_del =
+           eina_list_append(_color_overlays_del,
+                            eina_stringshare_add(color_class));
+        _elm_config->color_overlays =
+          eina_list_remove_list(_elm_config->color_overlays, l);
+        eina_stringshare_del(ecd->color_class);
+        free(ecd);
+
+        return;
+     }
+}
+
+void
+_elm_config_color_overlay_apply(void)
+{
+   Elm_Color_Overlay *ecd;
+   Eina_List *l;
+   char *color_class;
+
+   EINA_LIST_FREE(_color_overlays_del, color_class)
+     {
+        edje_color_class_del(color_class);
+        eina_stringshare_del(color_class);
+     }
+
+   EINA_LIST_FOREACH(_elm_config->color_overlays, l, ecd)
+     edje_color_class_set(ecd->color_class,
+                ecd->color.r, ecd->color.g, ecd->color.b, ecd->color.a,
+                ecd->outline.r, ecd->outline.g, ecd->outline.b, ecd->outline.a,
+                ecd->shadow.r, ecd->shadow.g, ecd->shadow.b, ecd->shadow.a);
+}
+
+Eina_List *
 _elm_config_color_list_get(const char *palette_name)
 {
     Eina_List *plist;
@@ -651,6 +966,7 @@ _elm_config_color_set(const char *palette_name,
           continue;
 
         color = calloc(1, sizeof(Elm_Color_RGBA));
+        eina_stringshare_replace(&color->color_name, "");
         color->r = r;
         color->g = g;
         color->b = b;
@@ -826,8 +1142,10 @@ _config_free(void)
 {
    Elm_Font_Overlay *fo;
    const char *fontdir;
+   Elm_Color_Overlay *co;
    Elm_Custom_Palette *palette;
    Elm_Color_RGBA *color;
+   char *color_class;
 
    if (!_elm_config) return;
    EINA_LIST_FREE(_elm_config->font_dirs, fontdir)
@@ -835,11 +1153,19 @@ _config_free(void)
         eina_stringshare_del(fontdir);
      }
    if (_elm_config->engine) eina_stringshare_del(_elm_config->engine);
+   if (_elm_config->accel) eina_stringshare_del(_elm_config->accel);
    EINA_LIST_FREE(_elm_config->font_overlays, fo)
      {
         if (fo->text_class) eina_stringshare_del(fo->text_class);
         if (fo->font) eina_stringshare_del(fo->font);
         free(fo);
+     }
+   EINA_LIST_FREE(_color_overlays_del, color_class)
+      eina_stringshare_del(color_class);
+   EINA_LIST_FREE(_elm_config->color_overlays, co)
+     {
+        if (co->color_class) eina_stringshare_del(co->color_class);
+        free(co);
      }
    EINA_LIST_FREE(_elm_config->color_palette, palette)
      {
@@ -867,7 +1193,6 @@ _config_sub_apply(void)
    edje_scale_set(_elm_config->scale);
    edje_password_show_last_set(_elm_config->password_show_last);
    edje_password_show_last_timeout_set(_elm_config->password_show_last_timeout);
-   if (_elm_config->modules) _elm_module_parse(_elm_config->modules);
 }
 
 static Eina_Bool
@@ -977,18 +1302,28 @@ _config_load(void)
    _elm_config = ELM_NEW(Elm_Config);
    _elm_config->config_version = ELM_CONFIG_VERSION;
    _elm_config->engine = eina_stringshare_add("software_x11");
+   _elm_config->accel = NULL;
+   _elm_config->accel_override = 0;
    _elm_config->vsync = 0;
    _elm_config->thumbscroll_enable = EINA_TRUE;
    _elm_config->thumbscroll_threshold = 24;
+   _elm_config->thumbscroll_hold_threshold = 24;
    _elm_config->thumbscroll_momentum_threshold = 100.0;
+   _elm_config->thumbscroll_flick_distance_tolerance = 1000;
    _elm_config->thumbscroll_friction = 1.0;
+   _elm_config->thumbscroll_min_friction = 0.5;
+   _elm_config->thumbscroll_friction_standard = 1000.0;
    _elm_config->thumbscroll_bounce_friction = 0.5;
    _elm_config->thumbscroll_bounce_enable = EINA_TRUE;
+   _elm_config->thumbscroll_acceleration_threshold = 2000.0;
+   _elm_config->thumbscroll_acceleration_time_limit = 0.5;
+   _elm_config->thumbscroll_acceleration_weight = 1.5;
    _elm_config->page_scroll_friction = 0.5;
    _elm_config->bring_in_scroll_friction = 0.5;
    _elm_config->zoom_friction = 0.5;
    _elm_config->thumbscroll_border_friction = 0.5;
    _elm_config->thumbscroll_sensitivity_friction = 0.25; // magic number! just trial and error shows this makes it behave "nicer" and not run off at high speed all the time
+   _elm_config->scroll_smooth_start_enable = EINA_FALSE;
    _elm_config->scroll_smooth_time_interval = 0.008;
    _elm_config->scroll_smooth_amount = 1.0;
    _elm_config->scroll_smooth_history_weight = 0.3;
@@ -1034,13 +1369,37 @@ _config_load(void)
    _elm_config->glayer_line_angular_tolerance = 20.0; /* 20 DEG */
    _elm_config->glayer_flick_time_limit_ms = 120;              /* ms to finish flick */
    _elm_config->glayer_long_tap_start_timeout = 1.2;   /* 1.2 second to start long-tap */
+   _elm_config->glayer_double_tap_timeout = 0.25;   /* 0.25 seconds between 2 mouse downs of a tap. */
    _elm_config->glayer_continues_enable = EINA_TRUE;      /* Continue gestures default */
+   _elm_config->access_mode = ELM_ACCESS_MODE_OFF;
+   _elm_config->access_password_read_enable = EINA_FALSE;
+   _elm_config->selection_clear_enable = EINA_TRUE;
    _elm_config->week_start = 1; /* monday */
    _elm_config->weekend_start = 6; /* saturday */
    _elm_config->weekend_len = 2;
    _elm_config->year_min = 2;
    _elm_config->year_max = 137;
+   _elm_config->softcursor_mode = 0; /* 0 = auto, 1 = on, 2 = off */
    _elm_config->color_palette = NULL;
+   _elm_config->auto_norender_withdrawn = 0;
+   _elm_config->auto_norender_iconified_same_as_withdrawn = 1;
+   _elm_config->auto_flush_withdrawn = 0;
+   _elm_config->auto_dump_withdrawn = 0;
+   _elm_config->auto_throttle = 0;
+   _elm_config->auto_throttle_amount = 0.1;
+   _elm_config->indicator_service_0 = eina_stringshare_add("elm_indicator_portrait");
+   _elm_config->indicator_service_90 = eina_stringshare_add("elm_indicator_landscape");
+   _elm_config->indicator_service_180 = eina_stringshare_add("elm_indicator_portrait");
+   _elm_config->indicator_service_270 = eina_stringshare_add("elm_indicator_landscape");
+   _elm_config->genlist_animation_duration = 1000.0;
+// TIZEN_ONLY(20150323)
+// In now implementation of this feature is only genlist.
+   _elm_config->scroll_item_align_enable = EINA_FALSE;
+   _elm_config->scroll_item_valign = eina_stringshare_add("center");
+/////////////////////
+   _elm_config->gl_depth = 0;
+   _elm_config->gl_stencil = 0;
+   _elm_config->gl_msaa = 0;
 }
 
 static const char *
@@ -1143,7 +1502,7 @@ _elm_config_profile_save(void)
    ret = ecore_file_mv(buf2, buf);
    if (!ret)
      {
-        ERR("Error saving Elementary's configuration file");
+        ERR("Error saving Elementary's configuration profile file");
         goto err;
      }
 
@@ -1224,6 +1583,18 @@ err:
    ecore_file_unlink(buf2);
    return EINA_FALSE;
 }
+
+// TIZEN_ONLY(20150323)
+// In now implementation of this feature is only genlist.
+void
+_elm_config_scroll_item_valign_set(const char *scroll_item_valign)
+{
+   if (_elm_config->scroll_item_valign && strcmp(_elm_config->scroll_item_valign, scroll_item_valign))
+     eina_stringshare_del(_elm_config->scroll_item_valign);
+
+   _elm_config->scroll_item_valign = eina_stringshare_add(scroll_item_valign);
+}
+//////////////////////
 
 static void
 _config_update(void)
@@ -1354,15 +1725,29 @@ _env_get(void)
    if (s) _elm_config->thumbscroll_enable = !!atoi(s);
    s = getenv("ELM_THUMBSCROLL_THRESHOLD");
    if (s) _elm_config->thumbscroll_threshold = atoi(s);
+   s = getenv("ELM_THUMBSCROLL_HOLD_THRESHOLD");
+   if (s) _elm_config->thumbscroll_hold_threshold = atoi(s);
    // FIXME: floatformat locale issues here 1.0 vs 1,0 - should just be 1.0
    s = getenv("ELM_THUMBSCROLL_MOMENTUM_THRESHOLD");
    if (s) _elm_config->thumbscroll_momentum_threshold = _elm_atof(s);
+   s = getenv("ELM_THUMBSCROLL_FLICK_DISTANCE_TOLERANCE");
+   if (s) _elm_config->thumbscroll_flick_distance_tolerance = atoi(s);
    s = getenv("ELM_THUMBSCROLL_FRICTION");
    if (s) _elm_config->thumbscroll_friction = _elm_atof(s);
+   s = getenv("ELM_THUMBSCROLL_MIN_FRICTION");
+   if (s) _elm_config->thumbscroll_min_friction = _elm_atof(s);
+   s = getenv("ELM_THUMBSCROLL_FRICTION_STANDARD");
+   if (s) _elm_config->thumbscroll_friction_standard = _elm_atof(s);
    s = getenv("ELM_THUMBSCROLL_BOUNCE_ENABLE");
    if (s) _elm_config->thumbscroll_bounce_enable = !!atoi(s);
    s = getenv("ELM_THUMBSCROLL_BOUNCE_FRICTION");
    if (s) _elm_config->thumbscroll_bounce_friction = _elm_atof(s);
+   s = getenv("ELM_THUMBSCROLL_ACCELERATION_THRESHOLD");
+   if (s) _elm_config->thumbscroll_acceleration_threshold = _elm_atof(s);
+   s = getenv("ELM_THUMBSCROLL_ACCELERATION_TIME_LIMIT");
+   if (s) _elm_config->thumbscroll_acceleration_time_limit = _elm_atof(s);
+   s = getenv("ELM_THUMBSCROLL_ACCELERATION_WEIGHT");
+   if (s) _elm_config->thumbscroll_acceleration_weight = _elm_atof(s);
    s = getenv("ELM_PAGE_SCROLL_FRICTION");
    if (s) _elm_config->page_scroll_friction = _elm_atof(s);
    s = getenv("ELM_BRING_IN_SCROLL_FRICTION");
@@ -1393,6 +1778,8 @@ _env_get(void)
 
         _elm_config->thumbscroll_sensitivity_friction = friction;
      }
+   s = getenv("ELM_SCROLL_SMOOTH_START_ENABLE");
+   if (s) _elm_config->scroll_smooth_start_enable = !!atoi(s);
    s = getenv("ELM_SCROLL_SMOOTH_TIME_INTERVAL");
    if (s) _elm_config->scroll_smooth_time_interval = atof(s);
    s = getenv("ELM_SCROLL_SMOOTH_AMOUNT");
@@ -1484,11 +1871,6 @@ _env_get(void)
    s = getenv("ELM_MODULES");
    if (s) eina_stringshare_replace(&_elm_config->modules, s);
 
-   /* Get RTL orientation from system */
-   setlocale(LC_ALL, "");
-   bindtextdomain(PACKAGE, LOCALE_DIR);
-   _elm_config->is_mirrored = !strcmp(E_("default:LTR"), "default:RTL");
-
    s = getenv("ELM_TOOLTIP_DELAY");
    if (s)
      {
@@ -1528,8 +1910,38 @@ _env_get(void)
 
    s = getenv("ELM_DESKTOP_ENTRY");
    if (s) _elm_config->desktop_entry = !!atoi(s);
+
    s = getenv("ELM_ACCESS_MODE");
    if (s) _elm_config->access_mode = ELM_ACCESS_MODE_ON;
+   s = getenv("ELM_ACCESS_PASSWORD_READ_ENABLE");
+   if (s) _elm_config->access_password_read_enable = !!atoi(s);
+
+   s = getenv("ELM_SELECTION_CLEAR_ENABLE");
+   if (s) _elm_config->selection_clear_enable = !!atoi(s);
+
+   s = getenv("ELM_AUTO_THROTTLE");
+   if (s) _elm_config->auto_throttle = EINA_TRUE;
+   s = getenv("ELM_AUTO_THROTTLE_AMOUNT");
+   if (s) _elm_config->auto_throttle_amount = _elm_atof(s);
+   s = getenv("ELM_AUTO_NORENDER_WITHDRAWN");
+   if (s) _elm_config->auto_norender_withdrawn = EINA_TRUE;
+   s = getenv("ELM_AUTO_NORENDER_ICONIFIED_SAME_AS_WITHDRAWN");
+   if (s) _elm_config->auto_norender_iconified_same_as_withdrawn = EINA_TRUE;
+   s = getenv("ELM_AUTO_FLUSH_WITHDRAWN");
+   if (s) _elm_config->auto_flush_withdrawn = EINA_TRUE;
+   s = getenv("ELM_AUTO_DUMP_WIDTHDRAWN");
+   if (s) _elm_config->auto_dump_withdrawn = EINA_TRUE;
+
+   s = getenv("ELM_INDICATOR_SERVICE_0");
+   if (s) eina_stringshare_replace(&_elm_config->indicator_service_0, s);
+   s = getenv("ELM_INDICATOR_SERVICE_90");
+   if (s) eina_stringshare_replace(&_elm_config->indicator_service_90, s);
+   s = getenv("ELM_INDICATOR_SERVICE_180");
+   if (s) eina_stringshare_replace(&_elm_config->indicator_service_180, s);
+   s = getenv("ELM_INDICATOR_SERVICE_270");
+   if (s) eina_stringshare_replace(&_elm_config->indicator_service_270, s);
+   s = getenv("ELM_GENLIST_ANIMATION_DURATION");
+   if (s) _elm_config->genlist_animation_duration = _elm_atof(s);
 }
 
 EAPI Eina_Bool
@@ -1541,6 +1953,8 @@ elm_config_mirrored_get(void)
 EAPI void
 elm_config_mirrored_set(Eina_Bool mirrored)
 {
+   mirrored = !!mirrored;
+   if (_elm_config->is_mirrored == mirrored) return;
    _elm_config->is_mirrored = mirrored;
    _elm_rescale();
 }
@@ -1572,26 +1986,15 @@ elm_config_tooltip_delay_set(double delay)
 }
 
 EAPI double
-elm_scale_get(void)
-{
-   return elm_config_scale_get();
-}
-
-EAPI double
 elm_config_scale_get(void)
 {
    return _elm_config->scale;
 }
 
 EAPI void
-elm_scale_set(double scale)
-{
-	elm_config_scale_set(scale);
-}
-
-EAPI void
 elm_config_scale_set(double scale)
 {
+   if (scale < 0.0) return;
    if (_elm_config->scale == scale) return;
    _elm_config->scale = scale;
    _elm_rescale();
@@ -1620,6 +2023,7 @@ elm_config_password_show_last_timeout_get(void)
 EAPI void
 elm_config_password_show_last_timeout_set(double password_show_last_timeout)
 {
+   if (password_show_last_timeout < 0.0) return;
    if (_elm_config->password_show_last_timeout == password_show_last_timeout) return;
    _elm_config->password_show_last_timeout = password_show_last_timeout;
    edje_password_show_last_timeout_set(_elm_config->password_show_last_timeout);
@@ -1717,6 +2121,42 @@ elm_config_font_overlay_list_get(void)
    return _elm_config_font_overlays_list();
 }
 
+EAPI Eina_Bool
+elm_config_access_get(void)
+{
+   return _elm_config_access_get();
+}
+
+EAPI void
+elm_config_access_set(Eina_Bool is_access)
+{
+   _elm_config_access_set(is_access);
+}
+
+EAPI Eina_Bool
+elm_config_access_password_read_enabled_get(void)
+{
+   return _elm_config_access_password_read_enabled_get();
+}
+
+EAPI void
+elm_config_access_password_read_enabled_set(Eina_Bool enabled)
+{
+   _elm_config_access_password_read_enabled_set(enabled);
+}
+
+EAPI Eina_Bool
+elm_config_selection_unfocused_clear_get(void)
+{
+   return _elm_config_selection_unfocused_clear_get();
+}
+
+EAPI void
+elm_config_selection_unfocused_clear_set(Eina_Bool enabled)
+{
+   _elm_config_selection_unfocused_clear_set(enabled);
+}
+
 EAPI void
 elm_config_font_overlay_set(const char    *text_class,
                      const char    *font,
@@ -1739,11 +2179,50 @@ elm_config_font_overlay_apply(void)
    _elm_config_font_overlay_apply();
    _elm_rescale();
 }
-// WRAPPER:: will be removed soon.
-EAPI Evas_Coord
-elm_finger_size_get(void)
+
+EAPI Eina_List *
+elm_config_color_classes_list_get(void)
 {
-   return elm_config_finger_size_get();
+   return _elm_config_color_classes_get();
+}
+
+EAPI void
+elm_config_color_classes_list_free(Eina_List *list)
+{
+   _elm_config_color_classes_free(list);
+}
+
+EAPI const Eina_List *
+elm_config_color_overlay_list_get(void)
+{
+   return _elm_config_color_overlays_list();
+}
+
+EAPI void
+elm_config_color_overlay_set(const char *color_class,
+                             int r, int g, int b, int a,
+                             int r2, int g2, int b2, int a2,
+                             int r3, int g3, int b3, int a3)
+{
+   EINA_SAFETY_ON_NULL_RETURN(color_class);
+   _elm_config_color_overlay_set(color_class,
+                                 r, g, b, a,
+                                 r2, g2, b2, a2,
+                                 r3, g3, b3, a3);
+}
+
+EAPI void
+elm_config_color_overlay_unset(const char *color_class)
+{
+   EINA_SAFETY_ON_NULL_RETURN(color_class);
+   _elm_config_color_overlay_remove(color_class);
+}
+
+EAPI void
+elm_config_color_overlay_apply(void)
+{
+   _elm_config_color_overlay_apply();
+   _elm_rescale();
 }
 
 EAPI Evas_Coord
@@ -1752,16 +2231,10 @@ elm_config_finger_size_get(void)
    return _elm_config->finger_size;
 }
 
-// WRAPPER:: will be removed soon.
-EAPI void
-elm_finger_size_set(Evas_Coord size)
-{
-   elm_config_finger_size_set(size);
-}
-
 EAPI void
 elm_config_finger_size_set(Evas_Coord size)
 {
+   if (size < 0) return;
    if (_elm_config->finger_size == size) return;
    _elm_config->finger_size = size;
    _elm_rescale();
@@ -1776,6 +2249,7 @@ elm_config_cache_flush_interval_get(void)
 EAPI void
 elm_config_cache_flush_interval_set(int size)
 {
+   EINA_SAFETY_ON_FALSE_RETURN(size > 0);
    if (_elm_config->cache_flush_poll_interval == size) return;
    _elm_config->cache_flush_poll_interval = size;
 
@@ -1807,6 +2281,7 @@ elm_config_cache_font_cache_size_get(void)
 EAPI void
 elm_config_cache_font_cache_size_set(int size)
 {
+   if (size < 0) return;
    if (_elm_config->font_cache == size) return;
    _elm_config->font_cache = size;
 
@@ -1822,6 +2297,7 @@ elm_config_cache_image_cache_size_get(void)
 EAPI void
 elm_config_cache_image_cache_size_set(int size)
 {
+   if (size < 0) return;
    if (_elm_config->image_cache == size) return;
    _elm_config->image_cache = size;
 
@@ -1837,6 +2313,7 @@ elm_config_cache_edje_file_cache_size_get()
 EAPI void
 elm_config_cache_edje_file_cache_size_set(int size)
 {
+   if (size < 0) return;
    if (_elm_config->edje_cache == size) return;
    _elm_config->edje_cache = size;
 
@@ -1966,6 +2443,18 @@ elm_config_scroll_thumbscroll_threshold_set(unsigned int threshold)
    _elm_config->thumbscroll_threshold = threshold;
 }
 
+EAPI unsigned int
+elm_config_scroll_thumbscroll_hold_threshold_get(void)
+{
+   return _elm_config->thumbscroll_hold_threshold;
+}
+
+EAPI void
+elm_config_scroll_thumbscroll_hold_threshold_set(unsigned int threshold)
+{
+   _elm_config->thumbscroll_hold_threshold = threshold;
+}
+
 EAPI double
 elm_config_scroll_thumbscroll_momentum_threshold_get(void)
 {
@@ -1978,6 +2467,18 @@ elm_config_scroll_thumbscroll_momentum_threshold_set(double threshold)
    _elm_config->thumbscroll_momentum_threshold = threshold;
 }
 
+EAPI unsigned int
+elm_config_scroll_thumbscroll_flick_distance_tolerance_get(void)
+{
+   return _elm_config->thumbscroll_flick_distance_tolerance;
+}
+
+EAPI void
+elm_config_scroll_thumbscroll_flick_distance_tolerance_set(unsigned int distance)
+{
+   _elm_config->thumbscroll_flick_distance_tolerance = distance;
+}
+
 EAPI double
 elm_config_scroll_thumbscroll_friction_get(void)
 {
@@ -1988,6 +2489,30 @@ EAPI void
 elm_config_scroll_thumbscroll_friction_set(double friction)
 {
    _elm_config->thumbscroll_friction = friction;
+}
+
+EAPI double
+elm_config_scroll_thumbscroll_min_friction_get(void)
+{
+   return _elm_config->thumbscroll_min_friction;
+}
+
+EAPI void
+elm_config_scroll_thumbscroll_min_friction_set(double friction)
+{
+   _elm_config->thumbscroll_min_friction = friction;
+}
+
+EAPI double
+elm_config_scroll_thumbscroll_friction_standard_get(void)
+{
+   return _elm_config->thumbscroll_friction_standard;
+}
+
+EAPI void
+elm_config_scroll_thumbscroll_friction_standard_set(double standard)
+{
+   _elm_config->thumbscroll_friction_standard = standard;
 }
 
 EAPI double
@@ -2018,6 +2543,70 @@ elm_config_scroll_thumbscroll_sensitivity_friction_set(double friction)
    _elm_config->thumbscroll_sensitivity_friction = friction;
 }
 
+EAPI double
+elm_config_scroll_thumbscroll_acceleration_threshold_get(void)
+{
+   return _elm_config->thumbscroll_acceleration_threshold;
+}
+
+EAPI void
+elm_config_scroll_thumbscroll_acceleration_threshold_set(double threshold)
+{
+   _elm_config->thumbscroll_acceleration_threshold = threshold;
+}
+
+EAPI double
+elm_config_scroll_thumbscroll_acceleration_time_limit_get(void)
+{
+   return _elm_config->thumbscroll_acceleration_time_limit;
+}
+
+EAPI void
+elm_config_scroll_thumbscroll_acceleration_time_limit_set(double time_limit)
+{
+   _elm_config->thumbscroll_acceleration_time_limit = time_limit;
+}
+
+EAPI double
+elm_config_scroll_thumbscroll_acceleration_weight_get(void)
+{
+   return _elm_config->thumbscroll_acceleration_weight;
+}
+
+// TIZEN_ONLY(20150323)
+// In now implementation of this feature is only genlist.
+EAPI void
+elm_config_scroll_thumbscroll_acceleration_weight_set(double weight)
+{
+   _elm_config->thumbscroll_acceleration_weight = weight;
+}
+
+EAPI void
+elm_config_scroll_item_align_enabled_set(Eina_Bool enable)
+{
+   _elm_config->scroll_item_align_enable = !!enable;
+}
+
+EAPI Eina_Bool
+elm_config_scroll_item_align_enabled_get(void)
+{
+   return _elm_config->scroll_item_align_enable;
+}
+
+EAPI void
+elm_config_scroll_item_valign_set(const char *scroll_item_valign)
+{
+   EINA_SAFETY_ON_NULL_RETURN(scroll_item_valign);
+   _elm_config_scroll_item_valign_set(scroll_item_valign);
+}
+
+EAPI const char *
+elm_config_scroll_item_valign_get(void)
+{
+   return _elm_config->scroll_item_valign;
+}
+////////////////
+
 EAPI void
 elm_config_longpress_timeout_set(double longpress_timeout)
 {
@@ -2031,11 +2620,48 @@ elm_config_longpress_timeout_get(void)
 }
 
 EAPI void
+elm_config_softcursor_mode_set(Elm_Softcursor_Mode mode)
+{
+   _elm_config->softcursor_mode = mode;
+}
+
+EAPI Elm_Softcursor_Mode
+elm_config_softcursor_mode_get(void)
+{
+   return _elm_config->softcursor_mode;
+}
+
+EAPI double
+elm_config_glayer_long_tap_start_timeout_get(void)
+{
+   return _elm_config->glayer_long_tap_start_timeout;
+}
+
+EAPI void
+elm_config_glayer_long_tap_start_timeout_set(double long_tap_timeout)
+{
+   _elm_config->glayer_long_tap_start_timeout = long_tap_timeout;
+}
+
+EAPI double
+elm_config_glayer_double_tap_timeout_get(void)
+{
+   return _elm_config->glayer_double_tap_timeout;
+}
+
+EAPI void
+elm_config_glayer_double_tap_timeout_set(double double_tap_timeout)
+{
+   _elm_config->glayer_double_tap_timeout = double_tap_timeout;
+}
+
+EAPI void
 elm_config_all_flush(void)
 {
 #ifdef HAVE_ELEMENTARY_X
-   if (_prop_all_update_timer) ecore_timer_del(_prop_all_update_timer);
-   _prop_all_update_timer = ecore_timer_add(0.1, _prop_all_update_cb, NULL);
+   _prop_config_set();
+   ecore_x_window_prop_string_set(_config_win, _atom[ATOM_E_PROFILE],
+                                  _elm_profile);
 #endif
 }
 
@@ -2043,9 +2669,15 @@ static void
 _translation_init()
 {
 #ifdef ENABLE_NLS
+   /*
    const char *cur_dom = textdomain(NULL);
    const char *trans_comment = gettext("");
    const char *msg_locale = setlocale(LC_MESSAGES, NULL);
+   */
+
+   /* How does it decide translation with current domain??
+      Application could use their own text domain.
+      This is insane to me. */
 
    /* Same concept as what glib does:
     * We shouldn't translate if there are no translations for the
@@ -2053,9 +2685,18 @@ _translation_init()
     * en_/C where translating only parts of the interface make some
     * sense).
     */
-   _elm_config->translate = !(strcmp (cur_dom, "messages") &&
-         !*trans_comment && strncmp (msg_locale, "en_", 3) &&
-         strcmp (msg_locale, "C"));
+   /*
+      _elm_config->translate = !(strcmp (cur_dom, "messages") &&
+      !*trans_comment && strncmp (msg_locale, "en_", 3) &&
+      strcmp (msg_locale, "C"));
+    */
+   /* Get RTL orientation from system */
+   if (_elm_config->translate)
+     {
+        bindtextdomain(PACKAGE, LOCALE_DIR);
+        _elm_config->is_mirrored = !strcmp(E_("default:LTR"), "default:RTL");
+     }
+
 #endif
 }
 
@@ -2069,19 +2710,24 @@ _elm_config_init(void)
    _config_load();
    _env_get();
    if (_elm_preferred_engine) eina_stringshare_del(_elm_preferred_engine);
-   if (_elm_config->engine)
-     _elm_preferred_engine = eina_stringshare_add(_elm_config->engine);
-   else
-     _elm_preferred_engine = NULL;
+   _elm_preferred_engine = NULL;
+   ELM_SAFE_FREE(_elm_preference, eina_stringshare_del);
+   ELM_SAFE_FREE(_elm_accel_preference, eina_stringshare_del);
    _translation_init();
    _config_apply();
    _elm_config_font_overlay_apply();
+   _elm_config_color_overlay_apply();
    _elm_recache();
 }
 
 void
 _elm_config_sub_shutdown(void)
 {
+#ifdef HAVE_ELEMENTARY_X
+   if (_prop_change_delay_timer) ecore_timer_del(_prop_change_delay_timer);
+   _prop_change_delay_timer = NULL;
+#endif
+
 #define ENGINE_COMPARE(name) (!strcmp(_elm_config->engine, name))
    if (ENGINE_COMPARE(ELM_SOFTWARE_X11) ||
        ENGINE_COMPARE(ELM_SOFTWARE_16_X11) ||
@@ -2108,43 +2754,60 @@ _elm_config_sub_init(void)
 #undef ENGINE_COMPARE
      {
 #ifdef HAVE_ELEMENTARY_X
-        if (!ecore_x_init(NULL))
+        if (ecore_x_init(NULL))
           {
-             ERR("Cannot connect to X11 display. check $DISPLAY variable");
-             exit(1);
-          }
-        _root_1st = ecore_x_window_root_first_get();
+             Ecore_X_Window win = 0, win2 = 0, root;
 
-        if (!ecore_x_screen_is_composited(0))
-          _elm_config->compositing = 0;
+             if (!ecore_x_screen_is_composited(0))
+               _elm_config->compositing = 0;
 
-        ecore_x_atoms_get(_atom_names, ATOM_COUNT, _atom);
-        ecore_x_event_mask_set(_root_1st,
-                               ECORE_X_EVENT_MASK_WINDOW_PROPERTY);
-        _prop_change_handler = ecore_event_handler_add
-            (ECORE_X_EVENT_WINDOW_PROPERTY, _prop_change, NULL);
-        if (!getenv("ELM_PROFILE"))
-          {
-             char *s;
-
-             s = ecore_x_window_prop_string_get(_root_1st,
-                                                _atom[ATOM_E_PROFILE]);
-             if (s)
+             ecore_x_atoms_get(_atom_names, ATOM_COUNT, _atom);
+             root = ecore_x_window_root_first_get();
+             if (ecore_x_window_prop_window_get(root,
+                                                _atom[ATOM_E_CONFIG_WIN],
+                                                &win, 1) == 1)
                {
-                  int changed = 0;
-
-                  if (_elm_profile)
+                  if (ecore_x_window_prop_window_get(win,
+                                                     _atom[ATOM_E_CONFIG_WIN],
+                                                     &win2, 1) == 1)
                     {
-                       if (strcmp(_elm_profile, s)) changed = 1;
-                       free(_elm_profile);
+                       if (win2 == win) _config_win = win;
                     }
-                  _elm_profile = s;
-                  if (changed) _prop_config_get();
+               }
+             if (_config_win == 0)
+               _config_win = ecore_x_window_permanent_create
+                             (root, _atom[ATOM_E_CONFIG_WIN]);
+
+             ecore_x_event_mask_set(_config_win,
+                                    ECORE_X_EVENT_MASK_WINDOW_PROPERTY);
+             _prop_change_handler = ecore_event_handler_add
+               (ECORE_X_EVENT_WINDOW_PROPERTY, _prop_change, NULL);
+             if (!getenv("ELM_PROFILE"))
+               {
+                  char *s;
+                  
+                  s = ecore_x_window_prop_string_get(_config_win,
+                                                     _atom[ATOM_E_PROFILE]);
+                  if (s)
+                    {
+                       int changed = 0;
+                       
+                       if (_elm_profile)
+                         {
+                            if (strcmp(_elm_profile, s)) changed = 1;
+                            free(_elm_profile);
+                         }
+                       _elm_profile = s;
+                       if (changed) _prop_config_get();
+                    }
                }
           }
+        else
+          ERR("Cannot connect to X11 display. check $DISPLAY variable");
 #endif
      }
    _config_sub_apply();
+   if (_elm_config->modules) _elm_module_parse(_elm_config->modules);
 }
 
 void
@@ -2154,8 +2817,10 @@ _elm_config_reload(void)
    _config_load();
    _config_apply();
    _elm_config_font_overlay_apply();
+   _elm_config_color_overlay_apply();
    _elm_rescale();
    _elm_recache();
+   ecore_event_add(ELM_EVENT_CONFIG_ALL_CHANGED, NULL, NULL, NULL);
 }
 
 void
@@ -2166,7 +2831,6 @@ _elm_config_engine_set(const char *engine)
 
    _elm_config->engine = eina_stringshare_add(engine);
 }
-
 EAPI const char *
 elm_config_preferred_engine_get(void)
 {
@@ -2181,10 +2845,177 @@ elm_config_preferred_engine_set(const char *engine)
    else
      {
         if (_elm_preferred_engine) eina_stringshare_del(_elm_preferred_engine);
-        _elm_preferred_engine = eina_stringshare_add(_elm_config->engine);
+        _elm_preferred_engine = NULL;
      }
 }
 
+EAPI const char *
+elm_config_accel_preference_get(void)
+{
+   if (_elm_preference) return _elm_preference;
+   if (_elm_accel_preference) return _elm_accel_preference;
+   return _elm_config->accel;
+}
+
+EAPI void
+elm_config_accel_preference_set(const char *pref)
+{
+   if (pref)
+     {
+       char **arr;
+       int tokens=0, i=0;
+       Eina_Bool is_hw_accel = EINA_FALSE;
+       char *item_splite = ":";
+
+       /* Accel preference's string has the egl surface configuration as a hw accel, depth, stencil and msaa.
+         * The string format is   "{HW Accel}:depth{value}:stencil{value}:msaa{msaa string}"
+         * Especially, msaa string is related Evas GL MSAA enum value(low, mid, high)
+         * so msaa string has four types as msaa, msaa_low, msaa_mid, msaa_high
+         * For instance, "opengl:depth24:stencil8:msaa_high".
+         * It means that using hw accelation, window surface depth buffer's size is 24, stencil buffer's size 8 and msaa bits is the highest.
+         * The other use-case is  "opengl:depth24".
+         * It measn that using hw accelation, depth buffer size is 24. stencil and msaa are not used.
+         * Default case is  "opengl:depth:stencil:msaa".
+         * It means that depth, stencil and msaa are setted by default value(depth:24, stencil:8, msaa:low)
+         */
+
+       DBG("accel preference's string: %s",pref);
+        /* full string */
+        eina_stringshare_replace(&(_elm_preference), pref);
+        ELM_SAFE_FREE(_elm_accel_preference, eina_stringshare_del);
+        ELM_SAFE_FREE(_elm_config->accel, eina_stringshare_del);
+
+        /* split GL items (hw accel, gl depth, gl stencil, gl msaa */
+        arr = eina_str_split_full(pref, item_splite,0,&tokens);
+        for (i = 0; arr[i]; i++)
+          {
+             if ((!strcasecmp(arr[i], "gl")) ||
+                  (!strcasecmp(arr[i], "opengl")) ||
+                  (!strcasecmp(arr[i], "3d")) ||
+                  (!strcasecmp(arr[i], "hw")) ||
+                  (!strcasecmp(arr[i], "accel")) ||
+                  (!strcasecmp(arr[i], "hardware"))
+                )
+               {
+                  eina_stringshare_replace(&(_elm_accel_preference), arr[i]);
+                  eina_stringshare_replace(&(_elm_config->accel), arr[i]);
+                  is_hw_accel = EINA_TRUE;
+               }
+             else if (!strncmp(arr[i],"depth",5))
+               {
+                  char *value_str = arr[i] + 5;
+                  if ((value_str) && (isdigit(*value_str)))
+                    _elm_config->gl_depth = atoi(value_str);
+                  else
+                    _elm_config->gl_depth = 24;
+               }
+             else if (!strncmp(arr[i],"stencil",7))
+               {
+                  char *value_str = arr[i] + 7;
+                  if ((value_str) && (isdigit(*value_str)))
+                    _elm_config->gl_stencil = atoi(value_str);
+                  else
+                    _elm_config->gl_stencil = 8;
+               }
+             else if (!strncmp(arr[i],"msaa_low",8))
+               _elm_config->gl_msaa = 1;             // 1 means msaa low
+             else if (!strncmp(arr[i],"msaa_mid",8))
+               _elm_config->gl_msaa = 2;             // 2 means msaa mid
+             else if (!strncmp(arr[i],"msaa_high",9))
+               _elm_config->gl_msaa = 4;             // 4 means msaa high
+             else if (!strncmp(arr[i],"msaa",4))
+               _elm_config->gl_msaa = 1;            // 1 means msaa low
+          }
+
+        DBG("accel: %s",_elm_accel_preference);
+        DBG("gl depth: %d",_elm_config->gl_depth);
+        DBG("gl stencil: %d",_elm_config->gl_stencil);
+        DBG("gl msaa: %d",_elm_config->gl_msaa);
+        free(arr[0]);
+        free(arr);
+
+        if (is_hw_accel == EINA_FALSE)
+          {
+             ELM_SAFE_FREE(_elm_accel_preference, eina_stringshare_del);
+             ELM_SAFE_FREE(_elm_config->accel, eina_stringshare_del);
+          }
+     }
+   else
+     {
+        ELM_SAFE_FREE(_elm_preference, eina_stringshare_del);
+        ELM_SAFE_FREE(_elm_accel_preference, eina_stringshare_del);
+        ELM_SAFE_FREE(_elm_config->accel, eina_stringshare_del);
+     }
+}
+
+EAPI Eina_Bool
+elm_config_accel_preference_override_get(void)
+{
+   return _elm_config->accel_override;
+}
+
+EAPI void
+elm_config_accel_preference_override_set(Eina_Bool enabled)
+{
+   _elm_config->accel_override = enabled;
+}
+
+EAPI const char *
+elm_config_indicator_service_get(int rotation)
+{
+   switch (rotation)
+     {
+      case 0:
+        return _elm_config->indicator_service_0;
+      case 90:
+        return _elm_config->indicator_service_90;
+      case 180:
+        return _elm_config->indicator_service_180;
+      case 270:
+        return _elm_config->indicator_service_270;
+      default:
+        return NULL;
+     }
+}
+
+EAPI double
+elm_config_fps_get(void)
+{
+   return _elm_config->fps;
+}
+
+EAPI void
+elm_config_fps_set(double fps)
+{
+   _elm_config->fps = fps;
+}
+
+
+////JIYOUN:START We have to remove this code after cluster home application change their code
+EAPI const char *
+elm_config_indicator_service_0_get(void)
+{
+   return _elm_config->indicator_service_0;
+}
+
+EAPI const char *
+elm_config_indicator_service_90_get(void)
+{
+   return _elm_config->indicator_service_90;
+}
+
+EAPI const char *
+elm_config_indicator_service_180_get(void)
+{
+   return _elm_config->indicator_service_180;
+}
+
+EAPI const char *
+elm_config_indicator_service_270_get(void)
+{
+   return _elm_config->indicator_service_270;
+}
+////JIYOUN:END We have to remove this code after cluster home application change their code
 void
 _elm_config_profile_set(const char *profile)
 {
@@ -2205,6 +3036,7 @@ _elm_config_profile_set(const char *profile)
         _config_load();
         _config_apply();
         _elm_config_font_overlay_apply();
+        _elm_config_color_overlay_apply();
         _elm_rescale();
         _elm_recache();
      }
@@ -2236,17 +3068,6 @@ _elm_config_profile_exists(const char *profile)
 void
 _elm_config_shutdown(void)
 {
-#ifdef HAVE_ELEMENTARY_X
-   if (_prop_all_update_timer)
-     {
-        ecore_timer_del(_prop_all_update_timer);
-        _prop_all_update_timer = NULL;
-        _prop_all_update_cb(NULL);
-     }
-   if (_prop_change_delay_timer) ecore_timer_del(_prop_change_delay_timer);
-   _prop_change_delay_timer = NULL;
-#endif
-
 #define ENGINE_COMPARE(name) (!strcmp(_elm_config->engine, name))
    if (ENGINE_COMPARE(ELM_SOFTWARE_X11) ||
        ENGINE_COMPARE(ELM_SOFTWARE_16_X11) ||
@@ -2260,16 +3081,11 @@ _elm_config_shutdown(void)
 #endif
      }
    _config_free();
-   if (_elm_preferred_engine)
-     {
-        eina_stringshare_del(_elm_preferred_engine);
-        _elm_preferred_engine = NULL;
-     }
-   if (_elm_profile)
-     {
-        free(_elm_profile);
-        _elm_profile = NULL;
-     }
+   ELM_SAFE_FREE(_elm_preferred_engine, eina_stringshare_del);
+   ELM_SAFE_FREE(_elm_accel_preference, eina_stringshare_del);
+   ELM_SAFE_FREE(_elm_preference, eina_stringshare_del);
+   ELM_SAFE_FREE(_elm_profile, free);
+
    _desc_shutdown();
 }
 

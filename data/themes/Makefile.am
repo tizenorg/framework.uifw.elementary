@@ -224,6 +224,7 @@ radio.png \
 radio2.png \
 separator_h.png \
 separator_v.png \
+toolbar_separator_h.png \
 toolbar_separator_v.png \
 sp_bt_l.png \
 sp_bt_r.png \
@@ -284,7 +285,6 @@ emo-wink.png \
 emo-worried.png \
 emo-wtf.png \
 map_item.png \
-map_item_2.png \
 shadow.png \
 black.png \
 tooltip-corner-top-left-tip.png \
@@ -331,7 +331,8 @@ pointer_glint_12.png \
 pointer_glow.png \
 pointer.png \
 map_circle.png \
-map_scale.png
+map_scale.png \
+naviframe-base.jpg
 
 default.edj: Makefile $(EXTRA_DIST)
 	$(EDJE_CC) $(EDJE_FLAGS) \

@@ -58,6 +58,7 @@ group { name: "elm/check/base/default";
       }
       part { name: "elm.swallow.content";
          type: SWALLOW;
+         scale: 1;
          description { state: "default" 0.0;
             fixed: 1 0;
             visible: 0;
@@ -74,14 +75,15 @@ group { name: "elm/check/base/default";
             fixed: 1 0;
             visible: 1;
             aspect: 1.0 1.0;
+            min: 16 16;
          }
          description { state: "disabled" 0.0;
             inherit: "default" 0.0;
-            color: 128 128 128 128;
+            color: 255 255 255 128;
          }
          description { state: "disabled_visible" 0.0;
             inherit: "default" 0.0;
-            color: 128 128 128 128;
+            color: 255 255 255 128;
             fixed: 1 0;
             visible: 1;
             aspect: 1.0 1.0;
@@ -145,7 +147,7 @@ group { name: "elm/check/base/default";
    }
    programs {
       program { name: "click";
-         signal: "mouse,up,1";
+         signal: "mouse,clicked,1";
          source: "events";
          action: SIGNAL_EMIT "elm,action,check,toggle" "";
       }
@@ -261,6 +263,8 @@ group { name: "elm/check/base/toggle";
    }
    script {
       public is_rtl;
+      public is_drag;
+      public was_drag;
    }
    parts {
       part { name: "bg";
@@ -268,15 +272,14 @@ group { name: "elm/check/base/toggle";
          mouse_events: 0;
          scale: 1;
          description { state: "default" 0.0;
+            fixed: 1 0;
             rel1.relative: 1.0 0.0;
             rel1.offset: -4 3;
             rel2.offset: -4 -4;
             align: 1.0 0.5;
             min: 96 16;
             max: 96 16;
-            aspect: 4.0 4.0;
-            aspect_preference: VERTICAL;
-            color: 255 255 255 255;
+            visible: 0;
          }
       }
       part { name: "clipper";
@@ -315,12 +318,6 @@ group { name: "elm/check/base/toggle";
             events: "button";
          }
          description { state: "default" 0.0;
-            rel1.to_x: "bg";
-            rel1.offset: 0 0;
-            rel1.relative: 0.0 0.0;
-            rel2.to_x: "bg";
-            rel2.offset: -1 -1;
-            rel2.relative: 1.0 1.0;
             color: 0 0 0 0;
          }
       }
@@ -428,7 +425,6 @@ group { name: "elm/check/base/toggle";
       }
       part { name: "button0";
          mouse_events:  0;
-         clip_to: "clipper";
          description { state: "default" 0.0;
             rel1.to: "button2";
             rel1.offset: -4 -4;
@@ -444,12 +440,11 @@ group { name: "elm/check/base/toggle";
       }
       part { name: "button2";
          mouse_events:  0;
-         clip_to: "clipper";
          description { state: "default" 0.0;
             rel1.to: "button";
-            rel1.offset: -2 -2;
+            rel1.offset: -3 -3;
             rel2.to: "button";
-            rel2.offset: 1 1;
+            rel2.offset: 2 2;
             image {
                normal: "bt_basew.png";
                border: 7 7 7 7;
@@ -508,7 +503,7 @@ group { name: "elm/check/base/toggle";
             rel1.offset: 0 4;
             rel2.to_x: "bg";
             rel2.relative: 0.0 1.0;
-            rel2.offset: -5 -5;
+            rel2.offset: -7 -5;
             color: 0 0 0 255;
             text {
                font: "Sans,Edje-Vera";
@@ -546,6 +541,41 @@ group { name: "elm/check/base/toggle";
       }
    }
    programs {
+      program {
+         signal: "mouse,clicked,1";
+         source: "button";
+         script {
+            new Float:dx, Float:dy;
+            get_drag(PART:"button", dx, dy);
+
+            if (!get_int(was_drag)) {
+               if (dx > 0.5)
+                  set_drag(PART:"button", 0.0, 0.0);
+               else
+                  set_drag(PART:"button", 1.0, 0.0);
+               if (((get_int(is_rtl) == 1) && (dx <= 0.5)) ||
+                   (get_int(is_rtl) == 0) && (dx > 0.5))
+                  emit("elm,action,check,off", "");
+               else
+                  emit("elm,action,check,on", "");
+            }
+         }
+      }
+      program {
+         signal: "drag";
+         source: "button";
+         script {
+            set_int(is_drag, 1);
+         }
+      }
+      program {
+         signal: "mouse,down,1";
+         source: "button";
+         script {
+            set_int(was_drag, 0);
+            set_int(is_drag, 0);
+         }
+      }
       program { name:   "drag_end";
          signal: "mouse,up,1";
          source: "button";
@@ -561,13 +591,14 @@ group { name: "elm/check/base/toggle";
                set_drag(PART:"button", 0.0, 0.0);
             }
             if (((get_int(is_rtl) == 1) && (dx <= 0.5)) ||
-            (get_int(is_rtl) == 0) && (dx > 0.5)) {
+                (get_int(is_rtl) == 0) && (dx > 0.5)) {
                emit("elm,action,check,on", "");
             }
             else {
                emit("elm,action,check,off", "");
             }
-
+            set_int(was_drag, get_int(is_drag));
+            set_int(is_drag, 0);
          }
       }
       program { name: "check_on";

@@ -1,371 +1,528 @@
 /**
  * @defgroup Index Index
- * @ingroup Elementary
+ * @ingroup elm_widget_group
  *
- * @image html img/widget/index/preview-00.png
- * @image latex img/widget/index/preview-00.eps
+ * @image html index_inheritance_tree.png
+ * @image latex index_inheritance_tree.eps
  *
- * An index widget gives you an index for fast access to whichever
- * group of other UI items one might have. It's a list of text
- * items (usually letters, for alphabetically ordered access).
+ * @brief An index widget gives you an index for fast access to whichever
+ *        group of other UI items one might have.
+ *
+ * It's a list of text items (usually letters, for alphabetically ordered
+ * access).
  *
  * Index widgets are by default hidden and just appear when the
  * user clicks over it's reserved area in the canvas. In its
- * default theme, it's an area one @ref Fingers "finger" wide on
+ * default theme, it's an area of one @ref Fingers "finger" wide on
  * the right side of the index widget's container.
  *
  * When items on the index are selected, smart callbacks get
  * called, so that its user can make other container objects to
  * show a given area or child object depending on the index item
- * selected. You'd probably be using an index together with @ref
- * List "lists", @ref Genlist "generic lists" or @ref Gengrid
- * "general grids".
+ * selected. You would probably be using an index together with @ref
+ * List "lists"
+ * @if MOBILE , @ref Genlist "generic lists" or @ref Gengrid "general grids".
+ * @elseif WEARABLE or @ref Genlist "generic lists".
+ * @endif
  *
- * Smart events one  can add callbacks for are:
- * - @c "changed" - When the selected index item changes. @c
- *      event_info is the selected item's data pointer.
+ * This widget inherits from the @ref Layout one, so that all the
+ * functions acting on it also work for index objects.
+ *
+ * This widget emits the following signals, besides the ones sent from
+ * @ref Layout :
+ * - @c "changed" - When the selected index item changes.
+ *      @c event_info is the selected item's data pointer.
  * - @c "delay,changed" - When the selected index item changes, but
- *      after a small idling period. @c event_info is the selected
+ *      after a small idling period. @a event_info is the selected
  *      item's data pointer.
  * - @c "selected" - When the user releases a mouse button and
- *      selects an item. @c event_info is the selected item's data
+ *      selects an item. @a event_info is the selected item's data
  *      pointer.
- * - @c "level,up" - when the user moves a finger from the first
- *      level to the second level
- * - @c "level,down" - when the user moves a finger from the second
- *      level to the first level
+ * - @c "level,up" - When the user moves a finger from the first
+ *      level to the second level.
+ * - @c "level,down" - When the user moves a finger from the second
+ *      level to the first level.
+ * - @c "language,changed" - The program's language is changed.
  *
- * The @c "delay,changed" event is so that it'll wait a small time
+ * The @c "delay,changed" event is so that it waits for a small period of time
  * before actually reporting those events and, moreover, just the
- * last event happening on those time frames will actually be
+ * last event happening on those time frames is actually
  * reported.
  *
- * Here are some examples on its usage:
- * @li @ref index_example_01
- * @li @ref index_example_02
+ * @{
  */
 
 /**
- * @addtogroup Index
- * @{
- */
-/**
- * Add a new index widget to the given parent Elementary
- * (container) object
+ * @brief Adds a new index widget to the given parent Elementary
+ *        (container) object.
  *
- * @param parent The parent object
- * @return a new index widget handle or @c NULL, on errors
+ * @details This function inserts a new index widget on the canvas.
  *
- * This function inserts a new index widget on the canvas.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Index
+ * @param[in] parent The parent object
+ * @return A new index widget handle, otherwise @c NULL in case of an error
  */
 EAPI Evas_Object          *elm_index_add(Evas_Object *parent);
 
 /**
- * Enable or disable auto hiding feature for a given index widget.
+ * @brief Enables or disables the auto hiding feature for a given index widget.
  *
- * @param obj The index object
- * @param disabled @c EINA_TRUE to disable auto hiding, @c EINA_FALSE to enable
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The index object
+ * @param[in] disabled If @c EINA_TRUE auto hiding is disabled, otherwise @c EINA_FALSE to enable it
  *
  * @see elm_index_autohide_disabled_get()
- *
- * @ingroup Index
  */
 EAPI void                  elm_index_autohide_disabled_set(Evas_Object *obj, Eina_Bool disabled);
 
 /**
- * Get whether auto hiding feature is enabled or not for a given index widget.
+ * @brief Gets whether the auto hiding feature is enabled for a given index widget.
  *
- * @param obj The index object
- * @return @c EINA_TRUE, if auto hiding is disabled, @c EINA_FALSE otherwise
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @see elm_index_autohide_disabled_set() for more details
+ * @param[in] obj The index object
+ * @return @c EINA_TRUE if auto hiding is disabled, otherwise @c EINA_FALSE
  *
- * @ingroup Index
+ * @see elm_index_autohide_disabled_set()
  */
 EAPI Eina_Bool             elm_index_autohide_disabled_get(const Evas_Object *obj);
 
 /**
- * Set the items level for a given index widget.
+ * @brief Sets the items level for a given index widget.
  *
- * @param obj The index object.
- * @param level @c 0 or @c 1, the currently implemented levels.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The index object
+ * @param[in] level @c 0 or @c 1, the currently implemented levels
  *
  * @see elm_index_item_level_get()
- *
- * @ingroup Index
  */
 EAPI void                  elm_index_item_level_set(Evas_Object *obj, int level);
 
 /**
- * Get the items level set for a given index widget.
+ * @brief Gets the items level set for a given index widget.
  *
- * @param obj The index object.
- * @return @c 0 or @c 1, which are the levels @p obj might be at.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @see elm_index_item_level_set() for more information
+ * @param[in] obj The index object
+ * @return @c 0 or @c 1, which are the levels that @a obj might be at
  *
- * @ingroup Index
+ * @see elm_index_item_level_set()
  */
 EAPI int                   elm_index_item_level_get(const Evas_Object *obj);
 
 /**
- * Set the selected state of an item.
+ * @brief Sets the selected state of an item.
  *
- * @param it The index item
- * @param selected The selected state
+ * @details This sets the selected state of the given item @a it.
+ *          @c EINA_TRUE for selected, @c EINA_FALSE for not selected.
  *
- * This sets the selected state of the given item @p it.
- * @c EINA_TRUE for selected, @c EINA_FALSE for not selected.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * If a new item is selected the previously selected will be unselected.
- * Previously selected item can be get with function
- * elm_index_selected_item_get().
+ * @remarks If a new item is selected the previously selected is unselected.
+ *          Previously selected item can be obtained with function
+ *          elm_index_selected_item_get().
  *
- * Selected items will be highlighted.
+ * @remarks Selected items are highlighted.
+ *
+ * @param[in] it The index item
+ * @param[in] selected The selected state
  *
  * @see elm_index_selected_item_get()
- *
- * @ingroup Index
  */
 EAPI void                  elm_index_item_selected_set(Elm_Object_Item *it, Eina_Bool selected);
 
 /**
- * Returns the last selected item, for a given index widget.
+ * @brief Gets the last selected item, for a given index widget.
  *
- * @param obj The index object.
- * @param level @c 0 or @c 1, the currently implemented levels.
- * @return The last item @b selected on @p obj (or @c NULL, on errors).
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Index
+ * @param[in] obj The index object
+ * @param[in] level @c 0 or @c 1, the currently implemented levels
+ * @return The last item @b selected on @a obj (or @c NULL on errors)
  */
 EAPI Elm_Object_Item      *elm_index_selected_item_get(const Evas_Object *obj, int level);
 
 /**
- * Append a new item on a given index widget.
+ * @brief Appends a new item on a given index widget.
  *
- * @param obj The index object.
- * @param letter Letter under which the item should be indexed
- * @param func The function to call when the item is selected.
- * @param data The item data to set for the index's item
- * @return A handle to the item added or @c NULL, on errors
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Despite the most common usage of the @p letter argument is for
- * single char strings, one could use arbitrary strings as index
- * entries.
+ * @remarks Despite the fact that the most common usage of the @a letter argument is for
+ *          single char strings, one could use arbitrary strings as index
+ *          entries.
  *
- * @c item will be the pointer returned back on @c "changed", @c
- * "delay,changed" and @c "selected" smart events.
+ * @remarks @a it is the pointer returned back on the @c "changed", @c
+ *          "delay,changed", and @c "selected" smart events.
  *
- * @ingroup Index
+ * @param[in] obj The index object
+ * @param[in] letter The letter under which the item should be indexed
+ * @param[in] func The function to call when the item is selected
+ * @param[in] data The item data to set for the index's item
+ * @return A handle to the item added, otherwise @c NULL in case of an error
  */
 EAPI Elm_Object_Item      *elm_index_item_append(Evas_Object *obj, const char *letter, Evas_Smart_Cb func, const void *data);
 
 /**
- * Prepend a new item on a given index widget.
+ * @brief Prepends a new item on a given index widget.
  *
- * @param obj The index object.
- * @param letter Letter under which the item should be indexed
- * @param func The function to call when the item is selected.
- * @param data The item data to set for the index's item
- * @return A handle to the item added or @c NULL, on errors
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Despite the most common usage of the @p letter argument is for
- * single char strings, one could use arbitrary strings as index
- * entries.
+ * @remarks Despite the fact that the most common usage of the @a letter argument is for
+ *          single char strings, one could use arbitrary strings as index
+ *          entries.
  *
- * @c item will be the pointer returned back on @c "changed", @c
- * "delay,changed" and @c "selected" smart events.
+ * @remarks @a it is the pointer returned back on the @c "changed", @c
+ *          "delay,changed", and @c "selected" smart events.
  *
- * @ingroup Index
+ * @param[in] obj The index object
+ * @param[in] letter The letter under which the item should be indexed
+ * @param[in] func The function to call when the item is selected
+ * @param[in] data The item data to set for the index's item
+ * @return A handle to the item added, otherwise @c NULL in case if an error
  */
 EAPI Elm_Object_Item      *elm_index_item_prepend(Evas_Object *obj, const char *letter, Evas_Smart_Cb func, const void *data);
 
 /**
- * Insert a new item into the index object after item @p after.
+ * @brief Inserts a new item into the index object after the item @a after.
  *
- * @param obj The index object.
- * @param after The index item to insert after.
- * @param letter Letter under which the item should be indexed
- * @param func The function to call when the item is clicked.
- * @param data The item data to set for the index's item
- * @return A handle to the item added or @c NULL, on errors
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Despite the most common usage of the @p letter argument is for
- * single char strings, one could use arbitrary strings as index
- * entries.
+ * @remarks Despite the fact that the most common usage of the @a letter argument is for
+ *          single char strings, one could use arbitrary strings as index
+ *          entries.
  *
- * @c item will be the pointer returned back on @c "changed", @c
- * "delay,changed" and @c "selected" smart events.
+ * @remarks @a it is the pointer returned back on the @c "changed", @c
+ *          "delay,changed", and @c "selected" smart events.
  *
- * @note If @p relative is @c NULL this function will behave as
- * elm_index_item_append().
+ * @remarks If @a relative is @c NULL this function behaves like
+ *          elm_index_item_append().
  *
- * @ingroup Index
+ * @param[in] obj The index object
+ * @param[in] after The index item to insert after
+ * @param[in] letter The letter under which the item should be indexed
+ * @param[in] func The function to call when the item is clicked
+ * @param[in] data The item data to set for the index's item
+ * @return A handle to the item added, otherwise @c NULL in case of an error
  */
 EAPI Elm_Object_Item      *elm_index_item_insert_after(Evas_Object *obj, Elm_Object_Item *after, const char *letter, Evas_Smart_Cb func, const void *data);
 
 /**
- * Insert a new item into the index object before item @p before.
+ * @brief Inserts a new item into the index object before the item @a before.
  *
- * @param obj The index object.
- * @param before The index item to insert after.
- * @param letter Letter under which the item should be indexed
- * @param func The function to call when the item is clicked.
- * @param data The item data to set for the index's item
- * @return A handle to the item added or @c NULL, on errors
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Despite the most common usage of the @p letter argument is for
- * single char strings, one could use arbitrary strings as index
- * entries.
+ * @remarks Despite that fact that the most common usage of the @a letter argument is for
+ *          single char strings, one could use arbitrary strings as index
+ *          entries.
  *
- * @c item will be the pointer returned back on @c "changed", @c
- * "delay,changed" and @c "selected" smart events.
+ * @remarks @a it is the pointer returned back on the @c "changed", @c
+ *          "delay,changed", and @c "selected" smart events.
  *
- * @note If @p relative is @c NULL this function will behave as
- * elm_index_item_prepend().
+ * @remarks If @a relative is @c NULL this function behave like
+ *          elm_index_item_prepend().
  *
- * @ingroup Index
+ * @param[in] obj The index object
+ * @param[in] before The index item to insert after
+ * @param[in] letter The letter under which the item should be indexed
+ * @param[in] func The function to call when the item is clicked
+ * @param[in] data The item data to set for the index's item
+ * @return A handle to the item added, otherwise @c NULL in case of an error
  */
 EAPI Elm_Object_Item      *elm_index_item_insert_before(Evas_Object *obj, Elm_Object_Item *before, const char *letter, Evas_Smart_Cb func, const void *data);
 
 /**
- * Insert a new item into the given index widget, using @p cmp_func
- * function to sort items (by item handles).
+ * @brief Inserts a new item into the given index widget, using @a cmp_func
+ *        function to sort items (by item handles).
  *
- * @param obj The index object.
- * @param letter Letter under which the item should be indexed
- * @param func The function to call when the item is clicked.
- * @param data The item data to set for the index's item
- * @param cmp_func The comparing function to be used to sort index
- * items <b>by #index item handles</b>
- * @param cmp_data_func A @b fallback function to be called for the
- * sorting of index items <b>by item data</b>). It will be used
- * when @p cmp_func returns @c 0 (equality), which means an index
- * item with provided item data already exists. To decide which
- * data item should be pointed to by the index item in question, @p
- * cmp_data_func will be used. If @p cmp_data_func returns a
- * non-negative value, the previous index item data will be
- * replaced by the given @p item pointer. If the previous data need
- * to be freed, it should be done by the @p cmp_data_func function,
- * because all references to it will be lost. If this function is
- * not provided (@c NULL is given), index items will be @b
- * duplicated, if @p cmp_func returns @c 0.
- * @return A handle to the item added or @c NULL, on errors
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * Despite the most common usage of the @p letter argument is for
- * single char strings, one could use arbitrary strings as index
- * entries.
+ * @remarks Despite the fact that the most common usage of the @a letter argument is for
+ *          single char strings, one could use arbitrary strings as index
+ *          entries.
  *
- * @c item will be the pointer returned back on @c "changed", @c
- * "delay,changed" and @c "selected" smart events.
+ * @remarks @a it is the pointer returned back on the @c "changed", @c
+ *          "delay,changed", and @c "selected" smart events.
  *
- * @ingroup Index
+ * @param[in] obj The index object
+ * @param[in] letter The letter under which the item should be indexed
+ * @param[in] func The function to call when the item is clicked
+ * @param[in] data The item data to set for the index's item
+ * @param[in] cmp_func The comparing function to be used to sort index
+ *                 items <b>by index item handles</b>
+ * @param[in] cmp_data_func A @b callback function to be called for the
+ *                      sorting of index items <b>by item data</b>) \n
+ *                      It is used when @a cmp_func returns @c 0 (equality), which means an index
+ *                      item with provided item data already exists \n
+ *                      To decide which data item should be pointed to by the index item in question, @a
+ *                      cmp_data_func is used \n
+ *                      If @a cmp_data_func returns a non-negative value, the previous index item data is
+ *                      replaced by the given @a it pointer \n
+ *                      If the previous data needs to be freed, it should be done by the @a cmp_data_func function,
+ *                      because all references to it are lost \n
+ *                      If this function is not provided (@c NULL is given), index items are @b
+ *                      duplicated, if @a cmp_func returns @c 0.
+ * @return A handle to the item added, otherwise @c NULL in case of an error
  */
 EAPI Elm_Object_Item      *elm_index_item_sorted_insert(Evas_Object *obj, const char *letter, Evas_Smart_Cb func, const void *data, Eina_Compare_Cb cmp_func, Eina_Compare_Cb cmp_data_func);
 
 /**
- * Find a given index widget's item, <b>using item data</b>.
+ * @brief Finds a given index widget's item, <b>using item data</b>.
  *
- * @param obj The index object
- * @param data The item data pointed to by the desired index item
- * @return The index item handle, if found, or @c NULL otherwise
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Index
+ * @param[in] obj The index object
+ * @param[in] data The item data pointed to by the desired index item
+ * @return The index item handle if found, otherwise @c NULL
  */
 EAPI Elm_Object_Item      *elm_index_item_find(Evas_Object *obj, const void *data);
 
 /**
- * Removes @b all items from a given index widget.
+ * @brief Removes @b all items from a given index widget.
  *
- * @param obj The index object.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * If deletion callbacks are set, via elm_object_item_del_cb_set(),
- * that callback function will be called for each item in @p obj.
+ * @remarks If deletion callbacks are set, via elm_object_item_del_cb_set(),
+ *          that callback function is called for each item in @a obj.
  *
- * @ingroup Index
+ * @param[in] obj The index object
  */
 EAPI void                  elm_index_item_clear(Evas_Object *obj);
 
 /**
- * Go to a given items level on a index widget
+ * @brief Flushes the changes made to the index items so they work correctly.
  *
- * @param obj The index object
- * @param level The index level (one of @c 0 or @c 1)
+ * @details This flushes any changes made to items indicating that the object is ready to
+ *          go. You should call this before any expected changes work. This
+ *          is similar to elm_list_go().
  *
- * @ingroup Index
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks If not called, it won't display the index properly.
+ *
+ * @param[in] obj The index object
+ * @param[in] level The index level (either @c 0 or @c 1) where changes were made
  */
 EAPI void                  elm_index_level_go(Evas_Object *obj, int level);
 
 /**
- * Get the letter (string) set on a given index widget item.
+ * @brief Gets the letter (string) set on a given index widget item.
  *
- * @param item The index item handle
- * @return The letter string set on @p it
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Index
+ * @param[in] item The index item handle
+ * @return The letter string set on @a it
  */
 EAPI const char           *elm_index_item_letter_get(const Elm_Object_Item *item);
 
 /**
- * Set the indicator as to be disabled.
+ * @brief Sets the indicator to be disabled.
  *
- * @param obj The index object
- * @param disabled  @c EINA_TRUE to disable it, @c EINA_FALSE to enable it
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * In Index widget, Indicator notes popup text, which shows a letter has been selecting.
+ * @remarks In the Index widget, Indicator notes the popup text, which shows that a letter has been selected.
+ *
+ * @param[in] obj The index object
+ * @param[in] disabled  If @c EINA_TRUE the indicator is disabled,
+ *                  otherwise @c EINA_FALSE to enable it
  *
  * @see elm_index_indicator_disabled_get()
- *
- * @ingroup Index
  */
 EAPI void                 elm_index_indicator_disabled_set(Evas_Object *obj, Eina_Bool disabled);
 
 /**
- * Get the value of indicator's disabled status.
+ * @brief Gets the value of the indicator's disabled status.
  *
- * @param obj The index object
- * @return EINA_TRUE if the indicator is disabled.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The index object
+ * @return @c EINA_TRUE if the indicator is disabled,
+ *         otherwise @c EINA_FALSE
  *
  * @see elm_index_indicator_disabled_set()
- *
- * @ingroup Index
  */
 EAPI Eina_Bool            elm_index_indicator_disabled_get(const Evas_Object *obj);
 
 /**
- * Enable or disable horizontal mode on the index object
+ * @brief Enables or disables the horizontal mode on the index object.
  *
- * @param obj The index object.
- * @param horizontal @c EINA_TRUE to enable horizontal or @c EINA_FALSE to
- * disable it, i.e., to enable vertical mode. it's an area one @ref Fingers
- * "finger" wide on the bottom side of the index widget's container.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @note Vertical mode is set by default.
+ * @remarks The vertical mode is set by default.
  *
- * On horizontal mode items are displayed on index from left to right,
- * instead of from top to bottom. Also, the index will scroll horizontally.
+ * @remarks On the horizontal mode items are displayed on the index from left to right,
+ *          instead of from top to bottom. Also, the index scrolls horizontally.
+ *
+ * @param[in] obj The index object
+ * @param[in] horizontal If @c EINA_TRUE the horizontal is enabled, otherwise @c EINA_FALSE to
+ *                   disable it, i.e., to enable the vertical mode \n
+ *                   It's an area of one @ref Fingers "finger" wide at the bottom side of the index widget's container.
  *
  * @see elm_index_horizontal_get()
- *
- * @ingroup Index
  */
 EAPI void                      elm_index_horizontal_set(Evas_Object *obj, Eina_Bool horizontal);
 
 /**
- * Get a value whether horizontal mode is enabled or not.
+ * @brief Gets a value that indicates whether the horizontal mode is enabled.
  *
- * @param obj The index object.
- * @return @c EINA_TRUE means horizontal mode selection is enabled.
- * @c EINA_FALSE indicates it's disabled. If @p obj is @c NULL,
- * @c EINA_FALSE is returned.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @see elm_index_horizontal_set() for details.
+ * @param[in] obj The index object
+ * @return @c EINA_TRUE means the horizontal mode selection is enabled,
+ *         otherwise @c EINA_FALSE indicates that it's disabled \n
+ *         If @a obj is @c NULL, @c EINA_FALSE is returned.
  *
- * @ingroup Index
+ * @see elm_index_horizontal_set()
  */
 EAPI Eina_Bool                 elm_index_horizontal_get(const Evas_Object *obj);
+
+/**
+ * @brief Sets a delay change time for the index object.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks The delay time is @c 0.2 sec by default.
+ *
+ * @param[in] obj The index object
+ * @param[in] delay_change_time The delay change time to set.
+ *
+ * @see elm_index_delay_change_time_get
+ */
+EAPI void                      elm_index_delay_change_time_set(Evas_Object *obj, double delay_change_time);
+
+/**
+ * @brief Gets a delay change time for the index object.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The index object
+ * @return The delay change time in seconds
+ *
+ * @see elm_index_delay_change_time_set
+ */
+EAPI double                    elm_index_delay_change_time_get(const Evas_Object *obj);
+
+/**
+ * @brief Enables or disables the omit feature for a given index widget.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The index object
+ * @param[in] enabled If @c EINA_TRUE the omit feature is enabled, otherwise @c EINA_FALSE to disable it
+ *
+ * @see elm_index_omit_enabled_get()
+ */
+EAPI void                      elm_index_omit_enabled_set(Evas_Object *obj, Eina_Bool enabled);
+
+/**
+ * @brief Gets whether the omit feature is enabled for a given index widget.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The index object
+ * @return @c EINA_TRUE if the omit feature is enabled, otherwise @c EINA_FALSE
+ *
+ * @see elm_index_omit_enabled_set()
+ */
+EAPI Eina_Bool                 elm_index_omit_enabled_get(const Evas_Object *obj);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Sets the priority of an item.
+ *
+ * @remarks The priority is @c -1 by default, which means that the item doesn't belong to a group.
+ *
+ * @remarks The value of the priority starts from @c 0.
+ *
+ * @remarks In elm_index_level_go, the items are sorted in ascending order according to priority.
+ *          Items of the same priority make a group and the primary group is shown by default.
+ *
+ * @param it The index item
+ * @param priority The priority
+ */
+EAPI void                      elm_index_item_priority_set(Elm_Object_Item *it, int priority);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Set priority group of index. Priority group will be shown as many items as it can,
+ *        and other group will be shown one character only.
+ *
+ * @remarks The value of the priority starts from -1.
+ *          Change Index's current priority to target.
+ *
+ * @param obj The index object
+ * @param priority target priority value in index
+ *
+ * @see elm_index_priority_get()
+ */
+EAPI void                      elm_index_priority_set(Evas_Object *obj, int priority);
+
+/**
+ * @internal
+ * @remarks Tizen only feature
+ *
+ * @brief Get current priority group of index.
+ *
+ * @param obj The index object
+ * @return priority value in index
+ *
+ * @see elm_index_priority_set()
+ */
+EAPI int                       elm_index_priority_get(const Evas_Object *obj);
 
 /**
  * @}

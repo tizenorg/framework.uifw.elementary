@@ -68,7 +68,16 @@ _both_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
    Evas_Object *cs = data;
    Evas_Object *win = evas_object_data_get(cs, "win");
    elm_colorselector_mode_set(cs, ELM_COLORSELECTOR_BOTH);
-   evas_object_resize(win, 320, 535);
+   evas_object_resize(win, 320, 550);
+}
+
+static void
+_picker_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+{
+   Evas_Object *cs = data;
+   Evas_Object *win = evas_object_data_get(cs, "win");
+   elm_colorselector_mode_set(cs, ELM_COLORSELECTOR_PICKER);
+   evas_object_resize(win, 320, 430);
 }
 
 void
@@ -174,7 +183,15 @@ test_colorselector(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
    evas_object_show(bt);
    elm_box_pack_end(bx2, bt);
 
-   evas_object_resize(win, 320, 500);
+   bt = elm_button_add(bx2);
+   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   evas_object_smart_callback_add(bt, "clicked", _picker_cb, cs);
+   elm_object_text_set(bt, "Picker");
+   evas_object_show(bt);
+   elm_box_pack_end(bx2, bt);
+
+   evas_object_resize(win, 320, 550);
    evas_object_show(win);
 }
 #endif

@@ -16,6 +16,7 @@ elementary_config
 elementary_quicklaunch
 elementary_run
 elementary_test
+elementary_codegen
 elementary_testql
 /aclocal.m4
 /autom4te.cache/
@@ -49,6 +50,7 @@ tags
 /config.rpath
 /config/default/base.cfg
 /config/illume/base.cfg
+/config/mobile/base.cfg
 /config/profile.cfg
 /config/standard/base.cfg
 /mkinstalldirs
@@ -196,16 +198,3 @@ src/examples/transit_example_04
 src/examples/web_example
 src/examples/win_example
 src/examples/dayselector_example
-/config.guess.cdbs-orig
-/config.sub.cdbs-orig
-/config/slp/base.cfg
-/debian/files
-/debian/*.log
-/debian/*.substvars
-/debian/libelm-bin/
-/debian/libelm-dbg/
-/debian/libelm-dev/
-/debian/*.debhelper
-/debian/libelm/
-/debian/stamp-*
-/debian/tmp/

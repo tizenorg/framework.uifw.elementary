@@ -28,7 +28,7 @@ elm_main(int argc, char **argv)
 
    icon1 = elm_icon_add(popup);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-   elm_icon_file_set(icon1, buf, NULL);
+   elm_image_file_set(icon1, buf, NULL);
 
    //Seting popup title-text
    elm_object_part_text_set(popup, "title,text", "Title");
@@ -69,7 +69,7 @@ elm_main(int argc, char **argv)
    evas_object_smart_callback_add(btn2, "clicked", _response_cb, popup);
 
    //Appending the second action button
-   elm_object_part_content_set(popup, "button1", btn2);
+   elm_object_part_content_set(popup, "button2", btn2);
 
    //Display the popup object
    evas_object_show(popup);

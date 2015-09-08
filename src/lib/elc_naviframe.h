@@ -1,94 +1,131 @@
 /**
  * @defgroup Naviframe Naviframe
- * @ingroup Elementary
+ * @ingroup elm_widget_group
  *
- * @brief Naviframe is a kind of view manager for the applications.
+ * @image html naviframe_inheritance_tree.png
+ * @image latex naviframe_inheritance_tree.eps
  *
- * Naviframe provides functions to switch different pages with stack
- * mechanism. It means if one page(item) needs to be changed to the new one,
- * then naviframe would push the new page to its internal stack. Of course,
- * it can be back to the previous page by popping the top page. Naviframe
- * provides some transition effect while the pages are switching (same as
- * pager).
+ * @brief Naviframe stands for navigation frame. It's a views manager
+ * for applications.
  *
- * Since each item could keep the different styles, users could keep the
- * same look & feel for the pages or different styles for the items in it's
- * application.
+ * A naviframe holds views (or pages) as its items. Those items are
+ * organized in a stack, so that new items get pushed on top of the
+ * old, and only the topmost view is displayed at one time. The
+ * transition between views is animated, depending on the theme
+ * applied to the widget.
  *
- * Default content parts of the naviframe that you can use content hooks for
- * are:
- * @li "default" - The main content of the current page
- * @li "icon" - An icon in the title area of the current page
- * @li "prev_btn" - A button of the current page to go to the previous page
- * @li "next_btn" - A button of the current page to go to the next page
+ * Naviframe views hold spaces to various elements, which are:
+ * - back button, used to navigate to previous views,
+ * - next button, used to navigate to next views in the stack,
+ * - title label,
+ * - sub-title label,
+ * - title icon and
+ * - content area.
  *
- * Default text parts of the naviframe that you can use for are:
- * @li "default" - Title label in the title area of the current page
- * @li "subtitle" - Sub-title label in the title area of the current page
+ * This widget inherits from the @ref Layout one, so that all the
+ * functions acting on it also work for naviframe objects.
  *
- * Signals that you can add callbacks for are:
- * @li "transition,finished" - When the transition is finished in changing the
- * item
- * @li "title,clicked" - User clicked title area
+ * Because this widget is a layout, one places content on those areas
+ * by using elm_layout_content_set() on the right swallow part names
+ * expected for each, which are:
+ * @li @c "default" - The main content of the current page
+ * @li @c "icon" - An icon in the title area of the current page
+ * @li @c "prev_btn" - A button of the current page to go to the
+ *                     previous page
+ * @li @c "next_btn" - A button of the current page to go to the next
+ *                     page
  *
- * Default content parts of the naviframe items that you can use content hooks
- * for are:
- * @li "default" - The main content of the page
- * @li "icon" - An icon in the title area
- * @li "prev_btn" - A button to go to the previous page
- * @li "next_btn" - A button to go to the next page
+ * For text, elm_layout_text_set() will work here on:
+ * @li @c "default" - Title label in the title area of the current
+ *                    page
+ * @li @c "subtitle" - Sub-title label in the title area of the
+ *                     current page
  *
- * Default text parts of the naviframe items that you can use for are:
- * @li "default" - Title label in the title area
- * @li "subtitle" - Sub-title label in the title area
+ * Most of those content objects can be passed at the time of an item
+ * creation (see elm_naviframe_item_push()).
  *
- * Supported elm_object common APIs.
- * @li @ref elm_object_signal_emit
- * @li @ref elm_object_part_text_set
- * @li @ref elm_object_part_text_get
- * @li @ref elm_object_part_content_set
- * @li @ref elm_object_part_content_get
- * @li @ref elm_object_part_content_unset
+ * Naviframe items can have different styles, which affect the
+ * transition between views, for example. On the default theme, two of
+ * them are supported:
+ * - @c "basic"   - views are switched sliding horizontally, one after
+ *                  the other
+ * - @c "overlap" - like the previous one, but the previous view stays
+ *                  at its place and is overlapped by the new
  *
- * Supported elm_object_item common APIs.
+ *
+ * This widget emits the following signals, besides the ones sent from
+ * @ref Layout :
+ * @li @c "transition,finished" - When the transition is finished in
+ *                                changing the item
+ * @li @c "title,transition,finished" - When the title transition is
+ *                                      finished in changing enabled
+ *                                      state of the title
+ * @li @c "title,clicked" - User clicked title area
+ *
+ * All the parts, for content and text, described here will also be
+ * reachable by naviframe @b items direct calls:
  * @li @ref elm_object_item_part_text_set
  * @li @ref elm_object_item_part_text_get
  * @li @ref elm_object_item_part_content_set
  * @li @ref elm_object_item_part_content_get
  * @li @ref elm_object_item_part_content_unset
  * @li @ref elm_object_item_signal_emit
- */
-
-/**
- * @addtogroup Naviframe
+ *
+ * What happens is that the topmost item of a naviframe will be the
+ * widget's target layout, when accessed directly. Items lying below
+ * the top one can be interacted with this way.
+ *
  * @{
  */
 
 /**
+ * @typedef Elm_Naviframe_Item_Pop_Cb
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * Pop callback called when @c it is going to be popped. @c data is user
+ * specific data. If it returns the @c EINA_FALSE in the callback, item popping
+ * will be cancelled.
+ *
+ * @see elm_naviframe_item_pop_cb_set()
+ *
+ * @since 1.8
+ */
+typedef Eina_Bool (*Elm_Naviframe_Item_Pop_Cb)(void *data, Elm_Object_Item *it);
+
+/**
  * @brief Add a new Naviframe object to the parent.
  *
- * @param parent Parent object
- * @return New object or @c NULL, if it cannot be created
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Naviframe
+ * @param[in] parent Parent object
+ * @return New object or @c NULL, if it cannot be created
  */
 EAPI Evas_Object     *elm_naviframe_add(Evas_Object *parent);
 
 /**
  * @brief Push a new item to the top of the naviframe stack (and show it).
  *
- * @param obj The naviframe object
- * @param title_label The label in the title area. The name of the title
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
+ * @param[in] title_label The label in the title area. The name of the title
  *        label part is "elm.text.title"
- * @param prev_btn The button to go to the previous item. If it is NULL,
+ * @param[in] prev_btn The button to go to the previous item. If it is NULL,
  *        then naviframe will create a back button automatically. The name of
  *        the prev_btn part is "elm.swallow.prev_btn"
- * @param next_btn The button to go to the next item. Or It could be just an
+ * @param[in] next_btn The button to go to the next item. Or It could be just an
  *        extra function button. The name of the next_btn part is
  *        "elm.swallow.next_btn"
- * @param content The main content object. The name of content part is
+ * @param[in] content The main content object. The name of content part is
  *        "elm.swallow.content"
- * @param item_style The current item style name. @c NULL would be default.
+ * @param[in] item_style The current item style name. @c NULL would be default.
  * @return The created item or @c NULL upon failure.
  *
  * The item pushed becomes one page of the naviframe, this item will be
@@ -100,27 +137,29 @@ EAPI Evas_Object     *elm_naviframe_add(Evas_Object *parent);
  *
  * The following styles are available for this item:
  * @li @c "default"
- *
- * @ingroup Naviframe
  */
 EAPI Elm_Object_Item *elm_naviframe_item_push(Evas_Object *obj, const char *title_label, Evas_Object *prev_btn, Evas_Object *next_btn, Evas_Object *content, const char *item_style);
 
 /**
  * @brief Insert a new item into the naviframe before item @p before.
  *
- * @param obj The naviframe object
- * @param before The naviframe item to insert before.
- * @param title_label The label in the title area. The name of the title
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
+ * @param[in] before The naviframe item to insert before.
+ * @param[in] title_label The label in the title area. The name of the title
  *        label part is "elm.text.title"
- * @param prev_btn The button to go to the previous item. If it is NULL,
+ * @param[in] prev_btn The button to go to the previous item. If it is NULL,
  *        then naviframe will create a back button automatically. The name of
  *        the prev_btn part is "elm.swallow.prev_btn"
- * @param next_btn The button to go to the next item. Or It could be just an
+ * @param[in] next_btn The button to go to the next item. Or It could be just an
  *        extra function button. The name of the next_btn part is
  *        "elm.swallow.next_btn"
- * @param content The main content object. The name of content part is
+ * @param[in] content The main content object. The name of content part is
  *        "elm.swallow.content"
- * @param item_style The current item style name. @c NULL would be default.
+ * @param[in] item_style The current item style name. @c NULL would be default.
  * @return The created item or @c NULL upon failure.
  *
  * The item is inserted into the naviframe straight away without any
@@ -132,27 +171,29 @@ EAPI Elm_Object_Item *elm_naviframe_item_push(Evas_Object *obj, const char *titl
  *
  * The following styles are available for this item:
  * @li @c "default"
- *
- * @ingroup Naviframe
  */
 EAPI Elm_Object_Item *elm_naviframe_item_insert_before(Evas_Object *obj, Elm_Object_Item *before, const char *title_label, Evas_Object *prev_btn, Evas_Object *next_btn, Evas_Object *content, const char *item_style);
 
 /**
  * @brief Insert a new item into the naviframe after item @p after.
  *
- * @param obj The naviframe object
- * @param after The naviframe item to insert after.
- * @param title_label The label in the title area. The name of the title
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
+ * @param[in] after The naviframe item to insert after.
+ * @param[in] title_label The label in the title area. The name of the title
  *        label part is "elm.text.title"
- * @param prev_btn The button to go to the previous item. If it is NULL,
+ * @param[in] prev_btn The button to go to the previous item. If it is NULL,
  *        then naviframe will create a back button automatically. The name of
  *        the prev_btn part is "elm.swallow.prev_btn"
- * @param next_btn The button to go to the next item. Or It could be just an
+ * @param[in] next_btn The button to go to the next item. Or It could be just an
  *        extra function button. The name of the next_btn part is
  *        "elm.swallow.next_btn"
- * @param content The main content object. The name of content part is
+ * @param[in] content The main content object. The name of content part is
  *        "elm.swallow.content"
- * @param item_style The current item style name. @c NULL would be default.
+ * @param[in] item_style The current item style name. @c NULL would be default.
  * @return The created item or @c NULL upon failure.
  *
  * The item is inserted into the naviframe straight away without any
@@ -164,15 +205,17 @@ EAPI Elm_Object_Item *elm_naviframe_item_insert_before(Evas_Object *obj, Elm_Obj
  *
  * The following styles are available for this item:
  * @li @c "default"
- *
- * @ingroup Naviframe
  */
 EAPI Elm_Object_Item *elm_naviframe_item_insert_after(Evas_Object *obj, Elm_Object_Item *after, const char *title_label, Evas_Object *prev_btn, Evas_Object *next_btn, Evas_Object *content, const char *item_style);
 
 /**
  * @brief Pop an item that is on top of the stack
  *
- * @param obj The naviframe object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
  * @return @c NULL or the content object(if the
  *         elm_naviframe_content_preserve_on_pop_get is true).
  *
@@ -181,143 +224,191 @@ EAPI Elm_Object_Item *elm_naviframe_item_insert_after(Evas_Object *obj, Elm_Obje
  * stack will become visible.
  *
  * @see also elm_naviframe_content_preserve_on_pop_get()
- *
- * @ingroup Naviframe
+ * @see also elm_naviframe_item_pop_cb_set()
  */
 EAPI Evas_Object     *elm_naviframe_item_pop(Evas_Object *obj);
 
 /**
- * @brief Pop the items between the top and the above one on the given item.
+ * @brief Pop the top item and delete the items between the top and the above
+ *        one on the given item.
  *
- * @param it The naviframe item
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Naviframe
+ * @remarks The items between the top and the given item will be deleted first,
+ *          and then the top item will be popped at last.
+ *
+ * @param[in] it The naviframe item
  */
 EAPI void             elm_naviframe_item_pop_to(Elm_Object_Item *it);
 
 /**
- * Promote an item already in the naviframe stack to the top of the stack
+ * @brief Promote an item already in the naviframe stack to the top of the stack
  *
- * @param it The naviframe item
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * This will take the indicated item and promote it to the top of the stack
- * as if it had been pushed there. The item must already be inside the
- * naviframe stack to work.
+ * @remarks This will take the indicated item and promote it to the top of
+ *          the stack as if it had been pushed there. The item must already
+ *          be inside the naviframe stack to work.
  *
+ * @param[in] it The naviframe item
  */
 EAPI void             elm_naviframe_item_promote(Elm_Object_Item *it);
 
 /**
  * @brief preserve the content objects when items are popped.
  *
- * @param obj The naviframe object
- * @param preserve Enable the preserve mode if EINA_TRUE, disable otherwise
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
+ * @param[in] preserve Enable the preserve mode if EINA_TRUE, disable otherwise
  *
  * @see also elm_naviframe_content_preserve_on_pop_get()
- *
- * @ingroup Naviframe
  */
 EAPI void             elm_naviframe_content_preserve_on_pop_set(Evas_Object *obj, Eina_Bool preserve);
 
 /**
  * @brief Get a value whether preserve mode is enabled or not.
  *
- * @param obj The naviframe object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
  * @return If @c EINA_TRUE, preserve mode is enabled
  *
  * @see also elm_naviframe_content_preserve_on_pop_set()
- *
- * @ingroup Naviframe
  */
 EAPI Eina_Bool        elm_naviframe_content_preserve_on_pop_get(const Evas_Object *obj);
 
 /**
  * @brief Get a top item on the naviframe stack
  *
- * @param obj The naviframe object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
  * @return The top item on the naviframe stack or @c NULL, if the stack is
  *         empty
- *
- * @ingroup Naviframe
  */
 EAPI Elm_Object_Item *elm_naviframe_top_item_get(const Evas_Object *obj);
 
 /**
  * @brief Get a bottom item on the naviframe stack
  *
- * @param obj The naviframe object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
  * @return The bottom item on the naviframe stack or @c NULL, if the stack is
  *         empty
- *
- * @ingroup Naviframe
  */
 EAPI Elm_Object_Item *elm_naviframe_bottom_item_get(const Evas_Object *obj);
 
 /**
  * @brief Set an item style
  *
- * @param it The naviframe item
- * @param item_style The current item style name. @c NULL would be default
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * The following styles are available for this item:
- * @li @c "default"
+ * @remarks The following styles are available for this item: @li @c "default"
+ *
+ * @param[in] it The naviframe item
+ * @param[in] item_style The current item style name. @c NULL would be default
  *
  * @see also elm_naviframe_item_style_get()
- *
- * @ingroup Naviframe
  */
 EAPI void             elm_naviframe_item_style_set(Elm_Object_Item *it, const char *item_style);
 
 /**
  * @brief Get an item style
  *
- * @param it The naviframe item
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] it The naviframe item
  * @return The current item style name
  *
  * @see also elm_naviframe_item_style_set()
- *
- * @ingroup Naviframe
  */
 EAPI const char      *elm_naviframe_item_style_get(const Elm_Object_Item *it);
 
 /**
- * @brief Show/Hide the title area
+ * @brief Enable/Disable the title area with transition effect
  *
- * @param it The naviframe item
- * @param visible If @c EINA_TRUE, title area will be visible, hidden
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks When the title area is disabled, then the controls would be hidden
+ *          so as to expand the content area to full-size.
+ *
+ * @param[in] it The naviframe item
+ * @param[in] enabled If @c EINA_TRUE, title area will be enabled, disabled
  *        otherwise
+ * @param[in] transition If @c EINA_TRUE, transition effect of the title will be
+ *        visible, invisible otherwise
  *
- * When the title area is invisible, then the controls would be hidden so as     * to expand the content area to full-size.
- *
- * @see also elm_naviframe_item_title_visible_get()
- *
- * @ingroup Naviframe
+ * @see also elm_naviframe_item_title_enabled_get()
  */
-EAPI void             elm_naviframe_item_title_visible_set(Elm_Object_Item *it, Eina_Bool visible);
+EAPI void             elm_naviframe_item_title_enabled_set(Elm_Object_Item *it, Eina_Bool enabled, Eina_Bool transition);
 
 /**
- * @brief Get a value whether title area is visible or not.
+ * @brief Get a value whether title area is enabled or not.
  *
- * @param it The naviframe item
- * @return If @c EINA_TRUE, title area is visible
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @see also elm_naviframe_item_title_visible_set()
+ * @param[in] it The naviframe item
+ * @return If @c EINA_TRUE, title area is enabled
  *
- * @ingroup Naviframe
+ * @see also elm_naviframe_item_title_enabled_set()
  */
-EAPI Eina_Bool        elm_naviframe_item_title_visible_get(const Elm_Object_Item *it);
+EAPI Eina_Bool        elm_naviframe_item_title_enabled_get(const Elm_Object_Item *it);
+
+/**
+ * @brief Set a function to be called when @c it of the naviframe is going to 
+ *        be popped.
+ *
+ * @since 1.8
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remarks Don't set "clicked" callback to the prev button additionally if the
+ * function does a exact same logic with this @c func. When hardware back key is
+ * pressed then both callbacks will be called.
+ *
+ * @param[in] it The item to set the callback on
+ * @param[in] func the callback function.
+ * @param[in] data user data
+ */
+EAPI void             elm_naviframe_item_pop_cb_set(Elm_Object_Item *it, Elm_Naviframe_Item_Pop_Cb func, void *data);
 
 /**
  * @brief Set creating prev button automatically or not
  *
- * @param obj The naviframe object
- * @param auto_pushed If @c EINA_TRUE, the previous button(back button) will
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
+ * @param[in] auto_pushed If @c EINA_TRUE, the previous button(back button) will
  *        be created internally when you pass the @c NULL to the prev_btn
  *        parameter in elm_naviframe_item_push
  *
  * @see also elm_naviframe_item_push()
- *
- * @ingroup Naviframe
  */
 EAPI void             elm_naviframe_prev_btn_auto_pushed_set(Evas_Object *obj, Eina_Bool auto_pushed);
 
@@ -325,63 +416,81 @@ EAPI void             elm_naviframe_prev_btn_auto_pushed_set(Evas_Object *obj, E
  * @brief Get a value whether prev button(back button) will be auto pushed or
  *        not.
  *
- * @param obj The naviframe object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
  * @return If @c EINA_TRUE, prev button will be auto pushed.
  *
  * @see also elm_naviframe_item_push()
  *           elm_naviframe_prev_btn_auto_pushed_set()
- *
- * @ingroup Naviframe
  */
 EAPI Eina_Bool        elm_naviframe_prev_btn_auto_pushed_get(const Evas_Object *obj);
 
 /**
  * @brief Get a list of all the naviframe items.
  *
- * @param obj The naviframe object
- * @return An Eina_List of naviframe items, #Elm_Object_Item,
- * or @c NULL on failure.
- * @note The returned list MUST be freed.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @ingroup Naviframe
+ * @remarks The returned list MUST be freed.
+ *
+ * @param[in] obj The naviframe object
+ * @return An Eina_List of naviframe items, #Elm_Object_Item,
+ *         or @c NULL on failure.
  */
 EAPI Eina_List *elm_naviframe_items_get(const Evas_Object *obj) EINA_MALLOC EINA_WARN_UNUSED_RESULT;
 
 /**
  * @brief Set the event enabled when pushing/popping items
  *
- * If @c enabled is EINA_TRUE, the contents of the naviframe item will
- * receives events from mouse and keyboard during view changing such as
- * item push/pop.
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
  *
- * @param obj The naviframe object
- * @param enabled Events are received when enabled is @c EINA_TRUE, and
+ * @remarks If @c enabled is EINA_TRUE, the contents of the naviframe item will
+ *          receives events from mouse and keyboard during view changing such as
+ *          item push/pop.
+ *
+ * @remarks Events will be blocked by calling evas_object_freeze_events_set()
+ *          internally. So don't call the API whiling pushing/popping items.
+ *
+ * @param[in] obj The naviframe object
+ * @param[in] enabled Events are received when enabled is @c EINA_TRUE, and
  * ignored otherwise.
- *
- * @warning Events will be blocked by calling evas_object_freeze_events_set()
- * internally. So don't call the API whiling pushing/popping items.
  *
  * @see elm_naviframe_event_enabled_get()
  * @see evas_object_freeze_events_set()
- *
- * @ingroup Naviframe
  */
 EAPI void             elm_naviframe_event_enabled_set(Evas_Object *obj, Eina_Bool enabled);
 
 /**
  * @brief Get the value of event enabled status.
  *
- * @param obj The naviframe object
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
  * @return EINA_TRUE, when event is enabled
  *
  * @see elm_naviframe_event_enabled_set()
- *
- * @ingroup Naviframe
  */
 EAPI Eina_Bool        elm_naviframe_event_enabled_get(const Evas_Object *obj);
 
 /**
  * @brief Simple version of item_push.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @param[in] obj The naviframe object
+ * @param[in] content The main content object. The name of content part is
+ *                    "elm.swallow.content"
+ * @return The created item or @c NULL upon failure.
  *
  * @see elm_naviframe_item_push
  */
@@ -390,12 +499,19 @@ elm_naviframe_item_simple_push(Evas_Object *obj, Evas_Object *content)
 {
    Elm_Object_Item *it;
    it = elm_naviframe_item_push(obj, NULL, NULL, NULL, content, NULL);
-   elm_naviframe_item_title_visible_set(it, EINA_FALSE);
+   elm_naviframe_item_title_enabled_set(it, EINA_FALSE, EINA_FALSE);
    return it;
 }
 
 /**
  * @brief Simple version of item_promote.
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ * @param[in] obj The naviframe object
+ * @param[in] content The main content object. The name of content part is
+ *                    "elm.swallow.content"
  *
  * @see elm_naviframe_item_promote
  */

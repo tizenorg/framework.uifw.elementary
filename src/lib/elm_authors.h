@@ -37,7 +37,7 @@
  * @author Jihoon Kim <jihoon48.kim@@samsung.com>
  * @author Jeonghyun Yun (arosis) <jh0506.yun@@samsung.com>
  * @author Tom Hacohen <tom@@stosb.com>
- * @author Aharon Hillel <a.hillel@@partner.samsung.com>
+ * @author Aharon Hillel <a.hillel@@samsung.com>
  * @author Jonathan Atton (Watchwolf) <jonathan.atton@@gmail.com>
  * @author Shinwoo Kim <kimcinoo@@gmail.com>
  * @author Govindaraju SM <govi.sm@@samsung.com> <govism@@gmail.com>
@@ -52,9 +52,22 @@
  * @author Bluezery <ohpowel@@gmail.com>
  * @author Nicolas Aguirre <aguirre.nicolas@@gmail.com>
  * @author Sanjeev BA <iamsanjeev@@gmail.com>
- * @author Hyunsil Park <hyunsil.park@samsung.com>
- * @author Goun Lee <gouni.lee@samsung.com>
- * @author Mikael Sans <sans.mikael@gmail.com>
+ * @author Hyunsil Park <hyunsil.park@@samsung.com>
+ * @author Goun Lee <gouni.lee@@samsung.com>
+ * @author Mikael Sans <sans.mikael@@gmail.com>
+ * @author Doyoun Kang <doyoun.kang@@samsung.com>
+ * @author M.V.K. Sumanth <sumanth.m@@samsung.com> <mvksumanth@@gmail.com>
+ * @author Jérôme Pinot <ngc891@@gmail.com>
+ * @author Davide Andreoli (davemds) <dave@@gurumeditation.it>
+ * @author Michal Pakula vel Rutka <m.pakula@@samsung.com>
+ * @author Thiep Ha <thiep.ha@@samsung.com>
+ * @author Artem Popov <artem.popov@@samsung.com>
+ * @author Minseok Kim <minseok3.kim@@samsung.com>
+ * @author Jean-Philippe André <jpeg@@videolan.org>
+ * @author JiHyeon Seol <jihyeon.seol@@samsung.com>
+ * @author Flavio Ceolin <flavio.ceolin@@profusion.mobi>
+ * @author Igor Murzov <e-mail@@date.by>
+ * @author Jiyoun Park <jy0703.park@@samsung.com>
  *
  * Please contact <enlightenment-devel@lists.sourceforge.net> to get in
  * contact with the developers and maintainers.

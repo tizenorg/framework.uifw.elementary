@@ -286,7 +286,7 @@ test_entry_scrolled(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    elm_entry_scrollable_set(en, EINA_TRUE);
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, 0.5);
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_object_text_set(en, "Disabled entry");
    elm_entry_single_line_set(en, EINA_TRUE);
    elm_object_disabled_set(en, EINA_TRUE);
@@ -298,7 +298,7 @@ test_entry_scrolled(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    elm_entry_scrollable_set(en, EINA_TRUE);
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, 0.5);
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_entry_password_set(en, EINA_TRUE);
    elm_entry_single_line_set(en, EINA_TRUE);
    elm_object_text_set(en, "Access denied, give up!");
@@ -311,7 +311,7 @@ test_entry_scrolled(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    elm_entry_scrollable_set(en, EINA_TRUE);
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_ON, ELM_SCROLLER_POLICY_ON);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_ON, ELM_SCROLLER_POLICY_ON);
    elm_object_disabled_set(en, EINA_TRUE);
    elm_entry_context_menu_item_add(en, "Hello", NULL, ELM_ICON_NONE, NULL, NULL);
    elm_entry_context_menu_item_add(en, "World", NULL, ELM_ICON_NONE, NULL, NULL);
@@ -335,7 +335,7 @@ test_entry_scrolled(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, 0.5);
    elm_object_text_set(en, "This is a single line");
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_entry_single_line_set(en, EINA_TRUE);
    elm_entry_select_all(en);
    evas_object_show(en);
@@ -347,7 +347,7 @@ test_entry_scrolled(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, 0.5);
    elm_object_text_set(en, "01234");
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_entry_single_line_set(en, EINA_TRUE);
    evas_object_show(en);
    elm_box_pack_end(bx, en);
@@ -362,7 +362,7 @@ test_entry_scrolled(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, 0.5);
    elm_object_text_set(en, "No numbers here");
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_entry_single_line_set(en, EINA_TRUE);
    evas_object_show(en);
    elm_box_pack_end(bx, en);
@@ -377,7 +377,7 @@ test_entry_scrolled(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, 0.5);
    elm_object_text_set(en, "Just 20 chars");
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_entry_single_line_set(en, EINA_TRUE);
    evas_object_show(en);
    elm_box_pack_end(bx, en);
@@ -392,7 +392,7 @@ test_entry_scrolled(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, 0.5);
    elm_object_text_set(en, "And now only 30 bytes");
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_entry_single_line_set(en, EINA_TRUE);
    evas_object_show(en);
    elm_box_pack_end(bx, en);
@@ -406,7 +406,7 @@ test_entry_scrolled(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    elm_entry_scrollable_set(en_p, EINA_TRUE);
    evas_object_size_hint_weight_set(en_p, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en_p, EVAS_HINT_FILL, 0.5);
-   elm_entry_scrollbar_policy_set(en_p, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en_p, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_object_text_set(en_p, "Password here");
    elm_entry_single_line_set(en_p, EINA_TRUE);
    elm_entry_password_set(en_p, EINA_TRUE);
@@ -416,7 +416,7 @@ test_entry_scrolled(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    /* entry with icon/end widgets*/
    en = elm_entry_add(win);
    elm_entry_scrollable_set(en, EINA_TRUE);
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_entry_single_line_set(en, EINA_TRUE);
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, EVAS_HINT_FILL);
@@ -441,7 +441,7 @@ test_entry_scrolled(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    elm_entry_scrollable_set(en, EINA_TRUE);
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_ON, ELM_SCROLLER_POLICY_ON);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_ON, ELM_SCROLLER_POLICY_ON);
    elm_object_text_set(en,
                        "This is an entry widget in this window that<br/>"
                        "uses markup <b>like this</> for styling and<br/>"
@@ -702,6 +702,78 @@ my_ent_bt_pas(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED
    elm_entry_selection_paste(en);
 }
 
+static void
+ent_bt_style_user_peek(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+{
+   Evas_Object *en = data;
+   const char* cur_style = elm_entry_text_style_user_peek(en);
+   if (cur_style)
+     printf("Current style user: %s\n", cur_style);
+   else
+     printf("Style user stack is empty.\n");
+}
+
+static void
+ent_bt_style_user_pop(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+{
+   Evas_Object *en = data;
+   elm_entry_text_style_user_pop(en);
+   printf("Style user popped\n");
+}
+
+void
+test_entry_style_user(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+{
+   Evas_Object *win, *bx, *en, *bt, *bt2;
+
+   win = elm_win_util_standard_add("entry-style", "Entry Style");
+   elm_win_autodel_set(win, EINA_TRUE);
+   evas_object_resize(win, 300, 300);
+
+   bx = elm_box_add(win);
+   evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bx);
+   evas_object_show(bx);
+
+
+   en = elm_entry_add(win);
+   elm_entry_line_wrap_set(en, ELM_WRAP_MIXED);
+
+   elm_entry_text_style_user_push(en, "DEFAULT='font_size=40 color=#FF0000'");
+   elm_object_text_set(en, "Testing Text");
+
+   evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(en, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bx, en);
+   evas_object_resize(en, 200, 200);
+   evas_object_show(en);
+
+   bt = elm_button_add(win);
+   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_object_text_set(bt, "Peek");
+   evas_object_smart_callback_add(bt, "clicked", ent_bt_style_user_peek, en);
+   evas_object_size_hint_weight_set(bt, 0.0, 0.0);
+   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, 0.5);
+   elm_box_pack_end(bx, bt);
+   evas_object_propagate_events_set(bt, 0);
+   elm_object_focus_allow_set(bt, 0);
+   evas_object_show(bt);
+
+   bt2 = elm_button_add(win);
+   evas_object_size_hint_weight_set(bt2, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_object_text_set(bt2, "Pop");
+   evas_object_smart_callback_add(bt2, "clicked", ent_bt_style_user_pop, en);
+   evas_object_size_hint_weight_set(bt2, 0.0, 0.0);
+   evas_object_size_hint_align_set(bt2, EVAS_HINT_FILL, 0.5);
+   elm_box_pack_end(bx, bt2);
+   evas_object_propagate_events_set(bt2, 0);
+   elm_object_focus_allow_set(bt2, 0);
+   evas_object_show(bt2);
+
+   elm_object_focus_set(en, EINA_TRUE);
+   evas_object_show(win);
+}
+
 void
 test_entry3(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 {
@@ -720,7 +792,7 @@ test_entry3(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    elm_entry_scrollable_set(en, EINA_TRUE);
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, 0.5);
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_object_text_set(en, "This is a single line");
    elm_entry_single_line_set(en, EINA_TRUE);
    elm_box_pack_end(bx, en);
@@ -1278,7 +1350,7 @@ test_entry4(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    elm_entry_scrollable_set(en, EINA_TRUE);
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, 0.5);
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_object_text_set(en, "This is a single line");
    elm_entry_single_line_set(en, EINA_TRUE);
    elm_object_part_content_set(ly, "element1", en);
@@ -1936,8 +2008,8 @@ horizontal_bounce_changed_cb(void *data, Evas_Object *obj, void *event_info __UN
    Eina_Bool bounce = elm_check_state_get(obj);
    en = (Evas_Object*)data;
 
-   elm_entry_bounce_get(en, NULL, &vb);
-   elm_entry_bounce_set(en, bounce, bounce);
+   elm_scroller_bounce_get(en, NULL, &vb);
+   elm_scroller_bounce_set(en, bounce, bounce);
 }
 
 static void
@@ -1948,8 +2020,8 @@ vertical_bounce_changed_cb(void *data, Evas_Object *obj, void *event_info __UNUS
    Eina_Bool bounce = elm_check_state_get(obj);
    en = (Evas_Object*)data;
 
-   elm_entry_bounce_get(en, &hb, NULL);
-   elm_entry_bounce_set(en, hb, bounce);
+   elm_scroller_bounce_get(en, &hb, NULL);
+   elm_scroller_bounce_set(en, hb, bounce);
 }
 
 void
@@ -1957,7 +2029,7 @@ test_entry8(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
 {
    Evas_Object *win, *gd, *rect, *en, *lb;
    Evas_Object *bt, *en2;
-   Evas_Object *ch, *en3, *bx;
+   Evas_Object *ch, *en3;
    Evas_Object *en4;
    static Elm_Entry_Filter_Limit_Size limit_filter_data;
 
@@ -1977,7 +2049,7 @@ test_entry8(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
 
    en = elm_entry_add(win);
    elm_entry_scrollable_set(en, EINA_TRUE);
-   elm_entry_scrollbar_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_object_text_set(en, "Markup Filter Prepend Test");
@@ -1998,7 +2070,7 @@ test_entry8(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
 
    en2 = elm_entry_add(win);
    elm_entry_scrollable_set(en2, EINA_TRUE);
-   elm_entry_scrollbar_policy_set(en2, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en2, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    evas_object_size_hint_weight_set(en2, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(en2, EVAS_HINT_FILL, EVAS_HINT_FILL);
    limit_filter_data.max_char_count = 20;
@@ -2020,21 +2092,14 @@ test_entry8(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    evas_object_smart_callback_add(bt, "clicked", filter_remove_bt_clicked, en);
    evas_object_show(bt);
 
-   bx = elm_box_add(win);
-   evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   elm_win_resize_object_add(win, bx);
-   evas_object_show(bx);
-
    en3 = elm_entry_add(win);
    elm_entry_scrollable_set(en3, EINA_TRUE);
-   elm_entry_scrollbar_policy_set(en3, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+   elm_scroller_policy_set(en3, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
    elm_entry_single_line_set(en3, EINA_TRUE);
    evas_object_size_hint_weight_set(en3, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(en3, EVAS_HINT_FILL, EVAS_HINT_FILL);
-
-   elm_box_pack_end(bx, en3);
    evas_object_show(en3);
-   elm_grid_pack(gd, bx, 5, 35, 90, 20);
+   elm_grid_pack(gd, en3, 5, 35, 90, 20);
 
    bt = elm_icon_add(win);
    elm_icon_standard_set(bt, "home");
@@ -2076,7 +2141,7 @@ test_entry8(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    en4 = elm_entry_add(win);
    elm_object_part_text_set(en4, "guide", "Type in here");
    elm_entry_scrollable_set(en4, EINA_TRUE);
-   elm_entry_bounce_set(en4, EINA_TRUE, EINA_TRUE);
+   elm_scroller_bounce_set(en4, EINA_TRUE, EINA_TRUE);
    elm_entry_autocapital_type_set(en4, EINA_TRUE);
    evas_object_size_hint_weight_set(en4, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(en4, EVAS_HINT_FILL, EVAS_HINT_FILL);

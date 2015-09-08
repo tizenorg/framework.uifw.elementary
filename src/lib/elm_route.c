@@ -1,87 +1,32 @@
 #include <Elementary.h>
 #include "elm_priv.h"
+#include "elm_widget_route.h"
 
-/**
- * @defgroup Route MapRoute
- *
- * For displaying a route on the map widget
- *
- */
+EAPI const char ELM_ROUTE_SMART_NAME[] = "elm_route";
 
-typedef struct _Widget_Data Widget_Data;
-typedef struct Segment Segment;
+EVAS_SMART_SUBCLASS_NEW
+  (ELM_ROUTE_SMART_NAME, _elm_route, Elm_Route_Smart_Class,
+  Elm_Widget_Smart_Class, elm_widget_smart_class_get, NULL);
 
-struct _Widget_Data
+static void
+_clear_route(Evas_Object *obj)
 {
-   Evas_Object *obj;
-#ifdef ELM_EMAP
-   EMap_Route *emap;
-#endif
+   Segment *segment;
 
-   double lon_min, lon_max;
-   double lat_min, lat_max;
-
-   Eina_List *segments; //list of *Segment
-
-   Eina_Bool must_calc_segments :1;
-};
-
-struct Segment
-{
-   Evas_Object *obj;
+   ELM_ROUTE_DATA_GET(obj, sd);
 
 #ifdef ELM_EMAP
-   EMap_Route_Node *node_start;
-   EMap_Route_Node *node_end;
+   sd->lon_min = EMAP_LON_MAX;
+   sd->lon_max = EMAP_LON_MIN;
+   sd->lat_min = EMAP_LAT_MAX;
+   sd->lat_max = EMAP_LAT_MIN;
 #endif
 
-   double start_x, start_y;
-   double end_x, end_y;
-
-   Eina_Bool must_calc :1;
-};
-
-static const char *widtype = NULL;
-static void _del_hook(Evas_Object *obj);
-static void _mirrored_set(Evas_Object *obj, Eina_Bool rtl);
-static void _theme_hook(Evas_Object *obj);
-static void _sizing_eval(Evas_Object *obj);
-static void _clear_route(Evas_Object *obj);
-#ifdef ELM_EMAP
-static void _update_lon_lat_min_max(Evas_Object *obj, double lon, double lat);
-#endif
-
-static void
-_del_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-
-   _clear_route(obj);
-
-   free(wd);
-}
-
-static void
-_resize_cb(void *data __UNUSED__ , Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
-{
-   _sizing_eval(obj);
-}
-
-static void
-_mirrored_set(Evas_Object *obj, Eina_Bool rtl __UNUSED__)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-}
-
-static void
-_theme_hook(Evas_Object *obj)
-{
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   //TODO
-   _sizing_eval(obj);
+   EINA_LIST_FREE (sd->segments, segment)
+     {
+        evas_object_del(segment->obj);
+        free(segment);
+     }
 }
 
 static void
@@ -92,83 +37,151 @@ _sizing_eval(Evas_Object *obj)
    Evas_Coord x, y, w, h;
    Evas_Coord start_x, start_y, end_x, end_y;
 
-   Widget_Data *wd = elm_widget_data_get(obj);
+   ELM_ROUTE_DATA_GET(obj, sd);
+
    evas_object_geometry_get(obj, &x, &y, &w, &h);
 
-   EINA_LIST_FOREACH(wd->segments, l, segment)
+   EINA_LIST_FOREACH(sd->segments, l, segment)
      {
-        if (wd->must_calc_segments || segment->must_calc)
+        if (sd->must_calc_segments || segment->must_calc)
           {
-
 #ifdef ELM_EMAP
-             segment->start_x = (emap_route_node_lon_get(segment->node_start)- wd->lon_min) / (float)(wd->lon_max - wd->lon_min);
-             segment->start_y = 1 - (emap_route_node_lat_get(segment->node_start) - wd->lat_min) / (float)(wd->lat_max - wd->lat_min);
-             segment->end_x = (emap_route_node_lon_get(segment->node_end) - wd->lon_min) / (float)(wd->lon_max - wd->lon_min);
-             segment->end_y = 1 - (emap_route_node_lat_get(segment->node_end) - wd->lat_min) / (float)(wd->lat_max - wd->lat_min);
+             segment->start_x =
+               (emap_route_node_lon_get(segment->node_start) - sd->lon_min)
+               / (float)(sd->lon_max - sd->lon_min);
+             segment->start_y =
+               1 - (emap_route_node_lat_get(segment->node_start)
+                    - sd->lat_min) / (float)(sd->lat_max - sd->lat_min);
+             segment->end_x =
+               (emap_route_node_lon_get(segment->node_end) - sd->lon_min)
+               / (float)(sd->lon_max - sd->lon_min);
+             segment->end_y =
+               1 - (emap_route_node_lat_get(segment->node_end)
+                    - sd->lat_min) / (float)(sd->lat_max - sd->lat_min);
 #endif
              segment->must_calc = EINA_FALSE;
           }
 
-        start_x = x+(int)(segment->start_x*w);
-        start_y = y+(int)(segment->start_y*h);
-        end_x = x+(int)(segment->end_x*w);
-        end_y = y+(int)(segment->end_y*h);
+        start_x = x + (int)(segment->start_x * w);
+        start_y = y + (int)(segment->start_y * h);
+        end_x = x + (int)(segment->end_x * w);
+        end_y = y + (int)(segment->end_y * h);
+
         evas_object_line_xy_set(segment->obj, start_x, start_y, end_x, end_y);
      }
 
-   wd->must_calc_segments = EINA_FALSE;
+   sd->must_calc_segments = EINA_FALSE;
 }
 
 static void
-_clear_route(Evas_Object *obj)
+_move_resize_cb(void *data __UNUSED__,
+                Evas *e __UNUSED__,
+                Evas_Object *obj,
+                void *event_info __UNUSED__)
 {
-   Segment *segment;
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
+   _sizing_eval(obj);
+}
 
-#ifdef ELM_EMAP
-   wd->lon_min = EMAP_LON_MAX;
-   wd->lon_max = EMAP_LON_MIN;
-   wd->lat_min = EMAP_LAT_MAX;
-   wd->lat_max = EMAP_LAT_MIN;
-#endif
+static Eina_Bool
+_elm_route_smart_theme(Evas_Object *obj)
+{
+   if (!_elm_route_parent_sc->theme(obj)) return EINA_FALSE;
 
-   EINA_LIST_FREE(wd->segments, segment)
-     {
-        evas_object_del(segment->obj);
-        free(segment);
-     }
+   //TODO
+
+   _sizing_eval(obj);
+
+   return EINA_TRUE;
 }
 
 #ifdef ELM_EMAP
 static void
-_update_lon_lat_min_max(Evas_Object *obj, double lon, double lat)
+_update_lon_lat_min_max(Evas_Object *obj,
+                        double lon,
+                        double lat)
 {
-   Widget_Data *wd = elm_widget_data_get(obj);
+   ELM_ROUTE_DATA_GET(obj, sd);
 
-   if (wd->lon_min > lon)
+   if (sd->lon_min > lon)
      {
-        wd->lon_min = lon;
-        wd->must_calc_segments = EINA_TRUE;
+        sd->lon_min = lon;
+        sd->must_calc_segments = EINA_TRUE;
      }
-   if (wd->lat_min > lat)
+   if (sd->lat_min > lat)
      {
-        wd->lat_min = lat;
-        wd->must_calc_segments = EINA_TRUE;
+        sd->lat_min = lat;
+        sd->must_calc_segments = EINA_TRUE;
      }
 
-   if (wd->lon_max < lon)
+   if (sd->lon_max < lon)
      {
-        wd->lon_max = lon;
-        wd->must_calc_segments = EINA_TRUE;
+        sd->lon_max = lon;
+        sd->must_calc_segments = EINA_TRUE;
      }
-   if (wd->lat_max < lat)
+   if (sd->lat_max < lat)
      {
-        wd->lat_max = lat;
-        wd->must_calc_segments = EINA_TRUE;
+        sd->lat_max = lat;
+        sd->must_calc_segments = EINA_TRUE;
      }
 }
+
 #endif
+
+static void
+_elm_route_smart_add(Evas_Object *obj)
+{
+   EVAS_SMART_DATA_ALLOC(obj, Elm_Route_Smart_Data);
+
+   _elm_route_parent_sc->base.add(obj);
+
+   elm_widget_can_focus_set(obj, EINA_FALSE);
+
+   evas_object_event_callback_add
+     (obj, EVAS_CALLBACK_MOVE, _move_resize_cb, obj);
+   evas_object_event_callback_add
+     (obj, EVAS_CALLBACK_RESIZE, _move_resize_cb, obj);
+
+#ifdef ELM_EMAP
+   priv->lon_min = EMAP_LON_MAX;
+   priv->lon_max = EMAP_LON_MIN;
+   priv->lat_min = EMAP_LAT_MAX;
+   priv->lat_max = EMAP_LAT_MIN;
+#endif
+
+   _sizing_eval(obj);
+}
+
+static void
+_elm_route_smart_del(Evas_Object *obj)
+{
+   _clear_route(obj);
+
+   ELM_WIDGET_CLASS(_elm_route_parent_sc)->base.del(obj);
+}
+
+static void
+_elm_route_smart_set_user(Elm_Route_Smart_Class *sc)
+{
+   ELM_WIDGET_CLASS(sc)->base.add = _elm_route_smart_add;
+   ELM_WIDGET_CLASS(sc)->base.del = _elm_route_smart_del;
+
+   ELM_WIDGET_CLASS(sc)->theme = _elm_route_smart_theme;
+}
+
+EAPI const Elm_Route_Smart_Class *
+elm_route_smart_class_get(void)
+{
+   static Elm_Route_Smart_Class _sc =
+     ELM_ROUTE_SMART_CLASS_INIT_NAME_VERSION(ELM_ROUTE_SMART_NAME);
+   static const Elm_Route_Smart_Class *class = NULL;
+
+   if (class) return class;
+
+   _elm_route_smart_set(&_sc);
+   class = &_sc;
+
+   return class;
+}
 
 /**
  * Add a new route to the parent
@@ -182,33 +195,19 @@ EAPI Evas_Object *
 elm_route_add(Evas_Object *parent)
 {
    Evas_Object *obj;
-   Evas *e;
-   Widget_Data *wd;
 
-   ELM_WIDGET_STANDARD_SETUP(wd, Widget_Data, parent, e, obj, NULL);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
 
-   ELM_SET_WIDTYPE(widtype, "map_route");
-   elm_widget_type_set(obj, "map_route");
-   elm_widget_sub_object_add(parent, obj);
-   elm_widget_data_set(obj, wd);
-   elm_widget_del_hook_set(obj, _del_hook);
-   elm_widget_theme_hook_set(obj, _theme_hook);
-   elm_widget_can_focus_set(obj, EINA_FALSE);
+   obj = elm_widget_add(_elm_route_smart_class_new(), parent);
+   if (!obj) return NULL;
 
-   evas_object_event_callback_add(obj, EVAS_CALLBACK_MOVE,
-                                  _resize_cb, obj);
-   evas_object_event_callback_add(obj, EVAS_CALLBACK_RESIZE,
-                                  _resize_cb, obj);
+   if (!elm_widget_sub_object_add(parent, obj))
+     ERR("could not add %p as sub object of %p", obj, parent);
 
-#ifdef ELM_EMAP
-   wd->lon_min = EMAP_LON_MAX;
-   wd->lon_max = EMAP_LON_MIN;
-   wd->lat_min = EMAP_LAT_MAX;
-   wd->lat_max = EMAP_LAT_MIN;
-#endif
+   //Tizen Only: This should be removed when eo is applied.
+   ELM_WIDGET_DATA_GET(obj, sd);
+   sd->on_create = EINA_FALSE;
 
-   _mirrored_set(obj, elm_widget_mirrored_get(obj));
-   _sizing_eval(obj);
    return obj;
 }
 
@@ -219,30 +218,29 @@ elm_route_add(Evas_Object *parent)
  * @param obj The photo object
  * @param emap the route
  *
- * @return (1 = success, 0 = error)
- *
  * @ingroup Route
  */
 EAPI void
-elm_route_emap_set(Evas_Object *obj, EMap_Route *emap)
+elm_route_emap_set(Evas_Object *obj,
+                   EMap_Route *emap)
 {
    EMap_Route_Node *node, *node_prev = NULL;
    Evas_Object *o;
    Eina_List *l;
 
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
+   ELM_ROUTE_CHECK(obj);
+   ELM_ROUTE_DATA_GET(obj, sd);
 
-   if (!wd) return;
-   wd->emap = emap;
+   sd->emap = emap;
 
    _clear_route(obj);
 
-   EINA_LIST_FOREACH(emap_route_nodes_get(wd->emap), l, node)
+   EINA_LIST_FOREACH(emap_route_nodes_get(sd->emap), l, node)
      {
         if (node_prev)
           {
              Segment *segment = calloc(1, sizeof(Segment));
+
              segment->node_start = node_prev;
              segment->node_end = node;
 
@@ -252,35 +250,44 @@ elm_route_emap_set(Evas_Object *obj, EMap_Route *emap)
 
              segment->must_calc = EINA_TRUE;
 
-             _update_lon_lat_min_max(obj, emap_route_node_lon_get(node_prev), emap_route_node_lat_get(node_prev));
-             _update_lon_lat_min_max(obj, emap_route_node_lon_get(node), emap_route_node_lat_get(node));
+             _update_lon_lat_min_max
+               (obj, emap_route_node_lon_get(node_prev),
+               emap_route_node_lat_get(node_prev));
+             _update_lon_lat_min_max
+               (obj, emap_route_node_lon_get(node),
+               emap_route_node_lat_get(node));
 
-             wd->segments = eina_list_append(wd->segments, segment);
+             sd->segments = eina_list_append(sd->segments, segment);
           }
+
         node_prev = node;
      }
 
    _sizing_eval(obj);
 }
+
 #endif
 
 EAPI void
-elm_route_longitude_min_max_get(const Evas_Object *obj, double *min, double *max)
+elm_route_longitude_min_max_get(const Evas_Object *obj,
+                                double *min,
+                                double *max)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (min) *min = wd->lon_min;
-   if (max) *max = wd->lon_max;
+   ELM_ROUTE_CHECK(obj);
+   ELM_ROUTE_DATA_GET(obj, sd);
+
+   if (min) *min = sd->lon_min;
+   if (max) *max = sd->lon_max;
 }
 
 EAPI void
-elm_route_latitude_min_max_get(const Evas_Object *obj, double *min, double *max)
+elm_route_latitude_min_max_get(const Evas_Object *obj,
+                               double *min,
+                               double *max)
 {
-   ELM_CHECK_WIDTYPE(obj, widtype);
-   Widget_Data *wd = elm_widget_data_get(obj);
-   if (!wd) return;
-   if (min) *min = wd->lat_min;
-   if (max) *max = wd->lat_max;
+   ELM_ROUTE_CHECK(obj);
+   ELM_ROUTE_DATA_GET(obj, sd);
+
+   if (min) *min = sd->lat_min;
+   if (max) *max = sd->lat_max;
 }
-/* vim:set ts=8 sw=3 sts=3 expandtab cino=>5n-3f0^-2{2(0W1st0 :*/

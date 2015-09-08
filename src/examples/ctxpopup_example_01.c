@@ -13,7 +13,7 @@ Elm_Object_Item *item_new(Evas_Object *ctxpopup, const char * label, const char 
 {
    Evas_Object *ic = elm_icon_add(ctxpopup);
    elm_icon_standard_set(ic, icon);
-   elm_icon_resizable_set(ic, EINA_FALSE, EINA_FALSE);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    return elm_ctxpopup_item_append(ctxpopup, label, ic, _ctxpopup_item_cb, NULL);
 }
 
@@ -36,7 +36,6 @@ _list_item_cb(void *data, Evas_Object *obj, void *event_info)
    elm_object_item_disabled_set(it, EINA_TRUE);
 
    evas_pointer_canvas_xy_get(evas_object_evas_get(obj), &x, &y);
-   evas_object_size_hint_max_set(ctxpopup, 240, 240);
    evas_object_move(ctxpopup, x, y);
    evas_object_show(ctxpopup);
 
@@ -62,7 +61,6 @@ _list_item_cb2(void *data, Evas_Object *obj, void *event_info)
    item_new(ctxpopup, NULL, "clock");
 
    evas_pointer_canvas_xy_get(evas_object_evas_get(obj), &x, &y);
-   evas_object_size_hint_max_set(ctxpopup, 380, 40);
    evas_object_move(ctxpopup, x, y);
    evas_object_show(ctxpopup);
 

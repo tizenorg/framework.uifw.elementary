@@ -355,6 +355,20 @@ group { name: "elm/spinner/base/default";
             visible: 1;
          }
       }
+      part { name: "access_text";
+         type: RECT;
+         repeat_events: 1;
+         description { state: "default" 0.0;
+            color: 0 0 0 0;
+            rel1.to: "elm.text";
+            rel2.to: "elm.text";
+         }
+         description { state: "disabled" 0.0;
+            color: 0 0 0 0;
+            rel1.to: "disabler";
+            rel2.to: "disabler";
+         }
+      }
    }
    programs {
       program { name: "text_show";
@@ -370,7 +384,7 @@ group { name: "elm/spinner/base/default";
          target: "elm.text";
       }
       program { name: "dec";
-         signal: "mouse,down,1";
+         signal: "mouse,down,1*";
          source: "left_bt";
          action: SIGNAL_EMIT "elm,action,decrement,start" "";
       }
@@ -380,7 +394,7 @@ group { name: "elm/spinner/base/default";
          action: SIGNAL_EMIT "elm,action,decrement,stop" "";
       }
       program { name: "inc";
-         signal: "mouse,down,1";
+         signal: "mouse,down,1*";
          source: "right_bt";
          action: SIGNAL_EMIT "elm,action,increment,start" "";
       }
@@ -391,7 +405,7 @@ group { name: "elm/spinner/base/default";
       }
       program {
          name:   "left_bt_click";
-         signal: "mouse,down,1";
+         signal: "mouse,down,1*";
          source: "left_over2";
          action: STATE_SET "clicked" 0.0;
          target: "left_bt";
@@ -405,7 +419,7 @@ group { name: "elm/spinner/base/default";
       }
       program {
          name:   "left_bt_click2";
-         signal: "mouse,down,1";
+         signal: "mouse,down,1*";
          source: "left_over3";
          action: STATE_SET "clicked" 0.0;
          target: "left_over3";
@@ -443,7 +457,7 @@ group { name: "elm/spinner/base/default";
 
       program {
          name:   "right_bt_click";
-         signal: "mouse,down,1";
+         signal: "mouse,down,1*";
          source: "right_over2";
          action: STATE_SET "clicked" 0.0;
          target: "right_bt";
@@ -457,7 +471,7 @@ group { name: "elm/spinner/base/default";
       }
       program {
          name:   "right_bt_click2";
-         signal: "mouse,down,1";
+         signal: "mouse,down,1*";
          source: "right_over3";
          action: STATE_SET "clicked" 0.0;
          target: "right_over3";
@@ -504,6 +518,7 @@ group { name: "elm/spinner/base/default";
          target: "right_over1";
          target: "right_over2";
          target: "disabler";
+         target: "access_text";
          after: "disable_text";
       }
       program { name: "disable_text";
@@ -534,6 +549,7 @@ group { name: "elm/spinner/base/default";
          target: "right_over1";
          target: "right_over2";
          target: "disabler";
+         target: "access_text";
          after: "enable_text";
       }
       program { name: "enable_text";
@@ -847,6 +863,7 @@ group { name: "elm/spinner/base/vertical";
          description { state: "default" 0.0;
             rel1.to: "elm.text";
             rel2.to: "elm.text";
+            fixed: 1 1;
             color: 0 0 0 0;
          }
       }
@@ -857,11 +874,11 @@ group { name: "elm/spinner/base/vertical";
             align: 0.5 0.5;
             rel1 { relative: 0.0 0.5;
                offset: 3 2;
-               to: "bg";
+               to: "elm.text";
             }
             rel2 { relative: 1.0 0.5;
                offset: -3 -2;
-               to: "bg";
+               to: "elm.text";
             }
             fixed: 1 1;
             color: 0 0 0 0;
@@ -891,6 +908,20 @@ group { name: "elm/spinner/base/vertical";
             visible: 1;
          }
       }
+      part { name: "access_text";
+         type: RECT;
+         repeat_events: 1;
+         description { state: "default" 0.0;
+            color: 0 0 0 0;
+            rel1.to: "elm.text";
+            rel2.to: "elm.text";
+         }
+         description { state: "disabled" 0.0;
+            color: 0 0 0 0;
+            rel1.to: "disabler";
+            rel2.to: "disabler";
+         }
+      }
    }
    programs {
       program { name: "text_show";
@@ -906,7 +937,7 @@ group { name: "elm/spinner/base/vertical";
          target: "elm.text";
       }
       program { name: "dec";
-         signal: "mouse,down,1";
+         signal: "mouse,down,1*";
          source: "down_bt";
          action: SIGNAL_EMIT "elm,action,decrement,start" "";
       }
@@ -916,7 +947,7 @@ group { name: "elm/spinner/base/vertical";
          action: SIGNAL_EMIT "elm,action,decrement,stop" "";
       }
       program { name: "inc";
-         signal: "mouse,down,1";
+         signal: "mouse,down,1*";
          source: "up_bt";
          action: SIGNAL_EMIT "elm,action,increment,start" "";
       }
@@ -927,7 +958,7 @@ group { name: "elm/spinner/base/vertical";
       }
       program {
          name:   "down_bt_click2";
-         signal: "mouse,down,1";
+         signal: "mouse,down,1*";
          source: "down_over3";
          action: STATE_SET "clicked" 0.0;
          target: "down_over3";
@@ -942,7 +973,7 @@ group { name: "elm/spinner/base/vertical";
       }
       program {
          name:   "up_bt_click2";
-         signal: "mouse,down,1";
+         signal: "mouse,down,1*";
          source: "up_over3";
          action: STATE_SET "clicked" 0.0;
          target: "up_over3";
@@ -962,6 +993,7 @@ group { name: "elm/spinner/base/vertical";
          target: "down_bt";
          target: "up_bt";
          target: "disabler";
+         target: "access_text";
          after: "disable_text";
       }
       program { name: "disable_text";
@@ -988,6 +1020,7 @@ group { name: "elm/spinner/base/vertical";
          target: "down_bt";
          target: "up_bt";
          target: "disabler";
+         target: "access_text";
          after: "enable_text";
       }
       program { name: "enable_text";

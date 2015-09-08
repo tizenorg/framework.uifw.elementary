@@ -16,6 +16,7 @@ AM_CPPFLAGS = \
 -DPACKAGE_LIB_DIR=\"$(libdir)\" \
 @ELEMENTARY_EDBUS_CFLAGS@ \
 @ELEMENTARY_EFREET_CFLAGS@ \
+@ELEMENTARY_EWEATHER_CFLAGS@ \
 @ELEMENTARY_ETHUMB_CFLAGS@ \
 @ELEMENTARY_EMAP_CFLAGS@ \
 @ELEMENTARY_X_CFLAGS@ \
@@ -24,6 +25,7 @@ AM_CPPFLAGS = \
 LDADD = \
 @ELEMENTARY_LIBS@ \
 @ELEMENTARY_ETHUMB_LIBS@ \
+@ELEMENTARY_EMAP_LIBS@ \
 @ELEMENTARY_X_LIBS@ \
 $(top_builddir)/src/lib/libelementary.la
 
@@ -32,6 +34,9 @@ EDJE_FLAGS_VERBOSE_ =
 EDJE_FLAGS_VERBOSE_0 =
 EDJE_FLAGS_VERBOSE_1 = -v
 EDJE_FLAGS = $(EDJE_FLAGS_$(V))
+
+ELEMENTARY_CODEGEN = $(top_builddir)/src/bin/@ELEMENTARY_CODEGEN_PRG@
+ELEMENTARY_CODEGEN_FLAGS = --prefix=codegen_example
 
 SRCS = \
 actionslider_example_01.c \
@@ -50,6 +55,7 @@ calendar_example_05.c \
 calendar_example_06.c \
 check_example_01.c \
 clock_example.c \
+codegen_example.edc \
 colorselector_example_01.c \
 conformant_example_01.c \
 conformant_example_02.c \
@@ -82,6 +88,7 @@ genlist_example_02.c \
 genlist_example_03.c \
 genlist_example_04.c \
 genlist_example_05.c \
+glview_example_01.c \
 hover_example_01.c \
 hoversel_example_01.c \
 icon_example_01.c \
@@ -130,7 +137,8 @@ transit_example_01.c \
 transit_example_02.c \
 transit_example_03.c \
 transit_example_04.c \
-web_example.c \
+web_example_01.c \
+web_example_02.c \
 win_example.c
 
 .edc.edj:
@@ -144,10 +152,23 @@ endif
 if EFL_BUILD_EXAMPLES
 files_DATA += \
 	theme_example.edj \
-	layout_example.edj
+	layout_example.edj\
+	codegen_example.edj
 
 clean-local:
 	rm -f *.edj
+
+codegen_example_generated.c codegen_example_generated.h: codegen_example.edj
+	$(ELEMENTARY_CODEGEN) $(ELEMENTARY_CODEGEN_FLAGS) codegen_example.edj \
+	elm/example/mylayout/default codegen_example_generated.c codegen_example_generated.h
+
+BUILT_SOURCES = codegen_example_generated.c codegen_example_generated.h
+
+codegen_example_SOURCES = \
+	codegen_example.c
+nodist_codegen_example_SOURCES = \
+codegen_example_generated.c \
+codegen_example_generated.h
 
 examples_PROGRAMS = \
 actionslider_example_01 \
@@ -166,6 +187,7 @@ calendar_example_05 \
 calendar_example_06 \
 check_example_01 \
 clock_example \
+codegen_example \
 colorselector_example_01 \
 conformant_example_01 \
 conformant_example_02 \
@@ -194,6 +216,7 @@ genlist_example_02 \
 genlist_example_03 \
 genlist_example_04 \
 genlist_example_05 \
+glview_example_01 \
 hover_example_01 \
 hoversel_example_01 \
 icon_example_01 \
@@ -240,7 +263,8 @@ transit_example_01 \
 transit_example_02 \
 transit_example_03 \
 transit_example_04 \
-web_example \
+web_example_01 \
+web_example_02 \
 win_example
 
 if ELEMENTARY_WINDOWS_BUILD
@@ -321,6 +345,7 @@ genlist_example_02:genlist_example_02.png:0.1 \
 genlist_example_03:genlist_example_03.png:0.1 \
 genlist_example_04:genlist_example_04.png:0.1 \
 genlist_example_05:genlist_example_05.png:0.1 \
+glview_example_01:glview_example_01.png:0.0 \
 thumb_example_01:thumb_example_01.png:0.5 \
 entry_example:entry_example.png:0.0 \
 progressbar_example:progressbar_example.png:0.0 \
@@ -359,3 +384,5 @@ screenshots:
 	@echo "Examples are not built. Run \"./configure --enable-build-examples\" first."
 
 endif
+
+EXTRA_DIST = dict.txt layout_example.edc theme_example.edc codegen_example.edc
