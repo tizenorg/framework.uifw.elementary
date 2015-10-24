@@ -1,16 +1,14 @@
 /**
  * @defgroup Transit Transit
  * @ingroup elm_infra_group
- * @brief This group provides functions to handle the effects of transition
- *        of Elementary widgets.
  *
  * Transit is designed to apply various animated transition effects to @c
- * Evas_Object, such as translation, rotation, etc. For using these
- * effects, create @ref Elm_Transit and add the desired transition effects.
+ * Evas_Object, such like translation, rotation, etc. For using these
+ * effects, create an @ref Elm_Transit and add the desired transition effects.
  *
- * Once the effects are added into transit, they are automatically
- * managed (their callback is called for the set duration and
- * they are deleted upon completion).
+ * Once the effects are added into transit, they will be automatically
+ * managed (their callback will be called for the set duration and
+ * they will be deleted upon completion).
  *
  * Example:
  * @code
@@ -43,7 +41,7 @@
  * It's also possible to make a transition chain with @ref
  * elm_transit_chain_transit_add.
  *
- * @remarks We strongly recommend to use elm_transit just when edje cannot do
+ * @warning We strongly recommend to use elm_transit just when edje can not do
  * the trick. Edje is better at handling transitions than Elm_Transit.
  * Edje has more flexibility and animations can be manipulated inside the theme.
  *
@@ -53,31 +51,27 @@
 /**
  * @enum Elm_Transit_Tween_Mode
  *
- * @brief Enumeration of acceleration used in the transition.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * The type of acceleration used in the transition.
  */
 typedef enum
 {
    ELM_TRANSIT_TWEEN_MODE_LINEAR, /**< Constant speed */
-   ELM_TRANSIT_TWEEN_MODE_SINUSOIDAL, /**< Starts slow, increases speed
-                                         over time, then decreases again
-                                         and stops slowly, v1 being a power factor */
-   ELM_TRANSIT_TWEEN_MODE_DECELERATE, /**< Starts fast and decreases
+   ELM_TRANSIT_TWEEN_MODE_SINUSOIDAL, /**< Starts slow, increase speed
+                                         over time, then decrease again
+                                         and stop slowly, v1 being a power factor */
+   ELM_TRANSIT_TWEEN_MODE_DECELERATE, /**< Starts fast and decrease
                                          speed over time, v1 being a power factor */
-   ELM_TRANSIT_TWEEN_MODE_ACCELERATE, /**< Starts slow and increases speed
+   ELM_TRANSIT_TWEEN_MODE_ACCELERATE, /**< Starts slow and increase speed
                                          over time, v1 being a power factor */
-   ELM_TRANSIT_TWEEN_MODE_DIVISOR_INTERP, /**< Starts at gradient v1,
-                                             interpolated via power of the v2 curve */
-   ELM_TRANSIT_TWEEN_MODE_BOUNCE, /**< Starts at @c 0.0 then a "drop" like a ball
-                                     bouncing to the ground at @c 1.0, and
+   ELM_TRANSIT_TWEEN_MODE_DIVISOR_INTERP, /**< Start at gradient v1,
+                                             interpolated via power of v2 curve */
+   ELM_TRANSIT_TWEEN_MODE_BOUNCE, /**< Start at 0.0 then "drop" like a ball
+                                     bouncing to the ground at 1.0, and
                                      bounce v2 times, with decay factor of v1 */
-   ELM_TRANSIT_TWEEN_MODE_SPRING, /**< Starts at @c 0.0 then a "wobble" like a spring
-                                     at rest position @c 1.0, and wobble v2 times,
+   ELM_TRANSIT_TWEEN_MODE_SPRING, /**< Start at 0.0 then "wobble" like a spring
+                                     rest position 1.0, and wobble v2 times,
                                      with decay factor of v1 */
-   ELM_TRANSIT_TWEEN_MODE_BEZIER_CURVE /**< @since_tizen 2.3.1
+   ELM_TRANSIT_TWEEN_MODE_BEZIER_CURVE /**< @since 1.13
                                           Follow the cubic-bezier curve
                                           calculated with the control points
                                           (x1, y1), (x2, y2) */
@@ -86,11 +80,7 @@ typedef enum
 /**
  * @enum Elm_Transit_Effect_Flip_Axis
  *
- * @brief Enumeration of the axis along which flip effect should be applied.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * The axis along which flip effect should be applied.
  */
 typedef enum
 {
@@ -101,11 +91,7 @@ typedef enum
 /**
  * @enum Elm_Transit_Effect_Wipe_Dir
  *
- * @brief Enumeration of the direction in which the wipe effect should occur.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * The direction in which the wipe effect should occur.
  */
 typedef enum
 {
@@ -117,11 +103,7 @@ typedef enum
 
 /** @enum Elm_Transit_Effect_Wipe_Type
  *
- * @brief Enumeration that indicates whether the wipe effect should show or hide the object.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * Whether the wipe effect should show or hide the object.
  */
 typedef enum
 {
@@ -134,14 +116,10 @@ typedef enum
 /**
  * @typedef Elm_Transit
  *
- * @brief The Transit structure type created with elm_transit_add(). This type has the information
- *        about the objects to which the transition is applied, and the
- *        transition effects that are used. It also contains info about
- *        duration, number of repetitions, auto-reverse, etc.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * The Transit created with elm_transit_add(). This type has the information
+ * about the objects which the transition will be applied, and the
+ * transition effects that will be used. It also contains info about
+ * duration, number of repetitions, auto-reverse, etc.
  */
 typedef struct _Elm_Transit Elm_Transit;
 typedef void                Elm_Transit_Effect;
@@ -149,84 +127,76 @@ typedef void                Elm_Transit_Effect;
 /**
  * @typedef Elm_Transit_Effect_Transition_Cb
  *
- * @brief Called for this effect on each transition iteration.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * Transition callback called for this effect on each transition iteration.
  */
 typedef void (*Elm_Transit_Effect_Transition_Cb)(Elm_Transit_Effect *effect, Elm_Transit *transit, double progress);
 
 /**
  * Elm_Transit_Effect_End_Cb
  *
- * @brief Called for this effect when the transition is over.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * Transition callback called for this effect when the transition is over.
  */
 typedef void (*Elm_Transit_Effect_End_Cb)(Elm_Transit_Effect *effect, Elm_Transit *transit);
 
 /**
  * Elm_Transit_Del_Cb
  *
- * @brief Called when the transit is deleted.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * A callback called when the transit is deleted.
  */
 typedef void (*Elm_Transit_Del_Cb)(void *data, Elm_Transit *transit);
 
 /**
- * @brief Creates a new transit.
+ * @brief Create new transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks It is not necessary to delete the transit object, it is deleted at
- *          the end of its operation.
- * @remarks The transit starts playing when the program enters the main loop.
+ * @remark It is not necessary to delete the transit object, it will be deleted at
+ * the end of its operation.
+ * @remark The transit will start playing when the program enters the main loop.
  *
- * @return The transit object
+ * @return The transit object.
+ *
+ * @ingroup Transit
  */
 EAPI Elm_Transit           *elm_transit_add(void);
 
 /**
- * @brief Stops the animation and deletes the @a transit object.
+ * @brief Stops the animation and delete the @p transit object.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks Call this function if you want to stop the animation before the
- *          transit time. Make sure the @a transit object is still alive using the
- *          elm_transit_del_cb_set() function.
- *          All added effects are deleted, calling its respective data_free_cb
- *          functions. The function set by elm_transit_del_cb_set() is called.
- *
- * @param[in] transit The transit object to be deleted
+ * @remark Call this function if you want to stop the animation before the
+ * transit time. Make sure the @p transit object is still alive with
+ * elm_transit_del_cb_set() function.
+ * All added effects will be deleted, calling its respective data_free_cb
+ * functions. The function set by elm_transit_del_cb_set() will be called.
  *
  * @see elm_transit_del_cb_set()
+ *
+ * @param[in] transit The transit object to be deleted.
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_del(Elm_Transit *transit);
 
 /**
- * @brief Adds a new effect to the transit.
+ * @brief Add a new effect to the transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks The @a cb function and @a data are the key to the effect.
- *          If you try to add an existing effect, nothing is done.
- * @remarks After the first addition of an effect to @a transit, if its
- *          effect list become empty again, the @a transit is killed by the
- *          elm_transit_del(transit) function.
+ * @remark The cb function and the data are the key to the effect.
+ * If you try to add an existing effect, nothing is done.
+ * @remark After the first addition of an effect to @p transit, if its
+ * effect list become empty again, the @p transit will be killed by
+ * elm_transit_del(transit) function.
  *
- * Example:
+ * @remark Example:
  * @code
  * Elm_Transit *transit = elm_transit_add();
  * elm_transit_effect_add(transit,
@@ -235,66 +205,70 @@ EAPI void                   elm_transit_del(Elm_Transit *transit);
  *                        elm_transit_effect_blend_context_free);
  * @endcode
  *
- * @remarks The transit frees the context data at the end of the
- *          transition with the @a data_free_cb function.
- * @remarks Do not share the context data in between different transit objects.
+ * @param[in] transit The transit object.
+ * @param[in] transition_cb The operation function. It is called when the
+ * animation begins, it is the function that actually performs the animation.
+ * It is called with the @p data, @p transit and the time progression of the
+ * animation (a double value between 0.0 and 1.0).
+ * @param[in] effect The context data of the effect.
+ * @param[in] end_cb The function to free the context data, it will be called
+ * at the end of the effect, it must finalize the animation and free the
+ * @p data.
  *
- * @param[in] transit The transit object
- * @param[in] transition_cb The operation function \n
- *        It is called when the
- *        animation begins, it is the function that actually performs the animation \n
- *        It is called with the @a data, @a transit and the time progression of the
- *        animation (a double value between @c 0.0 and @c 1.0).
- * @param[in] effect The context data of the effect
- * @param[in] end_cb The function to free the context data, it is called
- *        at the end of the effect, it must finalize the animation and free the
- *        @a data.
+ * @ingroup Transit
+ * @warning The transit will free the context data at the and of the
+ * transition with the data_free_cb function.
+ * Do not share the context data in between different transit objects.
  */
 EAPI void                   elm_transit_effect_add(Elm_Transit *transit, Elm_Transit_Effect_Transition_Cb transition_cb, Elm_Transit_Effect *effect, Elm_Transit_Effect_End_Cb end_cb);
 
 /**
- * @brief Deletes an added effect.
- *
- * @details This function removes the effect from the @a transit, calling the
- *          @a data_free_cb to free the @a data.
+ * @brief Delete an added effect.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks If the effect is not found, nothing is done.
- * @remarks If the effect list becomes empty, this function calls
- *          elm_transit_del(transit), i.e., it kills the @a transit.
- *
- * @param[in] transit The transit object
- * @param[in] transition_cb The operation function
- * @param[in] effect The context data of the effect
+ * @remark This function will remove the effect from the @p transit, calling the
+ * data_free_cb to free the @p data.
  *
  * @see elm_transit_effect_add()
+ *
+ * @remark If the effect is not found, nothing is done.
+ * @remark If the effect list become empty, this function will call
+ * elm_transit_del(transit), i.e., it will kill the @p transit.
+ *
+ * @param[in] transit The transit object.
+ * @param[in] transition_cb The operation function.
+ * @param[in] effect The context data of the effect.
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_effect_del(Elm_Transit *transit, Elm_Transit_Effect_Transition_Cb transition_cb, Elm_Transit_Effect *effect);
 
 /**
- * @brief Adds a new object to apply the effects.
+ * @brief Add new object to apply the effects.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks After the first addition of an object to @a transit, if its
- *          object list becomes empty again, the @a transit is killed by the
- *          elm_transit_del(transit) function.
- * @remarks If the @a obj belongs to another transit, the @a obj is
- *          removed from it and it only belongs to the other @a transit.
- *          If the old transit stays without objects, it dies.
- * @remarks When you add an object into @a transit, its state from
- *          evas_object_pass_events_get(obj) is saved, and it is applied when the
- *          transit ends, if you change this state using evas_object_pass_events_set()
- *          after adding the object, this state changes again when @a transit stops.
- * @remarks It is not allowed to add a new object after transit begins.
+ * @remark After the first addition of an object to @p transit, if its
+ * object list become empty again, the @p transit will be killed by
+ * elm_transit_del(transit) function.
+ * @remark If the @p obj belongs to another transit, the @p obj will be
+ * removed from it and it will only belong to the other @p transit.
+ * If the old transit stays without objects, it will die.
+ * @remark When you add an object into the @p transit, its state from
+ * evas_object_pass_events_get(obj) is saved, and it is applied when the
+ * transit ends, if you change this state with evas_object_pass_events_set()
+ * after add the object, this state will change again when @p transit stops.
  *
- * @param[in] transit The transit object
- * @param[in] obj The object to be animated
+ * @param[in] transit The transit object.
+ * @param[in] obj Object to be animated.
+ *
+ * @ingroup Transit
+ * @warning It is not allowed to add a new object after transit begins.
  */
 EAPI void                   elm_transit_object_add(Elm_Transit *transit, Evas_Object *obj);
 
@@ -305,295 +279,314 @@ EAPI void                   elm_transit_object_add(Elm_Transit *transit, Evas_Ob
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks If the @a obj is not in the @a transit, nothing is done.
- * @remarks If the list becomes empty, this function calls
- *          elm_transit_del(transit), i.e., it kills the @a transit.
- * @remarks It is not allowed to remove objects after transit begins.
+ * @remark If the @p obj is not in the @p transit, nothing is done.
+ * @remark If the list become empty, this function will call
+ * elm_transit_del(transit), i.e., it will kill the @p transit.
  *
- * @param[in] transit The transit object
- * @param[in] obj The object to be removed from @a transit
+ * @param[in] transit The transit object.
+ * @param[in] obj Object to be removed from @p transit.
+ *
+ * @ingroup Transit
+ * @warning It is not allowed to remove objects after transit begins.
  */
 EAPI void                   elm_transit_object_remove(Elm_Transit *transit, Evas_Object *obj);
 
 /**
- * @brief Gets the objects of the transit.
+ * @brief Get the objects of the transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @param[in] transit The transit object
- * @return a The Eina_List with the objects from the transit
+ * @param[in] transit The transit object.
+ * @return a Eina_List with the objects from the transit.
+ *
+ * @ingroup Transit
  */
 EAPI const Eina_List       *elm_transit_objects_get(const Elm_Transit *transit);
 
 /**
- * @brief Enables or disables keeping up the object's states.
- *        If it is not kept, the object's states are reset when transition ends.
+ * @brief Enable/disable keeping up the objects states.
+ * If it is not kept, the objects states will be reset when transition ends.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks @a transit cannot be @c NULL.
- * @remarks One state includes geometry, color, and map data.
+ * @remark @p transit can not be NULL.
+ * @remark One state includes geometry, color, map data.
  *
- * @param[in] transit The transit object
- * @param[in] state_keep The boolean value that indicates whether to retain the state
+ * @param[in] transit The transit object.
+ * @param[in] state_keep retain the state or not.
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_objects_final_state_keep_set(Elm_Transit *transit, Eina_Bool state_keep);
 
 /**
- * @brief Gets a value that indicates whether the object's states are reset.
+ * @brief Get a value whether the objects states will be reset or not.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks @a transit cannot be @c NULL
- *
- * @param[in] transit The transit object
- * @return @c EINA_TRUE indicates that the states of the objects are reset \n
- *         If @a transit is @c NULL, @c EINA_FALSE is returned
+ * @remark @p transit can not be NULL
  *
  * @see elm_transit_objects_final_state_keep_set()
+ *
+ * @param[in] transit The transit object.
+ * @return @c EINA_TRUE means the states of the objects will be reset.
+ * @remark If @p transit is NULL, @c EINA_FALSE is returned
+ *
+ * @ingroup Transit
  */
 EAPI Eina_Bool              elm_transit_objects_final_state_keep_get(const Elm_Transit *transit);
 
 /**
- * @brief Sets the events that are enabled when transit is operating.
+ * @brief Set the event enabled when transit is operating.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks If @a enabled is @c EINA_TRUE, the objects of the transit receive
- *          events from a mouse and keyboard during the animation.
- * @remarks When you add an object with elm_transit_object_add(), its state from
- *          evas_object_freeze_events_get(obj) is saved, and it is applied when the
- *          transit ends. If you change this state using evas_object_freeze_events_set()
- *          after adding the object, this state changes again when @a transit stops
- *          to run.
+ * @remark If @p enabled is @c EINA_TRUE, the objects of the transit will receive
+ * events from mouse and keyboard during the animation.
+ * @remark When you add an object with elm_transit_object_add(), its state from
+ * evas_object_freeze_events_get(obj) is saved, and it is applied when the
+ * transit ends. If you change this state with evas_object_freeze_events_set()
+ * after adding the object, this state will change again when @p transit stops
+ * to run.
  *
- * @param[in] transit The transit object
- * @param[in] enabled Events are received when enabled is @c EINA_TRUE,
- *                otherwise it is ignored
+ * @param[in] transit The transit object.
+ * @param[in] enabled Events are received when enabled is @c EINA_TRUE, and
+ * ignored otherwise.
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_event_enabled_set(Elm_Transit *transit, Eina_Bool enabled);
 
 /**
- * @brief Gets the value of the event enabled status.
+ * @brief Get the value of event enabled status.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @param[in] transit The transit object
- * @return @c EINA_TRUE if the event is enabled,
- *         otherwise @c EINA_FALSE is returned if @a transit is @c NULL
- *
  * @see elm_transit_event_enabled_set()
+ *
+ * @param[in] transit The Transit object
+ * @return @c EINA_TRUE, when event is enabled. If @p transit is NULL
+ * @c EINA_FALSE is returned
+ *
+ * @ingroup Transit
  */
 EAPI Eina_Bool              elm_transit_event_enabled_get(const Elm_Transit *transit);
 
 /**
- * @brief Sets the user-callback function when the transit is deleted.
+ * @brief Set the user-callback function when the transit is deleted.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks Using this function twice overwrites the first function set.
- * @remarks The @a transit object is deleted after calling the @a cb function.
+ * @remark Using this function twice will overwrite the first function set.
+ * @remark the @p transit object will be deleted after call @p cb function.
  *
- * @param[in] transit The transit object
- * @param[in] cb The callback function pointer \n
- *           This function is called before the deletion of the transit.
- * @param[in] data The callback function for user data \n
- *             It is the @a op parameter.
+ * @param[in] transit The transit object.
+ * @param[in] cb Callback function pointer. This function will be called before
+ * the deletion of the transit.
+ * @param[in] data Callback function user data. It is the @p op parameter.
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_del_cb_set(Elm_Transit *transit, Elm_Transit_Del_Cb cb, void *data);
 
 /**
- * @brief Sets the reverse effect automatically.
+ * @brief Set reverse effect automatically.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks If auto reverse is set, after running the effects with the progress
- *          parameter from @c 0 to @c 1, it calls the effects again with the progress
- *          from @c 1 to @c 0. The transit lasts for a time equal to (2 * duration * repeat),
- *          where the duration is set using the function elm_transit_add and
- *          the repeat using the function elm_transit_repeat_times_set().
+ * @remark If auto reverse is set, after running the effects with the progress
+ * parameter from 0 to 1, it will call the effects again with the progress
+ * from 1 to 0. The transit will last for a time equal to (2 * duration * repeat),
+ * where the duration was set with the function elm_transit_add and
+ * the repeat with the function elm_transit_repeat_times_set().
  *
- * @param[in] transit The transit object
- * @param[in] reverse If @c EINA_TRUE the auto_reverse is on, otherwise @c EINA_FALSE
+ * @param[in] transit The transit object.
+ * @param[in] reverse @c EINA_TRUE means the auto_reverse is on.
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_auto_reverse_set(Elm_Transit *transit, Eina_Bool reverse);
 
 /**
- * @brief Gets whether the auto reverse is on.
+ * @brief Get if the auto reverse is on.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @param[in] transit The transit object
- * @return @c EINA_TRUE if the auto reverse is on,
- *         otherwise @c EINA_FALSE is returned if @a transit is @c NULL
- *
  * @see elm_transit_auto_reverse_set()
+ *
+ * @param[in] transit The transit object.
+ * @return @c EINA_TRUE means auto reverse is on. If @p transit is NULL
+ * @c EINA_FALSE is returned
+ *
+ * @ingroup Transit
  */
 EAPI Eina_Bool              elm_transit_auto_reverse_get(const Elm_Transit *transit);
 
 /**
- * @brief Sets the transit repeat count. The effect is repeated as per the repeat count.
- *
- * @details This function sets the number of repetitions that the transit runs after
- *          the first one, i.e., if @a repeat is @c 1, the transit runs @c 2 times.
- *          If @a repeat is a negative number, it repeats infinite times.
+ * @brief Set the transit repeat count. Effect will be repeated by repeat count.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks If this function is called during the transit execution, the transit
- *          runs @a repeat times, ignoring the times it already performed.
+ * @remark This function sets the number of repetition the transit will run after
+ * the first one, i.e., if @p repeat is 1, the transit will run 2 times.
+ * If the @p repeat is a negative number, it will repeat infinite times.
+ *
+ * @remark If this function is called during the transit execution, the transit
+ * will run @p repeat times, ignoring the times it already performed.
  *
  * @param[in] transit The transit object
- * @param[in] repeat The repeat count
+ * @param[in] repeat Repeat count
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_repeat_times_set(Elm_Transit *transit, int repeat);
 
 /**
- * @brief Gets the transit repeat count.
+ * @brief Get the transit repeat count.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @param[in] transit The transit object
- * @return The repeat count \n
- *         If @a transit is @c NULL, @c 0 is returned
- *
  * @see elm_transit_repeat_times_set()
+ *
+ * @param[in] transit The Transit object.
+ * @return The repeat count. If @p transit is NULL
+ * 0 is returned
+ *
+ * @ingroup Transit
  */
 EAPI int                    elm_transit_repeat_times_get(const Elm_Transit *transit);
 
 /**
- * @brief Sets the transit animation acceleration type.
- *
- * @details This function sets the tween mode of the transit which can be:
- *          ELM_TRANSIT_TWEEN_MODE_LINEAR - The default mode.
- *          ELM_TRANSIT_TWEEN_MODE_SINUSOIDAL - Starts in the accelerate mode and ends
- *                                              decelerating with factor.
- *          ELM_TRANSIT_TWEEN_MODE_DECELERATE - The animation is slowed over time
- *                                              with factor.
- *          ELM_TRANSIT_TWEEN_MODE_ACCELERATE - The animation accelerates over time
- *                                              with factor.
- *          ELM_TRANSIT_TWEEN_MODE_DIVISOR_INTERP - Starts at gradient v1, interpolated
- *                                                  via power of the v2 curve.
- *          ELM_TRANSIT_TWEEN_MODE_BOUNCE - Starts at @c 0.0 then a "drop" like a ball bouncing
- *                                          to the ground at @c 1.0, and bounce v2 times, with decay factor of v1.
- *          ELM_TRANSIT_TWEEN_MODE_SPRING - Starts at @c 0.0 then a "wobble" like a spring in rest
- *                                          position @c 1.0, and wobble v2 times, with decay factor of v1.
+ * @brief Set the transit animation acceleration type.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @param[in] transit The transit object
- * @param[in] tween_mode The tween type
+ * @remark This function sets the tween mode of the transit that can be:
+ * ELM_TRANSIT_TWEEN_MODE_LINEAR - The default mode.
+ * ELM_TRANSIT_TWEEN_MODE_SINUSOIDAL - Starts in accelerate mode and ends
+ * decelerating with factor.
+ * ELM_TRANSIT_TWEEN_MODE_DECELERATE - The animation will be slowed over time
+ * with factor.
+ * ELM_TRANSIT_TWEEN_MODE_ACCELERATE - The animation will accelerate over time
+ * with factor.
+ * ELM_TRANSIT_TWEEN_MODE_DIVISOR_INTERP - Start at gradient v1, interpolated
+ * via power of v2 curve.
+ * ELM_TRANSIT_TWEEN_MODE_BOUNCE - Start at 0.0 then "drop" like a ball bouncing
+ * to the ground at 1.0, and bounce v2 times, with decay factor of v1.
+ * ELM_TRANSIT_TWEEN_MODE_SPRING - Start at 0.0 then "wobble" like a spring rest
+ * position 1.0, and wobble v2 times, with decay factor of v1.
+ *
+ * @param[in] transit The transit object.
+ * @param[in] tween_mode The tween type.
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_tween_mode_set(Elm_Transit *transit, Elm_Transit_Tween_Mode tween_mode);
 
 /**
- * @brief Gets the transit animation acceleration type.
+ * @brief Get the transit animation acceleration type.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks @a transit cannot be @c NULL.
+ * @remark @p transit can not be NULL
  *
- * @param[in] transit The transit object
- * @return The tween type \n
- *         If @a transit is @c NULL, @c ELM_TRANSIT_TWEEN_MODE_LINEAR is returned.
+ * @param[in] transit The transit object.
+ * @return The tween type. If @p transit is NULL
+ * ELM_TRANSIT_TWEEN_MODE_LINEAR is returned.
+ *
+ * @ingroup Transit
  */
 EAPI Elm_Transit_Tween_Mode elm_transit_tween_mode_get(const Elm_Transit *transit);
 
 /**
- * @brief Sets the transit animation acceleration factor.
- *
- * @details This function sets the tween mode factor of the transit which can be:
- *          If you use the below tween modes, you have to set the factor using this API.
- *          ELM_TRANSIT_TWEEN_MODE_SINUSOIDAL - Starts slow, speeds up then slows down
- *                                              at the end, v1 being a power factor, @c 0.0 being linear, @c 1.0 being
- *          ELM_TRANSIT_TWEEN_MODE_SINUSOIDAL - Default, @c 2.0 being a much more pronounced
- *                                              sinusoidal(squared), @c 3.0 being cubed, etc.
- *          ELM_TRANSIT_TWEEN_MODE_DECELERATE - Starts fast then slows down, v1 being a
- *                                              power factor, @c 0.0 being linear, @c 1.0 being ELM_TRANSIT_TWEEN_MODE_DECELERATE
- *                                              default, @c 2.0 being a much more pronounced decelerate (squared), @c 3.0 being
- *                                              cubed, etc.
- *          ELM_TRANSIT_TWEEN_MODE_ACCELERATE - Starts slow then speeds up, v1 being a
- *                                              power factor, @c 0.0 being linear, @c 1.0 being ELM_TRANSIT_TWEEN_MODE_ACCELERATE
- *                                              default, @c 2.0 being a much more pronounced accelerate (squared), @c 3.0 being
- *                                              cubed, etc.
- *          ELM_TRANSIT_TWEEN_MODE_DIVISOR_INTERP - Starts at gradient * v1, interpolated
- *                                                  via power of the v2 curve.
- *          ELM_TRANSIT_TWEEN_MODE_BOUNCE - Starts at @c 0.0 then a "drop" like a ball bouncing
- *                                          to the ground at @c 1.0, and bounce v2 times, with decay factor of v1.
- *          ELM_TRANSIT_TWEEN_MODE_SPRING - Starts at @c 0.0 then a "wobble" like a spring in rest
- *                                          position @c 1.0, and wobble v2 times, with decay factor of v1.
+ * @brief Set the transit animation acceleration factor.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @param[in] transit The transit object
- * @param[in] v1 A parameter used by the mapping (default is @c 1.0)
- * @param[in] v2 A parameter used by the mapping (default is @c 0.0)
+ * @remark This function sets the tween mode factor of the transit that can be:
+ * If you use the below tween modes, you have to set the factor using this API.
+ * ELM_TRANSIT_TWEEN_MODE_SINUSOIDAL - Start slow, speed up then slow down
+ * at end, v1 being a power factor, 0.0 being linear, 1.0 being
+ * ELM_TRANSIT_TWEEN_MODE_SINUSOIDAL default, 2.0 being much more pronounced
+ * sinusoidal(squared), 3.0 being cubed, etc.
+ * ELM_TRANSIT_TWEEN_MODE_DECELERATE - Start fast then slow down, v1 being a
+ * power factor, 0.0 being linear, 1.0 being ELM_TRANSIT_TWEEN_MODE_DECELERATE
+ * default, 2.0 being much more pronounced decelerate (squared), 3.0 being
+ * cubed, etc.
+ * ELM_TRANSIT_TWEEN_MODE_ACCELERATE - Start slow then speed up, v1 being a
+ * power factor, 0.0 being linear, 1.0 being ELM_TRANSIT_TWEEN_MODE_ACCELERATE
+ * default, 2.0 being much more pronounced accelerate (squared), 3.0 being
+ * cubed, etc.
+ * ELM_TRANSIT_TWEEN_MODE_DIVISOR_INTERP - Start at gradient * v1, interpolated
+ * via power of v2 curve
+ * ELM_TRANSIT_TWEEN_MODE_BOUNCE - Start at 0.0 then "drop" like a ball bouncing
+ * to the ground at 1.0, and bounce v2 times, with decay factor of v1
+ * ELM_TRANSIT_TWEEN_MODE_SPRING - Start at 0.0 then "wobble" like a spring rest
+ * position 1.0, and wobble v2 times, with decay factor of v1
+ *
+ * @param[in] transit The transit object.
+ * @param[in] v1 A parameter use by the mapping (default is 1.0)
+ * @param[in] v2 A parameter use by the mapping (default is 0.0)
  *
  * @see elm_transit_tween_mode_factor_get()
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_tween_mode_factor_set(Elm_Transit *transit, double v1, double v2);
 
 /**
- * @brief Gets the transit animation acceleration factor.
+ * @brief Get the transit animation acceleration factor.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks @a transit cannot be @c NULL.
+ * @remark @p transit can not be NULL
  *
- * @param[in] transit The transit object
- * @param[out] v1      The pointer to a double in which to store the factor value
- * @param[out] v2      The pointer to a double in which to store the factor value2
+ * @param[in] transit The transit object.
+ * @param[out] v1      Pointer to an double in which to store the factor value.
+ * @param[out] v2      Pointer to an double in which to store the factor value2.
  *
  * @see elm_transit_tween_mode_factor_set()
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_tween_mode_factor_get(const Elm_Transit *transit, double *v1, double *v2);
 
 /**
- * @brief Sets the transit animation time.
+ * @brief Set the transit animation acceleration factor.
  *
- * @if MOBILE @since_tizen 2.3
+ * @if MOBILE @since_tizen 2.3.1
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks @a transit cannot be @c NULL.
- *
- * @param[in] transit The transit object
- * @param[in] duration The animation time
- */
-EAPI void                   elm_transit_duration_set(Elm_Transit *transit, double duration);
-
-/**
- * Set the transit animation acceleration factor.
- *
- * This function sets the tween mode factor of the transit that can be:
+ * @remark This function sets the tween mode factor of the transit that can be:
  * If you use the below tween modes, you have to set the factor using this API.
  * ELM_TRANSIT_TWEEN_MODE_SINUSOIDAL - Start slow, speed up then slow down
  * at end, v[0] being a power factor, 0.0 being linear, 1.0 being
@@ -616,96 +609,136 @@ EAPI void                   elm_transit_duration_set(Elm_Transit *transit, doubl
  * ELM_TRANSIT_TWEEN_MODE_BEZIER_CURVE - Use an interpolated cubic-bezier curve
  * ajusted with parameters from v[0] to v[3]
  *
- * @param transit The transit object.
- * @param v_size The size of the array pointing to v
- * @param v The address of an array with the double parameters to be used by the mapping.
+ * @param[in] transit The transit object.
+ * @param[in] v_size The size of the array pointing to v
+ * @param[in] v The address of an array with the double parameters to be used by the mapping.
  *
  * @see elm_transit_tween_mode_factor_set()
- * @since_tizen 2.3.1
+ *
  * @ingroup Transit
  */
 EAPI void                   elm_transit_tween_mode_factor_n_set(Elm_Transit *transit, unsigned int v_size, double *v);
 
 /**
- * @brief Gets the transit animation time.
+ * @brief Set the transit animation time
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks @a transit cannot be @c NULL.
+ * @remark @p transit can not be NULL
  *
- * @param[in] transit The transit object
+ * @param[in] transit The transit object.
+ * @param[in] duration The animation time.
  *
- * @return The transit animation time
+ * @ingroup Transit
+ */
+EAPI void                   elm_transit_duration_set(Elm_Transit *transit, double duration);
+
+/**
+ * @brief Get the transit animation time
+ *
+ * @if MOBILE @since_tizen 2.3
+ * @elseif WEARABLE @since_tizen 2.3.1
+ * @endif
+ *
+ * @remark @p transit can not be NULL
+ *
+ * @param[in] transit The transit object.
+ *
+ * @return The transit animation time.
+ *
+ * @ingroup Transit
  */
 EAPI double                 elm_transit_duration_get(const Elm_Transit *transit);
 
 /**
  * @brief Starts the transition.
+ * Once this API is called, the transit begins to measure the time.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks Once this API is called, the transit begins to measure the time.
+ * @remark @p transit can not be NULL
  *
- * @remarks @a transit cannot be @c NULL.
+ * @param[in] transit The transit object.
  *
- * @param[in] transit The transit object
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_go(Elm_Transit *transit);
 
 /**
- * @brief Pauses and resumes the transition.
+ * @internal
+ *
+ * Starts the transition in given seconds.
+ *
+ * @note @p transit can not be NULL
+ *
+ * @param transit The transit object.
+ * @param in The interval value in seconds
+ *
+ * @since 1.14
+ * @ingroup Transit
+ */
+EAPI void elm_transit_go_in(Elm_Transit *transit, double in);
+
+/**
+ * @brief Pause/Resume the transition.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks If you call elm_transit_go() again, the transit is started from the
- *          beginning, and is played.
+ * @remark If you call elm_transit_go again, the transit will be started from the
+ * beginning, and will be played.
  *
- * @remarks @a transit cannot be @c NULL
+ * @remark @p transit can not be NULL
  *
- * @param[in] transit The transit object
- * @param[in] paused The boolean value that indicates whether the transition should be paused
+ * @param[in] transit The transit object.
+ * @param[in] paused Whether the transition should be paused or not.
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_paused_set(Elm_Transit *transit, Eina_Bool paused);
 
 /**
- * @brief Gets the value of the paused status.
+ * @brief Get the value of paused status.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks @a transit cannot be @c NULL.
- *
- * @param[in] transit The transit object
- * @return @c EINA_TRUE if the transition is paused,
- *         otherwise @c EINA_FALSE is returned if @a transit is @c NULL
- *
  * @see elm_transit_paused_set()
+ *
+ * @remark @p transit can not be NULL
+ *
+ * @param[in] transit The transit object.
+ * @return @c EINA_TRUE means transition is paused. If @p transit is NULL
+ * @c EINA_FALSE is returned
+ *
+ * @ingroup Transit
  */
 EAPI Eina_Bool              elm_transit_paused_get(const Elm_Transit *transit);
 
 /**
- * @brief Gets the time progression of the animation (a double value between @c 0.0 and @c 1.0).
+ * @brief Get the time progression of the animation (a double value between 0.0 and 1.0).
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks The value returned is a fraction (current time / total time). It
- *          represents the progression position relative to the total.
+ * @remark The value returned is a fraction (current time / total time). It
+ * represents the progression position relative to the total.
  *
- * @remarks @a transit cannot be @c NULL
+ * @remark @p transit can not be NULL
  *
- * @param[in] transit The transit object
+ * @param[in] transit The transit object.
  *
- * @return The time progression value \n
- *         If @a transit is @c NULL, @c 0 is returned
+ * @return The time progression value. If @p transit is NULL
+ * 0 is returned
+ *
+ * @ingroup Transit
  */
 EAPI double                 elm_transit_progress_value_get(const Elm_Transit *transit);
 
@@ -716,354 +749,369 @@ EAPI double                 elm_transit_progress_value_get(const Elm_Transit *tr
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This function adds the @a chain_transit transition to a chain after the @a
- *          transit, and is started as soon as @a transit ends.
+ * @remark @p transit can not be NULL. Transit would have multiple chain transits.
+ * @remark @p chain_transit can not be NULL. Chain transits could be chained to the only one transit.
  *
- * @remarks @a transit cannot be @c NULL. Transit would have multiple chain transits.
- * @remarks @p chain_transit cannot be @c NULL. Chain transits could be chained to only one transit.
+ * @param[in] transit The transit object.
+ * @param[in] chain_transit The chain transit object. This transit will be operated
+ *        after transit is done.
  *
- * @param[in] transit The transit object
- * @param[in] chain_transit The chain transit object \n 
- *                      This transit is operated after transit is done.
+ * @remark This function adds @p chain_transit transition to a chain after the @p
+ * transit, and will be started as soon as @p transit ends.
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_chain_transit_add(Elm_Transit *transit, Elm_Transit *chain_transit);
 
 /**
- * @brief Cuts off the chain relationship between two transits.
+ * @brief Cut off the chain relationship between two transits.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This function removes the @a chain_transit transition from the @a transit.
+ * @remark @p transit can not be NULL. Transit would have the chain relationship with @p chain transit.
+ * @remark @p chain_transit can not be NULL. Chain transits should be chained to the @p transit.
  *
- * @remarks @a transit cannot be @c NULL. Transit would have a chain relationship with @a chain transit.
- * @remarks @a chain_transit cannot be @c NULL. Chain transits should be chained to the @a transit.
+ * @param[in] transit The transit object.
+ * @param[in] chain_transit The chain transit object.
  *
- * @param[in] transit The transit object
- * @param[in] chain_transit The chain transit object
+ * @remark This function remove the @p chain_transit transition from the @p transit.
+ *
+ * @ingroup Transit
  */
 EAPI void                   elm_transit_chain_transit_del(Elm_Transit *transit, Elm_Transit *chain_transit);
 
 /**
- * @brief Gets the current chain transit list.
+ * @brief Get the current chain transit list.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks @a transit cannot be @c NULL.
+ * @remark @p transit can not be NULL.
  *
- * @param[in] transit The transit object
- * @return The chain transit list
+ * @param[in] transit The transit object.
+ * @return chain transit list.
+ *
+ * @ingroup Transit
  */
 EAPI Eina_List             *elm_transit_chain_transits_get(const Elm_Transit *transit);
 
 /**
- * @brief Sets the smooth effect for a transit.
- *
- * @details This sets smoothing for transit map rendering. If the object added in a
- *          transit is of a type that has its own smoothing settings, then both the smooth
- *          settings for this object and the map must be turned off. By default, smooth
- *          maps are enabled.
- *
- * @since 1.8
+ * @brief Set the smooth effect for a transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
  * @param[in] transit The transit object
- * @param[in] smooth enabled The boolean value that enables or disables smooth map rendering
+ * @param[in] enabled enable or disable smooth map rendering
+ *
+ * @remark This sets smoothing for transit map rendering. If the object added in a
+ * transit is a type that has its own smoothing settings, then both the smooth
+ * settings for this object and the map must be turned off. By default smooth
+ * maps are enabled.
  *
  * @see evas_map_smooth_set()
+ * @since 1.8
+ *
+ * @ingroup Transit
  */
-EAPI void                   elm_transit_smooth_set(Elm_Transit *transit, Eina_Bool smooth);
+EAPI void                   elm_transit_smooth_set(Elm_Transit *transit, Eina_Bool enabled);
 
 /**
- * @brief Gets smooth scaling for transit map rendering.
- *
- * @details This gets smooth scaling for transit map rendering.
- *
- * @since 1.8
+ * @brief Get the smooth scaling for transit map rendering
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
+ * @remark This gets smooth scaling for transit map rendering.
+ *
  * @param[in] transit The transit object
- * @return @c EINA_TRUE if smooth scaling is enabled, otherwise @c EINA_FALSE
+ * @return @c EINA_TRUE if the smooth is enabled, @c EINA_FALSE otherwise.
  *
  * @see elm_transit_smooth_set()
+ * @since 1.8
  *
  */
 Eina_Bool                   elm_transit_smooth_get(const Elm_Transit *transit);
 
 /**
- * @brief Adds the resizing effect to Elm_Transit.
+ * @brief Add the Resizing Effect to Elm_Transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This API is one of the facades. It creates resizing effect context
- *          and adds its required APIs to elm_transit_effect_add().
- *
- * @param[in] transit The transit object
- * @param[in] from_w The object width size when the effect begins
- * @param[in] from_h The object height size when the effect begins
- * @param[in] to_w The object width size when the effect ends
- * @param[in] to_h The object height size when the effect ends
- * @return The resizing effect context data
+ * @remark This API is one of the facades. It creates resizing effect context
+ * and add it's required APIs to elm_transit_effect_add.
  *
  * @see elm_transit_effect_add()
+ *
+ * @param[in] transit Transit object.
+ * @param[in] from_w Object width size when effect begins.
+ * @param[in] from_h Object height size when effect begins.
+ * @param[in] to_w Object width size when effect ends.
+ * @param[in] to_h Object height size when effect ends.
+ * @return Resizing effect context data.
+ *
+ * @ingroup Transit
  */
 EAPI Elm_Transit_Effect    *elm_transit_effect_resizing_add(Elm_Transit *transit, Evas_Coord from_w, Evas_Coord from_h, Evas_Coord to_w, Evas_Coord to_h);
 
 /**
- * @brief Adds the translation effect to Elm_Transit.
+ * @brief Add the Translation Effect to Elm_Transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This API is one of the facades. It creates translation effect context
- *          and adds its required APIs to elm_transit_effect_add().
- *
- * @remarks It is highly recommended to just create a transit with this effect when
- *          the window to which the objects of the transit belong has already been created.
- *          This is because this effect needs the geometry information about the objects,
- *          and if the window is not created yet, it can get wrong information.
- *
- * @param[in] transit The transit object
- * @param[in] from_dx The x position variation when the effect begins
- * @param[in] from_dy The y position variation when the effect begins
- * @param[in] to_dx The x position variation when the effect ends
- * @param[in] to_dy The y position variation when the effect ends
- * @return The translation effect context data
+ * @remark This API is one of the facades. It creates translation effect context
+ * and add it's required APIs to elm_transit_effect_add.
  *
  * @see elm_transit_effect_add()
+ *
+ * @param[in] transit Transit object.
+ * @param[in] from_dx X Position variation when effect begins.
+ * @param[in] from_dy Y Position variation when effect begins.
+ * @param[in] to_dx X Position variation when effect ends.
+ * @param[in] to_dy Y Position variation when effect ends.
+ * @return Translation effect context data.
+ *
+ * @ingroup Transit
+ * @warning It is highly recommended just create a transit with this effect when
+ * the window that the objects of the transit belongs has already been created.
+ * @remark This is because this effect needs the geometry information about the objects,
+ * and if the window was not created yet, it can get a wrong information.
  */
 EAPI Elm_Transit_Effect    *elm_transit_effect_translation_add(Elm_Transit *transit, Evas_Coord from_dx, Evas_Coord from_dy, Evas_Coord to_dx, Evas_Coord to_dy);
 
 /**
- * @brief Adds the zoom effect to Elm_Transit.
+ * @brief Add the Zoom Effect to Elm_Transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This API is one of the facades. It creates zoom effect context
- *          and adds its required APIs to elm_transit_effect_add().
- *
- * @remarks It is highly recommended to just create a transit with this effect when
- *          the window to which the objects of the transit belong has already been created.
- *          This is because this effect needs the geometry information about the objects,
- *          and if the window is not created yet, it can get wrong information.
- *
- * @param[in] transit The transit object
- * @param[in] from_rate The scale rate when the effect begins (@c 1 is the current rate)
- * @param[in] to_rate The scale rate when the effect ends
- * @return The zoom effect context data
+ * @remark This API is one of the facades. It creates zoom effect context
+ * and add it's required APIs to elm_transit_effect_add.
  *
  * @see elm_transit_effect_add()
+ *
+ * @param[in] transit Transit object.
+ * @param[in] from_rate Scale rate when effect begins (1 is current rate).
+ * @param[in] to_rate Scale rate when effect ends.
+ * @return Zoom effect context data.
+ *
+ * @ingroup Transit
+ * @warning It is highly recommended just create a transit with this effect when
+ * the window that the objects of the transit belongs has already been created.
+ * This is because this effect needs the geometry information about the objects,
+ * and if the window was not created yet, it can get a wrong information.
  */
 EAPI Elm_Transit_Effect    *elm_transit_effect_zoom_add(Elm_Transit *transit, float from_rate, float to_rate);
 
 /**
- * @brief Adds the flip effect to Elm_Transit.
+ * @brief Add the Flip Effect to Elm_Transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This API is one of the facades. It creates flip effect context
- *          and adds its required APIs to elm_transit_effect_add().
- * @remarks This effect is applied to each pair of objects in the order they are listed
- *          in the transit list of objects. The first object in the pair is the
- *          "front" object and the second is the "back" object.
- *
- * @remarks It is highly recommended to just create a transit with this effect when
- *          the window to which the objects of the transit belong has already been created.
- *          This is because this effect needs the geometry information about the objects,
- *          and if the window is not created yet, it can get wrong information.
- *
- * @param[in] transit The transit object
- * @param[in] axis The flipping axis(x or y)
- * @param[in] cw The flipping direction \n
- *           @c EINA_TRUE is clock-wise.
- * @return The flip effect context data
+ * @remark This API is one of the facades. It creates flip effect context
+ * and add it's required APIs to elm_transit_effect_add.
+ * @remark This effect is applied to each pair of objects in the order they are listed
+ * in the transit list of objects. The first object in the pair will be the
+ * "front" object and the second will be the "back" object.
  *
  * @see elm_transit_effect_add()
+ *
+ * @param[in] transit Transit object.
+ * @param[in] axis Flipping Axis(X or Y).
+ * @param[in] cw Flipping Direction. @c EINA_TRUE is clock-wise.
+ * @return Flip effect context data.
+ *
+ * @ingroup Transit
+ * @warning It is highly recommended just create a transit with this effect when
+ * the window that the objects of the transit belongs has already been created.
+ * This is because this effect needs the geometry information about the objects,
+ * and if the window was not created yet, it can get a wrong information.
  */
 EAPI Elm_Transit_Effect    *elm_transit_effect_flip_add(Elm_Transit *transit, Elm_Transit_Effect_Flip_Axis axis, Eina_Bool cw);
 
 /**
- * @brief Adds the resizeable flip effect to Elm_Transit.
+ * @brief Add the Resizeable Flip Effect to Elm_Transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This API is one of the facades. It creates resizable flip effect context
- *          and adds its required APIs to elm_transit_effect_add().
- * @remarks This effect is applied to each pair of objects in the order they are listed
- *          in the transit list of objects. The first object in the pair is the
- *          "front" object and the second is the "back" object.
- *
- * @remarks It is highly recommended to just create a transit with this effect when
- *          the window to which the objects of the transit belong has already been created.
- *          This is because this effect needs the geometry information about the objects,
- *          and if the window is not created yet, it can get wrong information.
- *
- * @param[in] transit The transit object
- * @param[in] axis The flipping axis(x or y)
- * @param[in] cw The flipping direction \n
- *           @c EINA_TRUE is clock-wise.
- * @return The resizeable flip effect context data
+ * @remark This API is one of the facades. It creates resizable flip effect context
+ * and add it's required APIs to elm_transit_effect_add.
+ * @remark This effect is applied to each pair of objects in the order they are listed
+ * in the transit list of objects. The first object in the pair will be the
+ * "front" object and the second will be the "back" object.
  *
  * @see elm_transit_effect_add()
+ *
+ * @param[in] transit Transit object.
+ * @param[in] axis Flipping Axis(X or Y).
+ * @param[in] cw Flipping Direction. @c EINA_TRUE is clock-wise.
+ * @return Resizeable flip effect context data.
+ *
+ * @ingroup Transit
+ * @warning It is highly recommended just create a transit with this effect when
+ * the window that the objects of the transit belongs has already been created.
+ * This is because this effect needs the geometry information about the objects,
+ * and if the window was not created yet, it can get a wrong information.
  */
 EAPI Elm_Transit_Effect    *elm_transit_effect_resizable_flip_add(Elm_Transit *transit, Elm_Transit_Effect_Flip_Axis axis, Eina_Bool cw);
 
 /**
- * @brief Adds the wipe effect to Elm_Transit.
+ * @brief Add the Wipe Effect to Elm_Transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This API is one of the facades. It creates wipe effect context
- *          and adds its required APIs to elm_transit_effect_add().
- *
- * @remarks It is highly recommended to just create a transit with this effect when
- *          the window to which the objects of the transit belong has already been created.
- *          This is because this effect needs the geometry information about the objects,
- *          and if the window is not created yet, it can get wrong information.
- *
- * @param[in] transit The transit object
- * @param[in] type The wipe type which is either hide or show
- * @param[in] dir The wipe direction
- * @return The wipe effect context data
+ * @remark This API is one of the facades. It creates wipe effect context
+ * and add it's required APIs to elm_transit_effect_add.
  *
  * @see elm_transit_effect_add()
+ *
+ * @param[in] transit Transit object.
+ * @param[in] type Wipe type. Hide or show.
+ * @param[in] dir Wipe Direction.
+ * @return Wipe effect context data.
+ *
+ * @ingroup Transit
+ * @warning It is highly recommended just create a transit with this effect when
+ * the window that the objects of the transit belongs has already been created.
+ * This is because this effect needs the geometry information about the objects,
+ * and if the window was not created yet, it can get a wrong information.
  */
 EAPI Elm_Transit_Effect    *elm_transit_effect_wipe_add(Elm_Transit *transit, Elm_Transit_Effect_Wipe_Type type, Elm_Transit_Effect_Wipe_Dir dir);
 
 /**
- * @brief Adds the color effect to Elm_Transit.
+ * @brief Add the Color Effect to Elm_Transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This API is one of the facades. It creates color effect context
- *          and adds its required APIs to elm_transit_effect_add().
- *
- *
- * @param[in] transit        The transit object
- * @param[in]  from_r        The RGB from R when the effect begins
- * @param[in]  from_g        The RGB from G when the effect begins
- * @param[in]  from_b        The RGB from B when the effect begins
- * @param[in]  from_a        The RGB from A when the effect begins
- * @param[in]  to_r          The RGB to R when the effect ends
- * @param[in]  to_g          The RGB to G when the effect ends
- * @param[in]  to_b          The RGB to B when the effect ends
- * @param[in]  to_a          The RGB to A when the effect ends
- * @return               The color effect context data
+ * @remark This API is one of the facades. It creates color effect context
+ * and add it's required APIs to elm_transit_effect_add.
  *
  * @see elm_transit_effect_add()
+ *
+ * @param[in] transit        Transit object.
+ * @param[in]  from_r        RGB R when effect begins.
+ * @param[in]  from_g        RGB G when effect begins.
+ * @param[in]  from_b        RGB B when effect begins.
+ * @param[in]  from_a        RGB A when effect begins.
+ * @param[in]  to_r          RGB R when effect ends.
+ * @param[in]  to_g          RGB G when effect ends.
+ * @param[in]  to_b          RGB B when effect ends.
+ * @param[in]  to_a          RGB A when effect ends.
+ * @return               Color effect context data.
+ *
+ * @ingroup Transit
  */
 EAPI Elm_Transit_Effect    *elm_transit_effect_color_add(Elm_Transit *transit, unsigned int from_r, unsigned int from_g, unsigned int from_b, unsigned int from_a, unsigned int to_r, unsigned int to_g, unsigned int to_b, unsigned int to_a);
 
 /**
- * @brief Adds the fade effect to Elm_Transit.
+ * @brief Add the Fade Effect to Elm_Transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This API is one of the facades. It creates fade effect context
- *          and adds its required APIs to elm_transit_effect_add().
- * @remarks This effect is applied to each pair of objects in the order they are listed
- *          in the transit list of objects. The first object in the pair is the
- *          "before" object and the second is the "after" object.
- *
- * @remarks It is highly recommended to just create a transit with this effect when
- *          the window to which the objects of the transit belong has already been created.
- *          This is because this effect needs the color information about the objects,
- *          and if the window is not created yet, it can get wrong information.
- *
- * @param[in] transit The transit object
- * @return The fade effect context data
+ * @remark This API is one of the facades. It creates fade effect context
+ * and add it's required APIs to elm_transit_effect_add.
+ * @remark This effect is applied to each pair of objects in the order they are listed
+ * in the transit list of objects. The first object in the pair will be the
+ * "before" object and the second will be the "after" object.
  *
  * @see elm_transit_effect_add()
+ *
+ * @param[in] transit Transit object.
+ * @return Fade effect context data.
+ *
+ * @ingroup Transit
+ * @warning It is highly recommended just create a transit with this effect when
+ * the window that the objects of the transit belongs has already been created.
+ * This is because this effect needs the color information about the objects,
+ * and if the window was not created yet, it can get a wrong information.
  */
 EAPI Elm_Transit_Effect    *elm_transit_effect_fade_add(Elm_Transit *transit);
 
 /**
- * @brief Adds the blend effect to Elm_Transit.
+ * @brief Add the Blend Effect to Elm_Transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This API is one of the facades. It creates blend effect context
- *          and adds its required APIs to elm_transit_effect_add().
- * @remarks This effect is applied to each pair of objects in the order they are listed
- *          in the transit list of objects. The first object in the pair is the
- *          "before" object and the second is the "after" object.
- *
- * @remarks It is highly recommended to just create a transit with this effect when
- *          the window that the objects of the transit belongs has already been created.
- *          This is because this effect needs the color information about the objects,
- *          and if the window is not created yet, it can get wrong information.
- *
- * @param[in] transit The transit object
- * @return The blend effect context data
+ * @remark This API is one of the facades. It creates blend effect context
+ * and add it's required APIs to elm_transit_effect_add.
+ * @remark This effect is applied to each pair of objects in the order they are listed
+ * in the transit list of objects. The first object in the pair will be the
+ * "before" object and the second will be the "after" object.
  *
  * @see elm_transit_effect_add()
+ *
+ * @param[in] transit Transit object.
+ * @return Blend effect context data.
+ *
+ * @ingroup Transit
+ * @warning It is highly recommended just create a transit with this effect when
+ * the window that the objects of the transit belongs has already been created.
+ * @remark This is because this effect needs the color information about the objects,
+ * and if the window was not created yet, it can get a wrong information.
  */
 EAPI Elm_Transit_Effect    *elm_transit_effect_blend_add(Elm_Transit *transit);
 
 /**
- * @brief Adds the rotation effect to Elm_Transit.
+ * @brief Add the Rotation Effect to Elm_Transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This API is one of the facades. It creates rotation effect context
- *          and adds its required APIs to elm_transit_effect_add().
- *
- * @remarks It is highly recommended to just create a transit with this effect when
- *          the window to which the objects of the transit belong has already been created.
- *          This is because this effect needs the geometry information about the objects,
- *          and if the window is not created yet, it can get wrong information.
- *
- * @param[in] transit The transit object
- * @param[in] from_degree The degree when the effect begins
- * @param[in] to_degree The degree when the effect is ends
- * @return The rotation effect context data
+ * @remark This API is one of the facades. It creates rotation effect context
+ * and add it's required APIs to elm_transit_effect_add.
  *
  * @see elm_transit_effect_add()
+ *
+ * @param[in] transit Transit object.
+ * @param[in] from_degree Degree when effect begins.
+ * @param[in] to_degree Degree when effect is ends.
+ * @return Rotation effect context data.
+ *
+ * @ingroup Transit
+ * @warning It is highly recommended just create a transit with this effect when
+ * the window that the objects of the transit belongs has already been created.
+ * This is because this effect needs the geometry information about the objects,
+ * and if the window was not created yet, it can get a wrong information.
  */
 EAPI Elm_Transit_Effect    *elm_transit_effect_rotation_add(Elm_Transit *transit, float from_degree, float to_degree);
 
 /**
- * @brief Adds the image animation effect to Elm_Transit.
+ * @brief Add the ImageAnimation Effect to Elm_Transit.
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @remarks This API is one of the facades. It creates image animation effect context
- *          and adds its required APIs to elm_transit_effect_add.
- *          The @a images parameter is a list images paths. This list and
- *          its contents is deleted at the end of the effect by the
- *          elm_transit_effect_image_animation_context_free() function.
+ * @remark This API is one of the facades. It creates image animation effect context
+ * and add it's required APIs to elm_transit_effect_add.
+ * The @p images parameter is a list images paths. This list and
+ * its contents will be deleted at the end of the effect by
+ * elm_transit_effect_image_animation_context_free() function.
  *
- * Example:
+ * @remark Example:
  * @code
  * char buf[PATH_MAX];
  * Eina_List *images = NULL;
@@ -1078,18 +1126,17 @@ EAPI Elm_Transit_Effect    *elm_transit_effect_rotation_add(Elm_Transit *transit
  *
  * @endcode
  *
- *
- * @param[in] transit The transit object
- * @param[in] images The Eina_List of images file paths \n
- *               This list and its contents are deleted at the end of the effect by the
- *               elm_transit_effect_image_animation_context_free() function.
- *
- * @return The image animation effect context data
- *
  * @see elm_transit_effect_add()
+ *
+ * @param[in] transit Transit object.
+ * @param[in] images Eina_List of images file paths. This list and
+ * its contents will be deleted at the end of the effect by
+ * elm_transit_effect_image_animation_context_free() function.
+ * @return Image Animation effect context data.
+ *
+ * @ingroup Transit
  */
 EAPI Elm_Transit_Effect    *elm_transit_effect_image_animation_add(Elm_Transit *transit, Eina_List *images);
-
 /**
  * @}
  */

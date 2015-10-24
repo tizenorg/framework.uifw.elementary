@@ -3,7 +3,6 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 typedef struct _Point
 {
@@ -45,14 +44,14 @@ _cube_new(Evas *evas, Evas_Coord w, Evas_Coord h, Evas_Coord d)
      {
         Evas_Object *o;
         char buf[PATH_MAX];
-        o = evas_object_image_add(evas);
+        o = evas_object_image_filled_add(evas);
         c->side[i].o = o;
         snprintf(buf, sizeof(buf), "%s/images/%s",
                  elm_app_data_dir_get(), "twofish.jpg");
         evas_object_image_file_set(o, buf, NULL);
-        evas_object_image_fill_set(o, 0, 0, 256, 256);
         evas_object_resize(o, 256, 256);
-        evas_object_image_smooth_scale_set(o, 0);
+        evas_object_pass_events_set(o, EINA_TRUE);
+        evas_object_color_set(o, 235, 235, 235, 235);
         evas_object_show(o);
      }
    POINT(0, 0, -w, -h, -d,   0,   0);
@@ -99,7 +98,6 @@ _cube_pos(Cube *c,
    Evas_Coord mz[6];
 
    m = evas_map_new(4);
-   evas_map_smooth_set(m, 0);
 
    for (i = 0; i < 6; i++)
      {
@@ -123,7 +121,7 @@ _cube_pos(Cube *c,
         evas_map_util_3d_perspective(m, cx, cy, foc, z0);
         if (evas_map_util_clockwise_get(m))
           {
-             evas_object_map_enable_set(c->side[i].o, 1);
+             evas_object_map_enable_set(c->side[i].o, EINA_TRUE);
              evas_object_map_set(c->side[i].o, m);
              evas_object_show(c->side[i].o);
           }
@@ -135,7 +133,6 @@ _cube_pos(Cube *c,
            evas_map_point_coord_get(m, j, NULL, NULL, &(tz[j]));
         mz[i] = (tz[0] + tz[1] + tz[2] + tz[3]) / 4;
      }
-   sorted = 0;
    do
      {
         sorted = 1;
@@ -158,17 +155,6 @@ _cube_pos(Cube *c,
    evas_map_free(m);
 }
 
-/*
-static void
-_cube_free(Cube *c)
-{
-   int i;
-
-   for (i = 0; i < 6; i++) evas_object_del(c->side[i].o);
-   free(c);
-}
-*/
-
 static void
 _cube_update(Evas_Object *win, Cube *c)
 {
@@ -182,7 +168,7 @@ _cube_update(Evas_Object *win, Cube *c)
 }
 
 void
-_ch_rot_x(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_ch_rot_x(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *win = data;
    rotx = elm_slider_value_get(obj);
@@ -190,7 +176,7 @@ _ch_rot_x(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 }
 
 void
-_ch_rot_y(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_ch_rot_y(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *win = data;
    roty = elm_slider_value_get(obj);
@@ -198,7 +184,7 @@ _ch_rot_y(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 }
 
 void
-_ch_rot_z(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_ch_rot_z(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *win = data;
    rotz = elm_slider_value_get(obj);
@@ -206,7 +192,7 @@ _ch_rot_z(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 }
 
 void
-_ch_cx(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_ch_cx(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *win = data;
    cxo = elm_slider_value_get(obj);
@@ -214,7 +200,7 @@ _ch_cx(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 }
 
 void
-_ch_cy(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_ch_cy(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *win = data;
    cyo = elm_slider_value_get(obj);
@@ -222,7 +208,7 @@ _ch_cy(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 }
 
 void
-_ch_foc(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_ch_foc(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *win = data;
    focv = elm_slider_value_get(obj);
@@ -230,7 +216,7 @@ _ch_foc(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 }
 
 void
-_ch_z0(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_ch_z0(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *win = data;
    z0v = elm_slider_value_get(obj);
@@ -238,7 +224,7 @@ _ch_z0(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 }
 
 void
-test_3d(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_3d(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bx, *sl;
 
@@ -256,6 +242,7 @@ test_3d(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __U
    sl = elm_slider_add(win);
    elm_object_text_set(sl, "Rot X");
    elm_slider_unit_format_set(sl, "%1.0f units");
+   elm_slider_indicator_format_set(sl, "%1.0f units");
    elm_slider_span_size_set(sl, 360);
    elm_slider_min_max_set(sl, 0, 360);
    evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
@@ -267,6 +254,7 @@ test_3d(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __U
    sl = elm_slider_add(win);
    elm_object_text_set(sl, "Rot Y");
    elm_slider_unit_format_set(sl, "%1.0f units");
+   elm_slider_indicator_format_set(sl, "%1.0f units");
    elm_slider_span_size_set(sl, 360);
    elm_slider_min_max_set(sl, 0, 360);
    evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
@@ -278,6 +266,7 @@ test_3d(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __U
    sl = elm_slider_add(win);
    elm_object_text_set(sl, "Rot Z");
    elm_slider_unit_format_set(sl, "%1.0f units");
+   elm_slider_indicator_format_set(sl, "%1.0f units");
    elm_slider_span_size_set(sl, 360);
    elm_slider_min_max_set(sl, 0, 360);
    evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, 0.5);
@@ -289,6 +278,7 @@ test_3d(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __U
    sl = elm_slider_add(win);
    elm_object_text_set(sl, "CX Off");
    elm_slider_unit_format_set(sl, "%1.0f units");
+   elm_slider_indicator_format_set(sl, "%1.0f units");
    elm_slider_span_size_set(sl, 360);
    elm_slider_min_max_set(sl, -320, 320);
    elm_slider_value_set(sl, cxo);
@@ -301,6 +291,7 @@ test_3d(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __U
    sl = elm_slider_add(win);
    elm_object_text_set(sl, "CY Off");
    elm_slider_unit_format_set(sl, "%1.0f units");
+   elm_slider_indicator_format_set(sl, "%1.0f units");
    elm_slider_span_size_set(sl, 360);
    elm_slider_min_max_set(sl, -320, 320);
    elm_slider_value_set(sl, cyo);
@@ -313,6 +304,7 @@ test_3d(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __U
    sl = elm_slider_add(win);
    elm_object_text_set(sl, "Foc");
    elm_slider_unit_format_set(sl, "%1.0f units");
+   elm_slider_indicator_format_set(sl, "%1.0f units");
    elm_slider_span_size_set(sl, 360);
    elm_slider_min_max_set(sl, 1, 2000);
    elm_slider_value_set(sl, focv);
@@ -325,6 +317,7 @@ test_3d(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __U
    sl = elm_slider_add(win);
    elm_object_text_set(sl, "Z0");
    elm_slider_unit_format_set(sl, "%1.0f units");
+   elm_slider_indicator_format_set(sl, "%1.0f units");
    elm_slider_span_size_set(sl, 360);
    elm_slider_min_max_set(sl, -2000, 2000);
    elm_slider_value_set(sl, z0v);
@@ -338,4 +331,3 @@ test_3d(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __U
    _cube_update(win, cube);
    evas_object_show(win);
 }
-#endif

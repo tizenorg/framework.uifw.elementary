@@ -2,7 +2,6 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 typedef struct
 {
@@ -10,13 +9,14 @@ typedef struct
    Evas_Object *btn_back;
    Evas_Object *btn_fwd;
    Evas_Object *url_entry;
+   Evas_Object *bx;
+   Evas_Object *hoversel;
    Eina_List *sub_wins;
-   const char* user_agent;
    Eina_Bool js_hooks : 1;
 } Web_Test;
 
 static void
-_btn_back_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_btn_back_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *web = data;
 
@@ -24,7 +24,7 @@ _btn_back_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED_
 }
 
 static void
-_btn_fwd_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_btn_fwd_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *web = data;
 
@@ -32,7 +32,7 @@ _btn_fwd_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__
 }
 
 static void
-_btn_reload_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_btn_reload_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *web = data;
 
@@ -40,22 +40,22 @@ _btn_reload_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSE
 }
 
 static void
-_url_change_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_url_entry_changed_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *web = data;
-   const char *uri = elm_object_text_get(obj);
+   const char *url = elm_object_text_get(obj);
 
-   elm_web_uri_set(web, uri);
+   elm_web_url_set(web, url);
 }
 
 static void
-_toggle_inwin_mode_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_toggle_inwin_mode_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    elm_web_inwin_mode_set(data, !elm_web_inwin_mode_get(data));
 }
 
 static void
-_title_changed_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info)
+_title_changed_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    char buf[512];
    snprintf(buf, sizeof(buf), "Web - %s", (const char *)event_info);
@@ -63,7 +63,7 @@ _title_changed_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info)
 }
 
 static void
-_uri_changed_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info)
+_url_changed_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Web_Test *wt = data;
 
@@ -74,20 +74,20 @@ _uri_changed_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info)
 }
 
 static void
-_new_win_del_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_new_win_del_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Web_Test *wt = data;
    wt->sub_wins = eina_list_remove(wt->sub_wins, obj);
 }
 
 static void
-_web_win_close_request_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_web_win_close_request_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    evas_object_del(data);
 }
 
 static Evas_Object *
-_new_window_hook(void *data, Evas_Object *obj __UNUSED__, Eina_Bool js __UNUSED__, const Elm_Web_Window_Features *wf __UNUSED__)
+_new_window_hook(void *data, Evas_Object *obj, Eina_Bool js EINA_UNUSED, const Elm_Web_Window_Features *wf EINA_UNUSED)
 {
    Web_Test *wt = data;
    Evas_Object *new_win, *new_web;
@@ -98,9 +98,8 @@ _new_window_hook(void *data, Evas_Object *obj __UNUSED__, Eina_Bool js __UNUSED_
    evas_object_show(new_win);
 
    new_web = elm_web_add(new_win);
-   elm_web_useragent_set(new_web, wt->user_agent);
-   evas_object_size_hint_weight_set(new_web, EVAS_HINT_EXPAND,
-                                    EVAS_HINT_EXPAND);
+   elm_web_useragent_set(new_web, elm_web_useragent_get(obj));
+   evas_object_size_hint_weight_set(new_web, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    elm_win_resize_object_add(new_win, new_web);
    evas_object_show(new_web);
 
@@ -114,13 +113,13 @@ _new_window_hook(void *data, Evas_Object *obj __UNUSED__, Eina_Bool js __UNUSED_
 }
 
 static void
-_alert_del(void *data __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_alert_del(void *data EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    evas_object_del(obj);
 }
 
 static Evas_Object *
-_alert_hook(void *data __UNUSED__, Evas_Object *obj, const char *message)
+_alert_hook(void *data EINA_UNUSED, Evas_Object *obj, const char *message)
 {
    Evas_Object *popup, *label;
 
@@ -142,27 +141,27 @@ _alert_hook(void *data __UNUSED__, Evas_Object *obj, const char *message)
 }
 
 static void
-_confirm_ok_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_confirm_ok_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Eina_Bool *response = data;
    *response = EINA_TRUE;
 }
 
 static void
-_confirm_cancel_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_confirm_cancel_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Eina_Bool *response = data;
    *response = EINA_FALSE;
 }
 
 static void
-_confirm_dismiss_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_confirm_dismiss_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    evas_object_del(data);
 }
 
 static Evas_Object *
-_confirm_hook(void *data __UNUSED__, Evas_Object *obj, const char *message, Eina_Bool *response)
+_confirm_hook(void *data EINA_UNUSED, Evas_Object *obj, const char *message, Eina_Bool *response)
 {
    Evas_Object *popup, *box, *box2, *label, *btn_ok, *btn_cancel;
 
@@ -207,7 +206,7 @@ _confirm_hook(void *data __UNUSED__, Evas_Object *obj, const char *message, Eina
 }
 
 static Evas_Object *
-_prompt_hook(void *data __UNUSED__, Evas_Object *obj __UNUSED__, const char *message __UNUSED__, const char *default_value, const char **value, Eina_Bool *response)
+_prompt_hook(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, const char *message EINA_UNUSED, const char *default_value, const char **value, Eina_Bool *response)
 {
    *response = EINA_TRUE;
    *value = default_value ? strdup(default_value) : "No default!";
@@ -215,7 +214,7 @@ _prompt_hook(void *data __UNUSED__, Evas_Object *obj __UNUSED__, const char *mes
 }
 
 static Evas_Object *
-_file_selector_hook(void *data __UNUSED__, Evas_Object *obj __UNUSED__, Eina_Bool allow_multiple __UNUSED__, Eina_List *accept_types __UNUSED__, Eina_List **selected_files, Eina_Bool *response)
+_file_selector_hook(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, Eina_Bool allow_multiple EINA_UNUSED, Eina_List *accept_types EINA_UNUSED, Eina_List **selected_files, Eina_Bool *response)
 {
    *selected_files = eina_list_append(NULL,
                                       strdup("/path/to/non_existing_file"));
@@ -224,13 +223,13 @@ _file_selector_hook(void *data __UNUSED__, Evas_Object *obj __UNUSED__, Eina_Boo
 }
 
 static void
-_console_message_hook(void *data __UNUSED__, Evas_Object *obj __UNUSED__, const char *message, unsigned int line_number, const char *source_id)
+_console_message_hook(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, const char *message, unsigned int line_number, const char *source_id)
 {
    printf("CONSOLE: %s:%u:%s\n", source_id, line_number, message);
 }
 
 static void
-_js_popup_hooks_set(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_js_popup_hooks_set(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Web_Test *wt = data;
 
@@ -255,7 +254,7 @@ _js_popup_hooks_set(void *data, Evas_Object *obj __UNUSED__, void *event_info __
 }
 
 static void
-_zoom_out_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_zoom_out_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Web_Test *wt = data;
    double zoom;
@@ -271,7 +270,7 @@ _zoom_out_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED_
 }
 
 static void
-_zoom_in_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_zoom_in_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Web_Test *wt = data;
    double zoom;
@@ -288,7 +287,7 @@ _zoom_in_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__
 }
 
 static void
-_zoom_mode_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info)
+_zoom_mode_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Web_Test *wt = data;
    Elm_Object_Item *hoversel_it = event_info;
@@ -303,21 +302,175 @@ _zoom_mode_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info)
 }
 
 static void
-_show_region_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_show_region_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Web_Test *wt = data;
    elm_web_region_show(wt->web, 300, 300, 1, 1);
 }
 
 static void
-_bring_in_region_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_bring_in_region_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Web_Test *wt = data;
    elm_web_region_bring_in(wt->web, 50, 0, 1, 1);
 }
 
 static void
-_main_web_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_on_fullscreen_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   Web_Test *wt = data;
+   elm_box_unpack(wt->bx, wt->hoversel);
+   evas_object_hide(wt->hoversel);
+}
+
+static void
+_on_unfullscreen_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   Web_Test *wt = data;
+   elm_box_pack_start(wt->bx, wt->hoversel);
+   evas_object_show(wt->hoversel);
+}
+
+typedef struct
+{
+   const char* name;
+   const char* useragent;
+} User_Agent;
+
+static User_Agent ua[] = {
+    {"Default", NULL},
+    {"Mobile/Iphone", "Mozilla/5.0 (iPhone; CPU iPhone OS 6_1 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10B142 Safari/8536.25"},
+    {"Mobile/Android(Chrome)", "Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19"},
+    {"Mobile/Android", "Mozilla/5.0 (Linux; U; Android 4.0.2; en-us; Galaxy Nexus Build/ICL53F) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30"},
+    {"Desktop/Firefox", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:25.0) Gecko/20100101 Firefox/25.0"},
+    {"Desktop/Chrome", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.57 Safari/537.17"}
+};
+
+static void
+_useragent_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
+{
+   Web_Test *wt = data;
+   Elm_Object_Item *hoversel_it = event_info;
+   const char *lbl = elm_object_item_text_get(hoversel_it);
+   unsigned i;
+
+   for (i = 0; i < sizeof(ua) / sizeof(ua[0]); ++i)
+     if (!strcmp(lbl, ua[i].name))
+       {
+           printf("New user agent : %s\n", ua[i].useragent ? ua[i].useragent : "Default");
+           elm_web_useragent_set(wt->web, ua[i].useragent);
+       }
+}
+
+static void
+_dialog_test_cb(void *data, Evas_Object *obj, void *event_info)
+{
+   Web_Test *wt = data;
+   const char *selected = elm_object_item_text_get(event_info);
+   const char dialog_html[] = "<!doctype html><body>"
+       "<script>"
+       "var confirm_test = function() {"
+       " if (window.confirm('confirm') == true) {"
+       "   document.getElementById('r').innerHTML = 'You pressed OK';"
+       " } else {"
+       "   document.getElementById('r').innerHTML = 'You pressed Cancel';"
+       " }"
+       "};"
+       "var prompt_test = function() {"
+       " document.getElementById('r').innerHTML = window.prompt('Enter your name', 'EFL');"
+       "};"
+       "</script>"
+       "Result: <div id='r'> </div>"
+       "<input type='button' value='alert' onclick=\"window.alert('alert pressed');\">"
+       "<input type='button' value='confirm' onclick=\"confirm_test();\">"
+       "<input type='button' value='prompt' onclick=\"prompt_test();\">"
+       "</body>";
+
+   printf("selected test : %s\n", selected);
+   elm_object_text_set(obj, selected);
+
+   elm_web_html_string_load(wt->web, dialog_html, NULL, NULL);
+}
+
+static void
+_select_tag_test_cb(void *data, Evas_Object *obj, void *event_info)
+{
+   Web_Test *wt = data;
+   const char *selected = elm_object_item_text_get(event_info);
+   const char select_html[] = "<!doctype html><body>"
+       "<select>"
+       "<option>eina</option>"
+       "<option>ecore</option>"
+       "<option>evas</option>"
+       "<option>edje</option>"
+       "<option>eet</option>"
+       "<option>emotion</option>"
+       "<option>elementary</option>"
+       "</select>"
+       "</body>";
+
+   printf("selected test : %s\n", selected);
+   elm_object_text_set(obj, selected);
+
+   elm_web_html_string_load(wt->web, select_html, NULL, NULL);
+}
+
+static void
+_new_window_test_cb(void *data, Evas_Object *obj, void *event_info)
+{
+   Web_Test *wt = data;
+   const char *selected = elm_object_item_text_get(event_info);
+   const char new_window_html[] = "<!doctype html><body>"
+       "<script>"
+       "var h = null;"
+       "var test = function() {"
+       "  if (!h) {"
+       "    h = window.open('http://www.enlightenment.org','','width=400,height=300');"
+       "    document.getElementById('btn').value='close window';"
+       "  } else {"
+       "    h.close();"
+       "    h = null;"
+       "    document.getElementById('btn').value='open new window';"
+       "  }"
+       "}"
+       "</script>"
+       "<input type='button' id='btn' onclick='test();' value='open new window'>"
+       "</body>";
+
+   printf("selected test : %s\n", selected);
+   elm_object_text_set(obj, selected);
+
+   elm_web_html_string_load(wt->web, new_window_html, NULL, NULL);
+}
+
+static void
+_fullscreen_test_cb(void *data, Evas_Object *obj, void *event_info)
+{
+   Web_Test *wt = data;
+   const char *selected = elm_object_item_text_get(event_info);
+   const char fullscreen_html[] = "<!doctype html><body>"
+       "<script>"
+       "var launch = function(obj) {"
+       "  var f = document.webkitFullscreenElement;"
+       "  if (f) document.webkitExitFullscreen();"
+       "  if (f != obj) obj.webkitRequestFullscreen();"
+       "}\n"
+       "var test_full = function() { launch(document.documentElement); }\n"
+       "var test_small = function() { launch(document.getElementById('box')); }\n"
+       "</script>"
+       "<input type='button' onclick='test_full();' value='request fullscreen'>"
+       "<div id='box' style='width:100px;height:100px;background-color:blue;' onclick='test_small();'>small box</div>"
+       "<input type='button' onclick='test_small();' value='request fullscreen of box'>"
+       "</body>";
+
+   printf("selected test : %s\n", selected);
+   elm_object_text_set(obj, selected);
+
+   elm_web_html_string_load(wt->web, fullscreen_html, NULL, NULL);
+}
+
+static void
+_main_web_del_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Web_Test *wt = data;
    Evas_Object *sub_win;
@@ -329,33 +482,22 @@ _main_web_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, vo
 }
 
 void
-test_web(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__, Eina_Bool mobile)
+test_web(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   const char user_agent_firefox[] = "Mozilla/5.0 (X11; Linux x86_64; rv:9.0.1) Gecko/20100101 Firefox/9.0.1";
-   const char user_agent_mobile[] = "Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420+ (KHTML, like Gecko) Version/3.0 Mobile/1A543a Safari/419.3";
    Evas_Object *win, *bx, *bx2, *bt, *web, *url;
    Web_Test *wt;
+   unsigned i;
 
    elm_need_web();
 
    wt = calloc(1, sizeof(*wt));
-
-   if (mobile == EINA_TRUE)
-     {
-        win = elm_win_util_standard_add("web-mobile", "Web Mobile");
-        wt->user_agent = user_agent_mobile;
-     }
-   else
-     {
-        win = elm_win_util_standard_add("web", "Web");
-        wt->user_agent = user_agent_firefox;
-     }
+   win = elm_win_util_standard_add("web", "Web");
 
    elm_win_autodel_set(win, EINA_TRUE);
 
    bx = elm_box_add(win);
-   elm_win_resize_object_add(win, bx);
    evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bx);
    evas_object_show(bx);
 
    bx2 = elm_box_add(win);
@@ -366,8 +508,6 @@ test_web(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __
    evas_object_show(bx2);
 
    web = elm_web_add(win);
-   elm_web_useragent_set(web, wt->user_agent);
-   printf("elm_web useragent: %s\n", elm_web_useragent_get(web));
    evas_object_size_hint_weight_set(web, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(web, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_box_pack_end(bx, web);
@@ -404,7 +544,7 @@ test_web(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __
    elm_box_pack_end(bx2, url);
    evas_object_show(url);
 
-   evas_object_smart_callback_add(url, "activated", _url_change_cb, web);
+   evas_object_smart_callback_add(url, "activated", _url_entry_changed_cb, web);
    wt->url_entry = url;
 
    bx2 = elm_box_add(win);
@@ -472,14 +612,22 @@ test_web(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __
 
    evas_object_smart_callback_add(bt, "clicked", _bring_in_region_cb, wt);
 
+   bt = elm_hoversel_add(win);
+   elm_object_text_set(bt, "User agent");
+   elm_box_pack_end(bx2, bt);
+   evas_object_show(bt);
+
+   for (i = 0; i < sizeof(ua) / sizeof(ua[0]); ++i)
+     elm_hoversel_item_add(bt, ua[i].name, NULL, ELM_ICON_NONE, _useragent_cb, wt);
+
    evas_object_smart_callback_add(web, "title,changed", _title_changed_cb, win);
-   evas_object_smart_callback_add(web, "uri,changed", _uri_changed_cb, wt);
+   evas_object_smart_callback_add(web, "url,changed", _url_changed_cb, wt);
 
    evas_object_event_callback_add(web, EVAS_CALLBACK_DEL, _main_web_del_cb, wt);
 
    wt->web = web;
 
-   elm_web_uri_set(web, "http://www.enlightenment.org");
+   elm_web_url_set(web, "http://www.enlightenment.org");
 
    elm_web_window_create_hook_set(web, _new_window_hook, wt);
 
@@ -488,14 +636,58 @@ test_web(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __
 }
 
 void
-test_web_normal(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_web_ui(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   test_web(data, obj, event_info, EINA_FALSE);
-}
+   Evas_Object *win, *bx, *web, *hoversel;
+   Web_Test *wt;
 
-void
-test_web_mobile(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
-{
-   test_web(data, obj, event_info, EINA_TRUE);
+   elm_need_web();
+
+   wt = calloc(1, sizeof(*wt));
+   win = elm_win_util_standard_add("web", "Web");
+
+   evas_object_smart_callback_add(win, "fullscreen", _on_fullscreen_cb, wt);
+   evas_object_smart_callback_add(win, "unfullscreen", _on_unfullscreen_cb, wt);
+   elm_win_autodel_set(win, EINA_TRUE);
+
+   bx = elm_box_add(win);
+   evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bx);
+   evas_object_show(bx);
+
+   hoversel = elm_hoversel_add(bx);
+   elm_hoversel_hover_parent_set(hoversel, win);
+   elm_object_text_set(hoversel, "Test cases");
+
+   elm_hoversel_item_add(hoversel, "alert/confirm/prompt", NULL, ELM_ICON_NONE,
+                         _dialog_test_cb, wt);
+   elm_hoversel_item_add(hoversel, "<select> tag", NULL, ELM_ICON_NONE,
+                         _select_tag_test_cb, wt);
+   elm_hoversel_item_add(hoversel, "new window", NULL, ELM_ICON_NONE,
+                         _new_window_test_cb, wt);
+   elm_hoversel_item_add(hoversel, "fullscreen", NULL, ELM_ICON_NONE,
+                         _fullscreen_test_cb, wt);
+   elm_box_pack_end(bx, hoversel);
+   evas_object_show(hoversel);
+
+   web = elm_web_add(win);
+   evas_object_size_hint_weight_set(web, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(web, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bx, web);
+   evas_object_show(web);
+
+   elm_web_window_create_hook_set(web, _new_window_hook, wt);
+
+   evas_object_event_callback_add(web, EVAS_CALLBACK_DEL, _main_web_del_cb, wt);
+   wt->web = web;
+   wt->bx = bx;
+   wt->hoversel = hoversel;
+
+
+   elm_web_html_string_load(wt->web,
+                            "<!doctype html><body>Hello, WebKit/Efl</body>",
+                            NULL, NULL);
+
+   evas_object_resize(win, 320, 480);
+   evas_object_show(win);
 }
-#endif

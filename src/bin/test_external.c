@@ -3,11 +3,9 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
-
 
 void
-test_external_button(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_external_button(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *ly;
    char buf[PATH_MAX];
@@ -19,7 +17,6 @@ test_external_button(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *e
    snprintf(buf, sizeof(buf), "%s/objects/test_external.edj", elm_app_data_dir_get());
    elm_layout_file_set(ly, buf, "external/button");
    evas_object_size_hint_weight_set(ly, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(ly, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_win_resize_object_add(win, ly);
    evas_object_show(ly);
 
@@ -28,7 +25,7 @@ test_external_button(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *e
 }
 
 void
-test_external_slider(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_external_slider(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *ly;
    char buf[PATH_MAX];
@@ -40,7 +37,6 @@ test_external_slider(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *e
    snprintf(buf, sizeof(buf), "%s/objects/test_external.edj", elm_app_data_dir_get());
    elm_layout_file_set(ly, buf, "external/slider");
    evas_object_size_hint_weight_set(ly, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(ly, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_win_resize_object_add(win, ly);
    evas_object_show(ly);
 
@@ -49,7 +45,7 @@ test_external_slider(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *e
 }
 
 void
-test_external_scroller(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_external_scroller(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *ly;
    char buf[PATH_MAX];
@@ -61,7 +57,6 @@ test_external_scroller(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void 
    snprintf(buf, sizeof(buf), "%s/objects/test_external.edj", elm_app_data_dir_get());
    elm_layout_file_set(ly, buf, "external/scroller");
    evas_object_size_hint_weight_set(ly, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(ly, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_win_resize_object_add(win, ly);
    evas_object_show(ly);
 
@@ -105,12 +100,12 @@ _timer_cb(void *data)
    elm_object_disabled_set(bt1, EINA_FALSE);
    elm_object_disabled_set(bt2, EINA_FALSE);
    elm_object_disabled_set(bt3, EINA_FALSE);
-   
+
    return ECORE_CALLBACK_CANCEL;
 }
 
 static void
-_bt_clicked(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_bt_clicked(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *edje = data;
    Evas_Object *bt1, *bt2, *bt3, *pb1, *pb2, *pb3, *pb4, *pb5, *pb6, *pb7;
@@ -122,7 +117,6 @@ _bt_clicked(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__
    elm_object_disabled_set(bt2, EINA_TRUE);
    elm_object_disabled_set(bt3, EINA_TRUE);
 
-   pb1 = edje_object_part_external_object_get(edje, "ext_pbar1");
    pb1 = edje_object_part_external_object_get(edje, "ext_pbar1");
    pb2 = edje_object_part_external_object_get(edje, "ext_pbar2");
    pb3 = edje_object_part_external_object_get(edje, "ext_pbar3");
@@ -144,7 +138,7 @@ _bt_clicked(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__
 }
 
 void
-test_external_pbar(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_external_pbar(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *ly, *edje, *bt;
    char buf[PATH_MAX];
@@ -156,7 +150,6 @@ test_external_pbar(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *eve
    snprintf(buf, sizeof(buf), "%s/objects/test_external.edj", elm_app_data_dir_get());
    elm_layout_file_set(ly, buf, "external/pbar");
    evas_object_size_hint_weight_set(ly, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(ly, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_win_resize_object_add(win, ly);
    evas_object_show(ly);
 
@@ -169,7 +162,7 @@ test_external_pbar(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *eve
 }
 
 void
-test_external_video(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_external_video(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *ly;
    char buf[PATH_MAX];
@@ -181,13 +174,9 @@ test_external_video(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *ev
    snprintf(buf, sizeof(buf), "%s/objects/test_external.edj", elm_app_data_dir_get());
    elm_layout_file_set(ly, buf, "external/video");
    evas_object_size_hint_weight_set(ly, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(ly, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_win_resize_object_add(win, ly);
    evas_object_show(ly);
 
    evas_object_resize(win, 320, 400);
    evas_object_show(win);
 }
-
-
-#endif

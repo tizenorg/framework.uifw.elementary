@@ -1,9 +1,13 @@
 MAINTAINERCLEANFILES = Makefile.in
 
+SUBDIRS = sphere_hunter
+
+include ../../Makefile_Elm_Helpers.am
+
 .PHONY: screenshots
 
-examplesdir = $(pkgdatadir)/examples
-filesdir = $(pkgdatadir)/examples
+examplesdir = $(pkglibdir)/examples
+filesdir = $(pkglibdir)/examples
 files_DATA =
 
 AM_CPPFLAGS = \
@@ -14,26 +18,11 @@ AM_CPPFLAGS = \
 -DPACKAGE_DATA_DIR="\"$(pkgdatadir)\"" \
 -DPACKAGE_BIN_DIR=\"$(bindir)\" \
 -DPACKAGE_LIB_DIR=\"$(libdir)\" \
-@ELEMENTARY_EDBUS_CFLAGS@ \
-@ELEMENTARY_EFREET_CFLAGS@ \
-@ELEMENTARY_EWEATHER_CFLAGS@ \
-@ELEMENTARY_ETHUMB_CFLAGS@ \
-@ELEMENTARY_EMAP_CFLAGS@ \
-@ELEMENTARY_X_CFLAGS@ \
 @ELEMENTARY_CFLAGS@
 
 LDADD = \
 @ELEMENTARY_LIBS@ \
-@ELEMENTARY_ETHUMB_LIBS@ \
-@ELEMENTARY_EMAP_LIBS@ \
-@ELEMENTARY_X_LIBS@ \
 $(top_builddir)/src/lib/libelementary.la
-
-EDJE_CC = @edje_cc@
-EDJE_FLAGS_VERBOSE_ =
-EDJE_FLAGS_VERBOSE_0 =
-EDJE_FLAGS_VERBOSE_1 = -v
-EDJE_FLAGS = $(EDJE_FLAGS_$(V))
 
 ELEMENTARY_CODEGEN = $(top_builddir)/src/bin/@ELEMENTARY_CODEGEN_PRG@
 ELEMENTARY_CODEGEN_FLAGS = --prefix=codegen_example
@@ -104,20 +93,26 @@ layout_example_03.c \
 list_example_01.c \
 list_example_02.c \
 list_example_03.c \
+location_example_01.c \
 map_example_01.c \
 map_example_02.c \
 map_example_03.c \
 mapbuf_example.c \
 menu_example_01.c \
+naviframe_example.c \
 notify_example_01.c \
 panes_example.c \
 panel_example_01.c \
 photocam_example_01.c \
+prefs_example_01.c \
+prefs_example_02.c \
+prefs_example_03.c \
 popup_example_01.c \
 popup_example_02.c \
 popup_example_03.c \
 progressbar_example.c \
 radio_example_01.c \
+radio_example_02.c \
 segment_control_example.c \
 separator_example_01.c \
 slider_example.c \
@@ -139,10 +134,23 @@ transit_example_03.c \
 transit_example_04.c \
 web_example_01.c \
 web_example_02.c \
-win_example.c
+win_example.c \
+evas3d_scene_on_button_example.c \
+evas3d_object_on_button_example.c \
+evas3d_map_example.edc \
+evas3d_map_example.c \
+track_example_01.c
+
+if HAVE_CXX11
+SRCS += \
+box_cxx_example_02.cc
+endif
 
 .edc.edj:
-	$(EDJE_CC) $(EDJE_FLAGS) $< $@
+	$(AM_V_EDJ)$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+.epc.epb:
+	$(AM_V_EPB)$(ELM_PREFS_CC) $< $@
 
 if EFL_INSTALL_EXAMPLES
 files_DATA += $(SRCS) \
@@ -151,12 +159,17 @@ endif
 
 if EFL_BUILD_EXAMPLES
 files_DATA += \
+	prefs_example_01.epb \
+	prefs_example_02.epb \
+	prefs_example_03.epb \
+	prefs_example_03.edj \
 	theme_example.edj \
 	layout_example.edj\
-	codegen_example.edj
+	codegen_example.edj \
+	evas3d_map_example.edj
 
 clean-local:
-	rm -f *.edj
+	rm -f *.edj *.epb *.cfg *.cfg.bkp
 
 codegen_example_generated.c codegen_example_generated.h: codegen_example.edj
 	$(ELEMENTARY_CODEGEN) $(ELEMENTARY_CODEGEN_FLAGS) codegen_example.edj \
@@ -231,20 +244,26 @@ layout_example_03 \
 list_example_01 \
 list_example_02 \
 list_example_03 \
+location_example_01 \
 map_example_01 \
 map_example_02 \
 map_example_03 \
 mapbuf_example \
 menu_example_01 \
+naviframe_example \
 notify_example_01 \
 panes_example \
 panel_example_01 \
 photocam_example_01 \
+prefs_example_01 \
+prefs_example_02 \
+prefs_example_03 \
 popup_example_01 \
 popup_example_02 \
 popup_example_03 \
 progressbar_example \
 radio_example_01 \
+radio_example_02 \
 segment_control_example \
 separator_example_01 \
 slider_example \
@@ -265,7 +284,16 @@ transit_example_03 \
 transit_example_04 \
 web_example_01 \
 web_example_02 \
-win_example
+win_example \
+evas3d_scene_on_button_example \
+evas3d_object_on_button_example \
+evas3d_map_example \
+track_example_01
+
+if HAVE_CXX11
+examples_PROGRAMS += \
+box_cxx_example_02
+endif
 
 if ELEMENTARY_WINDOWS_BUILD
 efl_thread_1_SOURCES = efl_thread_win32_1.c
@@ -277,6 +305,13 @@ efl_thread_1_SOURCES = efl_thread_1.c
 efl_thread_2_SOURCES = efl_thread_2.c
 efl_thread_3_SOURCES = efl_thread_3.c
 efl_thread_4_SOURCES = efl_thread_4.c
+endif
+
+if HAVE_CXX11
+box_cxx_example_02_SOURCES = box_cxx_example_02.cc
+box_cxx_example_02_CXXFLAGS = \
+@ELEMENTARY_CFLAGS@ \
+@ELEMENTARY_CXX_CFLAGS@
 endif
 
 # This variable will hold the list of screenshots that will be made
@@ -338,6 +373,7 @@ panes_example:panes_example.png:0.0 \
 ctxpopup_example_01:ctxpopup_example_01.png:0.0 \
 separator_example_01:separator_example_01.png:0.0 \
 radio_example_01:radio_example_01.png:0.0 \
+radio_example_02:radio_example_02.png:0.0 \
 panel_example_01:panel_example_01.png:0.0 \
 gengrid_example:gengrid_example.png:0.0 \
 genlist_example_01:genlist_example_01.png:0.1 \
@@ -345,7 +381,6 @@ genlist_example_02:genlist_example_02.png:0.1 \
 genlist_example_03:genlist_example_03.png:0.1 \
 genlist_example_04:genlist_example_04.png:0.1 \
 genlist_example_05:genlist_example_05.png:0.1 \
-glview_example_01:glview_example_01.png:0.0 \
 thumb_example_01:thumb_example_01.png:0.5 \
 entry_example:entry_example.png:0.0 \
 progressbar_example:progressbar_example.png:0.0 \
@@ -363,6 +398,11 @@ inwin_example:inwin_example_a.png:0.2 \
 table_example_01:table_example_01.png:0.0 \
 table_example_02:table_example_02.png:0.0 \
 menu_example_01:menu_example_01.png:0.5
+
+if HAVE_CXX11
+SCREENSHOTS += \
+box_cxx_example_02:box_cxx_example_02.png:1.3
+endif
 
 HTML_SS_DIR=$(top_builddir)/doc/html/screenshots
 LATEX_SS_DIR=$(top_builddir)/doc/latex/screenshots
@@ -385,4 +425,4 @@ screenshots:
 
 endif
 
-EXTRA_DIST = dict.txt layout_example.edc theme_example.edc codegen_example.edc
+EXTRA_DIST = dict.txt layout_example.edc theme_example.edc codegen_example.edc evas3d_map_example.edc

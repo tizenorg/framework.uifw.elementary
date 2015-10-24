@@ -1,9 +1,19 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
+#define ELM_INTERFACE_ATSPI_ACCESSIBLE_PROTECTED
+
 #include <Elementary.h>
 #include <math.h>
 #include "elm_priv.h"
 #include "elm_widget_actionslider.h"
+#include "elm_widget_layout.h"
 
-EAPI const char ELM_ACTIONSLIDER_SMART_NAME[] = "elm_actionslider";
+#define MY_CLASS ELM_ACTIONSLIDER_CLASS
+
+#define MY_CLASS_NAME "Elm_Actionslider"
+#define MY_CLASS_NAME_LEGACY "elm_actionslider"
 
 static const Elm_Layout_Part_Alias_Description _text_aliases[] =
 {
@@ -14,19 +24,20 @@ static const Elm_Layout_Part_Alias_Description _text_aliases[] =
    {NULL, NULL}
 };
 
-static const char SIG_CHANGED[] = "pos_changed";
-static const char SIG_SELECTED[] = "selected";
+#define ELM_PRIV_ACTIONSLIDER_SIGNALS(cmd) \
+   cmd(SIG_CHANGED, "pos_changed", "") \
+   cmd(SIG_SELECTED, "selected", "")
+
+ELM_PRIV_ACTIONSLIDER_SIGNALS(ELM_PRIV_STATIC_VARIABLE_DECLARE);
+
 static const Evas_Smart_Cb_Description _smart_callbacks[] =
 {
-   {SIG_CHANGED, ""},
-   {SIG_SELECTED, ""},
+   ELM_PRIV_ACTIONSLIDER_SIGNALS(ELM_PRIV_SMART_CALLBACKS_DESC)
+   {SIG_WIDGET_LANG_CHANGED, ""}, /**< handled by elm_widget */
+   {SIG_WIDGET_ACCESS_CHANGED, ""}, /**< handled by elm_widget */
    {NULL, NULL}
 };
-
-EVAS_SMART_SUBCLASS_NEW
-  (ELM_ACTIONSLIDER_SMART_NAME, _elm_actionslider,
-  Elm_Actionslider_Smart_Class, Elm_Layout_Smart_Class,
-  elm_layout_smart_class_get, _smart_callbacks);
+#undef ELM_PRIV_ACTIONSLIDER_SIGNALS
 
 static Elm_Actionslider_Pos
 _get_pos_by_orientation(const Evas_Object *obj,
@@ -51,12 +62,12 @@ _get_pos_by_orientation(const Evas_Object *obj,
    return pos;
 }
 
-static void
-_elm_actionslider_smart_sizing_eval(Evas_Object *obj)
+EOLIAN static void
+_elm_actionslider_elm_layout_sizing_eval(Eo *obj, Elm_Actionslider_Data *sd)
 {
    Evas_Coord minw = -1, minh = -1;
 
-   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    elm_coords_finger_size_adjust(1, &minw, 1, &minh);
    evas_object_size_hint_min_set(sd->drag_button_base, minw, minh);
@@ -66,7 +77,7 @@ _elm_actionslider_smart_sizing_eval(Evas_Object *obj)
    minh = -1;
    elm_coords_finger_size_adjust(3, &minw, 1, &minh);
    edje_object_size_min_restricted_calc
-     (ELM_WIDGET_DATA(sd)->resize_obj, &minw, &minh, minw, minh);
+     (wd->resize_obj, &minw, &minh, minw, minh);
    evas_object_size_hint_min_set(obj, minw, minh);
    evas_object_size_hint_max_set(obj, -1, -1);
 }
@@ -77,7 +88,7 @@ _mirroredness_change_eval(Evas_Object *obj)
    double pos;
    char *left;
 
-   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    left = (char *)elm_layout_text_get(obj, "elm.text.left");
    if (left) left = strdup(left);
@@ -89,57 +100,59 @@ _mirroredness_change_eval(Evas_Object *obj)
    free(left);
 
    edje_object_part_drag_value_get
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm.drag_button_base", &pos, NULL);
+     (wd->resize_obj, "elm.drag_button_base", &pos, NULL);
    edje_object_part_drag_value_set
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm.drag_button_base", 1.0 - pos, 0.5);
+     (wd->resize_obj, "elm.drag_button_base", 1.0 - pos, 0.5);
 }
 
-static Eina_Bool
-_elm_actionslider_smart_theme(Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_actionslider_elm_widget_theme_apply(Eo *obj, Elm_Actionslider_Data *sd EINA_UNUSED)
 {
    Eina_Bool mirrored;
+   Eina_Bool int_ret = EINA_FALSE;
 
-   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, EINA_FALSE);
 
    mirrored = elm_object_mirrored_get(obj);
 
-   if (!ELM_WIDGET_CLASS(_elm_actionslider_parent_sc)->theme(obj))
-     return EINA_FALSE;
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_theme_apply());
+   if (!int_ret) return EINA_FALSE;
 
    if (elm_object_mirrored_get(obj) != mirrored)
      _mirroredness_change_eval(obj);
 
-   edje_object_message_signal_process(ELM_WIDGET_DATA(sd)->resize_obj);
+   edje_object_message_signal_process(wd->resize_obj);
 
    return EINA_TRUE;
 }
 
 static void
 _drag_button_down_cb(void *data,
-                     Evas_Object *o __UNUSED__,
-                     const char *emission __UNUSED__,
-                     const char *source __UNUSED__)
+                     Evas_Object *o EINA_UNUSED,
+                     const char *emission EINA_UNUSED,
+                     const char *source EINA_UNUSED)
 {
-   Elm_Actionslider_Smart_Data *sd = data;
+   Elm_Actionslider_Data *sd = eo_data_scope_get(data, MY_CLASS);
 
    sd->mouse_down = EINA_TRUE;
 }
 
 static void
 _drag_button_move_cb(void *data,
-                     Evas_Object *o __UNUSED__,
-                     const char *emission __UNUSED__,
-                     const char *source __UNUSED__)
+                     Evas_Object *o EINA_UNUSED,
+                     const char *emission EINA_UNUSED,
+                     const char *source EINA_UNUSED)
 {
    Evas_Object *obj = data;
    double pos = 0.0;
 
    ELM_ACTIONSLIDER_DATA_GET(obj, sd);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    if (!sd->mouse_down) return;
 
    edje_object_part_drag_value_get
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm.drag_button_base", &pos, NULL);
+     (wd->resize_obj, "elm.drag_button_base", &pos, NULL);
    if (pos == 0.0)
      evas_object_smart_callback_call
        (obj, SIG_CHANGED, !elm_widget_mirrored_get(obj) ? "left" : "right");
@@ -171,9 +184,10 @@ _button_animator(void *data)
    double cur_position = 0.0, new_position = 0.0;
 
    ELM_ACTIONSLIDER_DATA_GET(obj, sd);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, ECORE_CALLBACK_CANCEL);
 
    edje_object_part_drag_value_get
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm.drag_button_base",
+     (wd->resize_obj, "elm.drag_button_base",
      &cur_position, NULL);
    {
       double adjusted_final;
@@ -204,7 +218,7 @@ _button_animator(void *data)
              }
         }
       edje_object_part_drag_value_set
-        (ELM_WIDGET_DATA(sd)->resize_obj, "elm.drag_button_base",
+        (wd->resize_obj, "elm.drag_button_base",
         new_position, 0.5);
    }
 
@@ -234,19 +248,20 @@ _button_animator(void *data)
 
 static void
 _drag_button_up_cb(void *data,
-                   Evas_Object *o __UNUSED__,
-                   const char *emission __UNUSED__,
-                   const char *source __UNUSED__)
+                   Evas_Object *o EINA_UNUSED,
+                   const char *emission EINA_UNUSED,
+                   const char *source EINA_UNUSED)
 {
    Evas_Object *obj = data;
    double position = 0.0;
 
    ELM_ACTIONSLIDER_DATA_GET(obj, sd);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    sd->mouse_down = EINA_FALSE;
 
    edje_object_part_drag_value_get
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm.drag_button_base", &position,
+     (wd->resize_obj, "elm.drag_button_base", &position,
      NULL);
 
    const char *left, *right, *center;
@@ -269,7 +284,7 @@ _drag_button_up_cb(void *data,
         sd->final_position = 0.5;
         evas_object_smart_callback_call(obj, SIG_SELECTED, (char *)center);
 
-        if (sd->button_animator) ecore_animator_del(sd->button_animator);
+        ecore_animator_del(sd->button_animator);
         sd->button_animator = ecore_animator_add(_button_animator, obj);
 
         return;
@@ -328,10 +343,75 @@ _drag_button_up_cb(void *data,
         else
           sd->final_position = 0;
      }
-   if (sd->button_animator) ecore_animator_del(sd->button_animator);
+   ecore_animator_del(sd->button_animator);
    sd->button_animator = ecore_animator_add(_button_animator, obj);
+}
 
-#undef _FINAL_FIX_POS_ON_MIRROREDNESS
+static void
+_track_move_cb(void *data,
+       Evas_Object *o EINA_UNUSED,
+       const char *emission,
+       const char *source EINA_UNUSED)
+{
+   Evas_Object *obj = data;
+
+   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
+
+   if (!strcmp(emission, "elm,action,down,right"))
+     {
+        if (sd->final_position == 0.0)
+          {
+             if (sd->enabled_position & ELM_ACTIONSLIDER_CENTER)
+               {
+                  evas_object_smart_callback_call(obj, SIG_CHANGED, "center");
+                  sd->final_position = 0.5;
+               }
+             else if (sd->enabled_position & ELM_ACTIONSLIDER_RIGHT)
+               {
+                  evas_object_smart_callback_call(obj, SIG_CHANGED, "right");
+                  sd->final_position = 1.0;
+               }
+          }
+        else if ((sd->final_position == 0.5) &&
+                 (sd->enabled_position & ELM_ACTIONSLIDER_RIGHT))
+          {
+             evas_object_smart_callback_call(obj, SIG_CHANGED, "right");
+             sd->final_position = 1.0;
+          }
+     }
+   else if (!strcmp(emission, "elm,action,down,center"))
+     {
+        if (sd->enabled_position & ELM_ACTIONSLIDER_CENTER)
+          {
+             evas_object_smart_callback_call(obj, SIG_CHANGED, "center");
+             sd->final_position = 0.5;
+          }
+     }
+   else
+     {
+        if (sd->final_position == 1.0)
+          {
+             if (sd->enabled_position & ELM_ACTIONSLIDER_CENTER)
+               {
+                  evas_object_smart_callback_call(obj, SIG_CHANGED, "center");
+                  sd->final_position = 0.5;
+               }
+             else if (sd->enabled_position & ELM_ACTIONSLIDER_LEFT)
+               {
+                  evas_object_smart_callback_call(obj, SIG_CHANGED, "left");
+                  sd->final_position = 0.0;
+               }
+          }
+        else if (sd->final_position == 0.5 &&
+                (sd->enabled_position & ELM_ACTIONSLIDER_LEFT))
+          {
+             evas_object_smart_callback_call(obj, SIG_CHANGED, "left");
+             sd->final_position = 0.0;
+          }
+     }
+   ecore_animator_del(sd->button_animator);
+   sd->button_animator = ecore_animator_add(_button_animator, obj);
 }
 
 static void
@@ -351,125 +431,113 @@ _mirrored_part_fix(const Evas_Object *obj,
      }
 }
 
-static Eina_Bool
-_elm_actionslider_smart_text_set(Evas_Object *obj,
-                                 const char *item,
-                                 const char *label)
+EOLIAN static Eina_Bool
+_elm_actionslider_elm_layout_text_set(Eo *obj, Elm_Actionslider_Data *_pd EINA_UNUSED, const char *part, const char *text)
 {
-   _mirrored_part_fix(obj, &item);
+   Eina_Bool int_ret = EINA_FALSE;
 
-   return _elm_actionslider_parent_sc->text_set(obj, item, label);
+   _mirrored_part_fix(obj, &part);
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_layout_text_set(part, text));
+
+   return int_ret;
 }
 
-static const char *
-_elm_actionslider_smart_text_get(const Evas_Object *obj,
-                                 const char *item)
+EOLIAN static const char*
+_elm_actionslider_elm_layout_text_get(Eo *obj, Elm_Actionslider_Data *_pd EINA_UNUSED, const char *part)
 {
-   _mirrored_part_fix(obj, &item);
+   const char *text = NULL;
 
-   return _elm_actionslider_parent_sc->text_get(obj, item);
+   _mirrored_part_fix(obj, &part);
+
+   eo_do_super(obj, MY_CLASS, text = elm_obj_layout_text_get(part));
+
+   return text;
 }
 
-static void
-_elm_actionslider_smart_add(Evas_Object *obj)
+EOLIAN static void
+_elm_actionslider_evas_object_smart_add(Eo *obj, Elm_Actionslider_Data *priv)
 {
-   EVAS_SMART_DATA_ALLOC(obj, Elm_Actionslider_Smart_Data);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-   ELM_WIDGET_CLASS(_elm_actionslider_parent_sc)->base.add(obj);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   elm_widget_sub_object_parent_add(obj);
+
+   priv->enabled_position = ELM_ACTIONSLIDER_ALL;
+
+   priv->drag_button_base =
+     evas_object_rectangle_add(evas_object_evas_get(obj));
+   evas_object_color_set(priv->drag_button_base, 0, 0, 0, 0);
+
+   // dirty support for the backward compatibility
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm.drag_button,mouse,up", "*",
+     _drag_button_up_cb, obj);
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm.drag_button,mouse,down", "*",
+     _drag_button_down_cb, obj);
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm.drag_button,mouse,move", "*",
+     _drag_button_move_cb, obj);
+
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm,action,up,drag_button", "elm",
+     _drag_button_up_cb, obj);
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm,action,down,drag_button", "elm",
+     _drag_button_down_cb, obj);
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm,action,move,drag_button", "elm",
+     _drag_button_move_cb, obj);
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm,action,down,right", "*",
+     _track_move_cb, obj);
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm,action,down,left", "*",
+     _track_move_cb, obj);
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm,action,down,center", "*",
+     _track_move_cb, obj);
+
+   if (!elm_layout_theme_set
+       (obj, "actionslider", "base", elm_widget_style_get(obj)))
+     ERR("Failed to set layout!");
+
+   elm_layout_content_set(obj, "elm.drag_button_base", priv->drag_button_base);
+
+   elm_layout_sizing_eval(obj);
 }
 
-static void
-_elm_actionslider_smart_set_user(Elm_Actionslider_Smart_Class *sc)
+EOLIAN static const Elm_Layout_Part_Alias_Description*
+_elm_actionslider_elm_layout_text_aliases_get(Eo *obj EINA_UNUSED, Elm_Actionslider_Data *_pd EINA_UNUSED)
 {
-   ELM_WIDGET_CLASS(sc)->base.add = _elm_actionslider_smart_add;
-
-   /* not a 'focus chain manager' */
-   ELM_WIDGET_CLASS(sc)->focus_next = NULL;
-   ELM_WIDGET_CLASS(sc)->focus_direction_manager_is = NULL;
-   ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
-
-   ELM_WIDGET_CLASS(sc)->theme = _elm_actionslider_smart_theme;
-
-   ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_actionslider_smart_sizing_eval;
-   ELM_LAYOUT_CLASS(sc)->text_set = _elm_actionslider_smart_text_set;
-   ELM_LAYOUT_CLASS(sc)->text_get = _elm_actionslider_smart_text_get;
-
-   ELM_LAYOUT_CLASS(sc)->text_aliases = _text_aliases;
-}
-
-EAPI const Elm_Actionslider_Smart_Class *
-elm_actionslider_smart_class_get(void)
-{
-   static Elm_Actionslider_Smart_Class _sc =
-     ELM_ACTIONSLIDER_SMART_CLASS_INIT_NAME_VERSION
-       (ELM_ACTIONSLIDER_SMART_NAME);
-   static const Elm_Actionslider_Smart_Class *class = NULL;
-   Evas_Smart_Class *esc = (Evas_Smart_Class *)&_sc;
-
-   if (class)
-     return class;
-
-   _elm_actionslider_smart_set(&_sc);
-   esc->callbacks = _smart_callbacks;
-   class = &_sc;
-
-   return class;
+   return _text_aliases;
 }
 
 EAPI Evas_Object *
 elm_actionslider_add(Evas_Object *parent)
 {
-   Evas_Object *obj;
-
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-
-   obj = elm_widget_add(_elm_actionslider_smart_class_new(), parent);
-   if (!obj) return NULL;
-
-   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
-
-   if (!elm_widget_sub_object_add(parent, obj))
-     ERR("could not add %p as sub object of %p", obj, parent);
-
-   sd->mouse_down = EINA_FALSE;
-   sd->enabled_position = ELM_ACTIONSLIDER_ALL;
-
-   sd->drag_button_base =
-     evas_object_rectangle_add(evas_object_evas_get(obj));
-   evas_object_color_set(sd->drag_button_base, 0, 0, 0, 0);
-
-   edje_object_signal_callback_add
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm.drag_button,mouse,up", "",
-     _drag_button_up_cb, obj);
-   edje_object_signal_callback_add
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm.drag_button,mouse,down", "",
-     _drag_button_down_cb, sd);
-   edje_object_signal_callback_add
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm.drag_button,mouse,move", "",
-     _drag_button_move_cb, obj);
-
-   elm_layout_theme_set
-     (obj, "actionslider", "base", elm_widget_style_get(obj));
-
-   elm_layout_content_set(obj, "elm.drag_button_base", sd->drag_button_base);
-
-   elm_layout_sizing_eval(obj);
-
-   //Tizen Only: This should be removed when eo is applied.
-   ELM_WIDGET_DATA_GET(obj, wsd);
-   wsd->on_create = EINA_FALSE;
-
+   Evas_Object *obj = eo_add(MY_CLASS, parent);
    return obj;
 }
 
-EAPI void
-elm_actionslider_indicator_pos_set(Evas_Object *obj,
-                                   Elm_Actionslider_Pos pos)
+EOLIAN static void
+_elm_actionslider_eo_base_constructor(Eo *obj, Elm_Actionslider_Data *_pd EINA_UNUSED)
+{
+   eo_do_super(obj, MY_CLASS, eo_constructor());
+   eo_do(obj,
+         evas_obj_type_set(MY_CLASS_NAME_LEGACY),
+         evas_obj_smart_callbacks_descriptions_set(_smart_callbacks),
+         elm_interface_atspi_accessible_role_set(ELM_ATSPI_ROLE_SLIDER));
+}
+
+EOLIAN static void
+_elm_actionslider_indicator_pos_set(Eo *obj, Elm_Actionslider_Data *_pd EINA_UNUSED, Elm_Actionslider_Pos pos)
 {
    double position = 0.0;
 
-   ELM_ACTIONSLIDER_CHECK(obj);
-   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
+
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    pos = _get_pos_by_orientation(obj, pos);
    if (pos == ELM_ACTIONSLIDER_CENTER) position = 0.5;
@@ -477,87 +545,95 @@ elm_actionslider_indicator_pos_set(Evas_Object *obj,
      position = 1.0;
 
    edje_object_part_drag_value_set
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm.drag_button_base", position, 0.5);
+     (wd->resize_obj, "elm.drag_button_base", position, 0.5);
 }
 
-EAPI Elm_Actionslider_Pos
-elm_actionslider_indicator_pos_get(const Evas_Object *obj)
+EOLIAN static Elm_Actionslider_Pos
+_elm_actionslider_indicator_pos_get(Eo *obj, Elm_Actionslider_Data *_pd EINA_UNUSED)
 {
    double position;
 
-   ELM_ACTIONSLIDER_CHECK(obj) ELM_ACTIONSLIDER_NONE;
-   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
+   Elm_Actionslider_Pos ret = ELM_ACTIONSLIDER_NONE;
+
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, ELM_ACTIONSLIDER_NONE);
 
    edje_object_part_drag_value_get
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm.drag_button_base", &position,
+     (wd->resize_obj, "elm.drag_button_base", &position,
      NULL);
    if (position < 0.3)
-     return _get_pos_by_orientation(obj, ELM_ACTIONSLIDER_LEFT);
+     ret = _get_pos_by_orientation(obj, ELM_ACTIONSLIDER_LEFT);
    else if (position < 0.7)
-     return ELM_ACTIONSLIDER_CENTER;
+     ret = ELM_ACTIONSLIDER_CENTER;
    else
-     return _get_pos_by_orientation(obj, ELM_ACTIONSLIDER_RIGHT);
+     ret = _get_pos_by_orientation(obj, ELM_ACTIONSLIDER_RIGHT);
+
+   return ret;
 }
 
-EAPI void
-elm_actionslider_magnet_pos_set(Evas_Object *obj,
-                                Elm_Actionslider_Pos pos)
+EOLIAN static void
+_elm_actionslider_magnet_pos_set(Eo *obj EINA_UNUSED, Elm_Actionslider_Data *sd, Elm_Actionslider_Pos pos)
 {
-   ELM_ACTIONSLIDER_CHECK(obj);
-   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
-
    sd->magnet_position = pos;
 }
 
-EAPI Elm_Actionslider_Pos
-elm_actionslider_magnet_pos_get(const Evas_Object *obj)
+EOLIAN static Elm_Actionslider_Pos
+_elm_actionslider_magnet_pos_get(Eo *obj EINA_UNUSED, Elm_Actionslider_Data *sd)
 {
-   ELM_ACTIONSLIDER_CHECK(obj) ELM_ACTIONSLIDER_NONE;
-   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
-
    return sd->magnet_position;
 }
 
-EAPI void
-elm_actionslider_enabled_pos_set(Evas_Object *obj,
-                                 Elm_Actionslider_Pos pos)
+EOLIAN static void
+_elm_actionslider_enabled_pos_set(Eo *obj EINA_UNUSED, Elm_Actionslider_Data *sd, Elm_Actionslider_Pos pos)
 {
-   ELM_ACTIONSLIDER_CHECK(obj);
-   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
-
    sd->enabled_position = pos;
 }
 
-EAPI Elm_Actionslider_Pos
-elm_actionslider_enabled_pos_get(const Evas_Object *obj)
+EOLIAN static Elm_Actionslider_Pos
+_elm_actionslider_enabled_pos_get(Eo *obj EINA_UNUSED, Elm_Actionslider_Data *sd)
 {
-   ELM_ACTIONSLIDER_CHECK(obj) ELM_ACTIONSLIDER_NONE;
-   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
-
    return sd->enabled_position;
 }
 
-EAPI const char *
-elm_actionslider_selected_label_get(const Evas_Object *obj)
+EOLIAN static const char*
+_elm_actionslider_selected_label_get(Eo *obj, Elm_Actionslider_Data *sd)
 {
+   const char *ret;
+   ret = NULL;
    const char *left, *right, *center;
-
-   ELM_ACTIONSLIDER_CHECK(obj) NULL;
-   ELM_ACTIONSLIDER_DATA_GET(obj, sd);
 
    _text_get(obj, &left, &right, &center);
 
    if ((sd->final_position == 0.0) &&
        (sd->enabled_position & ELM_ACTIONSLIDER_LEFT))
-     return left;
+     ret = left;
 
    if ((sd->final_position == 0.5) &&
        (sd->enabled_position & ELM_ACTIONSLIDER_CENTER))
-     return center;
+     ret = center;
 
    if ((sd->final_position == 1.0) &&
        (sd->enabled_position & ELM_ACTIONSLIDER_RIGHT))
-     return right;
+     ret = right;
 
-   return NULL;
+   return ret;
 }
+
+EOLIAN static Eina_Bool
+_elm_actionslider_elm_widget_focus_next_manager_is(Eo *obj EINA_UNUSED, Elm_Actionslider_Data *_pd EINA_UNUSED)
+{
+   return EINA_FALSE;
+}
+
+EOLIAN static Eina_Bool
+_elm_actionslider_elm_widget_focus_direction_manager_is(Eo *obj EINA_UNUSED, Elm_Actionslider_Data *_pd EINA_UNUSED)
+{
+   return EINA_FALSE;
+}
+
+static void
+_elm_actionslider_class_constructor(Eo_Class *klass)
+{
+   evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
+}
+
+#include "elm_actionslider.eo.c"

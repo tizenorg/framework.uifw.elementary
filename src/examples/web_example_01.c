@@ -24,8 +24,6 @@ elm_main(int argc, char *argv[])
    /* Window */
    win = elm_win_add(NULL, "Elementary Webkit Widget", ELM_WIN_BASIC);
    elm_win_autodel_set(win, EINA_TRUE);
-   evas_object_resize(win, 720, 600);
-   evas_object_show(win);
 
    /* Web */
    web = elm_web_add(win);
@@ -34,15 +32,17 @@ elm_main(int argc, char *argv[])
    elm_win_resize_object_add(win, web);
    elm_web_history_enabled_set(web, EINA_FALSE);
 
-   if (!elm_web_uri_set(web, URL))
+   if (!elm_web_url_set(web, URL))
      {
         printf("URL NOT LOADED");
         return -1;
      }
    evas_object_show(web);
 
+   evas_object_resize(win, 720, 600);
+   evas_object_show(win);
+
    elm_run();
-   elm_shutdown();
 
    return 0;
 }

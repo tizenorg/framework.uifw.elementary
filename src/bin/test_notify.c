@@ -2,43 +2,52 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 static void
-_bt(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_bt(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *notify = data;
    evas_object_show(notify);
+   elm_object_focus_set(notify, EINA_TRUE);
 }
 
 static void
-_bt_close(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_bt_close(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *notify = data;
    evas_object_hide(notify);
 }
 
 static void
-_bt_timer_close(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_bt_timer_close(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *notify = data;
    elm_notify_timeout_set(notify, 2.0);
 }
 
 static void
-_notify_timeout(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_notify_timeout(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    printf("Notify timed out!\n");
 }
 
 static void
-_notify_block(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_notify_block(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    printf("Notify block area clicked!!\n");
 }
 
+static void
+_notify_key_down_cb(void *data EINA_UNUSED, Evas *e EINA_UNUSED,
+                    Evas_Object *obj EINA_UNUSED, void *event_info)
+{
+   Evas_Event_Key_Down *ev = event_info;
+
+   printf("Key down: %s\n", ev->keyname);
+}
+
 void
-test_notify(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_notify(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bx, *tb, *notify, *bt, *lb;
 
@@ -46,8 +55,8 @@ test_notify(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    elm_win_autodel_set(win, EINA_TRUE);
 
    tb = elm_table_add(win);
-   elm_win_resize_object_add(win, tb);
    evas_object_size_hint_weight_set(tb, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, tb);
    evas_object_show(tb);
 
    // Notify top
@@ -89,6 +98,8 @@ test_notify(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    elm_notify_timeout_set(notify, 5.0);
    evas_object_smart_callback_add(notify, "timeout", _notify_timeout, NULL);
    evas_object_smart_callback_add(notify, "block,clicked", _notify_block, NULL);
+   evas_object_event_callback_add(notify, EVAS_CALLBACK_KEY_DOWN,
+                                  _notify_key_down_cb, NULL);
 
    bx = elm_box_add(win);
    elm_object_content_set(notify, bx);
@@ -97,7 +108,7 @@ test_notify(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
 
    lb = elm_label_add(win);
    elm_object_text_set(lb, "Bottom position. This notify uses a timeout of 5 sec.<br/>"
-	 "<b>The events outside the window are blocked.</b>");
+                       "<b>The events outside the window are blocked.</b>");
    elm_box_pack_end(bx, lb);
    evas_object_show(lb);
 
@@ -359,7 +370,7 @@ test_notify(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    evas_object_size_hint_weight_set(lb, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(lb, 0.0, 0.5);
    elm_object_text_set(lb, "Fill Bottom. This notify fills horizontal area.<br/>"
-	 "<b>elm_notify_align_set(notify, ELM_NOTIFY_ALIGN_FILL, 1.0); </b>");
+                       "<b>elm_notify_align_set(notify, ELM_NOTIFY_ALIGN_FILL, 1.0); </b>");
    elm_box_pack_end(bx, lb);
    evas_object_show(lb);
 
@@ -432,8 +443,6 @@ test_notify(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    elm_table_pack(tb, bt, 4, 1, 1, 3);
    evas_object_show(bt);
 
-   evas_object_show(win);
    evas_object_resize(win, 400, 400);
+   evas_object_show(win);
 }
-
-#endif

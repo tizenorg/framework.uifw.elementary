@@ -1,10 +1,15 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
 #include <Elementary.h>
+
 #include "elm_priv.h"
 
 #define ELM_TRANSIT_CHECK_OR_RETURN(transit, ...) \
    do { \
       if (!transit) { \
-         CRITICAL("Elm_Transit " # transit " is NULL!"); \
+         CRI("Elm_Transit " # transit " is NULL!"); \
          return __VA_ARGS__; \
       } \
       if (!EINA_MAGIC_CHECK(transit, ELM_TRANSIT_MAGIC)) { \
@@ -17,7 +22,6 @@
       } \
    } while (0)
 
-
 #define _TRANSIT_FOCAL 2000
 
 struct _Elm_Transit
@@ -26,6 +30,7 @@ struct _Elm_Transit
    EINA_MAGIC;
 
    Ecore_Animator *animator;
+   Ecore_Timer *timer;
    Eina_Inlist *effect_list;
    Eina_List *objs;
    Elm_Transit *prev_chain_transit;
@@ -71,30 +76,25 @@ struct _Elm_Transit_Effect_Module
    Eina_Bool deleted : 1;
 };
 
-struct _Elm_Transit_Obj_State
-{
-   Evas_Coord x, y, w, h;
-   int r,g,b,a;
-   Evas_Map *map;
-   Eina_Bool map_enabled : 1;
-   Eina_Bool visible : 1;
-};
-
 struct _Elm_Transit_Obj_Data
 {
-   struct _Elm_Transit_Obj_State *state;
-   Eina_Bool freeze_events : 1;
+   struct {
+      Evas_Coord x, y, w, h;
+      int r,g,b,a;
+      Evas_Map *map;
+      Eina_Bool map_enabled : 1;
+      Eina_Bool visible : 1;
+      Eina_Bool freeze_events : 1;
+   } state;
    int ref;
 };
 
 typedef struct _Elm_Transit_Effect_Module Elm_Transit_Effect_Module;
 typedef struct _Elm_Transit_Obj_Data Elm_Transit_Obj_Data;
-typedef struct _Elm_Transit_Obj_State Elm_Transit_Obj_State;
 
-static void _transit_obj_data_update(Elm_Transit *transit, Evas_Object *obj);
+static void _transit_obj_data_save(Evas_Object *obj);
 static void _transit_obj_data_recover(Elm_Transit *transit, Evas_Object *obj);
-static void _transit_obj_states_save(Evas_Object *obj, Elm_Transit_Obj_Data *obj_data);
-static void _transit_obj_remove_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__);
+static void _transit_obj_remove_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED);
 static void _transit_obj_remove(Elm_Transit *transit, Evas_Object *obj);
 static void _transit_effect_del(Elm_Transit *transit, Elm_Transit_Effect_Module *effect_module);
 static void _transit_remove_dead_effects(Elm_Transit *transit);
@@ -106,45 +106,39 @@ static Eina_Bool _transit_animate_cb(void *data);
 static char *_transit_key= "_elm_transit_key";
 
 static void
-_transit_obj_data_update(Elm_Transit *transit, Evas_Object *obj)
+_transit_obj_data_save(Evas_Object *obj)
 {
    Elm_Transit_Obj_Data *obj_data = evas_object_data_get(obj, _transit_key);
 
+   if (obj_data)
+     {
+        obj_data->ref++;
+        return;
+     }
+
+   obj_data = ELM_NEW(Elm_Transit_Obj_Data);
    if (!obj_data)
-     obj_data = ELM_NEW(Elm_Transit_Obj_Data);
-
-   obj_data->freeze_events = evas_object_freeze_events_get(obj);
-
-   if ((!transit->state_keep) && (obj_data->state))
      {
-        free(obj_data->state);
-        obj_data->state = NULL;
+        ERR("Failed to allocate memory");
+        return;
      }
-   else
-     {
-       _transit_obj_states_save(obj, obj_data);
-     }
+
+   evas_object_geometry_get(obj, &obj_data->state.x, &obj_data->state.y,
+                            &obj_data->state.w, &obj_data->state.h);
+   evas_object_color_get(obj, &obj_data->state.r, &obj_data->state.g,
+                         &obj_data->state.b, &obj_data->state.a);
+   obj_data->state.visible = evas_object_visible_get(obj);
+   obj_data->state.freeze_events = evas_object_freeze_events_get(obj);
+   obj_data->state.map_enabled = evas_object_map_enable_get(obj);
+
+   ELM_SAFE_FREE(obj_data->state.map, evas_map_free);
+
+   if (evas_object_map_get(obj))
+     obj_data->state.map = evas_map_dup(evas_object_map_get(obj));
+
    obj_data->ref++;
 
    evas_object_data_set(obj, _transit_key, obj_data);
-}
-
-static void
-_transit_obj_states_save(Evas_Object *obj, Elm_Transit_Obj_Data *obj_data)
-{
-   Elm_Transit_Obj_State *state = obj_data->state;
-
-   if (!state)
-     state = calloc(1, sizeof(Elm_Transit_Obj_State));
-   if (!state) return;
-
-   evas_object_geometry_get(obj, &state->x, &state->y, &state->w, &state->h);
-   evas_object_color_get(obj, &state->r, &state->g, &state->b, &state->a);
-   state->visible = evas_object_visible_get(obj);
-   state->map_enabled = evas_object_map_enable_get(obj);
-   if (evas_object_map_get(obj))
-     state->map = evas_map_dup(evas_object_map_get(obj));
-   obj_data->state = state;
 }
 
 static void
@@ -164,7 +158,7 @@ _remove_obj_from_list(Elm_Transit *transit, Evas_Object *obj)
 }
 
 static void
-_transit_obj_remove_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_transit_obj_remove_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Elm_Transit *transit = data;
    Elm_Transit_Obj_Data *obj_data = evas_object_data_get(obj, _transit_key);
@@ -173,8 +167,6 @@ _transit_obj_remove_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *e
         obj_data->ref--;
         if (obj_data->ref == 0)
           {
-             if (obj_data->state)
-               free(obj_data->state);
              free(obj_data);
              evas_object_data_del(obj, _transit_key);
           }
@@ -187,35 +179,32 @@ static void
 _transit_obj_data_recover(Elm_Transit *transit, Evas_Object *obj)
 {
    Elm_Transit_Obj_Data *obj_data;
-   Elm_Transit_Obj_State *state;
 
    obj_data = evas_object_data_get(obj, _transit_key);
    if (!obj_data) return;
 
    obj_data->ref--;
-   if (obj_data->ref == 0)
-     evas_object_data_del(obj, _transit_key);
 
-   evas_object_freeze_events_set(obj, obj_data->freeze_events);
-   state = obj_data->state;
-   if (state)
+   //recover the states of the object.
+   if (!transit->state_keep)
      {
-        //recover the states of the object.
-        if (!transit->state_keep)
-          {
-             evas_object_move(obj, state->x, state->y);
-             evas_object_resize(obj, state->w, state->h);
-             evas_object_color_set(obj, state->r, state->g, state->b, state->a);
-             if (state->visible) evas_object_show(obj);
-             else evas_object_hide(obj);
-             evas_object_map_enable_set(obj, state->map_enabled);
-             evas_object_map_set(obj, state->map);
-          }
-        if (obj_data->ref == 0)
-          free(state);
+        evas_object_move(obj, obj_data->state.x, obj_data->state.y);
+        evas_object_resize(obj, obj_data->state.w, obj_data->state.h);
+        evas_object_color_set(obj, obj_data->state.r, obj_data->state.g,
+                              obj_data->state.b, obj_data->state.a);
+        if (obj_data->state.visible) evas_object_show(obj);
+        else evas_object_hide(obj);
+        evas_object_map_enable_set(obj, obj_data->state.map_enabled);
+        evas_object_map_set(obj, obj_data->state.map);
      }
+
    if (obj_data->ref == 0)
-     free(obj_data);
+     {
+        ELM_SAFE_FREE(obj_data->state.map, evas_map_free);
+        evas_object_data_del(obj, _transit_key);
+        evas_object_freeze_events_set(obj, obj_data->state.freeze_events);
+        free(obj_data);
+     }
 }
 
 static void
@@ -266,8 +255,7 @@ _transit_del(Elm_Transit *transit)
 
    transit->deleted = EINA_TRUE;
 
-   if (transit->animator)
-     ecore_animator_del(transit->animator);
+   ELM_SAFE_FREE(transit->animator, ecore_animator_del);
 
    //remove effects
    while (transit->effect_list)
@@ -283,6 +271,8 @@ _transit_del(Elm_Transit *transit)
 
    if (transit->del_data.func)
      transit->del_data.func(transit->del_data.arg, transit);
+
+   ecore_timer_del(transit->timer);
 
    //cut off the chain transit relationship
    EINA_LIST_FOREACH_SAFE(transit->next_chain_transits, elist, elist_next, chain_transit)
@@ -355,19 +345,22 @@ _transit_animate_cb(void *data)
                                                     0, 0);
          break;
       case ELM_TRANSIT_TWEEN_MODE_ACCELERATE:
-         transit->progress = ecore_animator_pos_map(transit->progress,
-                                                    ECORE_POS_MAP_ACCELERATE,
-                                                    transit->v[0], 0);
+         transit->progress =
+            ecore_animator_pos_map(transit->progress,
+                                   ECORE_POS_MAP_ACCELERATE_FACTOR,
+                                   transit->v[0], 0);
          break;
       case ELM_TRANSIT_TWEEN_MODE_DECELERATE:
-         transit->progress = ecore_animator_pos_map(transit->progress,
-                                                    ECORE_POS_MAP_DECELERATE,
-                                                    transit->v[0], 0);
+         transit->progress =
+            ecore_animator_pos_map(transit->progress,
+                                   ECORE_POS_MAP_DECELERATE_FACTOR,
+                                   transit->v[0], 0);
          break;
       case ELM_TRANSIT_TWEEN_MODE_SINUSOIDAL:
-         transit->progress = ecore_animator_pos_map(transit->progress,
-                                                    ECORE_POS_MAP_SINUSOIDAL,
-                                                    transit->v[0], 0);
+         transit->progress =
+            ecore_animator_pos_map(transit->progress,
+                                   ECORE_POS_MAP_SINUSOIDAL_FACTOR,
+                                   transit->v[0], 0);
          break;
       case ELM_TRANSIT_TWEEN_MODE_DIVISOR_INTERP:
          transit->progress = ecore_animator_pos_map(transit->progress,
@@ -475,6 +468,17 @@ _recover_image_uv(Evas_Object *obj, Evas_Map *map, Eina_Bool revert, Eina_Bool b
    return EINA_TRUE;
 }
 
+static Eina_Bool
+_transit_go_in_cb(void *data)
+{
+   Elm_Transit *transit = data;
+
+   transit->timer = NULL;
+   elm_transit_go(transit);
+
+   return ECORE_CALLBACK_CANCEL;
+}
+
 EAPI Elm_Transit *
 elm_transit_add(void)
 {
@@ -499,6 +503,8 @@ elm_transit_add(void)
 EAPI void
 elm_transit_del(Elm_Transit *transit)
 {
+   if (!transit) return;
+
    ELM_TRANSIT_CHECK_OR_RETURN(transit);
 
    transit->deleted = EINA_TRUE;
@@ -570,7 +576,7 @@ elm_transit_object_add(Elm_Transit *transit, Evas_Object *obj)
      {
         if (!evas_object_data_get(obj, _transit_key))
           {
-             _transit_obj_data_update(transit, obj);
+             _transit_obj_data_save(obj);
              evas_object_freeze_events_set(obj, EINA_TRUE);
           }
      }
@@ -737,14 +743,15 @@ elm_transit_go(Elm_Transit *transit)
 {
    ELM_TRANSIT_CHECK_OR_RETURN(transit);
 
+   ELM_SAFE_FREE(transit->timer, ecore_timer_del);
+
    Eina_List *elist;
    Evas_Object *obj;
 
-   if (transit->animator)
-     ecore_animator_del(transit->animator);
+   ELM_SAFE_FREE(transit->animator, ecore_animator_del);
 
    EINA_LIST_FOREACH(transit->objs, elist, obj)
-     _transit_obj_data_update(transit, obj);
+     _transit_obj_data_save(obj);
 
    if (!transit->event_enabled)
      {
@@ -756,7 +763,17 @@ elm_transit_go(Elm_Transit *transit)
    transit->time.delayed = 0;
    transit->time.begin = ecore_loop_time_get();
    transit->animator = ecore_animator_add(_transit_animate_cb, transit);
+
    _transit_animate_cb(transit);
+}
+
+EAPI void
+elm_transit_go_in(Elm_Transit *transit, double in)
+{
+   ELM_TRANSIT_CHECK_OR_RETURN(transit);
+
+   if (transit->timer) ecore_timer_del(transit->timer);
+   transit->timer = ecore_timer_add(in, _transit_go_in_cb, transit);
 }
 
 EAPI void
@@ -880,7 +897,7 @@ struct _Elm_Transit_Effect_Resizing
 };
 
 static void
-_transit_effect_resizing_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit __UNUSED__)
+_transit_effect_resizing_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit EINA_UNUSED)
 {
    Elm_Transit_Effect_Resizing *resizing = effect;
    free(resizing);
@@ -957,7 +974,7 @@ struct _Elm_Transit_Effect_Translation
 };
 
 static void
-_translation_object_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_translation_object_del_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Elm_Transit_Effect_Translation *translation = data;
    Eina_List *elist;
@@ -1000,7 +1017,7 @@ _translation_nodes_build(Elm_Transit *transit, Elm_Transit_Effect_Translation *t
 }
 
 void
-_transit_effect_translation_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit __UNUSED__)
+_transit_effect_translation_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit EINA_UNUSED)
 {
    EINA_SAFETY_ON_NULL_RETURN(effect);
    Elm_Transit_Effect_Translation *translation = effect;
@@ -1019,7 +1036,7 @@ _transit_effect_translation_context_free(Elm_Transit_Effect *effect, Elm_Transit
 }
 
 void
-_transit_effect_translation_op(Elm_Transit_Effect *effect, Elm_Transit *transit, double progress __UNUSED__)
+_transit_effect_translation_op(Elm_Transit_Effect *effect, Elm_Transit *transit, double progress EINA_UNUSED)
 {
    EINA_SAFETY_ON_NULL_RETURN(effect);
    EINA_SAFETY_ON_NULL_RETURN(transit);
@@ -1085,7 +1102,7 @@ struct _Elm_Transit_Effect_Zoom
 };
 
 void
-_transit_effect_zoom_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit __UNUSED__)
+_transit_effect_zoom_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit EINA_UNUSED)
 {
    Elm_Transit_Effect_Zoom *zoom = effect;
    free(zoom);
@@ -1107,9 +1124,9 @@ _transit_effect_zoom_op(Elm_Transit_Effect *effect, Elm_Transit *transit , doubl
    EINA_LIST_FOREACH(transit->objs, elist, obj)
      {
         obj_data = evas_object_data_get(obj, _transit_key);
-        if (obj_data->state->map_enabled)
+        if (obj_data && obj_data->state.map_enabled)
           {
-             base_map = obj_data->state->map;
+             base_map = obj_data->state.map;
              if (!base_map) return;
              map = evas_map_dup(base_map);
              if (!map) return;
@@ -1151,8 +1168,8 @@ EAPI Elm_Transit_Effect *
 elm_transit_effect_zoom_add(Elm_Transit *transit, float from_rate, float to_rate)
 {
    ELM_TRANSIT_CHECK_OR_RETURN(transit, NULL);
-   Elm_Transit_Effect *effect = _transit_effect_zoom_context_new(from_rate, to_rate);
-
+   Elm_Transit_Effect *effect = _transit_effect_zoom_context_new(from_rate,
+                                                                 to_rate);
    if (!effect)
      {
         ERR("Failed to allocate zoom effect! : transit=%p", transit);
@@ -1345,7 +1362,7 @@ struct _Elm_Transit_Effect_Resizable_Flip
 };
 
 static void
-_resizable_flip_object_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_resizable_flip_object_del_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Elm_Transit_Effect_ResizableFlip *resizable_flip = data;
    Eina_List *elist;
@@ -1467,7 +1484,7 @@ _set_image_uv_by_axis_x(Evas_Map *map, Elm_Transit_Effect_ResizableFlip_Node *fl
 }
 
 void
-_transit_effect_resizable_flip_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit __UNUSED__)
+_transit_effect_resizable_flip_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit EINA_UNUSED)
 {
    EINA_SAFETY_ON_NULL_RETURN(effect);
 
@@ -1494,7 +1511,7 @@ _transit_effect_resizable_flip_context_free(Elm_Transit_Effect *effect, Elm_Tran
 }
 
 void
-_transit_effect_resizable_flip_op(Elm_Transit_Effect *effect, Elm_Transit *transit __UNUSED__, double progress)
+_transit_effect_resizable_flip_op(Elm_Transit_Effect *effect, Elm_Transit *transit EINA_UNUSED, double progress)
 {
    EINA_SAFETY_ON_NULL_RETURN(effect);
    Evas_Map *map;
@@ -1873,7 +1890,7 @@ struct _Elm_Transit_Effect_Color
 };
 
 static void
-_transit_effect_color_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit __UNUSED__)
+_transit_effect_color_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit EINA_UNUSED)
 {
    Elm_Transit_Effect_Color *color = effect;
    free(color);
@@ -1957,7 +1974,7 @@ struct _Elm_Transit_Effect_Fade
 };
 
 static void
-_fade_object_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_fade_object_del_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Elm_Transit_Effect_Fade *fade = data;
    Eina_List *elist;
@@ -2020,7 +2037,7 @@ _fade_nodes_build(Elm_Transit *transit, Elm_Transit_Effect_Fade *fade_data)
 }
 
 static void
-_transit_effect_fade_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit __UNUSED__)
+_transit_effect_fade_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit EINA_UNUSED)
 {
    EINA_SAFETY_ON_NULL_RETURN(effect);
    Elm_Transit_Effect_Fade *fade = effect;
@@ -2050,7 +2067,7 @@ _transit_effect_fade_context_free(Elm_Transit_Effect *effect, Elm_Transit *trans
 }
 
 static void
-_transit_effect_fade_op(Elm_Transit_Effect *effect, Elm_Transit *transit __UNUSED__, double progress)
+_transit_effect_fade_op(Elm_Transit_Effect *effect, Elm_Transit *transit EINA_UNUSED, double progress)
 {
    EINA_SAFETY_ON_NULL_RETURN(effect);
    Elm_Transit_Effect_Fade *fade = effect;
@@ -2148,7 +2165,7 @@ struct _Elm_Transit_Effect_Blend
 };
 
 static void
-_blend_object_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_blend_object_del_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Elm_Transit_Effect_Blend *blend = data;
    Eina_List *elist;
@@ -2210,7 +2227,7 @@ _blend_nodes_build(Elm_Transit *transit, Elm_Transit_Effect_Blend *blend)
 }
 
 void
-_transit_effect_blend_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit __UNUSED__)
+_transit_effect_blend_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit)
 {
    EINA_SAFETY_ON_NULL_RETURN(effect);
    Elm_Transit_Effect_Blend *blend = effect;
@@ -2306,7 +2323,7 @@ struct _Elm_Transit_Effect_Rotation
 };
 
 static void
-_transit_effect_rotation_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit __UNUSED__)
+_transit_effect_rotation_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit EINA_UNUSED)
 {
    Elm_Transit_Effect_Rotation *rotation = effect;
    free(rotation);
@@ -2329,9 +2346,9 @@ _transit_effect_rotation_op(Elm_Transit_Effect *effect, Elm_Transit *transit, do
    EINA_LIST_FOREACH(transit->objs, elist, obj)
      {
         obj_data = evas_object_data_get(obj, _transit_key);
-        if (obj_data->state->map_enabled)
+        if (obj_data && obj_data->state.map_enabled)
           {
-             base_map = obj_data->state->map;
+             base_map = obj_data->state.map;
              if (!base_map) return;
              map = evas_map_dup(base_map);
              if (!map) return;
@@ -2403,12 +2420,14 @@ struct _Elm_Transit_Effect_Image_Animation
 };
 
 static void
-_transit_effect_image_animation_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit __UNUSED__)
+_transit_effect_image_animation_context_free(Elm_Transit_Effect *effect, Elm_Transit *transit EINA_UNUSED)
 {
    EINA_SAFETY_ON_NULL_RETURN(effect);
    Elm_Transit_Effect_Image_Animation *image_animation = effect;
    const char *image;
    Eina_List *elist, *elist_next;
+
+   //FIXME: Reset the image to first one.
 
    EINA_LIST_FOREACH_SAFE(image_animation->images, elist, elist_next, image)
      {

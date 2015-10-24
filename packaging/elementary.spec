@@ -1,131 +1,159 @@
-Name:       elementary
-Summary:    EFL toolkit for small touchscreens
-Version:    1.7.1+svn.77535+build572
-Release:    1
-Group:      System/Libraries
-License:    LGPL-2.1+ and CC-BY-SA-3.0
-URL:        http://trac.enlightenment.org/e/wiki/Elementary
-Source0:    %{name}-%{version}.tar.gz
-Requires(post): /sbin/ldconfig
-Requires(postun): /sbin/ldconfig
-BuildRequires:  gettext
-BuildRequires:  edje-tools
-BuildRequires:  eet-tools
-BuildRequires:  eina-devel
-BuildRequires:  eet-devel
-BuildRequires:  evas-devel
-BuildRequires:  ecore-devel
-BuildRequires:  edje-devel
-BuildRequires:  edbus-devel
-BuildRequires:  efreet-devel
-BuildRequires:  ethumb-devel
-BuildRequires:  libx11-devel
+%define dbus_unavailable 1
+
+%bcond_with wayland
+Name:           elementary
+Version:        1.13.33
+Release:        0
+License:        LGPL-2.1+
+Summary:        EFL toolkit for small touchscreens
+Url:            http://trac.enlightenment.org/e/wiki/Elementary
+Group:          Graphics & UI Framework/Development
+Source0:        elementary-%{version}.tar.bz2
+Source1001:     elementary.manifest
+BuildRequires:  doxygen
+BuildRequires:  gettext-devel
+BuildRequires:  pkgconfig(ecore)
+BuildRequires:  pkgconfig(ecore-evas)
+BuildRequires:  pkgconfig(ecore-file)
+BuildRequires:  pkgconfig(ecore-imf)
+
+%if %{with wayland}
+BuildRequires:  pkgconfig(ecore-wayland)
+%endif
+
+BuildRequires:  pkgconfig(ecore-x)
+BuildRequires:  pkgconfig(x11)
+
+BuildRequires:  pkgconfig(eldbus)
+BuildRequires:  pkgconfig(edje)
+BuildRequires:  pkgconfig(eet)
+BuildRequires:  pkgconfig(efreet)
+BuildRequires:  pkgconfig(eina)
+BuildRequires:  pkgconfig(evas)
+BuildRequires:  pkgconfig(ethumb)
+# TIZEN_ONLY(20150709): Don't build unused widget
+#BuildRequires:  pkgconfig(emotion)
+#
+# TINEN ONLY (20150112) : NOT FIXED
+BuildRequires:  pkgconfig(edbus)
+#
 BuildRequires:  pkgconfig(icu-i18n)
-BuildRequires:  model-build-features
-%if "%{?tizen_profile_name}" != "mobile"
-%if "%{?tizen_profile_name}" != "wearable"
-BuildRequires:  emotion-devel
-BuildRequires:  pkgconfig(appsvc)
-%endif
-%endif
+BuildRequires:  eet-tools
+BuildRequires:  eolian-devel
+BuildRequires:  python-devel
+### Recommends:     %{name}-locale = %{version}
 
 %description
-Elementary - a basic widget set that is easy to use based on EFL for mobile This package contains devel content.
+Elementary is a widget set. It is a new-style of widget set much more canvas
+object based than anything else. Why not ETK? Why not EWL? Well they both
+tend to veer away from the core of Evas, Ecore and Edje a lot to build their
+own worlds. Also I wanted something focused on embedded devices -
+specifically small touchscreens. Unlike GTK+ and Qt, 75% of the "widget set"
+is already embodied in a common core - Ecore, Edje, Evas etc. So this
+fine-grained library splitting means all of this is shared, just a new
+widget "personality" is on top. And that is... Elementary, my dear watson.
+Elementary.
 
-%package devel
-Summary:    EFL toolkit (devel)
-Group:      Development/Libraries
-Requires:   %{name} = %{version}-%{release}
+%package examples
+Summary:   EFL elementary examples
 
-%description devel
-EFL toolkit for small touchscreens (devel)
+%description examples
+EFL elementary examples
 
 %package tools
-Summary:    EFL toolkit (tools)
-Group:      Development/Tools
-Requires:   %{name} = %{version}-%{release}
-Provides:   %{name}-bin
-Obsoletes:  %{name}-bin
+Summary:   EFL elementary configuration and test apps
 
 %description tools
-EFL toolkit for small touchscreens (tools)
+EFL elementary configuration and test apps package
+
+%package devel
+Summary:        Development files for elementary
+Group:          Development/Libraries
+Requires:       %{name} = %{version}
+
+%description devel
+Development components for the elementary package
+
 
 %prep
 %setup -q
+cp %{SOURCE1001} .
 
 %build
-export CFLAGS+=" -fPIC -Wall"
-export LDFLAGS+=" -Wl,--hash-style=both -Wl,--as-needed"
-
-export CFLAGS+=" -DELM_FOCUSED_UI"
-export CFLAGS+=" -DELM_FEATURE_MULTI_WINDOW"
 
 %if "%{?tizen_profile_name}" == "wearable"
     export CFLAGS+=" -DELM_FEATURE_WEARABLE"
     %if "%{?model_build_feature_formfactor}" == "circle"
-        export CFLAGS+=" -DELM_FEATURE_WEARABLE_CIRCLE"
-    %else
-        export CFLAGS+=" -DELM_FEATURE_WEARABLE_RECTANGLE"
+        export CFLAGS+=" -DELM_FEATURE_WEARABLE_C1"
     %endif
+%endif
+
+%autogen --disable-static \
+%if %{with wayland}
+         --enable-ecore-wayland \
+%endif
+%if %dbus_unavailable
+         --disable-build-examples
 %else
-    export CFLAGS+=" -DELM_FEATURE_LITE"
+         --enable-build-examples
 %endif
 
-%autogen \
-%if "%{?tizen_profile_name}" == "mobile"
-	--disable-emotion \
-%endif
-%if "%{?tizen_profile_name}" == "wearable"
-	--disable-emotion \
-%endif
-	--disable-static \
-	--enable-dependency-tracking
-
-make %{?jobs:-j%jobs}
-msgfmt -c --statistics -o po/dt_fmt.mo po/dt_fmt.po
+%__make %{?_smp_mflags}
 
 %install
 %make_install
 
-mkdir -p %{buildroot}/%{_datadir}/locale/en_US/LC_MESSAGES/
-cp %{_builddir}/%{buildsubdir}/po/dt_fmt.mo %{buildroot}/%{_datadir}/locale/en_US/LC_MESSAGES/
-
-mkdir -p %{buildroot}/%{_datadir}/license
-cp %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/%{_datadir}/license/%{name}
-cp %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/%{_datadir}/license/%{name}-tools
+%find_lang %{name}
 
 %post -p /sbin/ldconfig
+
 %postun -p /sbin/ldconfig
 
-%files
-%defattr(-,root,root,-)
-%{_libdir}/libelementary.so.*
-%{_libdir}/elementary/modules/*/*/*.so
-%{_libdir}/edje/modules/elm/*/module.so
-%{_datadir}/elementary/edje_externals
-%{_datadir}/locale
-%{_datadir}/license/%{name}
+%lang_package
 %manifest %{name}.manifest
+
+%files
+%manifest %{name}.manifest
+%defattr(-,root,root,-)
+#%license COPYING
+%{_bindir}/elementary_quicklaunch
+%{_bindir}/elementary_run
+%{_libdir}/edje/*
+%{_libdir}/elementary/modules/*
+%{_libdir}/*.so.*
+%{_datadir}/elementary/*
+%{_datadir}/icons/elementary.png
+
+%if ! %dbus_unavailable
+%files examples
+%manifest %{name}.manifest
+%defattr(-,root,root,-)
+%{_libdir}/elementary/examples/*
+%endif
 
 ## theme is installed from efl-theme-tizen
 ## config is installed from elm-misc
-%exclude %{_datadir}/elementary/themes
-%exclude %{_datadir}/elementary/config
+%exclude %{_datadir}/elementary
+#%exclude %{_datadir}/elementary/themes
+#%exclude %{_datadir}/elementary/config
 %exclude %{_libdir}/elementary/modules/test_*
 
-%files devel
-%defattr(-,root,root,-)
-/usr/include/*
-%{_libdir}/libelementary.so
-%{_libdir}/pkgconfig/elementary.pc
-
 %files tools
+%manifest %{name}.manifest
 %defattr(-,root,root,-)
-%{_bindir}/elementary_*
-%{_libdir}/elementary_testql.so
-%{_datadir}/icons
-%{_datadir}/applications
-%{_datadir}/elementary/objects
-%{_datadir}/elementary/images
-%{_datadir}/license/%{name}-tools
-%manifest %{name}-tools.manifest
+%{_datadir}/applications/*
+%{_bindir}/elementary_config
+%{_bindir}/elementary_test*
+%{_bindir}/elementary_codegen
+%{_bindir}/elm_prefs_cc
+
+%files devel
+%manifest %{name}.manifest
+%defattr(-,root,root,-)
+%{_includedir}/%{name}-1/*.h*
+%{_datadir}/eolian/include/%{name}-1/*.eo
+%{_libdir}/*.so
+%{_libdir}/pkgconfig/*.pc
+%{_libdir}/cmake/Elementary/ElementaryConfig.cmake
+%{_libdir}/cmake/Elementary/ElementaryConfigVersion.cmake
+

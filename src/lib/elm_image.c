@@ -1,56 +1,79 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
+#define ELM_INTERFACE_ATSPI_IMAGE_PROTECTED
+#define ELM_INTERFACE_ATSPI_ACCESSIBLE_PROTECTED
+#define ELM_INTERFACE_ATSPI_WIDGET_ACTION_PROTECTED
+
 #include <Elementary.h>
+
 #include "elm_priv.h"
 #include "elm_widget_image.h"
 
-#ifdef _WIN32
-# define FMT_SIZE_T "%Iu"
-#else
-# define FMT_SIZE_T "%zu"
-#endif
+#define FMT_SIZE_T "%zu"
 
-EAPI const char ELM_IMAGE_SMART_NAME[] = "elm_image";
+#define MY_CLASS ELM_IMAGE_CLASS
+#define MY_CLASS_NAME "Elm_Image"
+#define MY_CLASS_NAME_LEGACY "elm_image"
 
 static const char SIG_DND[] = "drop";
 static const char SIG_CLICKED[] = "clicked";
+static const char SIG_DOWNLOAD_START[] = "download,start";
+static const char SIG_DOWNLOAD_PROGRESS[] = "download,progress";
+static const char SIG_DOWNLOAD_DONE[] = "download,done";
+static const char SIG_DOWNLOAD_ERROR[] = "download,error";
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_DND, ""},
    {SIG_CLICKED, ""},
+   {SIG_DOWNLOAD_START, ""},
+   {SIG_DOWNLOAD_PROGRESS, ""},
+   {SIG_DOWNLOAD_DONE, ""},
+   {SIG_DOWNLOAD_ERROR, ""},
    {NULL, NULL}
 };
 
-EVAS_SMART_SUBCLASS_NEW
-  (ELM_IMAGE_SMART_NAME, _elm_image, Elm_Image_Smart_Class,
-  Elm_Widget_Smart_Class, elm_widget_smart_class_get, _smart_callbacks);
+static Eina_Bool _key_action_activate(Evas_Object *obj, const char *params);
+static void _elm_image_smart_internal_file_set(Eo *obj, Elm_Image_Data *sd, const char *file, const Eina_File *f, const char *key, Eina_Bool *ret);
+
+static const Elm_Action key_actions[] = {
+   {"activate", _key_action_activate},
+   {NULL, NULL}
+};
 
 static void
 _on_image_preloaded(void *data,
-                    Evas *e __UNUSED__,
+                    Evas *e EINA_UNUSED,
                     Evas_Object *obj,
-                    void *event __UNUSED__)
+                    void *event EINA_UNUSED)
 {
-   Elm_Image_Smart_Data *sd = data;
-
+   Elm_Image_Data *sd = data;
    sd->preloading = EINA_FALSE;
-
    if (sd->show) evas_object_show(obj);
-   if (sd->prev_img) evas_object_del(sd->prev_img);
-
-   sd->prev_img = NULL;
+   ELM_SAFE_FREE(sd->prev_img, evas_object_del);
 }
 
 static void
 _on_mouse_up(void *data,
-             Evas *e __UNUSED__,
-             Evas_Object *obj __UNUSED__,
-             void *event_info __UNUSED__)
+             Evas *e EINA_UNUSED,
+             Evas_Object *obj EINA_UNUSED,
+             void *event_info)
 {
+   ELM_WIDGET_DATA_GET_OR_RETURN(data, wd);
+
+   Evas_Event_Mouse_Up *ev = event_info;
+
+   if (ev->button != 1) return;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
+   if (!wd->still_in) return;
+
    evas_object_smart_callback_call(data, SIG_CLICKED, NULL);
 }
 
 static Eina_Bool
 _elm_image_animate_cb(void *data)
 {
-   Elm_Image_Smart_Data *sd = data;
+   ELM_IMAGE_DATA_GET(data, sd);
 
    if (!sd->anim) return ECORE_CALLBACK_CANCEL;
 
@@ -88,10 +111,8 @@ _img_new(Evas_Object *obj)
    return img;
 }
 
-/* fixme: testar drag and drop depois! */
-
 static void
-_elm_image_internal_sizing_eval(Elm_Image_Smart_Data *sd)
+_elm_image_internal_sizing_eval(Evas_Object *obj, Elm_Image_Data *sd)
 {
    Evas_Coord x, y, w, h;
    const char *type;
@@ -115,7 +136,6 @@ _elm_image_internal_sizing_eval(Elm_Image_Smart_Data *sd)
      {
         double alignh = 0.5, alignv = 0.5;
         int iw = 0, ih = 0, offset_w = 0, offset_h = 0;
-
         evas_object_image_size_get(sd->img, &iw, &ih);
 
         iw = ((double)iw) * sd->scale;
@@ -156,7 +176,7 @@ _elm_image_internal_sizing_eval(Elm_Image_Smart_Data *sd)
           }
 
         evas_object_size_hint_align_get
-          (ELM_WIDGET_DATA(sd)->obj, &alignh, &alignv);
+           (obj, &alignh, &alignv);
 
         if (alignh == EVAS_HINT_FILL) alignh = 0.5;
         if (alignv == EVAS_HINT_FILL) alignv = 0.5;
@@ -189,56 +209,176 @@ _elm_image_internal_sizing_eval(Elm_Image_Smart_Data *sd)
 }
 
 static void
-_elm_image_file_set_do(Evas_Object *obj)
+_elm_image_async_open_do(void *data, Ecore_Thread *thread EINA_UNUSED)
 {
-   Evas_Object *pclip = NULL;
-   int w, h;
+   Evas_Object *obj = data;
+   Eina_Bool ok = EINA_FALSE;
+   Eina_File *f = NULL;
+   void *map = NULL;
 
    ELM_IMAGE_DATA_GET(obj, sd);
 
-   if (sd->prev_img) evas_object_del(sd->prev_img);
-   if (sd->img)
+   sd->async_opening = EINA_TRUE;
+   if (sd->async.f_set)
      {
-        pclip = evas_object_clip_get(sd->img);
-        sd->prev_img = sd->img;
+        f = sd->async.f_set;
+        sd->async.f_set = NULL;
+     }
+   else if (sd->async.file)
+     {
+        f = eina_file_open(sd->async.file, EINA_FALSE);
+     }
+   else ERR("Async open has no input file!"); // CRI?
+
+   if (f)
+     {
+        // Read just enough data for map to actually do something.
+        unsigned int buf;
+        map = eina_file_map_all(f, EINA_FILE_SEQUENTIAL);
+        if (map && (eina_file_size_get(f) >= sizeof(buf)))
+          {
+             memcpy(&buf, map, sizeof(buf));
+             ok = EINA_TRUE;
+          }
      }
 
-   sd->img = _img_new(obj);
+   sd->async.f = f;
+   sd->async.map = map;
+   sd->async_failed = !ok;
+   sd->async_opening = EINA_FALSE;
+}
 
-   evas_object_image_load_orientation_set(sd->img, EINA_TRUE);
+static void
+_elm_image_async_open_done(void *data, Ecore_Thread *thread EINA_UNUSED)
+{
+   Evas_Object *obj = data;
+   Eina_Stringshare *file, *key;
+   Eina_Bool ok;
+   Eina_File *f;
+   void *map;
 
-   evas_object_clip_set(sd->img, pclip);
+   ELM_IMAGE_DATA_GET(obj, sd);
 
-   sd->edje = EINA_FALSE;
+   key = sd->async.key;
+   map = sd->async.map;
+   f = sd->async.f;
+   ok = (!sd->async_failed) && f && map;
+   if (sd->async.file)
+     file = sd->async.file;
+   else
+     file = f ? eina_file_filename_get(f) : NULL;
 
-   if (sd->load_size > 0)
-     evas_object_image_load_size_set(sd->img, sd->load_size, sd->load_size);
+   // sd->async.f_set is already NULL
+   sd->async.f = NULL;
+   sd->async.th = NULL;
+   sd->async.map = NULL;
+   sd->async_opening = EINA_FALSE;
+
+   if (sd->edje)
+     {
+        if (ok) ok = edje_object_mmap_set(sd->img, f, key);
+        if (!ok)
+          {
+             ERR("failed to open edje file '%s', group '%s': %s", file, key,
+                 edje_load_error_str(edje_object_load_error_get(sd->img)));
+          }
+     }
    else
      {
-        ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->size_get(obj, &w, &h);
-        evas_object_image_load_size_set(sd->img, w, h);
+        if (ok) _elm_image_smart_internal_file_set(obj, sd, file, f, key, &ok);
+        if (!ok)
+          {
+             ERR("failed to open image file '%s', key '%s': %s", file, key,
+                  evas_load_error_str(evas_object_image_load_error_get(sd->img)));
+          }
+     }
+
+   if (ok)
+     {
+        // TODO: Implement Efl.File async,opened event_info type
+        sd->async_failed = EINA_FALSE;
+        ELM_SAFE_FREE(sd->async.file, eina_stringshare_del);
+        ELM_SAFE_FREE(sd->async.key, eina_stringshare_del);
+        eo_do(obj, eo_event_callback_call(EFL_FILE_EVENT_ASYNC_OPENED, NULL));
+        _elm_image_internal_sizing_eval(obj, sd);
+     }
+   else
+     {
+        // TODO: Implement Efl.File async,error event_info type
+        sd->async_failed = EINA_TRUE;
+        // keep file,key around for file_get
+        eo_do(obj, eo_event_callback_call(EFL_FILE_EVENT_ASYNC_ERROR, NULL));
+     }
+
+   if (f)
+     {
+        if (map) eina_file_map_free(f, map);
+        eina_file_close(f);
      }
 }
 
-/* WARNING: whenever you patch this function, remember to do the same
- * on elm_icon.c:_elm_icon_smart_file_set()'s 2nd half.
- */
+static void
+_elm_image_async_open_cancel(void *data, Ecore_Thread *thread EINA_UNUSED)
+{
+   Elm_Image_Data *sd = data;
+
+   if (sd->async.map)
+     {
+        eina_file_map_free(sd->async.f, sd->async.map);
+        sd->async.map = NULL;
+     }
+   if (sd->async.f_set)
+     ELM_SAFE_FREE(sd->async.f_set, eina_file_close);
+   if (sd->async.f)
+     ELM_SAFE_FREE(sd->async.f, eina_file_close);
+   sd->async_failed = EINA_TRUE;
+}
+
+static Eina_Bool
+_elm_image_async_file_set(Eo *obj, Elm_Image_Data *sd,
+                          const char *file, const Eina_File *f, const char *key)
+{
+   Eina_Bool ret;
+
+   ecore_thread_cancel(sd->async.th);
+   //ecore_thread_wait(sd->async.th);
+
+   eina_stringshare_replace(&sd->async.file, file);
+   eina_stringshare_replace(&sd->async.key, key);
+   if (sd->async.map)
+     {
+        eina_file_map_free(sd->async.f, sd->async.map);
+        sd->async.map = NULL;
+     }
+   if (sd->async.f)
+     ELM_SAFE_FREE(sd->async.f, eina_file_close);
+   sd->async.f_set = eina_file_dup(f);
+   sd->async_failed = EINA_FALSE;
+   sd->async.th = ecore_thread_run(_elm_image_async_open_do,
+                                   _elm_image_async_open_done,
+                                   _elm_image_async_open_cancel, obj);
+
+   ret = (sd->async.th != NULL);
+   if (!ret) sd->async_failed = EINA_TRUE;
+   return ret;
+}
+
 static Eina_Bool
 _elm_image_edje_file_set(Evas_Object *obj,
                          const char *file,
+                         const Eina_File *f,
                          const char *group)
 {
    Evas_Object *pclip;
 
    ELM_IMAGE_DATA_GET(obj, sd);
 
-   if (sd->prev_img) evas_object_del(sd->prev_img);
-   sd->prev_img = NULL;
+   ELM_SAFE_FREE(sd->prev_img, evas_object_del);
 
    if (!sd->edje)
      {
         pclip = evas_object_clip_get(sd->img);
-        if (sd->img) evas_object_del(sd->img);
+        evas_object_del(sd->img);
 
         /* Edje object instead */
         sd->img = edje_object_add(evas_object_evas_get(obj));
@@ -248,372 +388,117 @@ _elm_image_edje_file_set(Evas_Object *obj,
      }
 
    sd->edje = EINA_TRUE;
-   if (!edje_object_file_set(sd->img, file, group))
+   if (!sd->async_enable)
      {
-        ERR("failed to set edje file, group '%s': %s", group,
-            edje_load_error_str(edje_object_load_error_get(sd->img)));
-        return EINA_FALSE;
+        if (f)
+          {
+             if (!edje_object_mmap_set(sd->img, f, group))
+               {
+                  ERR("failed to set edje file '%s', group '%s': %s", file, group,
+                      edje_load_error_str(edje_object_load_error_get(sd->img)));
+                  return EINA_FALSE;
+               }
+          }
+        else
+          {
+             if (!edje_object_file_set(sd->img, file, group))
+               {
+                  ERR("failed to set edje file '%s', group '%s': %s", file, group,
+                      edje_load_error_str(edje_object_load_error_get(sd->img)));
+                  return EINA_FALSE;
+               }
+          }
      }
+   else
+     return _elm_image_async_file_set(obj, sd, file, f, group);
 
    /* FIXME: do i want to update icon on file change ? */
-   _elm_image_internal_sizing_eval(sd);
+   _elm_image_internal_sizing_eval(obj, sd);
 
    return EINA_TRUE;
 }
 
-static void
-_elm_image_smart_size_get(const Evas_Object *obj,
-                          int *w,
-                          int *h)
+EOLIAN static void
+_elm_image_efl_image_smooth_scale_set(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, Eina_Bool smooth)
 {
-   int tw, th;
-   int cw = 0, ch = 0;
-   const char *type;
-
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   type = evas_object_type_get(sd->img);
-   if (!type) return;
-
-   if (!strcmp(type, "edje"))
-     edje_object_size_min_get(sd->img, &tw, &th);
-   else
-     evas_object_image_size_get(sd->img, &tw, &th);
-
-   if ((sd->resize_up) || (sd->resize_down))
-     evas_object_geometry_get(sd->img, NULL, NULL, &cw, &ch);
-
-   tw = tw > cw ? tw : cw;
-   th = th > ch ? th : ch;
-   tw = ((double)tw) * sd->scale;
-   th = ((double)th) * sd->scale;
-   if (w) *w = tw;
-   if (h) *h = th;
-}
-
-static void
-_elm_image_smart_smooth_scale_set(Evas_Object *obj,
-                                  Eina_Bool smooth)
-{
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    if (sd->edje) return;
 
    evas_object_image_smooth_scale_set(sd->img, smooth);
 }
 
-static Eina_Bool
-_elm_image_smart_smooth_scale_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_image_efl_image_smooth_scale_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    if (sd->edje) return EINA_FALSE;
 
    return evas_object_image_smooth_scale_get(sd->img);
 }
 
-static Evas_Object *
-_elm_image_smart_object_get(const Evas_Object *obj)
+EOLIAN static void
+_elm_image_fill_inside_set(Eo *obj, Elm_Image_Data *sd, Eina_Bool fill_inside)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   return sd->img;
-}
-
-static void
-_elm_image_smart_fill_inside_set(Evas_Object *obj,
-                                 Eina_Bool fill_inside)
-{
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    fill_inside = !!fill_inside;
 
    if (sd->fill_inside == fill_inside) return;
 
    sd->fill_inside = fill_inside;
 
-   _elm_image_internal_sizing_eval(sd);
+   _elm_image_internal_sizing_eval(obj, sd);
 }
 
-static Eina_Bool
-_elm_image_smart_fill_inside_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_image_fill_inside_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    return sd->fill_inside;
 }
 
-static void
-_elm_image_smart_resize_up_set(Evas_Object *obj,
-                              Eina_Bool resize_up)
+EOLIAN static void
+_elm_image_resize_up_set(Eo *obj, Elm_Image_Data *sd, Eina_Bool resize_up)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    resize_up = !!resize_up;
 
    if (sd->resize_up == resize_up) return;
 
    sd->resize_up = resize_up;
 
-   _elm_image_internal_sizing_eval(sd);
+   _elm_image_internal_sizing_eval(obj, sd);
 }
 
-static Eina_Bool
-_elm_image_smart_resize_up_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_image_resize_up_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    return sd->resize_up;
 }
 
-static void
-_elm_image_smart_resize_down_set(Evas_Object *obj,
-                                Eina_Bool resize_down)
+EOLIAN static void
+_elm_image_resize_down_set(Eo *obj, Elm_Image_Data *sd, Eina_Bool resize_down)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    resize_down = !!resize_down;
 
    if (sd->resize_down == resize_down) return;
 
    sd->resize_down = resize_down;
 
-   _elm_image_internal_sizing_eval(sd);
+   _elm_image_internal_sizing_eval(obj, sd);
 }
 
-static Eina_Bool
-_elm_image_smart_resize_down_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_image_resize_down_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    return sd->resize_up;
-}
-
-static void
-_elm_image_flip_horizontal(Elm_Image_Smart_Data *sd)
-{
-   unsigned int *p1, *p2, tmp;
-   unsigned int *data;
-   int x, y, iw, ih;
-
-   evas_object_image_size_get(sd->img, &iw, &ih);
-   data = evas_object_image_data_get(sd->img, EINA_TRUE);
-
-   for (y = 0; y < ih; y++)
-     {
-        p1 = data + (y * iw);
-        p2 = data + ((y + 1) * iw) - 1;
-        for (x = 0; x < (iw >> 1); x++)
-          {
-             tmp = *p1;
-             *p1 = *p2;
-             *p2 = tmp;
-             p1++;
-             p2--;
-          }
-     }
-
-   evas_object_image_data_set(sd->img, data);
-   evas_object_image_data_update_add(sd->img, 0, 0, iw, ih);
-
-   _elm_image_internal_sizing_eval(sd);
-}
-
-static void
-_elm_image_flip_vertical(Elm_Image_Smart_Data *sd)
-{
-   unsigned int *p1, *p2, tmp;
-   unsigned int *data;
-   int x, y, iw, ih;
-
-   evas_object_image_size_get(sd->img, &iw, &ih);
-   data = evas_object_image_data_get(sd->img, EINA_TRUE);
-
-   for (y = 0; y < (ih >> 1); y++)
-     {
-        p1 = data + (y * iw);
-        p2 = data + ((ih - 1 - y) * iw);
-        for (x = 0; x < iw; x++)
-          {
-             tmp = *p1;
-             *p1 = *p2;
-             *p2 = tmp;
-             p1++;
-             p2++;
-          }
-     }
-
-   evas_object_image_data_set(sd->img, data);
-   evas_object_image_data_update_add(sd->img, 0, 0, iw, ih);
-
-   _elm_image_internal_sizing_eval(sd);
-}
-
-static void
-_elm_image_smart_rotate_180(Elm_Image_Smart_Data *sd)
-{
-   unsigned int *p1, *p2, tmp;
-   unsigned int *data;
-   int x, hw, iw, ih;
-
-   evas_object_image_size_get(sd->img, &iw, &ih);
-   data = evas_object_image_data_get(sd->img, 1);
-
-   hw = iw * ih;
-   x = (hw / 2);
-   p1 = data;
-   p2 = data + hw - 1;
-
-   for (; --x > 0; )
-     {
-        tmp = *p1;
-        *p1 = *p2;
-        *p2 = tmp;
-        p1++;
-        p2--;
-     }
-
-   evas_object_image_data_set(sd->img, data);
-   evas_object_image_data_update_add(sd->img, 0, 0, iw, ih);
-
-   _elm_image_internal_sizing_eval(sd);
-}
-
-static void
-_elm_image_smart_orient_set(Evas_Object *obj,
-                            Elm_Image_Orient orient)
-{
-   unsigned int *data, *data2 = NULL, *to, *from;
-   int x, y, w, hw, iw, ih;
-
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   if (sd->edje || !sd->img)
-     return;
-
-   switch (orient)
-     {
-      case ELM_IMAGE_FLIP_HORIZONTAL:
-        _elm_image_flip_horizontal(sd);
-	sd->orient = orient;
-        return;
-
-      case ELM_IMAGE_FLIP_VERTICAL:
-        _elm_image_flip_vertical(sd);
-	sd->orient = orient;
-        return;
-
-      case ELM_IMAGE_ROTATE_180:
-        _elm_image_smart_rotate_180(sd);
-	sd->orient = orient;
-        return;
-
-     case ELM_IMAGE_ORIENT_NONE:
-        sd->orient = orient;
-        return;
-
-      default:
-        break;
-     }
-
-   evas_object_image_size_get(sd->img, &iw, &ih);
-
-   /* we need separate destination memory if we want to rotate 90 or
-    * 270 degree */
-   data = evas_object_image_data_get(sd->img, EINA_FALSE);
-   if (!data) return;
-   data2 = malloc(sizeof(unsigned int) * (iw * ih));
-   if (!data2) return;
-   memcpy(data2, data, sizeof(unsigned int) * (iw * ih));
-
-   w = ih;
-   ih = iw;
-   iw = w;
-   hw = w * ih;
-
-   evas_object_image_size_set(sd->img, iw, ih);
-   data = evas_object_image_data_get(sd->img, EINA_TRUE);
-   if (!data)
-     {
-        free(data2);
-        return;
-     }
-
-   switch (orient)
-     {
-      case ELM_IMAGE_FLIP_TRANSPOSE:
-        to = data;
-        hw = -hw + 1;
-	sd->orient = orient;
-        break;
-
-      case ELM_IMAGE_FLIP_TRANSVERSE:
-        to = data + hw - 1;
-        w = -w;
-        hw = hw - 1;
-	sd->orient = orient;
-        break;
-
-      case ELM_IMAGE_ROTATE_90:
-        to = data + w - 1;
-        hw = -hw - 1;
-	sd->orient = orient;
-        break;
-
-      case ELM_IMAGE_ROTATE_270:
-        to = data + hw - w;
-        w = -w;
-        hw = hw + 1;
-	sd->orient = orient;
-        break;
-
-      default:
-        ERR("unknown orient %d", orient);
-        evas_object_image_data_set(sd->img, data);  // give it back
-        if (data2) free(data2);
-
-        return;
-     }
-
-   from = data2;
-   for (x = iw; --x >= 0; )
-     {
-        for (y = ih; --y >= 0; )
-          {
-             *to = *from;
-             from++;
-             to += w;
-          }
-        to += hw;
-     }
-   if (data2) free(data2);
-
-   evas_object_image_data_set(sd->img, data);
-   evas_object_image_data_update_add(sd->img, 0, 0, iw, ih);
-
-   _elm_image_internal_sizing_eval(sd);
-}
-
-static Elm_Image_Orient
-_elm_image_smart_orient_get(const Evas_Object *obj)
-{
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   return sd->orient;
 }
 
 static Eina_Bool
 _elm_image_drag_n_drop_cb(void *elm_obj,
-                          Evas_Object *obj,
-                          Elm_Selection_Data *drop)
+      Evas_Object *obj,
+      Elm_Selection_Data *drop)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   if (ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->file_set
-         (obj, drop->data, NULL))
+   Eina_Bool ret = EINA_FALSE;
+   eo_do(obj, ret = efl_file_set(drop->data, NULL));
+   if (ret)
      {
-        printf("dnd: %s, %s, %s", elm_widget_type_get(elm_obj),
-               SIG_DND, (char *)drop->data);
+        DBG("dnd: %s, %s, %s", elm_widget_type_get(elm_obj),
+              SIG_DND, (char *)drop->data);
 
         evas_object_smart_callback_call(elm_obj, SIG_DND, drop->data);
         return EINA_TRUE;
@@ -622,81 +507,87 @@ _elm_image_drag_n_drop_cb(void *elm_obj,
    return EINA_FALSE;
 }
 
-static void
-_elm_image_smart_add(Evas_Object *obj)
+EOLIAN static void
+_elm_image_evas_object_smart_add(Eo *obj, Elm_Image_Data *priv)
 {
-   EVAS_SMART_DATA_ALLOC(obj, Elm_Image_Smart_Data);
-
-   ELM_WIDGET_CLASS(_elm_image_parent_sc)->base.add(obj);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   elm_widget_sub_object_parent_add(obj);
 
    priv->hit_rect = evas_object_rectangle_add(evas_object_evas_get(obj));
    evas_object_smart_member_add(priv->hit_rect, obj);
    elm_widget_sub_object_add(obj, priv->hit_rect);
+   evas_object_propagate_events_set(priv->hit_rect, EINA_FALSE);
 
    evas_object_color_set(priv->hit_rect, 0, 0, 0, 0);
    evas_object_show(priv->hit_rect);
    evas_object_repeat_events_set(priv->hit_rect, EINA_TRUE);
 
    evas_object_event_callback_add
-     (priv->hit_rect, EVAS_CALLBACK_MOUSE_UP, _on_mouse_up, obj);
+      (priv->hit_rect, EVAS_CALLBACK_MOUSE_UP, _on_mouse_up, obj);
 
    /* starts as an Evas image. may switch to an Edje object */
    priv->img = _img_new(obj);
-   priv->prev_img = NULL;
 
    priv->smooth = EINA_TRUE;
    priv->fill_inside = EINA_TRUE;
    priv->resize_up = EINA_TRUE;
    priv->resize_down = EINA_TRUE;
    priv->aspect_fixed = EINA_TRUE;
-
    priv->load_size = 0;
    priv->scale = 1.0;
 
    elm_widget_can_focus_set(obj, EINA_FALSE);
 
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(priv)->api)->sizing_eval(obj);
+   eo_do(obj, elm_obj_image_sizing_eval());
 }
 
-static void
-_elm_image_smart_del(Evas_Object *obj)
+EOLIAN static void
+_elm_image_evas_object_smart_del(Eo *obj, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   if (sd->anim_timer)
-     ecore_timer_del(sd->anim_timer);
-
+   ecore_timer_del(sd->anim_timer);
    evas_object_del(sd->img);
-   if (sd->prev_img) evas_object_del(sd->prev_img);
+   evas_object_del(sd->prev_img);
+   if (sd->remote) _elm_url_cancel(sd->remote);
+   free(sd->remote_data);
+   eina_stringshare_del(sd->key);
 
-   ELM_WIDGET_CLASS(_elm_image_parent_sc)->base.del(obj);
+   if (sd->async.th)
+     {
+        ecore_thread_cancel(sd->async.th);
+        if (!ecore_thread_wait(sd->async.th, 1.0))
+          {
+             ERR("Async open thread timed out during cancellation.");
+             // skipping all other data free to avoid crashes (this leaks)
+             eo_do_super(obj, MY_CLASS, evas_obj_smart_del());
+             return;
+          }
+     }
+
+   if (sd->async.map) eina_file_map_free(sd->async.f, sd->async.map);
+   if (sd->async.f) eina_file_close(sd->async.f);
+   eina_stringshare_del(sd->async.file);
+   eina_stringshare_del(sd->async.key);
+
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_del());
 }
 
-static void
-_elm_image_smart_move(Evas_Object *obj,
-                      Evas_Coord x,
-                      Evas_Coord y)
+EOLIAN static void
+_elm_image_evas_object_smart_move(Eo *obj, Elm_Image_Data *sd, Evas_Coord x, Evas_Coord y)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_WIDGET_CLASS(_elm_image_parent_sc)->base.move(obj, x, y);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_move(x, y));
 
    if ((sd->img_x == x) && (sd->img_y == y)) return;
    sd->img_x = x;
    sd->img_y = y;
 
    /* takes care of moving */
-   _elm_image_internal_sizing_eval(sd);
+   _elm_image_internal_sizing_eval(obj, sd);
 }
 
-static void
-_elm_image_smart_resize(Evas_Object *obj,
-                        Evas_Coord w,
-                        Evas_Coord h)
+EOLIAN static void
+_elm_image_evas_object_smart_resize(Eo *obj, Elm_Image_Data *sd, Evas_Coord w, Evas_Coord h)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_WIDGET_CLASS(_elm_image_parent_sc)->base.resize(obj, w, h);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_resize(w, h));
 
    if ((sd->img_w == w) && (sd->img_h == h)) return;
 
@@ -704,130 +595,128 @@ _elm_image_smart_resize(Evas_Object *obj,
    sd->img_h = h;
 
    /* takes care of resizing */
-   _elm_image_internal_sizing_eval(sd);
+   _elm_image_internal_sizing_eval(obj, sd);
 }
 
-static void
-_elm_image_smart_show(Evas_Object *obj)
+EOLIAN static void
+_elm_image_evas_object_smart_show(Eo *obj, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    sd->show = EINA_TRUE;
-   if (sd->preloading)
-     return;
+   if (sd->preloading) return;
 
-   ELM_WIDGET_CLASS(_elm_image_parent_sc)->base.show(obj);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_show());
 
    evas_object_show(sd->img);
 
-   if (sd->prev_img) evas_object_del(sd->prev_img);
-   sd->prev_img = NULL;
+   ELM_SAFE_FREE(sd->prev_img, evas_object_del);
 }
 
-static void
-_elm_image_smart_hide(Evas_Object *obj)
+EOLIAN static void
+_elm_image_evas_object_smart_hide(Eo *obj, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_WIDGET_CLASS(_elm_image_parent_sc)->base.hide(obj);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_hide());
 
    sd->show = EINA_FALSE;
    evas_object_hide(sd->img);
 
-   if (sd->prev_img) evas_object_del(sd->prev_img);
-   sd->prev_img = NULL;
+   ELM_SAFE_FREE(sd->prev_img, evas_object_del);
 }
 
-static void
-_elm_image_smart_member_add(Evas_Object *obj,
-                               Evas_Object *member)
+EOLIAN static void
+_elm_image_evas_object_smart_member_add(Eo *obj, Elm_Image_Data *sd, Evas_Object *member)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_WIDGET_CLASS(_elm_image_parent_sc)->base.member_add(obj, member);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_member_add(member));
 
    if (sd->hit_rect)
      evas_object_raise(sd->hit_rect);
 }
 
-static void
-_elm_image_smart_color_set(Evas_Object *obj,
-                           int r,
-                           int g,
-                           int b,
-                           int a)
+EOLIAN static void
+_elm_image_evas_object_smart_color_set(Eo *obj, Elm_Image_Data *sd, int r, int g, int b, int a)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_WIDGET_CLASS(_elm_image_parent_sc)->base.color_set(obj, r, g, b, a);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_color_set(r, g, b, a));
 
    evas_object_color_set(sd->hit_rect, 0, 0, 0, 0);
    evas_object_color_set(sd->img, r, g, b, a);
    if (sd->prev_img) evas_object_color_set(sd->prev_img, r, g, b, a);
 }
 
-static void
-_elm_image_smart_clip_set(Evas_Object *obj,
-                          Evas_Object *clip)
+EOLIAN static void
+_elm_image_evas_object_smart_clip_set(Eo *obj, Elm_Image_Data *sd, Evas_Object *clip)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_WIDGET_CLASS(_elm_image_parent_sc)->base.clip_set(obj, clip);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_clip_set(clip));
 
    evas_object_clip_set(sd->img, clip);
    if (sd->prev_img) evas_object_clip_set(sd->prev_img, clip);
 }
 
-static void
-_elm_image_smart_clip_unset(Evas_Object *obj)
+EOLIAN static void
+_elm_image_evas_object_smart_clip_unset(Eo *obj, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_WIDGET_CLASS(_elm_image_parent_sc)->base.clip_unset(obj);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_clip_unset());
 
    evas_object_clip_unset(sd->img);
    if (sd->prev_img) evas_object_clip_unset(sd->prev_img);
 }
 
-static Eina_Bool
-_elm_image_smart_theme(Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_image_elm_widget_theme_apply(Eo *obj, Elm_Image_Data *sd EINA_UNUSED)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
+   Eina_Bool int_ret = EINA_FALSE;
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_theme_apply());
+   if (!int_ret) return EINA_FALSE;
 
-   if (!ELM_WIDGET_CLASS(_elm_image_parent_sc)->theme(obj))
-     return EINA_FALSE;
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->sizing_eval(obj);
+   eo_do(obj, elm_obj_image_sizing_eval());
 
    return EINA_TRUE;
 }
 
-static void
-_elm_image_smart_sizing_eval(Evas_Object *obj)
+static Eina_Bool
+_key_action_activate(Evas_Object *obj, const char *params EINA_UNUSED)
+{
+   evas_object_smart_callback_call(obj, SIG_CLICKED, NULL);
+   return EINA_TRUE;
+}
+
+EOLIAN static Eina_Bool
+_elm_image_elm_widget_event(Eo *obj, Elm_Image_Data *_pd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
+{
+   (void) src;
+   Evas_Event_Key_Down *ev = event_info;
+
+   if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
+
+   if (!_elm_config_key_binding_call(obj, ev, key_actions))
+     return EINA_FALSE;
+
+   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+   return EINA_TRUE;
+}
+
+EOLIAN static void
+_elm_image_sizing_eval(Eo *obj, Elm_Image_Data *sd)
 {
    Evas_Coord minw = -1, minh = -1, maxw = -1, maxh = -1;
    int w, h;
    double ts;
 
-   ELM_IMAGE_DATA_GET(obj, sd);
+   _elm_image_internal_sizing_eval(obj, sd);
 
-   _elm_image_internal_sizing_eval(sd);
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->smooth_scale_set
-     (obj, sd->smooth);
+   eo_do(obj, efl_image_smooth_scale_set(sd->smooth));
 
    if (sd->no_scale)
-     ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->scale_set(obj, 1.0);
+     eo_do(obj, elm_obj_image_scale_set(1.0));
    else
-     ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->scale_set
-       (obj, elm_widget_scale_get(obj) * elm_config_scale_get());
+     eo_do(obj, efl_image_smooth_scale_set(elm_widget_scale_get(obj) * elm_config_scale_get()));
 
    ts = sd->scale;
    sd->scale = 1.0;
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->size_get(obj, &w, &h);
+   eo_do(obj, elm_obj_image_object_size_get(&w, &h));
+
    sd->scale = ts;
    evas_object_size_hint_min_get(obj, &minw, &minh);
-   
+
    if (sd->no_scale)
      {
         maxw = minw = w;
@@ -861,14 +750,42 @@ _elm_image_smart_sizing_eval(Evas_Object *obj)
    evas_object_size_hint_max_set(obj, maxw, maxh);
 }
 
-static Eina_Bool
-_elm_image_smart_memfile_set(Evas_Object *obj,
-                             const void *img,
-                             size_t size,
-                             const char *format,
-                             const char *key)
+static void
+_elm_image_file_set_do(Evas_Object *obj)
 {
+   Evas_Object *pclip = NULL;
+   int w = 0, h = 0;
+
    ELM_IMAGE_DATA_GET(obj, sd);
+
+   ELM_SAFE_FREE(sd->prev_img, evas_object_del);
+   if (sd->img)
+     {
+        pclip = evas_object_clip_get(sd->img);
+        sd->prev_img = sd->img;
+     }
+
+   sd->img = _img_new(obj);
+
+   evas_object_image_load_orientation_set(sd->img, EINA_TRUE);
+
+   evas_object_clip_set(sd->img, pclip);
+
+   sd->edje = EINA_FALSE;
+
+   if (sd->load_size > 0)
+     evas_object_image_load_size_set(sd->img, sd->load_size, sd->load_size);
+   else
+     {
+        eo_do((Eo *) obj, elm_obj_image_object_size_get(&w, &h));
+        evas_object_image_load_size_set(sd->img, w, h);
+     }
+}
+
+EOLIAN static Eina_Bool
+_elm_image_memfile_set(Eo *obj, Elm_Image_Data *sd, const void *img, size_t size, const char *format, const char *key)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(img, EINA_FALSE);
 
    _elm_image_file_set_do(obj);
 
@@ -876,10 +793,8 @@ _elm_image_smart_memfile_set(Evas_Object *obj,
      (sd->img, (void *)img, size, (char *)format, (char *)key);
 
    sd->preloading = EINA_TRUE;
-   sd->show = EINA_TRUE;
-
-   evas_object_hide(sd->img);
    evas_object_image_preload(sd->img, EINA_FALSE);
+
    if (evas_object_image_load_error_get(sd->img) != EVAS_LOAD_ERROR_NONE)
      {
         ERR("Things are going bad for some random " FMT_SIZE_T
@@ -887,48 +802,291 @@ _elm_image_smart_memfile_set(Evas_Object *obj,
         return EINA_FALSE;
      }
 
-   _elm_image_internal_sizing_eval(sd);
+   _elm_image_internal_sizing_eval(obj, sd);
 
    return EINA_TRUE;
 }
 
-static Eina_Bool
-_elm_image_smart_file_set(Evas_Object *obj,
-                          const char *file,
-                          const char *key)
+EOLIAN static void
+_elm_image_scale_set(Eo *obj, Elm_Image_Data *sd, double scale)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
+   sd->scale = scale;
 
-   if (eina_str_has_extension(file, ".edj"))
-     return _elm_image_edje_file_set(obj, file, key);
+   _elm_image_internal_sizing_eval(obj, sd);
+}
 
-   _elm_image_file_set_do(obj);
+EOLIAN static double
+_elm_image_scale_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
+{
+   return sd->scale;
+}
 
-   evas_object_image_file_set(sd->img, file, key);
+EAPI Evas_Object *
+elm_image_add(Evas_Object *parent)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
+   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   return obj;
+}
 
-   sd->preloading = EINA_TRUE;
-   sd->show = EINA_TRUE;
+EOLIAN static void
+_elm_image_eo_base_constructor(Eo *obj, Elm_Image_Data *_pd EINA_UNUSED)
+{
+   eo_do_super(obj, MY_CLASS, eo_constructor());
+   eo_do(obj,
+         evas_obj_type_set(MY_CLASS_NAME_LEGACY),
+         evas_obj_smart_callbacks_descriptions_set(_smart_callbacks),
+         elm_interface_atspi_accessible_role_set(ELM_ATSPI_ROLE_IMAGE));
+}
 
-   evas_object_hide(sd->img);
+EAPI Eina_Bool
+elm_image_file_set(Evas_Object *obj,
+                   const char *file,
+                   const char *group)
+{
+   Eina_Bool ret = EINA_FALSE;
 
-   evas_object_image_preload(sd->img, EINA_FALSE);
-   if (evas_object_image_load_error_get(sd->img) != EVAS_LOAD_ERROR_NONE)
-     {
-        ERR("Things are going bad for '%s' (%p)", file, sd->img);
-        return EINA_FALSE;
-     }
+   ELM_IMAGE_CHECK(obj) EINA_FALSE;
+   EINA_SAFETY_ON_NULL_RETURN_VAL(file, EINA_FALSE);
+   eo_do(obj, ret = efl_file_set(file, group));
+   eo_do(obj, elm_obj_image_sizing_eval());
+   return ret;
+}
 
-   _elm_image_internal_sizing_eval(sd);
+EAPI void
+elm_image_file_get(const Eo *obj, const char **file, const char **group)
+{
+   eo_do((Eo *) obj, efl_file_get(file, group));
+}
 
-   return EINA_TRUE;
+EAPI Eina_Bool
+elm_image_mmap_set(Evas_Object *obj,
+		   const Eina_File *file,
+		   const char *group)
+{
+   Eina_Bool ret = EINA_FALSE;
+
+   ELM_IMAGE_CHECK(obj) EINA_FALSE;
+   EINA_SAFETY_ON_NULL_RETURN_VAL(file, EINA_FALSE);
+   eo_do(obj,
+         ret = elm_obj_image_mmap_set(file, group),
+         elm_obj_image_sizing_eval());
+   return ret;
 }
 
 static void
-_elm_image_smart_file_get(const Evas_Object *obj,
-                          const char **file,
-                          const char **key)
+_elm_image_smart_internal_file_set(Eo *obj, Elm_Image_Data *sd,
+                                   const char *file, const Eina_File *f, const char *key, Eina_Bool *ret)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
+   if (eina_str_has_extension(file, ".edj"))
+     {
+        Eina_Bool int_ret = _elm_image_edje_file_set(obj, file, f, key);
+        if (ret) *ret = int_ret;
+        return;
+     }
+
+   _elm_image_file_set_do(obj);
+
+   if (f)
+     evas_object_image_mmap_set(sd->img, f, key);
+   else
+     evas_object_image_file_set(sd->img, file, key);
+
+   evas_object_hide(sd->img);
+
+   if (evas_object_visible_get(obj))
+     {
+        sd->preloading = EINA_TRUE;
+        evas_object_image_preload(sd->img, EINA_FALSE);
+     }
+
+   if (evas_object_image_load_error_get(sd->img) != EVAS_LOAD_ERROR_NONE)
+     {
+        ERR("Things are going bad for '%s' (%p)", file, sd->img);
+        if (ret) *ret = EINA_FALSE;
+        return;
+     }
+
+   _elm_image_internal_sizing_eval(obj, sd);
+
+   if (ret) *ret = EINA_TRUE;
+}
+
+static void
+_elm_image_smart_download_done(void *data, Elm_Url *url EINA_UNUSED, Eina_Binbuf *download)
+{
+   Eo *obj = data;
+   Elm_Image_Data *sd = eo_data_scope_get(obj, MY_CLASS);
+   Eina_File *f;
+   size_t length;
+   Eina_Bool ret = EINA_FALSE;
+
+   free(sd->remote_data);
+   length = eina_binbuf_length_get(download);
+   sd->remote_data = eina_binbuf_string_steal(download);
+   f = eina_file_virtualize(_elm_url_get(url),
+                            sd->remote_data, length,
+                            EINA_FALSE);
+   _elm_image_smart_internal_file_set(obj, sd, _elm_url_get(url), f, sd->key, &ret);
+   eina_file_close(f);
+
+   sd->remote = NULL;
+   if (!ret)
+     {
+        Elm_Image_Error err = { 0, EINA_TRUE };
+
+        free(sd->remote_data);
+        sd->remote_data = NULL;
+        evas_object_smart_callback_call(obj, SIG_DOWNLOAD_ERROR, &err);
+     }
+   else
+     {
+        if (evas_object_visible_get(obj))
+          {
+             sd->preloading = EINA_TRUE;
+             evas_object_image_preload(sd->img, EINA_FALSE);
+          }
+
+        evas_object_smart_callback_call(obj, SIG_DOWNLOAD_DONE, NULL);
+     }
+
+   ELM_SAFE_FREE(sd->key, eina_stringshare_del);
+}
+
+static void
+_elm_image_smart_download_cancel(void *data, Elm_Url *url EINA_UNUSED, int error)
+{
+   Eo *obj = data;
+   Elm_Image_Data *sd = eo_data_scope_get(obj, MY_CLASS);
+   Elm_Image_Error err = { error, EINA_FALSE };
+
+   evas_object_smart_callback_call(obj, SIG_DOWNLOAD_ERROR, &err);
+
+   sd->remote = NULL;
+   ELM_SAFE_FREE(sd->key, eina_stringshare_del);
+}
+
+static void
+_elm_image_smart_download_progress(void *data, Elm_Url *url EINA_UNUSED, double now, double total)
+{
+   Eo *obj = data;
+   Elm_Image_Progress progress;
+
+   progress.now = now;
+   progress.total = total;
+   evas_object_smart_callback_call(obj, SIG_DOWNLOAD_PROGRESS, &progress);
+}
+
+static const char *remote_uri[] = {
+  "http://", "https://", "ftp://"
+};
+
+EOLIAN static Eina_Bool
+_elm_image_efl_file_file_set(Eo *obj, Elm_Image_Data *sd, const char *file, const char *key)
+{
+   Eina_Bool ret = EINA_FALSE;
+   unsigned int i;
+
+   if (sd->remote) _elm_url_cancel(sd->remote);
+   sd->remote = NULL;
+
+   for (i = 0; i < sizeof (remote_uri) / sizeof (remote_uri[0]); ++i)
+     if (file && !strncmp(remote_uri[i], file, strlen(remote_uri[i])))
+       {
+          // Found a remote target !
+          evas_object_hide(sd->img);
+          sd->remote = _elm_url_download(file,
+                                        _elm_image_smart_download_done,
+                                        _elm_image_smart_download_cancel,
+                                        _elm_image_smart_download_progress,
+                                        obj);
+          if (sd->remote)
+            {
+               evas_object_smart_callback_call(obj, SIG_DOWNLOAD_START, NULL);
+               eina_stringshare_replace(&sd->key, key);
+               return EINA_TRUE;
+            }
+          break;
+       }
+
+   if (!sd->async_enable)
+     _elm_image_smart_internal_file_set(obj, sd, file, NULL, key, &ret);
+   else
+     ret = _elm_image_async_file_set(obj, sd, file, NULL, key);
+
+   return ret;
+}
+
+EOLIAN static void
+_elm_image_edje_object_signal_emit(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, const char *emission, const char *source)
+{
+   if (sd->edje)
+     edje_object_signal_emit(sd->img, emission, source);
+}
+
+EOLIAN static void
+_elm_image_edje_object_size_min_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, int *w, int *h)
+{
+   if (sd->edje)
+     edje_object_size_min_get(sd->img, w, h);
+   else
+     evas_object_size_hint_min_get(sd->img, w, h);
+}
+
+EOLIAN static void
+_elm_image_edje_object_size_max_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, int *w, int *h)
+{
+   if (sd->edje)
+     edje_object_size_max_get(sd->img, w, h);
+   else
+     evas_object_size_hint_max_get(sd->img, w, h);
+}
+
+EOLIAN static void
+_elm_image_edje_object_calc_force(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
+{
+   if (sd->edje)
+     edje_object_calc_force(sd->img);
+}
+
+EOLIAN static void
+_elm_image_edje_object_size_min_calc(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, int *w, int *h)
+{
+   if (sd->edje)
+     edje_object_size_min_calc(sd->img, w, h);
+   else
+     evas_object_size_hint_min_get(sd->img, w, h);
+}
+
+EOLIAN static Eina_Bool
+_elm_image_mmap_set(Eo *obj, Elm_Image_Data *sd, const Eina_File *f, const char *key)
+{
+  Eina_Bool ret;
+
+  if (sd->remote) _elm_url_cancel(sd->remote);
+  sd->remote = NULL;
+
+  if (!sd->async_enable)
+    {
+       _elm_image_smart_internal_file_set(obj, sd,
+                                          eina_file_filename_get(f), f,
+                                          key, &ret);
+    }
+  else
+    ret = _elm_image_async_file_set(obj, sd, eina_file_filename_get(f), f, key);
+
+   return ret;
+}
+
+EOLIAN static void
+_elm_image_efl_file_file_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, const char **file, const char **key)
+{
+   if (sd->async_enable && (sd->async_opening || sd->async_failed))
+     {
+        if (file) *file = sd->async.file;
+        if (key) *key = sd->async.key;
+        return;
+     }
 
    if (sd->edje)
      edje_object_file_get(sd->img, file, key);
@@ -936,13 +1094,129 @@ _elm_image_smart_file_get(const Evas_Object *obj,
      evas_object_image_file_get(sd->img, file, key);
 }
 
-static void
-_elm_image_smart_preload_set(Evas_Object *obj,
-                             Eina_Bool disable)
+EOLIAN static void
+_elm_image_smooth_set(Eo *obj, Elm_Image_Data *sd, Eina_Bool smooth)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
+   sd->smooth = smooth;
 
+   eo_do(obj, elm_obj_image_sizing_eval());
+}
+
+EOLIAN static Eina_Bool
+_elm_image_smooth_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
+{
+   return sd->smooth;
+}
+
+static Eina_Bool
+_elm_image_efl_file_async_wait(Eo *obj EINA_UNUSED, Elm_Image_Data *pd)
+{
+   Eina_Bool ok = EINA_TRUE;
+   if (!pd->async_enable) return ok;
+   if (!pd->async.th) return ok;
+   if (!ecore_thread_wait(pd->async.th, 1.0))
+     {
+        ERR("Failed to wait on async file open!");
+        ok = EINA_FALSE;
+        if (!pd->async.map)
+          pd->async_failed = EINA_TRUE;
+     }
+   return ok;
+}
+
+EOLIAN static void
+_elm_image_efl_file_async_set(Eo *obj, Elm_Image_Data *pd, Eina_Bool async)
+{
+   if (pd->async_enable == async)
+     return;
+
+   pd->async_enable = async;
+   if (!async)
+     _elm_image_efl_file_async_wait(obj, pd);
+}
+
+EOLIAN static Eina_Bool
+_elm_image_efl_file_async_get(Eo *obj EINA_UNUSED, Elm_Image_Data *pd)
+{
+   return pd->async_enable;
+}
+
+EOLIAN static void
+_elm_image_object_size_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, int *w, int *h)
+{
+   int tw, th;
+   int cw = 0, ch = 0;
+   const char *type;
+
+   type = evas_object_type_get(sd->img);
+   if (!type) return;
+
+   if (!strcmp(type, "edje"))
+     edje_object_size_min_get(sd->img, &tw, &th);
+   else
+     evas_object_image_size_get(sd->img, &tw, &th);
+
+   if ((sd->resize_up) || (sd->resize_down))
+     evas_object_geometry_get(sd->img, NULL, NULL, &cw, &ch);
+
+   tw = tw > cw ? tw : cw;
+   th = th > ch ? th : ch;
+   tw = ((double)tw) * sd->scale;
+   th = ((double)th) * sd->scale;
+   if (w) *w = tw;
+   if (h) *h = th;
+}
+
+EOLIAN static void
+_elm_image_no_scale_set(Eo *obj, Elm_Image_Data *sd, Eina_Bool no_scale)
+{
+   sd->no_scale = no_scale;
+
+   eo_do(obj, elm_obj_image_sizing_eval());
+}
+
+EOLIAN static Eina_Bool
+_elm_image_no_scale_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
+{
+   return sd->no_scale;
+}
+
+EOLIAN static void
+_elm_image_resizable_set(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, Eina_Bool up, Eina_Bool down)
+{
+   sd->resize_up = !!up;
+   sd->resize_down = !!down;
+
+   eo_do(obj, elm_obj_image_sizing_eval());
+}
+
+EOLIAN static void
+_elm_image_resizable_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, Eina_Bool *size_up, Eina_Bool *size_down)
+{
+   if (size_up) *size_up = sd->resize_up;
+   if (size_down) *size_down = sd->resize_down;
+}
+
+EOLIAN static void
+_elm_image_fill_outside_set(Eo *obj, Elm_Image_Data *sd, Eina_Bool fill_outside)
+{
+   sd->fill_inside = !fill_outside;
+
+   eo_do(obj, elm_obj_image_sizing_eval());
+}
+
+EOLIAN static Eina_Bool
+_elm_image_fill_outside_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
+{
+   return !sd->fill_inside;
+}
+
+EOLIAN static void
+_elm_image_preload_disabled_set(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, Eina_Bool disable)
+{
    if (sd->edje || !sd->preloading) return;
+
+   //FIXME: Need to keep the disabled status for next image loading.
 
    evas_object_image_preload(sd->img, disable);
    sd->preloading = !disable;
@@ -950,63 +1224,377 @@ _elm_image_smart_preload_set(Evas_Object *obj,
    if (disable)
      {
         if (sd->show && sd->img) evas_object_show(sd->img);
-        if (sd->prev_img)
-          {
-             evas_object_del(sd->prev_img);
-             sd->prev_img = NULL;
-          }
+        ELM_SAFE_FREE(sd->prev_img, evas_object_del);
      }
 }
 
+EAPI void
+elm_image_prescale_set(Evas_Object *obj,
+                       int size)
+{
+   ELM_IMAGE_CHECK(obj);
+   eo_do(obj, efl_image_load_size_set(size, size));
+}
+
+EOLIAN static void
+_elm_image_efl_image_load_size_set(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, int w, int h)
+{
+   if (w > h)
+      sd->load_size = w;
+   else
+      sd->load_size = h;
+}
+
+EAPI int
+elm_image_prescale_get(const Evas_Object *obj)
+{
+   ELM_IMAGE_CHECK(obj) 0;
+
+   int w = 0;
+   eo_do((Eo *)obj, efl_image_load_size_get(&w, NULL));
+   return w;
+}
+
+EOLIAN static void
+_elm_image_efl_image_load_size_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd, int *w, int *h)
+{
+   if (w) *w = sd->load_size;
+   if (h) *h = sd->load_size;
+}
+
 static void
-_elm_image_smart_load_size_set(Evas_Object *obj,
-                               int size)
+_elm_image_flip_horizontal(Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
+   unsigned int *p1, *p2, tmp;
+   unsigned int *data;
+   int x, y, iw, ih;
 
-   sd->load_size = size;
-}
+   evas_object_image_size_get(sd->img, &iw, &ih);
+   data = evas_object_image_data_get(sd->img, EINA_TRUE);
 
-static int
-_elm_image_smart_load_size_get(const Evas_Object *obj)
-{
-   ELM_IMAGE_DATA_GET(obj, sd);
+   for (y = 0; y < ih; y++)
+     {
+        p1 = data + (y * iw);
+        p2 = data + ((y + 1) * iw) - 1;
+        for (x = 0; x < (iw >> 1); x++)
+          {
+             tmp = *p1;
+             *p1 = *p2;
+             *p2 = tmp;
+             p1++;
+             p2--;
+          }
+     }
 
-   return sd->load_size;
+   evas_object_image_data_set(sd->img, data);
 }
 
 static void
-_elm_image_smart_scale_set(Evas_Object *obj,
-                           double scale)
+_elm_image_flip_vertical(Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
+   unsigned int *p1, *p2, tmp;
+   unsigned int *data;
+   int x, y, iw, ih;
 
-   sd->scale = scale;
+   evas_object_image_size_get(sd->img, &iw, &ih);
+   data = evas_object_image_data_get(sd->img, EINA_TRUE);
 
-   _elm_image_internal_sizing_eval(sd);
+   for (y = 0; y < (ih >> 1); y++)
+     {
+        p1 = data + (y * iw);
+        p2 = data + ((ih - 1 - y) * iw);
+        for (x = 0; x < iw; x++)
+          {
+             tmp = *p1;
+             *p1 = *p2;
+             *p2 = tmp;
+             p1++;
+             p2++;
+          }
+     }
+
+   evas_object_image_data_set(sd->img, data);
 }
 
-static double
-_elm_image_smart_scale_get(const Evas_Object *obj)
+static void
+_elm_image_smart_rotate_180(Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
+   unsigned int *p1, *p2, tmp;
+   unsigned int *data;
+   int x, hw, iw, ih;
 
-   return sd->scale;
+   evas_object_image_size_get(sd->img, &iw, &ih);
+   data = evas_object_image_data_get(sd->img, 1);
+
+   hw = iw * ih;
+   x = (hw / 2);
+   p1 = data;
+   p2 = data + hw - 1;
+
+   for (; --x > 0; )
+     {
+        tmp = *p1;
+        *p1 = *p2;
+        *p2 = tmp;
+        p1++;
+        p2--;
+     }
+
+   evas_object_image_data_set(sd->img, data);
+}
+
+#define GETDAT(neww, newh) \
+   unsigned int *data, *data2; \
+   int iw, ih, w, h; \
+   evas_object_image_size_get(sd->img, &iw, &ih); \
+   data = evas_object_image_data_get(sd->img, EINA_FALSE); \
+   if (!data) return; \
+   data2 = malloc(iw * ih * sizeof(int)); \
+   if (!data2) { \
+      evas_object_image_data_set(sd->img, data); \
+      return; \
+   } \
+   memcpy(data2, data, iw * ih * sizeof(int)); \
+   evas_object_image_data_set(sd->img, data); \
+   w = neww; h = newh; \
+   evas_object_image_size_set(sd->img, w, h); \
+   data = evas_object_image_data_get(sd->img, EINA_TRUE); \
+   if (!data) { \
+      free(data2); \
+      return; \
+   } \
+
+#define PUTDAT \
+   evas_object_image_data_set(sd->img, data); \
+   free(data2);
+
+#define TILE 32
+
+static void
+_elm_image_smart_rotate_90(Elm_Image_Data *sd)
+{
+   GETDAT(ih, iw);
+   int x, y, xx, yy, xx2, yy2;
+   unsigned int *src, *dst;
+
+   for (y = 0; y < ih; y += TILE)
+     {
+        yy2 = y + TILE;
+        if (yy2 > ih) yy2 = ih;
+        for (x = 0; x < iw; x += TILE)
+          {
+             xx2 = x + TILE;
+             if (xx2 > iw) xx2 = iw;
+             for (yy = y; yy < yy2; yy++)
+               {
+                  src = data2 + (yy * iw) + x;
+                  dst = data + (x * w) + (w - yy - 1);
+                  for (xx = x; xx < xx2; xx++)
+                    {
+                       *dst = *src;
+                       src++;
+                       dst += w;
+                    }
+               }
+          }
+     }
+   PUTDAT;
+}
+
+static void
+_elm_image_smart_rotate_270(Elm_Image_Data *sd)
+{
+   GETDAT(ih, iw);
+   int x, y, xx, yy, xx2, yy2;
+   unsigned int *src, *dst;
+
+   for (y = 0; y < ih; y += TILE)
+     {
+        yy2 = y + TILE;
+        if (yy2 > ih) yy2 = ih;
+        for (x = 0; x < iw; x += TILE)
+          {
+             xx2 = x + TILE;
+             if (xx2 > iw) xx2 = iw;
+             for (yy = y; yy < yy2; yy++)
+               {
+                  src = data2 + (yy * iw) + x;
+                  dst = data + ((h - x - 1) * w) + yy;
+                  for (xx = x; xx < xx2; xx++)
+                    {
+                       *dst = *src;
+                       src++;
+                       dst -= w;
+                    }
+               }
+          }
+     }
+   PUTDAT;
+}
+
+static void
+_elm_image_smart_flip_transverse(Elm_Image_Data *sd)
+{
+   GETDAT(ih, iw);
+   int x, y;
+   unsigned int *src, *dst;
+
+   src = data2;
+   for (y = 0; y < ih; y++)
+     {
+        dst = data + y;
+        for (x = 0; x < iw; x++)
+          {
+             *dst = *src;
+             src++;
+             dst += w;
+          }
+     }
+   PUTDAT;
+}
+
+static void
+_elm_image_smart_flip_transpose(Elm_Image_Data *sd)
+{
+   GETDAT(ih, iw);
+   int x, y;
+   unsigned int *src, *dst;
+
+   src = data2 + (iw * ih) - 1;
+   for (y = 0; y < ih; y++)
+     {
+        dst = data + y;
+        for (x = 0; x < iw; x++)
+          {
+             *dst = *src;
+             src--;
+             dst += w;
+          }
+     }
+   PUTDAT;
+}
+
+EOLIAN static void
+_elm_image_orient_set(Eo *obj, Elm_Image_Data *sd, Elm_Image_Orient orient)
+{
+
+   int iw, ih;
+
+   if (sd->edje) return;
+   if (sd->orient == orient) return;
+
+   evas_object_image_size_get(sd->img, &iw, &ih);
+   if ((sd->orient >= ELM_IMAGE_ORIENT_0) &&
+       (sd->orient <= ELM_IMAGE_ROTATE_270) &&
+       (orient >= ELM_IMAGE_ORIENT_0) &&
+       (orient <= ELM_IMAGE_ROTATE_270))
+     {
+        // we are rotating from one anglee to another, so figure out delta
+        // and apply that delta
+        Elm_Image_Orient rot_delta = (4 + orient - sd->orient) % 4;
+        switch (rot_delta)
+          {
+           case ELM_IMAGE_ORIENT_0:
+             // this should never hppen
+             break;
+           case ELM_IMAGE_ORIENT_90:
+             _elm_image_smart_rotate_90(sd);
+             sd->orient = orient;
+             break;
+           case ELM_IMAGE_ORIENT_180:
+             _elm_image_smart_rotate_180(sd);
+             sd->orient = orient;
+             break;
+           case ELM_IMAGE_ORIENT_270:
+             _elm_image_smart_rotate_270(sd);
+             sd->orient = orient;
+             break;
+           default:
+             // this should never hppen
+             break;
+          }
+     }
+   else if (((sd->orient == ELM_IMAGE_ORIENT_NONE) &&
+             (orient == ELM_IMAGE_FLIP_HORIZONTAL)) ||
+            ((sd->orient == ELM_IMAGE_FLIP_HORIZONTAL) &&
+             (orient == ELM_IMAGE_ORIENT_NONE)))
+     {
+        // flip horizontally to get thew new orientation
+         _elm_image_flip_horizontal(sd);
+        sd->orient = orient;
+     }
+   else if (((sd->orient == ELM_IMAGE_ORIENT_NONE) &&
+             (orient == ELM_IMAGE_FLIP_VERTICAL)) ||
+            ((sd->orient == ELM_IMAGE_FLIP_VERTICAL) &&
+             (orient == ELM_IMAGE_ORIENT_NONE)))
+     {
+        // flipvertically to get thew new orientation
+         _elm_image_flip_vertical(sd);
+        sd->orient = orient;
+     }
+   else
+     {
+        // generic solution - undo the previous orientation and then apply the
+        // new one after that
+        int i;
+
+        for (i = 0; i < 2; i++)
+          {
+             switch (sd->orient)
+               {
+                case ELM_IMAGE_ORIENT_0:
+                  break;
+                case ELM_IMAGE_ORIENT_90:
+                  if (i == 0) _elm_image_smart_rotate_270(sd);
+                  else _elm_image_smart_rotate_90(sd);
+                  break;
+                case ELM_IMAGE_ORIENT_180:
+                  _elm_image_smart_rotate_180(sd);
+                  break;
+                case ELM_IMAGE_ORIENT_270:
+                  if (i == 0) _elm_image_smart_rotate_90(sd);
+                  else _elm_image_smart_rotate_270(sd);
+                  break;
+                case ELM_IMAGE_FLIP_HORIZONTAL:
+                  _elm_image_flip_horizontal(sd);
+                  break;
+                case ELM_IMAGE_FLIP_VERTICAL:
+                  _elm_image_flip_vertical(sd);
+                  break;
+                case ELM_IMAGE_FLIP_TRANSPOSE:
+                  _elm_image_smart_flip_transpose(sd);
+                  break;
+                case ELM_IMAGE_FLIP_TRANSVERSE:
+                  _elm_image_smart_flip_transverse(sd);
+                  break;
+                default:
+                  // this should never hppen
+                  break;
+               }
+             sd->orient = orient;
+          }
+     }
+
+   evas_object_image_size_get(sd->img, &iw, &ih);
+   evas_object_image_data_update_add(sd->img, 0, 0, iw, ih);
+   _elm_image_internal_sizing_eval(obj, sd);
+}
+
+EOLIAN static Elm_Image_Orient
+_elm_image_orient_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
+{
+   return sd->orient;
 }
 
 /**
  * Turns on editing through drag and drop and copy and paste.
  */
-static void
-_elm_image_smart_edit_set(Evas_Object *obj,
-                          Eina_Bool edit,
-                          Evas_Object *parent)
+EOLIAN static void
+_elm_image_editable_set(Eo *obj, Elm_Image_Data *sd, Eina_Bool edit)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    if (sd->edje)
      {
-        printf("No editing edje objects yet (ever)\n");
+        WRN("No editing edje objects yet (ever)\n");
         return;
      }
 
@@ -1018,393 +1606,70 @@ _elm_image_smart_edit_set(Evas_Object *obj,
 
    if (sd->edit)
      elm_drop_target_add
-       (obj, ELM_SEL_FORMAT_IMAGE, NULL, NULL, NULL, NULL, NULL, NULL,
-        _elm_image_drag_n_drop_cb, parent);
+       (obj, ELM_SEL_FORMAT_IMAGE,
+           NULL, NULL,
+           NULL, NULL,
+           NULL, NULL,
+           _elm_image_drag_n_drop_cb, obj);
    else
      elm_drop_target_del
-       (obj, ELM_SEL_FORMAT_IMAGE, NULL, NULL, NULL, NULL, NULL, NULL,
-        _elm_image_drag_n_drop_cb, parent);
+       (obj, ELM_SEL_FORMAT_IMAGE,
+           NULL, NULL,
+           NULL, NULL,
+           NULL, NULL,
+           _elm_image_drag_n_drop_cb, obj);
 }
 
-static Eina_Bool
-_elm_image_smart_edit_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_image_editable_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    return sd->edit;
 }
 
-static void
-_elm_image_smart_aspect_fixed_set(Evas_Object *obj,
-                                  Eina_Bool fixed)
+EOLIAN static Evas_Object*
+_elm_image_object_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
+   return sd->img;
+}
 
+EOLIAN static void
+_elm_image_aspect_fixed_set(Eo *obj, Elm_Image_Data *sd, Eina_Bool fixed)
+{
    fixed = !!fixed;
    if (sd->aspect_fixed == fixed) return;
 
    sd->aspect_fixed = fixed;
 
-   _elm_image_internal_sizing_eval(sd);
+   _elm_image_internal_sizing_eval(obj, sd);
 }
 
-static Eina_Bool
-_elm_image_smart_aspect_fixed_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_image_aspect_fixed_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    return sd->aspect_fixed;
 }
 
-static void
-_elm_image_smart_set_user(Elm_Image_Smart_Class *sc)
+EOLIAN static Eina_Bool
+_elm_image_animated_available_get(Eo *obj, Elm_Image_Data *sd)
 {
-   ELM_WIDGET_CLASS(sc)->base.add = _elm_image_smart_add;
-   ELM_WIDGET_CLASS(sc)->base.del = _elm_image_smart_del,
-   ELM_WIDGET_CLASS(sc)->base.move = _elm_image_smart_move,
-   ELM_WIDGET_CLASS(sc)->base.resize = _elm_image_smart_resize,
-   ELM_WIDGET_CLASS(sc)->base.show = _elm_image_smart_show,
-   ELM_WIDGET_CLASS(sc)->base.hide = _elm_image_smart_hide,
-   ELM_WIDGET_CLASS(sc)->base.member_add = _elm_image_smart_member_add,
-   ELM_WIDGET_CLASS(sc)->base.color_set = _elm_image_smart_color_set,
-   ELM_WIDGET_CLASS(sc)->base.clip_set = _elm_image_smart_clip_set,
-   ELM_WIDGET_CLASS(sc)->base.clip_unset = _elm_image_smart_clip_unset,
-
-   ELM_WIDGET_CLASS(sc)->theme = _elm_image_smart_theme;
-
-   sc->aspect_fixed_get = _elm_image_smart_aspect_fixed_get;
-   sc->aspect_fixed_set = _elm_image_smart_aspect_fixed_set;
-   sc->edit_get = _elm_image_smart_edit_get;
-   sc->edit_set = _elm_image_smart_edit_set;
-   sc->file_get = _elm_image_smart_file_get;
-   sc->file_set = _elm_image_smart_file_set;
-   sc->fill_inside_get = _elm_image_smart_fill_inside_get;
-   sc->fill_inside_set = _elm_image_smart_fill_inside_set;
-   sc->image_object_get = _elm_image_smart_object_get;
-   sc->load_size_get = _elm_image_smart_load_size_get;
-   sc->load_size_set = _elm_image_smart_load_size_set;
-   sc->memfile_set = _elm_image_smart_memfile_set;
-   sc->orient_get = _elm_image_smart_orient_get;
-   sc->orient_set = _elm_image_smart_orient_set;
-   sc->preload_set = _elm_image_smart_preload_set;
-   sc->resize_down_get = _elm_image_smart_resize_down_get;
-   sc->resize_down_set = _elm_image_smart_resize_down_set;
-   sc->scale_get = _elm_image_smart_scale_get;
-   sc->scale_set = _elm_image_smart_scale_set;
-   sc->resize_up_get = _elm_image_smart_resize_up_get;
-   sc->resize_up_set = _elm_image_smart_resize_up_set;
-   sc->size_get = _elm_image_smart_size_get;
-   sc->sizing_eval = _elm_image_smart_sizing_eval;
-   sc->smooth_scale_get = _elm_image_smart_smooth_scale_get;
-   sc->smooth_scale_set = _elm_image_smart_smooth_scale_set;
-}
-
-EAPI const Elm_Image_Smart_Class *
-elm_image_smart_class_get(void)
-{
-   static Elm_Image_Smart_Class _sc =
-     ELM_IMAGE_SMART_CLASS_INIT_NAME_VERSION(ELM_IMAGE_SMART_NAME);
-   static const Elm_Image_Smart_Class *class = NULL;
-   Evas_Smart_Class *esc = (Evas_Smart_Class *)&_sc;
-
-   if (class)
-     return class;
-
-   _elm_image_smart_set(&_sc);
-   esc->callbacks = _smart_callbacks;
-   class = &_sc;
-
-   return class;
-}
-
-EAPI Evas_Object *
-elm_image_add(Evas_Object *parent)
-{
-   Evas_Object *obj;
-
-   EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-
-   obj = elm_widget_add(_elm_image_smart_class_new(), parent);
-   if (!obj) return NULL;
-
-   if (!elm_widget_sub_object_add(parent, obj))
-     ERR("could not add %p as sub object of %p", obj, parent);
-
-   //Tizen Only: This should be removed when eo is applied.
-   ELM_WIDGET_DATA_GET(obj, wsd);
-   wsd->on_create = EINA_FALSE;
-
-   return obj;
-}
-
-EAPI Eina_Bool
-elm_image_memfile_set(Evas_Object *obj,
-                      const void *img,
-                      size_t size,
-                      const char *format,
-                      const char *key)
-{
-   ELM_IMAGE_CHECK(obj) EINA_FALSE;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   EINA_SAFETY_ON_NULL_RETURN_VAL(img, EINA_FALSE);
-   EINA_SAFETY_ON_TRUE_RETURN_VAL(!size, EINA_FALSE);
-
-   return ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->memfile_set
-            (obj, img, size, format, key);
-}
-
-EAPI Eina_Bool
-elm_image_file_set(Evas_Object *obj,
-                   const char *file,
-                   const char *group)
-{
-   Eina_Bool ret;
-
-   ELM_IMAGE_CHECK(obj) EINA_FALSE;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   EINA_SAFETY_ON_NULL_RETURN_VAL(file, EINA_FALSE);
-
-   ret = ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->file_set(obj, file, group);
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->sizing_eval(obj);
-
-   return ret;
-}
-
-EAPI void
-elm_image_file_get(const Evas_Object *obj,
-                   const char **file,
-                   const char **group)
-{
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->file_get(obj, file, group);
-}
-
-EAPI void
-elm_image_smooth_set(Evas_Object *obj,
-                     Eina_Bool smooth)
-{
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   sd->smooth = smooth;
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->sizing_eval(obj);
-}
-
-EAPI Eina_Bool
-elm_image_smooth_get(const Evas_Object *obj)
-{
-   ELM_IMAGE_CHECK(obj) EINA_FALSE;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   return sd->smooth;
-}
-
-EAPI void
-elm_image_object_size_get(const Evas_Object *obj,
-                          int *w,
-                          int *h)
-{
-   if (w) *w = 0;
-   if (h) *h = 0;
-
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->size_get(obj, w, h);
-}
-
-EAPI void
-elm_image_no_scale_set(Evas_Object *obj,
-                       Eina_Bool no_scale)
-{
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   sd->no_scale = no_scale;
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->sizing_eval(obj);
-}
-
-EAPI Eina_Bool
-elm_image_no_scale_get(const Evas_Object *obj)
-{
-   ELM_IMAGE_CHECK(obj) EINA_FALSE;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   return sd->no_scale;
-}
-
-EAPI void
-elm_image_resizable_set(Evas_Object *obj,
-                        Eina_Bool up,
-                        Eina_Bool down)
-{
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   sd->resize_up = !!up;
-   sd->resize_down = !!down;
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->sizing_eval(obj);
-}
-
-EAPI void
-elm_image_resizable_get(const Evas_Object *obj,
-                        Eina_Bool *size_up,
-                        Eina_Bool *size_down)
-{
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   if (size_up) *size_up = sd->resize_up;
-   if (size_down) *size_down = sd->resize_down;
-}
-
-EAPI void
-elm_image_fill_outside_set(Evas_Object *obj,
-                           Eina_Bool fill_outside)
-{
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   sd->fill_inside = !fill_outside;
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->sizing_eval(obj);
-}
-
-EAPI Eina_Bool
-elm_image_fill_outside_get(const Evas_Object *obj)
-{
-   ELM_IMAGE_CHECK(obj) EINA_FALSE;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   return !sd->fill_inside;
-}
-
-EAPI void
-elm_image_preload_disabled_set(Evas_Object *obj,
-                               Eina_Bool disabled)
-{
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->preload_set(obj, !!disabled);
-}
-
-EAPI void
-elm_image_prescale_set(Evas_Object *obj,
-                       int size)
-{
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->load_size_set(obj, size);
-}
-
-EAPI int
-elm_image_prescale_get(const Evas_Object *obj)
-{
-   ELM_IMAGE_CHECK(obj) 0;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   return ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->load_size_get(obj);
-}
-
-EAPI void
-elm_image_orient_set(Evas_Object *obj,
-                     Elm_Image_Orient orient)
-{
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->orient_set(obj, orient);
-}
-
-EAPI Elm_Image_Orient
-elm_image_orient_get(const Evas_Object *obj)
-{
-   ELM_IMAGE_CHECK(obj) ELM_IMAGE_ORIENT_NONE;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   return ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->orient_get(obj);
-}
-
-EAPI void
-elm_image_editable_set(Evas_Object *obj,
-                       Eina_Bool set)
-{
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->edit_set(obj, set, obj);
-}
-
-EAPI Eina_Bool
-elm_image_editable_get(const Evas_Object *obj)
-{
-   ELM_IMAGE_CHECK(obj) EINA_FALSE;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   return ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->edit_get(obj);
-}
-
-EAPI Evas_Object *
-elm_image_object_get(const Evas_Object *obj)
-{
-   ELM_IMAGE_CHECK(obj) NULL;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   return ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->image_object_get(obj);
-}
-
-EAPI void
-elm_image_aspect_fixed_set(Evas_Object *obj,
-                           Eina_Bool fixed)
-{
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->aspect_fixed_set(obj, fixed);
-}
-
-EAPI Eina_Bool
-elm_image_aspect_fixed_get(const Evas_Object *obj)
-{
-   ELM_IMAGE_CHECK(obj) EINA_FALSE;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
-   return ELM_IMAGE_CLASS(ELM_WIDGET_DATA(sd)->api)->aspect_fixed_get(obj);
-}
-
-EAPI Eina_Bool
-elm_image_animated_available_get(const Evas_Object *obj)
-{
-   ELM_IMAGE_CHECK(obj) EINA_FALSE;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    if (sd->edje) return EINA_FALSE;
 
    return evas_object_image_animated_get(elm_image_object_get(obj));
 }
 
-EAPI void
-elm_image_animated_set(Evas_Object *obj,
-                       Eina_Bool anim)
+EOLIAN static void
+_elm_image_animated_set(Eo *obj, Elm_Image_Data *sd, Eina_Bool anim)
 {
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    anim = !!anim;
    if (sd->anim == anim) return;
 
-   if (sd->edje) return;
+   sd->anim = anim;
 
+   if (sd->edje)
+     {
+        edje_object_animation_set(sd->img, anim);
+        return;
+     }
    sd->img = elm_image_object_get(obj);
    if (!evas_object_image_animated_get(sd->img)) return;
 
@@ -1423,54 +1688,86 @@ elm_image_animated_set(Evas_Object *obj,
         sd->cur_frame = -1;
         sd->frame_duration = -1;
      }
-   sd->anim = anim;
 
    return;
 }
 
-EAPI Eina_Bool
-elm_image_animated_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_image_animated_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_CHECK(obj) EINA_FALSE;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
+   if (sd->edje)
+     return edje_object_animation_get(sd->img);
    return sd->anim;
 }
 
-EAPI void
-elm_image_animated_play_set(Evas_Object *obj,
-                            Eina_Bool play)
+EOLIAN static void
+_elm_image_animated_play_set(Eo *obj, Elm_Image_Data *sd, Eina_Bool play)
 {
-   ELM_IMAGE_CHECK(obj);
-   ELM_IMAGE_DATA_GET(obj, sd);
-
    if (!sd->anim) return;
    if (sd->play == play) return;
-
-   if (sd->edje) return;
-
+   sd->play = play;
+   if (sd->edje)
+     {
+        edje_object_play_set(sd->img, play);
+        return;
+     }
    if (play)
      {
-        if (sd->anim_timer) ecore_timer_del(sd->anim_timer);
         sd->anim_timer = ecore_timer_add
-            (sd->frame_duration, _elm_image_animate_cb, sd);
+            (sd->frame_duration, _elm_image_animate_cb, obj);
      }
    else
      {
-        if (sd->anim_timer)
-          {
-             ecore_timer_del(sd->anim_timer);
-             sd->anim_timer = NULL;
-          }
+        ELM_SAFE_FREE(sd->anim_timer, ecore_timer_del);
      }
-   sd->play = play;
 }
 
-EAPI Eina_Bool
-elm_image_animated_play_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_image_animated_play_get(Eo *obj EINA_UNUSED, Elm_Image_Data *sd)
 {
-   ELM_IMAGE_CHECK(obj) EINA_FALSE;
-   ELM_IMAGE_DATA_GET(obj, sd);
-
+   if (sd->edje)
+     return edje_object_play_get(sd->img);
    return sd->play;
 }
+
+static void
+_elm_image_class_constructor(Eo_Class *klass)
+{
+   evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
+}
+
+// A11Y
+
+EOLIAN static void
+_elm_image_elm_interface_atspi_image_extents_get(Eo *obj, Elm_Image_Data *sd EINA_UNUSED, Eina_Bool screen_coords, int *x, int *y, int *w, int *h)
+{
+   int ee_x, ee_y;
+   Evas_Object *image = elm_image_object_get(obj);
+   if (!image) return;
+
+   evas_object_geometry_get(image, x, y, NULL, NULL);
+   if (screen_coords)
+     {
+        Ecore_Evas *ee = ecore_evas_ecore_evas_get(evas_object_evas_get(image));
+        if (!ee) return;
+        ecore_evas_geometry_get(ee, &ee_x, &ee_y, NULL, NULL);
+        if (x) *x += ee_x;
+        if (y) *y += ee_y;
+     }
+   elm_image_object_size_get(obj, w, h);
+}
+
+EOLIAN const Elm_Atspi_Action *
+_elm_image_elm_interface_atspi_widget_action_elm_actions_get(Eo *obj EINA_UNUSED, Elm_Image_Data *pd EINA_UNUSED)
+{
+   static Elm_Atspi_Action atspi_actions[] = {
+        { "activate", "activate", NULL, _key_action_activate },
+        { NULL, NULL, NULL, NULL },
+   };
+   return &atspi_actions[0];
+}
+
+
+// A11Y - END
+
+#include "elm_image.eo.c"

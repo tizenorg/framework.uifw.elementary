@@ -120,7 +120,7 @@ msgid "IDS_COM_BODY_COPY"
 msgstr "కాపీ"
 
 msgid "IDS_COM_SK_SELECT"
-msgstr "ఎంచు."
+msgstr "ఎంచుకోండి"
 
 msgid "IDS_COM_BODY_CUT"
 msgstr "కట్"
@@ -131,17 +131,3 @@ msgstr "అతికించు"
 msgid "IDS_COM_BODY_CLIPBOARD"
 msgstr "క్లిప్‌బోర్డ్"
 
-msgid "WDS_ST_OPT_DAY_ABB"
-msgstr "రోజు"
-
-msgid "WDS_ST_OPT_HRS_ABB"
-msgstr "గం."
-
-msgid "WDS_ST_OPT_MINS_ABB"
-msgstr "నిమి"
-
-msgid "WDS_ST_OPT_MONTH_ABB"
-msgstr "నెల"
-
-msgid "WDS_ST_OPT_YEAR_ABB"
-msgstr "సంవత్సరం"

@@ -2,10 +2,9 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 static void
-_win_del(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_win_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *socket_win = data;
    evas_object_del(socket_win);
@@ -20,8 +19,8 @@ fill(Evas_Object *win, Eina_Bool do_bg)
    if (do_bg)
      {
         bg = elm_bg_add(win);
-        elm_win_resize_object_add(win, bg);
         evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+        elm_win_resize_object_add(win, bg);
         evas_object_show(bg);
      }
 
@@ -56,7 +55,7 @@ fill(Evas_Object *win, Eina_Bool do_bg)
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_HORIZONTAL, 1, 1);
 
    bb = elm_bubble_add(win);
@@ -70,9 +69,9 @@ fill(Evas_Object *win, Eina_Bool do_bg)
    elm_entry_anchor_hover_style_set(av, "popout");
    elm_entry_anchor_hover_parent_set(av, win);
    elm_object_text_set(av,
-			   "Hi there. This is the most recent message in the "
-			   "list of messages. It has one <a href=tel:+614321234>+61 432 1234</a> "
-			   "(phone number) to click on.");
+                       "Hi there. This is the most recent message in the "
+                       "list of messages. It has one <a href=tel:+614321234>+61 432 1234</a> "
+                       "(phone number) to click on.");
    elm_object_content_set(bb, av);
    evas_object_show(av);
    elm_box_pack_end(bx, bb);
@@ -94,19 +93,19 @@ fill(Evas_Object *win, Eina_Bool do_bg)
    elm_entry_anchor_hover_style_set(av, "popout");
    elm_entry_anchor_hover_parent_set(av, win);
    elm_object_text_set(av,
-			   "Hey what are you doing? This is the second last message "
-			   "Hi there. This is the most recent message in the "
-			   "list. It's a longer one so it can wrap more and "
-			   "contains a <a href=contact:john>John</a> contact "
-			   "link in it to test popups on links. The idea is that "
-			   "all SMS's are scanned for things that look like phone "
-			   "numbers or names that are in your contacts list, and "
-			   "if they are, they become clickable links that pop up "
-			   "a menus of obvious actions to perform on this piece "
-			   "of information. This of course can be later explicitly "
-			   "done by links maybe running local apps or even being "
-			   "web URL's too that launch the web browser and point it "
-			   "to that URL. <item relsize=16x16 vsize=full href=emoticon/omg></item>");
+                       "Hey what are you doing? This is the second last message "
+                       "Hi there. This is the most recent message in the "
+                       "list. It's a longer one so it can wrap more and "
+                       "contains a <a href=contact:john>John</a> contact "
+                       "link in it to test popups on links. The idea is that "
+                       "all SMS's are scanned for things that look like phone "
+                       "numbers or names that are in your contacts list, and "
+                       "if they are, they become clickable links that pop up "
+                       "a menus of obvious actions to perform on this piece "
+                       "of information. This of course can be later explicitly "
+                       "done by links maybe running local apps or even being "
+                       "web URL's too that launch the web browser and point it "
+                       "to that URL. <item relsize=16x16 vsize=full href=emoticon/omg></item>");
    elm_object_content_set(bb, av);
    evas_object_show(av);
    elm_box_pack_end(bx, bb);
@@ -115,7 +114,7 @@ fill(Evas_Object *win, Eina_Bool do_bg)
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_HORIZONTAL, 1, 1);
 
    bb = elm_bubble_add(win);
@@ -142,7 +141,7 @@ fill(Evas_Object *win, Eina_Bool do_bg)
 }
 
 void
-test_win_socket(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_win_socket(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bx, *lb;
    Evas_Object *win_socket;
@@ -153,7 +152,6 @@ test_win_socket(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_
 
    bx = elm_box_add(win);
    evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(bx, EVAS_HINT_FILL, EVAS_HINT_FILL);
 
    lb = elm_label_add(win);
    elm_object_text_set(lb,
@@ -166,7 +164,7 @@ test_win_socket(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_
 
    lb = elm_label_add(win);
    elm_object_text_set(lb,
-                       "If you runs more than Window Plug Program<br/>"
+                       "If you run more than one Window Plug Program<br/>"
                        "you can see each plug programs shared same<br/>"
                        "canvas<br/>"
                        );
@@ -202,4 +200,3 @@ test_win_socket(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_
    evas_object_event_callback_add(win, EVAS_CALLBACK_DEL, _win_del,
                                   win_socket);
 }
-#endif

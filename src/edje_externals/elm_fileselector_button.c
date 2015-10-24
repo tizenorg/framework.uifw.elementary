@@ -20,7 +20,10 @@ typedef struct _Elm_Params_fileselector_button
 } Elm_Params_fileselector_button;
 
 static void
-external_fileselector_button_state_set(void *data __UNUSED__, Evas_Object *obj, const void *from_params, const void *to_params, float pos __UNUSED__)
+external_fileselector_button_state_set(void *data EINA_UNUSED, Evas_Object *obj,
+                                       const void *from_params,
+                                       const void *to_params,
+                                       float pos EINA_UNUSED)
 {
    const Elm_Params_fileselector_button *p;
 
@@ -31,19 +34,20 @@ external_fileselector_button_state_set(void *data __UNUSED__, Evas_Object *obj, 
    if (p->label)
      elm_object_text_set(obj, p->label);
    if (p->icon) elm_object_part_content_set(obj, "icon", p->icon);
-   if (p->fs.path) elm_fileselector_button_path_set(obj, p->fs.path);
+   if (p->fs.path) elm_fileselector_path_set(obj, p->fs.path);
    if (p->fs.is_save_set)
-     elm_fileselector_button_is_save_set(obj, p->fs.is_save);
+     elm_fileselector_is_save_set(obj, p->fs.is_save);
    if (p->fs.folder_only_set)
-     elm_fileselector_button_folder_only_set(obj, p->fs.folder_only);
+     elm_fileselector_folder_only_set(obj, p->fs.folder_only);
    if (p->fs.expandable_set)
-     elm_fileselector_button_expandable_set(obj, p->fs.expandable);
+     elm_fileselector_expandable_set(obj, p->fs.expandable);
    if (p->fs.inwin_mode_set)
      elm_fileselector_button_inwin_mode_set(obj, p->fs.inwin_mode);
 }
 
 static Eina_Bool
-external_fileselector_button_param_set(void *data __UNUSED__, Evas_Object *obj, const Edje_External_Param *param)
+external_fileselector_button_param_set(void *data EINA_UNUSED, Evas_Object *obj,
+                                       const Edje_External_Param *param)
 {
    if (!strcmp(param->name, "label"))
      {
@@ -67,7 +71,7 @@ external_fileselector_button_param_set(void *data __UNUSED__, Evas_Object *obj, 
      {
         if (param->type == EDJE_EXTERNAL_PARAM_TYPE_STRING)
           {
-             elm_fileselector_button_path_set(obj, param->s);
+             elm_fileselector_path_set(obj, param->s);
              return EINA_TRUE;
           }
      }
@@ -75,7 +79,7 @@ external_fileselector_button_param_set(void *data __UNUSED__, Evas_Object *obj, 
      {
         if (param->type == EDJE_EXTERNAL_PARAM_TYPE_BOOL)
           {
-             elm_fileselector_button_is_save_set(obj, param->i);
+             elm_fileselector_is_save_set(obj, param->i);
              return EINA_TRUE;
           }
      }
@@ -83,7 +87,7 @@ external_fileselector_button_param_set(void *data __UNUSED__, Evas_Object *obj, 
      {
         if (param->type == EDJE_EXTERNAL_PARAM_TYPE_BOOL)
           {
-             elm_fileselector_button_folder_only_set(obj, param->i);
+             elm_fileselector_folder_only_set(obj, param->i);
              return EINA_TRUE;
           }
      }
@@ -91,7 +95,7 @@ external_fileselector_button_param_set(void *data __UNUSED__, Evas_Object *obj, 
      {
         if (param->type == EDJE_EXTERNAL_PARAM_TYPE_BOOL)
           {
-             elm_fileselector_button_expandable_set(obj, param->i);
+             elm_fileselector_expandable_set(obj, param->i);
              return EINA_TRUE;
           }
      }
@@ -111,7 +115,9 @@ external_fileselector_button_param_set(void *data __UNUSED__, Evas_Object *obj, 
 }
 
 static Eina_Bool
-external_fileselector_button_param_get(void *data __UNUSED__, const Evas_Object *obj, Edje_External_Param *param)
+external_fileselector_button_param_get(void *data EINA_UNUSED,
+                                       const Evas_Object *obj,
+                                       Edje_External_Param *param)
 {
    if (!strcmp(param->name, "label"))
      {
@@ -130,7 +136,7 @@ external_fileselector_button_param_get(void *data __UNUSED__, const Evas_Object 
      {
         if (param->type == EDJE_EXTERNAL_PARAM_TYPE_STRING)
           {
-             param->s = elm_fileselector_button_path_get(obj);
+             param->s = elm_fileselector_path_get(obj);
              return EINA_TRUE;
           }
      }
@@ -138,7 +144,7 @@ external_fileselector_button_param_get(void *data __UNUSED__, const Evas_Object 
      {
         if (param->type == EDJE_EXTERNAL_PARAM_TYPE_BOOL)
           {
-             param->i = elm_fileselector_button_is_save_get(obj);
+             param->i = elm_fileselector_is_save_get(obj);
              return EINA_TRUE;
           }
      }
@@ -146,7 +152,7 @@ external_fileselector_button_param_get(void *data __UNUSED__, const Evas_Object 
      {
         if (param->type == EDJE_EXTERNAL_PARAM_TYPE_BOOL)
           {
-             param->i = elm_fileselector_button_folder_only_get(obj);
+             param->i = elm_fileselector_folder_only_get(obj);
              return EINA_TRUE;
           }
      }
@@ -154,7 +160,7 @@ external_fileselector_button_param_get(void *data __UNUSED__, const Evas_Object 
      {
         if (param->type == EDJE_EXTERNAL_PARAM_TYPE_BOOL)
           {
-             param->i = elm_fileselector_button_expandable_get(obj);
+             param->i = elm_fileselector_expandable_get(obj);
              return EINA_TRUE;
           }
      }
@@ -174,7 +180,9 @@ external_fileselector_button_param_get(void *data __UNUSED__, const Evas_Object 
 }
 
 static void *
-external_fileselector_button_params_parse(void *data __UNUSED__, Evas_Object *obj, const Eina_List *params)
+external_fileselector_button_params_parse(void *data EINA_UNUSED,
+                                          Evas_Object *obj,
+                                          const Eina_List *params)
 {
    Elm_Params_fileselector_button *mem;
    Edje_External_Param *param;
@@ -217,7 +225,9 @@ external_fileselector_button_params_parse(void *data __UNUSED__, Evas_Object *ob
    return mem;
 }
 
-static Evas_Object *external_fileselector_button_content_get(void *data __UNUSED__, const Evas_Object *obj __UNUSED__, const char *content __UNUSED__)
+static Evas_Object *external_fileselector_button_content_get(void *data EINA_UNUSED,
+                                                             const Evas_Object *obj EINA_UNUSED,
+                                                             const char *content EINA_UNUSED)
 {
    ERR("No content.");
    return NULL;

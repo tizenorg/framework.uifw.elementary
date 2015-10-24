@@ -2,17 +2,16 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 #define MAX_TRY 40
 
 static int try_num = 0;
 
 static void
-_timer_del(void *data       __UNUSED__,
-	      Evas *e          __UNUSED__,
-	      Evas_Object     *obj,
-	      void *event_info __UNUSED__)
+_timer_del(void *data       EINA_UNUSED,
+           Evas *e          EINA_UNUSED,
+           Evas_Object     *obj,
+           void *event_info EINA_UNUSED)
 {
    Ecore_Timer *timer = evas_object_data_del(obj, "test-timer");
    if (!timer) return;
@@ -36,6 +35,7 @@ cb_plug_connect(void *data)
    if (elm_plug_connect(obj, "ello", 0, EINA_FALSE))
      {
         printf("plug connect to server[ello]\n");
+        evas_object_data_del(obj, "test-timer");
         return ECORE_CALLBACK_CANCEL;
      }
 
@@ -44,9 +44,9 @@ cb_plug_connect(void *data)
 }
 
 static void
-cb_plug_disconnected(void *data __UNUSED__,
+cb_plug_disconnected(void *data EINA_UNUSED,
                     Evas_Object *obj,
-                    void *event_info __UNUSED__)
+                    void *event_info EINA_UNUSED)
 {
    Ecore_Timer *timer = evas_object_data_get(obj, "test-timer");
    if (timer)
@@ -60,15 +60,24 @@ cb_plug_disconnected(void *data __UNUSED__,
 }
 
 static void
-cb_mouse_down(void *data __UNUSED__, Evas *evas __UNUSED__, Evas_Object *obj, void *event_info)
+cb_plug_resized(void *data EINA_UNUSED,
+                Evas_Object *obj EINA_UNUSED,
+                void *event_info)
+{
+   Evas_Coord_Size *size = event_info;
+   printf("server image resized to %dx%d\n", size->w, size->h);
+}
+
+static void
+cb_mouse_down(void *data EINA_UNUSED, Evas *evas EINA_UNUSED, Evas_Object *obj, void *event_info)
 {
    Evas_Event_Mouse_Down *ev = event_info;
-   
+
    if (ev->button == 1) elm_object_focus_set(obj, EINA_TRUE);
 }
 
 static void
-cb_mouse_move(void *data, Evas *evas __UNUSED__, Evas_Object *obj, void *event_info)
+cb_mouse_move(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj, void *event_info)
 {
    Evas_Event_Mouse_Move *ev = event_info;
    Evas_Object *orig = data;
@@ -135,7 +144,7 @@ create_handles(Evas_Object *obj)
 }
 
 void
-test_win_plug(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_win_plug(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bg, *plug;
    char buf[PATH_MAX];
@@ -147,8 +156,8 @@ test_win_plug(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_in
    bg = elm_bg_add(win);
    snprintf(buf, sizeof(buf), "%s/images/plant_01.jpg", elm_app_data_dir_get());
    elm_bg_file_set(bg, buf, NULL);
-   elm_win_resize_object_add(win, bg);
    evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bg);
    evas_object_show(bg);
 
    plug = elm_plug_add(win);
@@ -160,7 +169,8 @@ test_win_plug(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_in
         return;
      }
 
-   evas_object_smart_callback_add(plug, "image.deleted", cb_plug_disconnected, NULL);
+   evas_object_smart_callback_add(plug, "image,deleted", cb_plug_disconnected, NULL);
+   evas_object_smart_callback_add(plug, "image,resized", cb_plug_resized, NULL);
 
    evas_object_resize(plug, 380, 500);
    evas_object_move(plug, 10, 10);
@@ -171,4 +181,3 @@ test_win_plug(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_in
    evas_object_resize(win, 400, 600);
    evas_object_show(win);
 }
-#endif

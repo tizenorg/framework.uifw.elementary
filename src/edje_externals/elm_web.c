@@ -11,7 +11,7 @@ typedef struct _Elm_Params_Web
    Eina_Bool inwin_mode_set:1;
 } Elm_Params_Web;
 
-static const char *zoom_choices[] = {"manual", "auto fit", "auto fill", NULL};
+static const char *zoom_choices[] = { "manual", "auto fit", "auto fill", NULL };
 
 static Elm_Web_Zoom_Mode
 _zoom_mode_get(const char *zoom)
@@ -25,7 +25,9 @@ _zoom_mode_get(const char *zoom)
 }
 
 static void
-external_web_state_set(void *data __UNUSED__, Evas_Object *obj, const void *from_params, const void *to_params, float pos __UNUSED__)
+external_web_state_set(void *data EINA_UNUSED, Evas_Object *obj,
+                       const void *from_params, const void *to_params,
+                       float pos EINA_UNUSED)
 {
    const Elm_Params_Web *p;
 
@@ -34,7 +36,7 @@ external_web_state_set(void *data __UNUSED__, Evas_Object *obj, const void *from
    else return;
 
    if (p->uri)
-     elm_web_uri_set(obj, p->uri);
+     elm_web_url_set(obj, p->uri);
    if (p->zoom_mode < ELM_WEB_ZOOM_MODE_LAST)
      elm_web_zoom_mode_set(obj, p->zoom_mode);
    if (p->zoom_set)
@@ -44,13 +46,14 @@ external_web_state_set(void *data __UNUSED__, Evas_Object *obj, const void *from
 }
 
 static Eina_Bool
-external_web_param_set(void *data __UNUSED__, Evas_Object *obj, const Edje_External_Param *param)
+external_web_param_set(void *data EINA_UNUSED, Evas_Object *obj,
+                       const Edje_External_Param *param)
 {
    if (!strcmp(param->name, "uri"))
      {
         if (param->type == EDJE_EXTERNAL_PARAM_TYPE_STRING)
           {
-             elm_web_uri_set(obj, param->s);
+             elm_web_url_set(obj, param->s);
              return EINA_TRUE;
           }
      }
@@ -89,13 +92,14 @@ external_web_param_set(void *data __UNUSED__, Evas_Object *obj, const Edje_Exter
 }
 
 static Eina_Bool
-external_web_param_get(void *data __UNUSED__, const Evas_Object *obj, Edje_External_Param *param)
+external_web_param_get(void *data EINA_UNUSED, const Evas_Object *obj,
+                       Edje_External_Param *param)
 {
    if (!strcmp(param->name, "uri"))
      {
         if (param->type == EDJE_EXTERNAL_PARAM_TYPE_STRING)
           {
-             param->s = elm_web_uri_get(obj);
+             param->s = elm_web_url_get(obj);
              return EINA_TRUE;
           }
      }
@@ -134,7 +138,8 @@ external_web_param_get(void *data __UNUSED__, const Evas_Object *obj, Edje_Exter
 }
 
 static void *
-external_web_params_parse(void *data __UNUSED__, Evas_Object *obj __UNUSED__, const Eina_List *params)
+external_web_params_parse(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
+                          const Eina_List *params)
 {
    Elm_Params_Web *mem;
    Edje_External_Param *param;
@@ -177,7 +182,9 @@ external_web_params_free(void *params)
 }
 
 static Evas_Object *
-external_web_content_get(void *data __UNUSED__, const Evas_Object *obj __UNUSED__, const char *content __UNUSED__)
+external_web_content_get(void *data EINA_UNUSED,
+                         const Evas_Object *obj EINA_UNUSED,
+                         const char *content EINA_UNUSED)
 {
    return NULL;
 }
@@ -192,7 +199,9 @@ static Edje_External_Param_Info external_web_params[] =
 };
 
 static Evas_Object *
-external_web_add(void *data __UNUSED__, Evas *evas __UNUSED__, Evas_Object *edje, const Eina_List *params __UNUSED__, const char *part_name)
+external_web_add(void *data EINA_UNUSED, Evas *evas EINA_UNUSED,
+                 Evas_Object *edje, const Eina_List *params EINA_UNUSED,
+                 const char *part_name)
 {
    Evas_Object *parent, *obj;
    external_elm_init();
@@ -204,5 +213,5 @@ external_web_add(void *data __UNUSED__, Evas *evas __UNUSED__, Evas_Object *edje
    return obj;
 }
 
-DEFINE_EXTERNAL_ICON_ADD(web, "web")
-DEFINE_EXTERNAL_TYPE(web, "Web")
+DEFINE_EXTERNAL_ICON_ADD(web, "web");
+DEFINE_EXTERNAL_TYPE(web, "Web");

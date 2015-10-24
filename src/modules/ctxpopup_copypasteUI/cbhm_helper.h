@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "elementary_config.h"
+#endif
+
 #include <Elementary.h>
 #include <Eina.h>
 #include "elm_priv.h"
@@ -22,9 +26,9 @@ enum ATOM_INDEX_CBHM_COUNT {
 };
 
 Eina_Bool _cbhm_msg_send(Evas_Object* obj, char *msg);
-int _cbhm_item_count_get(Evas_Object *obj __UNUSED__, int atom_index);
+int _cbhm_item_count_get(Evas_Object *obj EINA_UNUSED, int atom_index);
 #ifdef HAVE_ELEMENTARY_X
-Eina_Bool _cbhm_item_get(Evas_Object *obj __UNUSED__, int index, Ecore_X_Atom *data_type, char **buf);
+Eina_Bool _cbhm_item_get(Evas_Object *obj EINA_UNUSED, int index, Ecore_X_Atom *data_type, char **buf);
 #else
 Eina_Bool _cbhm_item_get(Evas_Object *obj, int index, void *data_type, char **buf);
 #endif

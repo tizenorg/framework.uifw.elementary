@@ -2,12 +2,6 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
-
-#define WEIGHT evas_object_size_hint_weight_set
-#define ALIGN_ evas_object_size_hint_align_set
-#define EXPAND(X) WEIGHT((X), EVAS_HINT_EXPAND, EVAS_HINT_EXPAND)
-#define FILL(X) ALIGN_((X), EVAS_HINT_FILL, EVAS_HINT_FILL)
 
 #define BUTTON_TEXT_SET(BT, TEXT) \
    elm_object_text_set((BT), (TEXT)); \
@@ -23,15 +17,15 @@ static const char *img6 = PACKAGE_DATA_DIR "/images/sky_02.jpg";
 static const char *img7 = PACKAGE_DATA_DIR "/images/sky_03.jpg";
 
 static char *
-gl_text_get(void *data, Evas_Object *obj __UNUSED__, const char *part __UNUSED__)
+gl_text_get(void *data, Evas_Object *obj EINA_UNUSED, const char *part EINA_UNUSED)
 {
    char buf[256];
-   snprintf(buf, sizeof(buf), "Item # %i", (int)(long)data);
+   snprintf(buf, sizeof(buf), "Item # %i", (int)(uintptr_t)data);
    return strdup(buf);
 }
 
 static Evas_Object *
-gl_content_get(void *data __UNUSED__, Evas_Object *obj, const char *part)
+gl_content_get(void *data EINA_UNUSED, Evas_Object *obj, const char *part)
 {
    char buf[PATH_MAX];
    Evas_Object *ic = elm_icon_add(obj);
@@ -69,19 +63,19 @@ _content_image_new(Evas_Object *parent, const char *img)
 }
 
 static void
-_gl_selected(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_gl_selected(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    printf("selected: %p\n", event_info);
 }
 
 static void
-_gl_double_clicked(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_gl_double_clicked(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    printf("double clicked: %p\n", event_info);
 }
 
 static void
-_gl_longpress(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info)
+_gl_longpress(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    printf("longpress %p\n", event_info);
 }
@@ -114,33 +108,33 @@ _content_list_new(Evas_Object *parent)
 }
 
 static void
-_navi_pop(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_navi_pop(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    elm_naviframe_item_pop(data);
 }
 
 static void
-_navi_it_del(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_navi_it_del(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    elm_object_item_del(data);
 }
 
 static void
-_title_enabled(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_title_visible(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    elm_naviframe_item_title_enabled_set(data,
                                         !elm_naviframe_item_title_enabled_get(data),
-                                        EINA_FALSE);
+                                        EINA_TRUE);
 }
 
 static void
-_promote(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_promote(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    elm_naviframe_item_promote(data);
 }
 
 static void
-_page7(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_page7(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *bt, *bt2, *content, *nf = data;
    Elm_Object_Item *it;
@@ -162,7 +156,7 @@ _page7(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 }
 
 static void
-_page6(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_page6(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *bt, *bt2, *content, *nf = data;
    Elm_Object_Item *it;
@@ -184,7 +178,7 @@ _page6(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 }
 
 static void
-_page5(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_page5(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *bt, *bt2, *content, *nf = data;
    Elm_Object_Item *it;
@@ -211,7 +205,7 @@ _page5(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 }
 
 static void
-_page4(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_page4(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *bt, *ic, *content, *nf = data;
    char buf[PATH_MAX];
@@ -245,11 +239,11 @@ _page4(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
    evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
    elm_object_item_part_content_set(it, "icon", ic);
    elm_naviframe_item_title_enabled_set(it, EINA_FALSE, EINA_FALSE);
-   evas_object_smart_callback_add(content, "clicked", _title_enabled, it);
+   evas_object_smart_callback_add(content, "clicked", _title_visible, it);
 }
 
 static void
-_page3(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_page3(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *bt, *bt2, *ic, *content, *nf = data;
    char buf[PATH_MAX];
@@ -282,7 +276,7 @@ _page3(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 }
 
 static void
-_page2(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_page2(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *bt, *content, *ic, *nf = data;
    char buf[PATH_MAX];
@@ -306,7 +300,7 @@ _page2(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
 }
 
 void
-test_naviframe_complex(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_naviframe_complex(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *nf, *btn, *box, *content, *tb, *o;
    Elm_Object_Item *it;
@@ -317,23 +311,22 @@ test_naviframe_complex(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void 
    elm_win_autodel_set(win, EINA_TRUE);
 
    box = elm_box_add(win);
-   EXPAND(box);
-   FILL(box);
+   evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    elm_box_horizontal_set(box, EINA_TRUE);
    elm_win_resize_object_add(win, box);
    evas_object_show(box);
 
    tb = elm_toolbar_add(win);
-   WEIGHT(tb, 0, EVAS_HINT_EXPAND);
-   FILL(tb);
+   evas_object_size_hint_weight_set(tb, 0.0, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(tb, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_toolbar_horizontal_set(tb, EINA_FALSE);
    elm_toolbar_select_mode_set(tb, ELM_OBJECT_SELECT_MODE_ALWAYS);
    elm_box_pack_end(box, tb);
    evas_object_show(tb);
 
    nf = elm_naviframe_add(win);
-   EXPAND(nf);
-   FILL(nf);
+   evas_object_size_hint_weight_set(nf, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(nf, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_box_pack_end(box, nf);
    evas_object_show(nf);
 
@@ -341,7 +334,7 @@ test_naviframe_complex(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void 
      {
         const char *label[] = { "View 1", "View 2", "View 3", "View 4" };
         o = elm_naviframe_add(win);
-        EXPAND(o);
+        evas_object_size_hint_weight_set(o, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 
         btn = elm_button_add(o);
         evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, EVAS_HINT_FILL);
@@ -356,7 +349,7 @@ test_naviframe_complex(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void 
         evas_object_data_set(o, "page1", elm_naviframe_item_push(o, "Page 1", NULL, btn, content, NULL));
 
         it = elm_naviframe_item_simple_push(nf, o);
-        it = elm_toolbar_item_append(tb, NULL, label[x], _promote, it);
+        elm_toolbar_item_append(tb, NULL, label[x], _promote, it);
         evas_object_show(o);
      }
 
@@ -364,4 +357,3 @@ test_naviframe_complex(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void 
    evas_object_resize(win, 400, 400);
    evas_object_show(win);
 }
-#endif

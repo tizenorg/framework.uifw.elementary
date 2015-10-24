@@ -4,7 +4,9 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
+
+Evas_Object * _focus_autoscroll_mode_frame_create(Evas_Object *parent);
+
 struct _api_data
 {
    unsigned int state;  /* What state we are testing       */
@@ -221,7 +223,7 @@ Scroll to end
 }
 
 static void
-_api_bt_clicked(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_api_bt_clicked(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {  /* Will add here a SWITCH command containing code to modify test-object */
    /* in accordance a->state value. */
    api_data *a = data;
@@ -237,54 +239,63 @@ _api_bt_clicked(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 
 static void
 my_show_it(void        *data,
-           Evas_Object *obj __UNUSED__,
-           void        *event_info __UNUSED__)
+           Evas_Object *obj EINA_UNUSED,
+           void        *event_info EINA_UNUSED)
 {
    elm_list_item_show(data);
 }
 
 static void
-scroll_top(void        *data __UNUSED__,
-           Evas_Object *obj __UNUSED__,
-           void        *event_info __UNUSED__)
+scroll_top(void        *data EINA_UNUSED,
+           Evas_Object *obj EINA_UNUSED,
+           void        *event_info EINA_UNUSED)
 {
    printf("Top edge!\n");
 }
 
 static void
-scroll_bottom(void        *data __UNUSED__,
-              Evas_Object *obj __UNUSED__,
-              void        *event_info __UNUSED__)
+scroll_bottom(void        *data EINA_UNUSED,
+              Evas_Object *obj EINA_UNUSED,
+              void        *event_info EINA_UNUSED)
 {
    printf("Bottom edge!\n");
 }
 
 static void
-scroll_left(void        *data __UNUSED__,
-            Evas_Object *obj __UNUSED__,
-            void        *event_info __UNUSED__)
+clicked_right(void        *data EINA_UNUSED,
+              Evas_Object *obj EINA_UNUSED,
+              void        *event_info EINA_UNUSED)
+{
+   printf("Clicked right!\n");
+}
+
+static void
+scroll_left(void        *data EINA_UNUSED,
+            Evas_Object *obj EINA_UNUSED,
+            void        *event_info EINA_UNUSED)
 {
    printf("Left edge!\n");
 }
 
 static void
-scroll_right(void        *data __UNUSED__,
-             Evas_Object *obj __UNUSED__,
-             void        *event_info __UNUSED__)
+scroll_right(void        *data EINA_UNUSED,
+             Evas_Object *obj EINA_UNUSED,
+             void        *event_info EINA_UNUSED)
 {
    printf("Right edge!\n");
 }
 
 static void
-_cleanup_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_cleanup_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
+            void *event_info EINA_UNUSED)
 {
    free(data);
 }
 
 void
-test_list(void        *data __UNUSED__,
-          Evas_Object *obj __UNUSED__,
-          void        *event_info __UNUSED__)
+test_list(void        *data EINA_UNUSED,
+          Evas_Object *obj EINA_UNUSED,
+          void        *event_info EINA_UNUSED)
 {
    Evas_Object *win, *li, *ic, *ic2, *bx, *tb2, *bt, *bxx;
    char buf[PATH_MAX];
@@ -296,8 +307,8 @@ test_list(void        *data __UNUSED__,
    evas_object_event_callback_add(win, EVAS_CALLBACK_FREE, _cleanup_cb, api);
 
    bxx = elm_box_add(win);
-   elm_win_resize_object_add(win, bxx);
    evas_object_size_hint_weight_set(bxx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bxx);
    evas_object_show(bxx);
 
    li = elm_list_add(win);
@@ -318,24 +329,23 @@ test_list(void        *data __UNUSED__,
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 1, 1);
    list_it1 = elm_list_item_append(li, "Hello", ic, NULL, NULL, NULL);
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_image_file_set(ic, buf, NULL);
    elm_list_item_append(li, "world", ic, NULL, NULL, NULL);
    ic = elm_icon_add(win);
    elm_icon_standard_set(ic, "edit");
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_list_item_append(li, ".", ic, NULL, NULL, NULL);
 
    ic = elm_icon_add(win);
    elm_icon_standard_set(ic, "delete");
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    ic2 = elm_icon_add(win);
    elm_icon_standard_set(ic2, "clock");
-   elm_image_resizable_set(ic2, 0, 0);
+   elm_image_resizable_set(ic2, EINA_FALSE, EINA_FALSE);
    list_it2 = elm_list_item_append(li, "How", ic, ic2, NULL, NULL);
 
    bx = elm_box_add(win);
@@ -344,7 +354,7 @@ test_list(void        *data __UNUSED__,
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_align_set(ic, 0.5, 0.5);
    elm_box_pack_end(bx, ic);
    evas_object_show(ic);
@@ -352,7 +362,7 @@ test_list(void        *data __UNUSED__,
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_align_set(ic, 0.5, 0.0);
    elm_box_pack_end(bx, ic);
    evas_object_show(ic);
@@ -360,7 +370,7 @@ test_list(void        *data __UNUSED__,
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_align_set(ic, 0.0, EVAS_HINT_EXPAND);
    elm_box_pack_end(bx, ic);
    evas_object_show(ic);
@@ -433,16 +443,15 @@ test_list(void        *data __UNUSED__,
    evas_object_resize(win, 320, 300);
    evas_object_show(win);
 
-   evas_object_smart_callback_add(li, "scroll,edge,top", scroll_top, NULL);
-   evas_object_smart_callback_add(li, "scroll,edge,bottom", scroll_bottom, NULL);
-   evas_object_smart_callback_add(li, "scroll,edge,left", scroll_left, NULL);
-   evas_object_smart_callback_add(li, "scroll,edge,right", scroll_right, NULL);
+   evas_object_smart_callback_add(li, "edge,top", scroll_top, NULL);
+   evas_object_smart_callback_add(li, "edge,bottom", scroll_bottom, NULL);
+   evas_object_smart_callback_add(li, "clicked,right", clicked_right, NULL);
 }
 
 void
-test_list_horizontal(void        *data __UNUSED__,
-                     Evas_Object *obj __UNUSED__,
-                     void        *event_info __UNUSED__)
+test_list_horizontal(void        *data EINA_UNUSED,
+                     Evas_Object *obj EINA_UNUSED,
+                     void        *event_info EINA_UNUSED)
 {
    Evas_Object *win, *li, *ic, *ic2, *bx, *tb2, *bt;
    char buf[PATH_MAX];
@@ -454,30 +463,32 @@ test_list_horizontal(void        *data __UNUSED__,
    li = elm_list_add(win);
    elm_list_horizontal_set(li, EINA_TRUE);
    elm_list_mode_set(li, ELM_LIST_LIMIT);
-   elm_win_resize_object_add(win, li);
    evas_object_size_hint_weight_set(li, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, li);
+
+   evas_object_smart_callback_add(li, "edge,left", scroll_left, NULL);
+   evas_object_smart_callback_add(li, "edge,right", scroll_right, NULL);
 
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 1, 1);
    list_it1 = elm_list_item_append(li, "Hello", ic, NULL, NULL, NULL);
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_image_file_set(ic, buf, NULL);
    elm_list_item_append(li, "world", ic, NULL, NULL, NULL);
    ic = elm_icon_add(win);
    elm_icon_standard_set(ic, "edit");
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_list_item_append(li, ".", ic, NULL, NULL, NULL);
 
    ic = elm_icon_add(win);
    elm_icon_standard_set(ic, "delete");
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    ic2 = elm_icon_add(win);
    elm_icon_standard_set(ic2, "clock");
-   elm_image_resizable_set(ic2, 0, 0);
+   elm_image_resizable_set(ic2, EINA_FALSE, EINA_FALSE);
    list_it2 = elm_list_item_append(li, "How", ic, ic2, NULL, NULL);
 
    bx = elm_box_add(win);
@@ -485,7 +496,7 @@ test_list_horizontal(void        *data __UNUSED__,
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_align_set(ic, 0.5, 0.5);
    elm_box_pack_end(bx, ic);
    evas_object_show(ic);
@@ -493,7 +504,7 @@ test_list_horizontal(void        *data __UNUSED__,
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_align_set(ic, 0.5, 0.0);
    elm_box_pack_end(bx, ic);
    evas_object_show(ic);
@@ -512,8 +523,8 @@ test_list_horizontal(void        *data __UNUSED__,
    elm_list_item_append(li, "we", NULL, NULL, NULL, NULL);
    elm_list_item_append(li, "are", NULL, NULL, NULL, NULL);
    elm_list_item_append(li, "done", NULL, NULL, NULL, NULL);
-   elm_list_item_append(li, "with", NULL, NULL, NULL, NULL);
-   elm_list_item_append(li, "items.", NULL, NULL, NULL, NULL);
+   elm_object_item_disabled_set(elm_list_item_append(li, "with", NULL, NULL, NULL, NULL), EINA_TRUE);
+   elm_object_item_disabled_set(elm_list_item_append(li, "items.", NULL, NULL, NULL, NULL), EINA_TRUE);
 
    elm_list_go(li);
 
@@ -565,25 +576,26 @@ test_list_horizontal(void        *data __UNUSED__,
 
 static void
 my_li2_clear(void        *data,
-             Evas_Object *obj __UNUSED__,
-             void        *event_info __UNUSED__)
+             Evas_Object *obj EINA_UNUSED,
+             void        *event_info EINA_UNUSED)
 {
    elm_list_clear(data);
 }
 
 static void
-my_li2_sel(void        *data __UNUSED__,
+my_li2_sel(void        *data EINA_UNUSED,
            Evas_Object *obj,
-           void        *event_info __UNUSED__)
+           void        *event_info EINA_UNUSED)
 {
    Elm_Object_Item *list_it = elm_list_selected_item_get(obj);
-   elm_list_item_selected_set(list_it, 0);
+   elm_list_item_selected_set(list_it, EINA_FALSE);
+   printf("item selected\n");
 }
 
 void
-test_list2(void        *data __UNUSED__,
-           Evas_Object *obj __UNUSED__,
-           void        *event_info __UNUSED__)
+test_list2(void        *data EINA_UNUSED,
+           Evas_Object *obj EINA_UNUSED,
+           void        *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bg, *li, *ic, *ic2, *bx, *bx2, *bt;
    char buf[PATH_MAX];
@@ -596,8 +608,8 @@ test_list2(void        *data __UNUSED__,
    bg = elm_bg_add(win);
    snprintf(buf, sizeof(buf), "%s/images/plant_01.jpg", elm_app_data_dir_get());
    elm_bg_file_set(bg, buf, NULL);
-   elm_win_resize_object_add(win, bg);
    evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bg);
    evas_object_show(bg);
 
    bx = elm_box_add(win);
@@ -605,33 +617,34 @@ test_list2(void        *data __UNUSED__,
    elm_win_resize_object_add(win, bx);
    evas_object_show(bx);
 
-   li = elm_list_add(win);
+   li = elm_list_add(bx);
    evas_object_size_hint_align_set(li, EVAS_HINT_FILL, EVAS_HINT_FILL);
    evas_object_size_hint_weight_set(li, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    elm_list_mode_set(li, ELM_LIST_LIMIT);
-//   elm_list_multi_select_set(li, 1);
 
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   list_it = elm_list_item_append(li, "Hello", ic, NULL, my_li2_sel, NULL);
-   elm_list_item_selected_set(list_it, EINA_TRUE);
+   elm_list_item_append(li, "Unselect on selected", ic, NULL, my_li2_sel, NULL);
+
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_image_file_set(ic, buf, NULL);
-   elm_list_item_append(li, "world", ic, NULL, NULL, NULL);
+   list_it = elm_list_item_append(li, "world", ic, NULL, NULL, NULL);
+   elm_list_item_selected_set(list_it, EINA_TRUE);
+
    ic = elm_icon_add(win);
    elm_icon_standard_set(ic, "edit");
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_list_item_append(li, ".", ic, NULL, NULL, NULL);
 
    ic = elm_icon_add(win);
    elm_icon_standard_set(ic, "delete");
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    ic2 = elm_icon_add(win);
    elm_icon_standard_set(ic2, "clock");
-   elm_image_resizable_set(ic2, 0, 0);
+   elm_image_resizable_set(ic2, EINA_FALSE, EINA_FALSE);
    elm_list_item_append(li, "How", ic, ic2, NULL, NULL);
 
    bx2 = elm_box_add(win);
@@ -640,7 +653,7 @@ test_list2(void        *data __UNUSED__,
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_align_set(ic, 0.5, 0.5);
    elm_box_pack_end(bx2, ic);
    evas_object_show(ic);
@@ -648,7 +661,7 @@ test_list2(void        *data __UNUSED__,
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_align_set(ic, 0.5, 0.0);
    elm_box_pack_end(bx2, ic);
    evas_object_show(ic);
@@ -672,40 +685,31 @@ test_list2(void        *data __UNUSED__,
    elm_box_pack_end(bx, li);
    evas_object_show(li);
 
-   bx2 = elm_box_add(win);
-   elm_box_horizontal_set(bx2, EINA_TRUE);
-   elm_box_homogeneous_set(bx2, EINA_TRUE);
-   evas_object_size_hint_weight_set(bx2, EVAS_HINT_EXPAND, 0.0);
-   evas_object_size_hint_align_set(bx2, EVAS_HINT_FILL, EVAS_HINT_FILL);
-
-   bt = elm_button_add(win);
+   bt = elm_button_add(bx);
    elm_object_text_set(bt, "Clear");
    evas_object_smart_callback_add(bt, "clicked", my_li2_clear, li);
-   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
    evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
-   elm_box_pack_end(bx2, bt);
+   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bx, bt);
    evas_object_show(bt);
 
-   elm_box_pack_end(bx, bx2);
-   evas_object_show(bx2);
-
-   evas_object_resize(win, 320, 300);
+   evas_object_resize(win, 320, 500);
    evas_object_show(win);
 }
 
 /***********/
 
 static void
-_bt_clicked(void        *data __UNUSED__,
-            Evas_Object *obj __UNUSED__,
-            void        *event_info __UNUSED__)
+_bt_clicked(void        *data EINA_UNUSED,
+            Evas_Object *obj EINA_UNUSED,
+            void        *event_info EINA_UNUSED)
 {
    printf("button was clicked\n");
 }
 
 static void
-_it_clicked(void *data, Evas_Object *obj __UNUSED__,
-                 void *event_info __UNUSED__)
+_it_clicked(void *data, Evas_Object *obj EINA_UNUSED,
+                 void *event_info EINA_UNUSED)
 {
    printf("item was clicked\n");
    if (!data) return;
@@ -722,9 +726,9 @@ _it_clicked(void *data, Evas_Object *obj __UNUSED__,
 }
 
 void
-test_list3(void        *data __UNUSED__,
-           Evas_Object *obj __UNUSED__,
-           void        *event_info __UNUSED__)
+test_list3(void        *data EINA_UNUSED,
+           Evas_Object *obj EINA_UNUSED,
+           void        *event_info EINA_UNUSED)
 {
    Evas_Object *win, *li, *ic, *ic2, *bx;
    char buf[PATH_MAX];
@@ -733,23 +737,23 @@ test_list3(void        *data __UNUSED__,
    elm_win_autodel_set(win, EINA_TRUE);
 
    li = elm_list_add(win);
-   elm_win_resize_object_add(win, li);
    evas_object_size_hint_weight_set(li, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, li);
    elm_list_mode_set(li, ELM_LIST_COMPRESS);
 
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_image_file_set(ic, buf, NULL);
    ic2 = elm_button_add(win);
    elm_object_text_set(ic2, "Click me");
    evas_object_smart_callback_add(ic2, "clicked", _bt_clicked, NULL);
-   evas_object_propagate_events_set(ic2, 0);
+   evas_object_propagate_events_set(ic2, EINA_FALSE);
    elm_list_item_append(li, "Hello", ic, ic2, _it_clicked, NULL);
 
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_image_file_set(ic, buf, NULL);
    ic2 = elm_button_add(win);
    elm_object_text_set(ic2, "Click me");
@@ -758,15 +762,15 @@ test_list3(void        *data __UNUSED__,
 
    ic = elm_icon_add(win);
    elm_icon_standard_set(ic, "edit");
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_list_item_append(li, ".", ic, NULL, NULL, NULL);
 
    ic = elm_icon_add(win);
    elm_icon_standard_set(ic, "delete");
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    ic2 = elm_icon_add(win);
    elm_icon_standard_set(ic2, "clock");
-   elm_image_resizable_set(ic2, 0, 0);
+   elm_image_resizable_set(ic2, EINA_FALSE, EINA_FALSE);
    elm_list_item_append(li, "How", ic, ic2, NULL, NULL);
 
    bx = elm_box_add(win);
@@ -775,7 +779,7 @@ test_list3(void        *data __UNUSED__,
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_align_set(ic, 0.5, 0.5);
    elm_box_pack_end(bx, ic);
    evas_object_show(ic);
@@ -783,7 +787,7 @@ test_list3(void        *data __UNUSED__,
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_align_set(ic, 0.5, 0.0);
    elm_box_pack_end(bx, ic);
    evas_object_show(ic);
@@ -791,7 +795,7 @@ test_list3(void        *data __UNUSED__,
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_align_set(ic, 0.0, EVAS_HINT_EXPAND);
    elm_box_pack_end(bx, ic);
    evas_object_show(ic);
@@ -828,8 +832,8 @@ struct Pginfo
 
 static void
 test_list4_back_cb(void        *data,
-                   Evas_Object *obj __UNUSED__,
-                   void        *event_info __UNUSED__)
+                   Evas_Object *obj EINA_UNUSED,
+                   void        *event_info EINA_UNUSED)
 {
    struct Pginfo *info = data;
    if (!info) return;
@@ -839,7 +843,7 @@ test_list4_back_cb(void        *data,
 
 static void
 test_list4_swipe(void        *data,
-                 Evas_Object *obj __UNUSED__,
+                 Evas_Object *obj EINA_UNUSED,
                  void        *event_info)
 {
    Evas_Object *box, *entry, *button;
@@ -878,9 +882,9 @@ test_list4_swipe(void        *data,
 }
 
 void
-test_list4(void        *data __UNUSED__,
-           Evas_Object *obj __UNUSED__,
-           void        *event_info __UNUSED__)
+test_list4(void        *data EINA_UNUSED,
+           Evas_Object *obj EINA_UNUSED,
+           void        *event_info EINA_UNUSED)
 {
    Evas_Object *win, *li, *ic, *ic2, *naviframe;
    static struct Pginfo info = {NULL, NULL};
@@ -891,9 +895,8 @@ test_list4(void        *data __UNUSED__,
    info.win = win;
 
    naviframe = elm_naviframe_add(win);
-   elm_win_resize_object_add(win, naviframe);
    evas_object_size_hint_weight_set(naviframe, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(naviframe, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_win_resize_object_add(win, naviframe);
    evas_object_show(naviframe);
    info.naviframe = naviframe;
 
@@ -915,7 +918,7 @@ test_list4(void        *data __UNUSED__,
                            "conceptalbums The Dark Side of the Moon, Wish You Were Here, Animals, and The Wall.";
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/mystrale.jpg", elm_app_data_dir_get());
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_image_file_set(ic, buf, NULL);
    elm_list_item_append(li, "Pink Floyd", ic, NULL, NULL, &pf_data);
 
@@ -932,7 +935,7 @@ test_list4(void        *data __UNUSED__,
                            "their first album going multi-platinum globally.";
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/mystrale_2.jpg", elm_app_data_dir_get());
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_image_file_set(ic, buf, NULL);
    elm_list_item_append(li, "Dire Straits", ic, NULL, NULL, &ds_data);
 
@@ -944,7 +947,6 @@ test_list4(void        *data __UNUSED__,
                            "perform at stadium-sized venues.";
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/icon_17.png", elm_app_data_dir_get());
-   elm_image_resizable_set(ic, 1, 1);
    elm_image_file_set(ic, buf, NULL);
    elm_list_item_append(li, "Uriah Heep", ic, NULL, NULL, &uh_data);
 
@@ -956,11 +958,11 @@ test_list4(void        *data __UNUSED__,
                           "two weeks before the group's first United States tour.";
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/icon_21.png", elm_app_data_dir_get());
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    elm_image_file_set(ic, buf, NULL);
    ic2 = elm_icon_add(win);
    elm_icon_standard_set(ic2, "clock");
-   elm_image_resizable_set(ic2, 0, 0);
+   elm_image_resizable_set(ic2, EINA_FALSE, EINA_FALSE);
    elm_list_item_append(li, "Rush", ic, ic2, NULL, &r_data);
 
    elm_list_go(li);
@@ -978,15 +980,15 @@ struct list5_data_cb
 
 static void
 test_list5_item_del(void        *data,
-                    Evas_Object *obj __UNUSED__,
-                    void        *event_info __UNUSED__)
+                    Evas_Object *obj EINA_UNUSED,
+                    void        *event_info EINA_UNUSED)
 {
    elm_object_item_del(data);
 }
 
 static void
-test_list5_swipe(void        *data __UNUSED__,
-                 Evas_Object *obj __UNUSED__,
+test_list5_swipe(void        *data EINA_UNUSED,
+                 Evas_Object *obj EINA_UNUSED,
                  void        *event_info)
 {
    Evas_Object *button;
@@ -996,16 +998,17 @@ test_list5_swipe(void        *data __UNUSED__,
 
    button = elm_button_add(info->win);
    elm_object_text_set(button, "delete");
-   evas_object_propagate_events_set(button, 0);
+   evas_object_propagate_events_set(button, EINA_FALSE);
    evas_object_smart_callback_add(button, "clicked", test_list5_item_del,
                                   event_info);
    elm_object_item_part_content_set(event_info, "end", button);
+   elm_object_item_part_text_set(event_info, "default", "Enlightenment");
 }
 
 void
-test_list5(void        *data __UNUSED__,
-           Evas_Object *obj __UNUSED__,
-           void        *event_info __UNUSED__)
+test_list5(void        *data EINA_UNUSED,
+           Evas_Object *obj EINA_UNUSED,
+           void        *event_info EINA_UNUSED)
 {
    Evas_Object *win, *li;
    static struct list5_data_cb info;
@@ -1031,8 +1034,8 @@ test_list5(void        *data __UNUSED__,
 }
 
 static void
-_first_bt_clicked(void *data, Evas_Object *obj __UNUSED__,
-                  void *event_info __UNUSED__)
+_first_bt_clicked(void *data, Evas_Object *obj EINA_UNUSED,
+                  void *event_info EINA_UNUSED)
 {
    char str[128];
    Evas_Object *li = data, *lb;
@@ -1048,8 +1051,8 @@ _first_bt_clicked(void *data, Evas_Object *obj __UNUSED__,
 }
 
 static void
-_prev_bt_clicked(void *data, Evas_Object *obj __UNUSED__,
-                 void *event_info __UNUSED__)
+_prev_bt_clicked(void *data, Evas_Object *obj EINA_UNUSED,
+                 void *event_info EINA_UNUSED)
 {
    char str[128];
    Evas_Object *li = data, *lb;
@@ -1068,8 +1071,8 @@ _prev_bt_clicked(void *data, Evas_Object *obj __UNUSED__,
 }
 
 static void
-_next_bt_clicked(void *data, Evas_Object *obj __UNUSED__,
-                 void *event_info __UNUSED__)
+_next_bt_clicked(void *data, Evas_Object *obj EINA_UNUSED,
+                 void *event_info EINA_UNUSED)
 {
    char str[128];
    Evas_Object *li = data, *lb;
@@ -1088,8 +1091,8 @@ _next_bt_clicked(void *data, Evas_Object *obj __UNUSED__,
 }
 
 static void
-_last_bt_clicked(void *data, Evas_Object *obj __UNUSED__,
-                 void *event_info __UNUSED__)
+_last_bt_clicked(void *data, Evas_Object *obj EINA_UNUSED,
+                 void *event_info EINA_UNUSED)
 {
    char str[128];
    Evas_Object *li = data, *lb;
@@ -1105,9 +1108,9 @@ _last_bt_clicked(void *data, Evas_Object *obj __UNUSED__,
 }
 
 void
-test_list6(void        *data __UNUSED__,
-           Evas_Object *obj __UNUSED__,
-           void        *event_info __UNUSED__)
+test_list6(void        *data EINA_UNUSED,
+           Evas_Object *obj EINA_UNUSED,
+           void        *event_info EINA_UNUSED)
 {
    Evas_Object *win, *gd, *bt, *li, *lb;
 
@@ -1116,8 +1119,8 @@ test_list6(void        *data __UNUSED__,
 
    gd = elm_grid_add(win);
    elm_grid_size_set(gd, 100, 100);
-   elm_win_resize_object_add(win, gd);
    evas_object_size_hint_weight_set(gd, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, gd);
 
    li = elm_list_add(win);
    evas_object_size_hint_weight_set(li, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -1177,17 +1180,17 @@ test_list6(void        *data __UNUSED__,
 }
 
 static void
-_it_clicked_cb(void *data __UNUSED__, Evas_Object *li,
-                 void *event_info __UNUSED__)
+_it_clicked_cb(void *data EINA_UNUSED, Evas_Object *li,
+                 void *event_info EINA_UNUSED)
 {
    Elm_Object_Item *lit = elm_list_selected_item_get(li);
    printf("Item clicked. %s is selected\n", elm_object_item_text_get(lit));
 }
 
 void
-test_list7(void        *data __UNUSED__,
-           Evas_Object *obj __UNUSED__,
-           void        *event_info __UNUSED__)
+test_list7(void        *data EINA_UNUSED,
+           Evas_Object *obj EINA_UNUSED,
+           void        *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bg, *li;
    char buf[PATH_MAX];
@@ -1199,12 +1202,11 @@ test_list7(void        *data __UNUSED__,
    bg = elm_bg_add(win);
    snprintf(buf, sizeof(buf), "%s/images/plant_01.jpg", elm_app_data_dir_get());
    elm_bg_file_set(bg, buf, NULL);
-   elm_win_resize_object_add(win, bg);
    evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bg);
    evas_object_show(bg);
 
    li = elm_list_add(win);
-   evas_object_size_hint_align_set(li, EVAS_HINT_FILL, EVAS_HINT_FILL);
    evas_object_size_hint_weight_set(li, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    elm_win_resize_object_add(win, li);
    elm_list_select_mode_set(li, ELM_OBJECT_SELECT_MODE_ALWAYS);
@@ -1228,4 +1230,687 @@ test_list7(void        *data __UNUSED__,
    evas_object_show(win);
 }
 
-#endif
+static const unsigned _list_focus_objects = 5;
+static const char *_list_focus_names[] = {"None", "Square", "Button", "Check", "Box"};
+static const int _list_focus_combo[] = { 1, 0, 2, 33, 43, 44, 10, 30, 22, 11, 10, -1 };
+
+static Evas_Object *
+test_list_focus_content_get(Evas_Object *obj, unsigned type, Eina_Bool horiz)
+{
+   Evas_Object *cnt = NULL;
+
+   switch(type)
+     {
+      case 1:
+         cnt = elm_bg_add(obj);
+         evas_object_color_set(cnt, 128, 18, 128, 255);
+         evas_object_size_hint_min_set(cnt, 50, 50);
+         break;
+      case 2:
+         cnt = elm_button_add(obj);
+         break;
+      case 3:
+         cnt = elm_check_add(obj);
+         break;
+      case 4:
+         cnt = elm_box_add(obj);
+         elm_box_horizontal_set(cnt, !horiz);
+         evas_object_size_hint_align_set(cnt, EVAS_HINT_FILL, EVAS_HINT_FILL);
+         elm_box_pack_end(cnt, test_list_focus_content_get(obj, 2, horiz));
+         elm_box_pack_end(cnt, test_list_focus_content_get(obj, 3, horiz));
+         elm_box_pack_end(cnt, test_list_focus_content_get(obj, 2, horiz));
+         break;
+      default:
+         break;
+
+     }
+
+   if (cnt)
+   {
+       evas_object_size_hint_weight_set(cnt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+       evas_object_show(cnt);
+   }
+
+   return cnt;
+}
+
+static void
+test_list_focus_focus_on_selection_set(Evas_Object *gl,
+                                       Evas_Object *chk, Eina_Bool focus)
+{
+    elm_list_focus_on_selection_set(gl, focus);
+    elm_check_state_set(chk, focus);
+    printf("list_focus_on_selection = %s\n", (focus) ? "true" : "false");
+}
+
+static void
+test_list_focus_focus_check_changed(void *data, Evas_Object *obj,
+                                    void *event_info  EINA_UNUSED)
+{
+   Eina_Bool nextstate = !elm_list_focus_on_selection_get(data);
+   test_list_focus_focus_on_selection_set(data, obj, nextstate);
+}
+
+static void
+test_list_focus_focus_highlight_check_changed(void *data, Evas_Object *obj,
+                                              void *event_info EINA_UNUSED)
+{
+   elm_win_focus_highlight_enabled_set((Evas_Object *)data,
+                                       elm_check_state_get(obj));
+}
+
+static void
+test_list_focus_focus_animate_check_changed(void *data, Evas_Object *obj,
+                                            void *event_info EINA_UNUSED)
+{
+   elm_win_focus_highlight_animate_set((Evas_Object *)data,
+                                       elm_check_state_get(obj));
+}
+
+static void
+test_list_focus_focus_move_policy_changed(void *data EINA_UNUSED,
+                                          Evas_Object *obj,
+                                          void *event_info EINA_UNUSED)
+{
+   int val = elm_radio_value_get(obj);
+
+   if (val == 0)
+     elm_config_focus_move_policy_set(ELM_FOCUS_MOVE_POLICY_CLICK);
+   else if (val == 1)
+     elm_config_focus_move_policy_set(ELM_FOCUS_MOVE_POLICY_IN);
+}
+
+static void
+test_list_focus_item_loop_enable_check_changed(void *data, Evas_Object *obj,
+                                               void *event_info  EINA_UNUSED)
+{
+   Evas_Object *li = data;
+   elm_object_scroll_item_loop_enabled_set(li, elm_check_state_get(obj));
+}
+
+static void
+test_list_focus_item_select_on_focus_disable_changed(void *data EINA_UNUSED, Evas_Object *obj,
+                                                     void *event_info  EINA_UNUSED)
+{
+   elm_config_item_select_on_focus_disabled_set(elm_check_state_get(obj));
+}
+
+static void
+test_list_first_item_focus_on_first_focus_in_cb(void *data EINA_UNUSED, Evas_Object *obj,
+                                                void *event_info  EINA_UNUSED)
+{
+   elm_config_first_item_focus_on_first_focusin_set(elm_check_state_get(obj));
+}
+
+static void
+_item_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
+{
+   printf("%s: %p\n", (char *)data, event_info);
+}
+
+static void
+_list_key_down_cb(void *data EINA_UNUSED, Evas *e EINA_UNUSED,
+                  Evas_Object *obj EINA_UNUSED, void *event_info)
+{
+   Evas_Event_Key_Down *ev = event_info;
+   printf("\n=== Key Down : %s ===\n", ev->keyname);
+}
+
+static Ecore_Timer *timer = NULL;
+static void
+_test_list_focus_win_del_cb(void *data EINA_UNUSED, Evas *e EINA_UNUSED,
+                            Evas_Object *obj EINA_UNUSED,
+                            void *event_info EINA_UNUSED)
+{
+   ecore_timer_del(timer);
+   timer = NULL;
+}
+
+static Eina_Bool
+_focus_timer_cb(void *data)
+{
+   elm_object_item_focus_set(data, EINA_TRUE);
+   timer = NULL;
+
+   return ECORE_CALLBACK_CANCEL;
+}
+
+static Eina_Bool
+_select_timer_cb(void *data)
+{
+   elm_list_item_selected_set(data, EINA_TRUE);
+   timer = NULL;
+
+   return ECORE_CALLBACK_CANCEL;
+}
+
+static void
+_focus_btn_cb(void *data, Evas_Object *obj EINA_UNUSED,
+              void *event_info EINA_UNUSED)
+{
+   ecore_timer_del(timer);
+   timer = ecore_timer_add(1.5, _focus_timer_cb, data);
+}
+
+static void
+_sel_btn_cb(void *data, Evas_Object *obj EINA_UNUSED,
+            void *event_info EINA_UNUSED)
+{
+   ecore_timer_del(timer);
+   timer = ecore_timer_add(1.5, _select_timer_cb, data);
+}
+
+static void
+_dis_btn_cb(void *data, Evas_Object *obj EINA_UNUSED,
+            void *event_info EINA_UNUSED)
+{
+   elm_object_item_disabled_set(data, EINA_TRUE);
+}
+
+static void
+_focus_button_clicked_cb(void *data, Evas_Object *obj EINA_UNUSED,
+                         void *event_info EINA_UNUSED)
+{
+   printf("Button clicked: %s\n", (char *)data);
+}
+
+static void
+_test_list_focus(const char *name, const char *title, Eina_Bool horiz)
+{
+   Evas_Object *win, *li, *btn, *bx, *bx2, *fr, *bx_opt, *chk, *bx_btn;
+   Evas_Object *btn_focus, *btn_sel, *btn_dis, *bx_mv, *rd, *rdg;
+   unsigned int lhand, rhand, idx;
+   char buf[256];
+   Elm_Object_Item *it = NULL, *it_0 = NULL, *it_3 = NULL;
+
+   win = elm_win_util_standard_add(name, title);
+   elm_win_autodel_set(win, EINA_TRUE);
+   evas_object_event_callback_add(win, EVAS_CALLBACK_DEL,
+                                  _test_list_focus_win_del_cb, NULL);
+
+   elm_win_focus_highlight_enabled_set(win, EINA_TRUE);
+   elm_win_focus_highlight_animate_set(win, EINA_TRUE);
+
+   bx = elm_box_add(win);
+   evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bx);
+   evas_object_show(bx);
+
+   btn = elm_button_add(bx);
+   elm_object_text_set(btn, "Up");
+   elm_box_pack_end(bx, btn);
+   evas_object_smart_callback_add(btn, "clicked",
+                                  _focus_button_clicked_cb, "Up");
+   evas_object_show(btn);
+
+   bx2 = elm_box_add(bx);
+   elm_box_horizontal_set(bx2, EINA_TRUE);
+   evas_object_size_hint_weight_set(bx2, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(bx2, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bx, bx2);
+   evas_object_show(bx2);
+
+   btn = elm_button_add(bx2);
+   elm_object_text_set(btn, "Left");
+   elm_box_pack_end(bx2, btn);
+   evas_object_smart_callback_add(btn, "clicked",
+                                  _focus_button_clicked_cb, "Left");
+   evas_object_show(btn);
+
+   li = elm_list_add(win);
+   evas_object_size_hint_weight_set(li, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(li, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_list_horizontal_set(li, horiz);
+   elm_list_select_mode_set(li, ELM_OBJECT_SELECT_MODE_ALWAYS);
+   elm_box_pack_end(bx2, li);
+   evas_object_show(li);
+   evas_object_smart_callback_add(li, "item,focused", _item_cb, "item,focused");
+   evas_object_smart_callback_add(li, "item,unfocused", _item_cb, "item,unfocused");
+   evas_object_smart_callback_add(li, "selected", _item_cb, "selected");
+   evas_object_smart_callback_add(li, "unselected", _item_cb, "unselected");
+   evas_object_smart_callback_add(li, "activated", _item_cb, "activated");
+   evas_object_smart_callback_add(li, "highlighted", _item_cb, "highlighted");
+   evas_object_smart_callback_add(li, "unhighlighted", _item_cb, "unhighlighted");
+   evas_object_event_callback_add(li, EVAS_CALLBACK_KEY_DOWN, _list_key_down_cb, NULL);
+
+   btn = elm_button_add(bx2);
+   elm_object_text_set(btn, "Right");
+   elm_box_pack_end(bx2, btn);
+   evas_object_smart_callback_add(btn, "clicked",
+                                  _focus_button_clicked_cb, "Right");
+   evas_object_show(btn);
+
+   btn = elm_button_add(bx);
+   elm_object_text_set(btn, "Down");
+   elm_box_pack_end(bx, btn);
+   evas_object_smart_callback_add(btn, "clicked",
+                                  _focus_button_clicked_cb, "Down");
+   evas_object_show(btn);
+
+   // Options
+   fr = elm_frame_add(bx);
+   elm_object_text_set(fr, "Options");
+   evas_object_size_hint_weight_set(fr, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(fr, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bx, fr);
+   evas_object_show(fr);
+
+   bx_opt = elm_box_add(fr);
+   elm_box_horizontal_set(bx_opt, EINA_TRUE);
+   elm_object_content_set(fr, bx_opt);
+   evas_object_show(bx_opt);
+
+   chk = elm_check_add(bx_opt);
+   elm_object_text_set(chk, "Focus Highlight");
+   elm_check_state_set(chk, EINA_TRUE);
+   evas_object_size_hint_weight_set(chk, EVAS_HINT_EXPAND, 0.0);
+   evas_object_smart_callback_add(chk, "changed",
+                                  test_list_focus_focus_highlight_check_changed,
+                                  win);
+   elm_box_pack_end(bx_opt, chk);
+   evas_object_show(chk);
+
+   chk = elm_check_add(bx_opt);
+   elm_object_text_set(chk, "Focus Animation");
+   elm_check_state_set(chk, EINA_TRUE);
+   evas_object_size_hint_weight_set(chk, EVAS_HINT_EXPAND, 0.0);
+   evas_object_smart_callback_add(chk, "changed",
+                                  test_list_focus_focus_animate_check_changed,
+                                  win);
+   elm_box_pack_end(bx_opt, chk);
+   evas_object_show(chk);
+
+   chk = elm_check_add(bx_opt);
+   elm_object_text_set(chk, "Focus on selection");
+   evas_object_size_hint_weight_set(chk, EVAS_HINT_EXPAND, 0.0);
+   evas_object_smart_callback_add(chk, "changed",
+                                  test_list_focus_focus_check_changed, li);
+   elm_box_pack_end(bx_opt, chk);
+   evas_object_show(chk);
+
+   test_list_focus_focus_on_selection_set(li, chk, EINA_FALSE);
+
+   chk = elm_check_add(bx_opt);
+   elm_object_text_set(chk, "Item Looping Enable");
+   elm_check_state_set(chk, elm_object_scroll_item_loop_enabled_get(li));
+   evas_object_size_hint_weight_set(chk, EVAS_HINT_EXPAND, 0.0);
+   evas_object_smart_callback_add(chk, "changed",
+                                  test_list_focus_item_loop_enable_check_changed,
+                                  li);
+   elm_box_pack_end(bx_opt, chk);
+   evas_object_show(chk);
+
+   chk = elm_check_add(bx_opt);
+   elm_object_text_set(chk, "Item Select on Focus disable");
+   elm_check_state_set(chk, elm_config_item_select_on_focus_disabled_get());
+   evas_object_size_hint_weight_set(chk, EVAS_HINT_EXPAND, 0.0);
+   evas_object_smart_callback_add(chk, "changed",
+                                  test_list_focus_item_select_on_focus_disable_changed,
+                                  NULL);
+   elm_box_pack_end(bx_opt, chk);
+   evas_object_show(chk);
+
+   chk = elm_check_add(bx_opt);
+   elm_object_text_set(chk, "First item focus on first focus in");
+   elm_check_state_set(chk, elm_config_first_item_focus_on_first_focusin_get());
+   evas_object_size_hint_weight_set(chk, EVAS_HINT_EXPAND, 0.0);
+   evas_object_smart_callback_add(chk, "changed",
+                                  test_list_first_item_focus_on_first_focus_in_cb,
+                                  NULL);
+   elm_box_pack_end(bx_opt, chk);
+   evas_object_show(chk);
+
+   // Focus Autoscroll Mode
+   fr = _focus_autoscroll_mode_frame_create(bx);
+   elm_box_pack_end(bx, fr);
+
+   // Focus Movement Policy
+   fr = elm_frame_add(bx);
+   elm_object_text_set(fr, "Focus Movement Policy");
+   evas_object_size_hint_weight_set(fr, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(fr, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bx, fr);
+   evas_object_show(fr);
+
+   bx_mv = elm_box_add(fr);
+   elm_box_horizontal_set(bx_mv, EINA_TRUE);
+   elm_object_content_set(fr, bx_mv);
+   evas_object_show(bx_mv);
+
+   rdg = rd = elm_radio_add(bx_mv);
+   elm_object_text_set(rd, "Focus Move by Click");
+   elm_radio_state_value_set(rd, 0);
+   evas_object_size_hint_weight_set(rd, EVAS_HINT_EXPAND, 0.0);
+   evas_object_smart_callback_add(rd, "changed",
+                                  test_list_focus_focus_move_policy_changed,
+                                  NULL);
+   elm_box_pack_end(bx_mv, rd);
+   evas_object_show(rd);
+
+   rd = elm_radio_add(bx_mv);
+   elm_object_text_set(rd, "Focus Move by Mouse-In");
+   elm_radio_group_add(rd, rdg);
+   elm_radio_state_value_set(rd, 1);
+   evas_object_size_hint_weight_set(rd, EVAS_HINT_EXPAND, 0.0);
+   evas_object_smart_callback_add(rd, "changed",
+                                  test_list_focus_focus_move_policy_changed,
+                                  NULL);
+   elm_box_pack_end(bx_mv, rd);
+   evas_object_show(rd);
+
+   // Focus/Selection
+   fr = elm_frame_add(bx);
+   elm_object_text_set(fr, "Focus/Selection");
+   evas_object_size_hint_weight_set(fr, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(fr, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bx, fr);
+   evas_object_show(fr);
+
+   bx_btn = elm_box_add(fr);
+   elm_object_content_set(fr, bx_btn);
+   evas_object_show(bx_btn);
+
+   btn_focus = elm_button_add(bx_btn);
+   elm_object_text_set(btn_focus, "Focus 3rd Item after 1.5 seconds.");
+   evas_object_size_hint_weight_set(btn_focus, 0.0, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(btn_focus, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bx_btn, btn_focus);
+   evas_object_show(btn_focus);
+
+   btn_sel = elm_button_add(bx_btn);
+   elm_object_text_set(btn_sel, "Select 3rd Item after 1.5 seconds.");
+   evas_object_size_hint_weight_set(btn_sel, 0.0, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(btn_sel, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bx_btn, btn_sel);
+   evas_object_show(btn_sel);
+
+   btn_dis = elm_button_add(bx_btn);
+   elm_object_text_set(btn_dis, "Disable 1st Item.");
+   evas_object_size_hint_weight_set(btn_dis, 0.0, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(btn_dis, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bx_btn, btn_dis);
+   evas_object_show(btn_dis);
+
+   for (idx = 0; _list_focus_combo[idx] >= 0; idx++)
+     {
+        lhand = _list_focus_combo[idx] / 10;
+        rhand = _list_focus_combo[idx] % 10;
+
+        if (lhand > 4) lhand = 4;
+        if (rhand > 4) rhand = 4;
+        snprintf(buf, sizeof(buf), " %s / %s ",
+				_list_focus_names[lhand],
+				_list_focus_names[rhand]);
+
+        it = elm_list_item_append(li, buf,
+                                  test_list_focus_content_get(li, lhand, horiz),
+                                  test_list_focus_content_get(li, rhand, horiz),
+                                  NULL, NULL);
+        if (idx == 0)
+          it_0 = it;
+        if (idx == 4)
+          elm_object_item_disabled_set(it, EINA_TRUE);
+        if (idx == 2)
+          it_3 = it;
+     }
+
+   evas_object_smart_callback_add(btn_focus, "clicked", _focus_btn_cb, it_3);
+   evas_object_smart_callback_add(btn_sel, "clicked", _sel_btn_cb, it_3);
+   evas_object_smart_callback_add(btn_dis, "clicked", _dis_btn_cb, it_0);
+
+   elm_list_go(li);
+   evas_object_show(li);
+
+   evas_object_resize(win, 420, 600);
+   evas_object_show(win);
+}
+
+void
+test_list_focus(void        *data EINA_UNUSED,
+                Evas_Object *obj EINA_UNUSED,
+                void        *event_info EINA_UNUSED)
+{
+   _test_list_focus("list-focus", "List Focus", EINA_FALSE);
+}
+
+void
+test_list_horiz_focus(void        *data EINA_UNUSED,
+                      Evas_Object *obj EINA_UNUSED,
+                      void        *event_info EINA_UNUSED)
+{
+   _test_list_focus("list-focus-horizontal", "List Focus Horizontal", EINA_TRUE);
+}
+
+void
+test_list_separator(void        *data EINA_UNUSED,
+                    Evas_Object *obj EINA_UNUSED,
+                    void        *event_info EINA_UNUSED)
+{
+   Evas_Object *win, *li, *ic, *ic2, *bx, *bxx;
+   char buf[PATH_MAX];
+   Elm_Object_Item *list_it_sep;
+
+   win = elm_win_util_standard_add("list", "List Separator");
+   elm_win_autodel_set(win, EINA_TRUE);
+
+   bxx = elm_box_add(win);
+   evas_object_size_hint_weight_set(bxx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bxx);
+   evas_object_show(bxx);
+
+   li = elm_list_add(win);
+   evas_object_size_hint_weight_set(li, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(li, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bxx, li);
+
+   ic = elm_icon_add(win);
+   snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
+   elm_image_file_set(ic, buf, NULL);
+   elm_list_item_append(li, "Hello", ic, NULL, NULL, NULL);
+
+   list_it_sep = elm_list_item_append(li, NULL, NULL, NULL, NULL, NULL);
+   elm_list_item_separator_set(list_it_sep, EINA_TRUE);
+
+   ic = elm_icon_add(win);
+   snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
+   elm_image_file_set(ic, buf, NULL);
+   elm_list_item_append(li, "world", ic, NULL, NULL, NULL);
+
+   list_it_sep = elm_list_item_append(li, NULL, NULL, NULL, NULL, NULL);
+   elm_list_item_separator_set(list_it_sep, EINA_TRUE);
+
+   ic = elm_icon_add(win);
+   elm_icon_standard_set(ic, "edit");
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
+   elm_list_item_append(li, ".", ic, NULL, NULL, NULL);
+
+   list_it_sep = elm_list_item_append(li, NULL, NULL, NULL, NULL, NULL);
+   elm_list_item_separator_set(list_it_sep, EINA_TRUE);
+
+   ic = elm_icon_add(win);
+   elm_icon_standard_set(ic, "delete");
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
+   ic2 = elm_icon_add(win);
+   elm_icon_standard_set(ic2, "clock");
+   elm_image_resizable_set(ic2, EINA_FALSE, EINA_FALSE);
+   elm_list_item_append(li, "How", ic, ic2, NULL, NULL);
+
+   list_it_sep = elm_list_item_append(li, NULL, NULL, NULL, NULL, NULL);
+   elm_list_item_separator_set(list_it_sep, EINA_TRUE);
+
+   bx = elm_box_add(win);
+   elm_box_horizontal_set(bx, EINA_TRUE);
+
+   ic = elm_icon_add(win);
+   snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
+   elm_image_file_set(ic, buf, NULL);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
+   evas_object_size_hint_align_set(ic, 0.5, 0.5);
+   elm_box_pack_end(bx, ic);
+   evas_object_show(ic);
+
+   ic = elm_icon_add(win);
+   snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
+   elm_image_file_set(ic, buf, NULL);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
+   evas_object_size_hint_align_set(ic, 0.5, 0.0);
+   elm_box_pack_end(bx, ic);
+   evas_object_show(ic);
+
+   ic = elm_icon_add(win);
+   snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
+   elm_image_file_set(ic, buf, NULL);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
+   evas_object_size_hint_align_set(ic, 0.0, EVAS_HINT_EXPAND);
+   elm_box_pack_end(bx, ic);
+   evas_object_show(ic);
+   elm_list_item_append(li, "are", bx, NULL, NULL, NULL);
+
+   list_it_sep = elm_list_item_append(li, NULL, NULL, NULL, NULL, NULL);
+   elm_list_item_separator_set(list_it_sep, EINA_TRUE);
+
+   elm_list_item_append(li, "you", NULL, NULL, NULL, NULL);
+
+   list_it_sep = elm_list_item_append(li, NULL, NULL, NULL, NULL, NULL);
+   elm_list_item_separator_set(list_it_sep, EINA_TRUE);
+
+   elm_list_item_append(li, "doing", NULL, NULL, NULL, NULL);
+
+   list_it_sep = elm_list_item_append(li, NULL, NULL, NULL, NULL, NULL);
+   elm_list_item_separator_set(list_it_sep, EINA_TRUE);
+
+   elm_list_item_append(li, "?", NULL, NULL, NULL, NULL);
+
+   elm_list_go(li);
+
+   evas_object_show(li);
+
+   evas_object_resize(win, 320, 300);
+   evas_object_show(win);
+}
+
+/***********/
+
+typedef struct _List_Multi_Data List_Multi_Data;
+struct _List_Multi_Data
+{
+   Evas_Object *list;
+   Evas_Object *rd1;
+   Evas_Object *rd2;
+};
+
+static void
+_multi_select_changed_cb(void *data, Evas_Object *obj,
+                         void *event_info EINA_UNUSED)
+{
+   Eina_Bool multi = elm_check_state_get(obj);
+   List_Multi_Data *ld = data;
+   if (!ld) return;
+
+   elm_list_multi_select_set(ld->list, multi);
+   elm_object_disabled_set(ld->rd1, !multi);
+   elm_object_disabled_set(ld->rd2, !multi);
+}
+
+static void
+_multi_select_mode_changed_cb(void *data, Evas_Object *obj,
+                              void *event_info EINA_UNUSED)
+{
+   elm_list_multi_select_mode_set(data, elm_radio_value_get(obj));
+}
+
+static void
+_multi_select_frame_create(Evas_Object *bx, List_Multi_Data *ld)
+{
+   Evas_Object *fr, *bx2, *bx3, *tg, *rd, *rdg;
+   if (!ld) return;
+
+   fr = elm_frame_add(bx);
+   evas_object_size_hint_weight_set(fr, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(fr, EVAS_HINT_FILL, 0.5);
+   elm_object_text_set(fr, "Multi Select Option");
+   elm_box_pack_end(bx, fr);
+   evas_object_show(fr);
+
+   bx2 = elm_box_add(fr);
+   elm_object_content_set(fr, bx2);
+   evas_object_show(bx2);
+
+   tg = elm_check_add(bx2);
+   elm_object_style_set(tg, "toggle");
+   elm_object_text_set(tg, "Multi Select Mode");
+   elm_box_pack_end(bx2, tg);
+   evas_object_show(tg);
+
+   bx3 = elm_box_add(bx2);
+   elm_box_horizontal_set(bx3, EINA_TRUE);
+   elm_box_pack_end(bx2, bx3);
+   evas_object_show(bx3);
+
+   ld->rd1 = rdg = rd = elm_radio_add(bx3);
+   elm_radio_state_value_set(rd, ELM_OBJECT_MULTI_SELECT_MODE_DEFAULT);
+   elm_object_text_set(rd, "Default Mode");
+   elm_box_pack_end(bx3, rd);
+   evas_object_show(rd);
+   elm_object_disabled_set(rd, EINA_TRUE);
+   evas_object_smart_callback_add(rd, "changed",
+                                  _multi_select_mode_changed_cb, ld->list);
+
+   ld->rd2 = rd = elm_radio_add(bx3);
+   elm_radio_state_value_set(rd, ELM_OBJECT_MULTI_SELECT_MODE_WITH_CONTROL);
+   elm_radio_group_add(rd, rdg);
+   elm_object_text_set(rd, "With Control Mode");
+   elm_box_pack_end(bx3, rd);
+   evas_object_show(rd);
+   elm_object_disabled_set(rd, EINA_TRUE);
+   evas_object_smart_callback_add(rd, "changed",
+                                  _multi_select_mode_changed_cb, ld->list);
+
+   evas_object_smart_callback_add(tg, "changed",
+                                  _multi_select_changed_cb, ld);
+}
+
+void
+test_list_multi_select(void *data EINA_UNUSED,
+                       Evas_Object *obj EINA_UNUSED,
+                       void *event_info EINA_UNUSED)
+{
+   Evas_Object *win, *li, *bx;
+   List_Multi_Data *ld = calloc(1, sizeof(List_Multi_Data));
+
+   win = elm_win_util_standard_add("list-multi-select", "List Multi Select");
+   elm_win_autodel_set(win, EINA_TRUE);
+   evas_object_event_callback_add(win, EVAS_CALLBACK_FREE, _cleanup_cb, ld);
+
+   bx = elm_box_add(win);
+   evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bx);
+   evas_object_show(bx);
+
+   ld->list = li = elm_list_add(bx);
+   _multi_select_frame_create(bx, ld);
+
+   evas_object_size_hint_weight_set(li, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(li, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_box_pack_end(bx, li);
+   evas_object_show(li);
+
+   elm_list_item_append(li, "you", NULL, NULL, NULL, NULL);
+   elm_list_item_append(li, "doing", NULL, NULL, NULL, NULL);
+   elm_list_item_append(li, "out", NULL, NULL, NULL, NULL);
+   elm_list_item_append(li, "there", NULL, NULL, NULL, NULL);
+   elm_list_item_append(li, "today", NULL, NULL, NULL, NULL);
+   elm_list_item_append(li, "?", NULL, NULL, NULL, NULL);
+   elm_list_item_append(li, "Here", NULL, NULL, NULL, NULL);
+   elm_list_item_append(li, "are", NULL, NULL, NULL, NULL);
+   elm_list_item_append(li, "some", NULL, NULL, NULL, NULL);
+   elm_list_item_append(li, "more", NULL, NULL, NULL, NULL);
+   elm_list_item_append(li, "items", NULL, NULL, NULL, NULL);
+   elm_list_item_append(li, "Longer label.", NULL, NULL, NULL, NULL);
+
+   elm_list_go(li);
+
+   evas_object_resize(win, 320, 500);
+   evas_object_show(win);
+}

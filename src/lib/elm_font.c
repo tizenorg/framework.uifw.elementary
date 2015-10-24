@@ -33,12 +33,7 @@ _elm_font_properties_get(Eina_Hash **font_hash,
         if (subname)
           {
              len = subname - name;
-             name = realloc(name, sizeof(char) * len + 1);
-             if (name)
-               {
-                  memset(name, 0, sizeof(char) * len + 1);
-                  strncpy(name, font, len);
-               }
+             *subname = '\0';
           }
 
         /* add a font name */
@@ -53,7 +48,7 @@ _elm_font_properties_get(Eina_Hash **font_hash,
                   return NULL;
                }
 
-             efp->name = eina_stringshare_add(name);
+             efp->name = eina_stringshare_add_length(name, len);
              if (font_hash)
                {
                   if (!*font_hash)
@@ -113,14 +108,14 @@ _elm_font_properties_free(Elm_Font_Properties *efp)
    const char *str;
 
    EINA_LIST_FREE(efp->styles, str)
-     if (str) eina_stringshare_del(str);
+     eina_stringshare_del(str);
 
-   if (efp->name) eina_stringshare_del(efp->name);
+   eina_stringshare_del(efp->name);
    free(efp);
 }
 
 static Eina_Bool
-_font_hash_free_cb(const Eina_Hash *hash __UNUSED__, const void *key __UNUSED__, void *data, void *fdata __UNUSED__)
+_font_hash_free_cb(const Eina_Hash *hash EINA_UNUSED, const void *key EINA_UNUSED, void *data, void *fdata EINA_UNUSED)
 {
    Elm_Font_Properties *efp;
 
@@ -152,8 +147,8 @@ elm_font_properties_free(Elm_Font_Properties *efp)
 
    EINA_SAFETY_ON_NULL_RETURN(efp);
    EINA_LIST_FREE(efp->styles, str)
-     if (str) eina_stringshare_del(str);
-   if (efp->name) eina_stringshare_del(efp->name);
+     eina_stringshare_del(str);
+   eina_stringshare_del(efp->name);
    free(efp);
 }
 
@@ -200,7 +195,7 @@ elm_font_available_hash_add(Eina_List *list)
    font_hash = _elm_font_available_hash_add(font_hash, "Monospace:style=Bold Oblique");
 
    EINA_LIST_FOREACH(list, l, key)
-     if (key) _elm_font_available_hash_add(font_hash, key);
+     if (key) font_hash = _elm_font_available_hash_add(font_hash, key);
 
    return font_hash;
 }

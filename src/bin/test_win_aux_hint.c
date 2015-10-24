@@ -13,14 +13,14 @@ struct _App_Data
 };
 
 static void
-_win_del_cb(void *data __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_win_del_cb(void *data EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    App_Data *ad = evas_object_data_get(obj, "ad");
    free(ad);
 }
 
 static void
-_win_aux_hint_allowed_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info)
+_win_aux_hint_allowed_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
 {
    Evas_Object *win = (Evas_Object *)(data);
    App_Data *ad = evas_object_data_get(win, "ad");
@@ -38,7 +38,7 @@ _win_aux_hint_allowed_cb(void *data, Evas_Object *obj __UNUSED__, void *event_in
 }
 
 void
-test_win_aux_hint(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_win_aux_hint(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bx, *lb;
    App_Data *ad;

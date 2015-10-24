@@ -387,12 +387,12 @@ msgstr "Flik"
 #: src/modules/datetime_input_popup/datetime_input_popup.c:749
 #: src/modules/datetime_input_popup/datetime_input_popup.c:992
 msgid "AM"
-msgstr "fm"
+msgstr "AM"
 
 #: src/modules/datetime_input_popup/datetime_input_popup.c:754
 #: src/modules/datetime_input_popup/datetime_input_popup.c:993
 msgid "PM"
-msgstr "em"
+msgstr "PM"
 
 #: src/modules/datetime_input_popup/datetime_input_popup.c:786
 msgid "Set"
@@ -566,17 +566,3 @@ msgstr "Klistra in"
 msgid "IDS_COM_BODY_CLIPBOARD"
 msgstr "Urklipp"
 
-msgid "WDS_ST_OPT_DAY_ABB"
-msgstr "Dag"
-
-msgid "WDS_ST_OPT_HRS_ABB"
-msgstr "Timme"
-
-msgid "WDS_ST_OPT_MINS_ABB"
-msgstr "Minut"
-
-msgid "WDS_ST_OPT_MONTH_ABB"
-msgstr "Månad"
-
-msgid "WDS_ST_OPT_YEAR_ABB"
-msgstr "År"

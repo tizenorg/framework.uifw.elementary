@@ -1,12 +1,16 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
 #include <Elementary.h>
+
 #include "elm_priv.h"
 #include "elm_widget_route.h"
 
-EAPI const char ELM_ROUTE_SMART_NAME[] = "elm_route";
+#define MY_CLASS ELM_ROUTE_CLASS
 
-EVAS_SMART_SUBCLASS_NEW
-  (ELM_ROUTE_SMART_NAME, _elm_route, Elm_Route_Smart_Class,
-  Elm_Widget_Smart_Class, elm_widget_smart_class_get, NULL);
+#define MY_CLASS_NAME "Elm_Route"
+#define MY_CLASS_NAME_LEGACY "elm_route"
 
 static void
 _clear_route(Evas_Object *obj)
@@ -22,7 +26,7 @@ _clear_route(Evas_Object *obj)
    sd->lat_max = EMAP_LAT_MIN;
 #endif
 
-   EINA_LIST_FREE (sd->segments, segment)
+   EINA_LIST_FREE(sd->segments, segment)
      {
         evas_object_del(segment->obj);
         free(segment);
@@ -74,18 +78,20 @@ _sizing_eval(Evas_Object *obj)
 }
 
 static void
-_move_resize_cb(void *data __UNUSED__,
-                Evas *e __UNUSED__,
+_move_resize_cb(void *data EINA_UNUSED,
+                Evas *e EINA_UNUSED,
                 Evas_Object *obj,
-                void *event_info __UNUSED__)
+                void *event_info EINA_UNUSED)
 {
    _sizing_eval(obj);
 }
 
-static Eina_Bool
-_elm_route_smart_theme(Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_route_elm_widget_theme_apply(Eo *obj, Elm_Route_Data *sd EINA_UNUSED)
 {
-   if (!_elm_route_parent_sc->theme(obj)) return EINA_FALSE;
+   Eina_Bool int_ret = EINA_FALSE;
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_theme_apply());
+   if (!int_ret) return EINA_FALSE;
 
    //TODO
 
@@ -127,13 +133,12 @@ _update_lon_lat_min_max(Evas_Object *obj,
 
 #endif
 
-static void
-_elm_route_smart_add(Evas_Object *obj)
+EOLIAN static void
+_elm_route_evas_object_smart_add(Eo *obj, Elm_Route_Data *priv)
 {
-   EVAS_SMART_DATA_ALLOC(obj, Elm_Route_Smart_Data);
 
-   _elm_route_parent_sc->base.add(obj);
-
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   elm_widget_sub_object_parent_add(obj);
    elm_widget_can_focus_set(obj, EINA_FALSE);
 
    evas_object_event_callback_add
@@ -146,41 +151,19 @@ _elm_route_smart_add(Evas_Object *obj)
    priv->lon_max = EMAP_LON_MIN;
    priv->lat_min = EMAP_LAT_MAX;
    priv->lat_max = EMAP_LAT_MIN;
+#else
+   (void)priv;
 #endif
 
    _sizing_eval(obj);
 }
 
-static void
-_elm_route_smart_del(Evas_Object *obj)
+EOLIAN static void
+_elm_route_evas_object_smart_del(Eo *obj, Elm_Route_Data *_pd EINA_UNUSED)
 {
    _clear_route(obj);
 
-   ELM_WIDGET_CLASS(_elm_route_parent_sc)->base.del(obj);
-}
-
-static void
-_elm_route_smart_set_user(Elm_Route_Smart_Class *sc)
-{
-   ELM_WIDGET_CLASS(sc)->base.add = _elm_route_smart_add;
-   ELM_WIDGET_CLASS(sc)->base.del = _elm_route_smart_del;
-
-   ELM_WIDGET_CLASS(sc)->theme = _elm_route_smart_theme;
-}
-
-EAPI const Elm_Route_Smart_Class *
-elm_route_smart_class_get(void)
-{
-   static Elm_Route_Smart_Class _sc =
-     ELM_ROUTE_SMART_CLASS_INIT_NAME_VERSION(ELM_ROUTE_SMART_NAME);
-   static const Elm_Route_Smart_Class *class = NULL;
-
-   if (class) return class;
-
-   _elm_route_smart_set(&_sc);
-   class = &_sc;
-
-   return class;
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_del());
 }
 
 /**
@@ -194,42 +177,28 @@ elm_route_smart_class_get(void)
 EAPI Evas_Object *
 elm_route_add(Evas_Object *parent)
 {
-   Evas_Object *obj;
-
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-
-   obj = elm_widget_add(_elm_route_smart_class_new(), parent);
-   if (!obj) return NULL;
-
-   if (!elm_widget_sub_object_add(parent, obj))
-     ERR("could not add %p as sub object of %p", obj, parent);
-
-   //Tizen Only: This should be removed when eo is applied.
-   ELM_WIDGET_DATA_GET(obj, sd);
-   sd->on_create = EINA_FALSE;
-
+   Evas_Object *obj = eo_add(MY_CLASS, parent);
    return obj;
 }
 
-#ifdef ELM_EMAP
-/**
- * Set the emap object which describes the route
- *
- * @param obj The photo object
- * @param emap the route
- *
- * @ingroup Route
- */
-EAPI void
-elm_route_emap_set(Evas_Object *obj,
-                   EMap_Route *emap)
+EOLIAN static void
+_elm_route_eo_base_constructor(Eo *obj, Elm_Route_Data *_pd EINA_UNUSED)
 {
+   eo_do_super(obj, MY_CLASS, eo_constructor());
+   eo_do(obj,
+         evas_obj_type_set(MY_CLASS_NAME_LEGACY));
+}
+
+EOLIAN static void
+_elm_route_emap_set(Eo *obj, Elm_Route_Data *sd, void *_emap)
+{
+#ifdef ELM_EMAP
+   EMap_Route *emap = _emap;
+
    EMap_Route_Node *node, *node_prev = NULL;
    Evas_Object *o;
    Eina_List *l;
-
-   ELM_ROUTE_CHECK(obj);
-   ELM_ROUTE_DATA_GET(obj, sd);
 
    sd->emap = emap;
 
@@ -264,30 +233,31 @@ elm_route_emap_set(Evas_Object *obj,
      }
 
    _sizing_eval(obj);
+#else
+   (void)obj;
+   (void)sd;
+   (void)_emap;
+#endif
 }
 
-#endif
-
-EAPI void
-elm_route_longitude_min_max_get(const Evas_Object *obj,
-                                double *min,
-                                double *max)
+EOLIAN static void
+_elm_route_longitude_min_max_get(Eo *obj EINA_UNUSED, Elm_Route_Data *sd, double *min, double *max)
 {
-   ELM_ROUTE_CHECK(obj);
-   ELM_ROUTE_DATA_GET(obj, sd);
-
    if (min) *min = sd->lon_min;
    if (max) *max = sd->lon_max;
 }
 
-EAPI void
-elm_route_latitude_min_max_get(const Evas_Object *obj,
-                               double *min,
-                               double *max)
+EOLIAN static void
+_elm_route_latitude_min_max_get(Eo *obj EINA_UNUSED, Elm_Route_Data *sd, double *min, double *max)
 {
-   ELM_ROUTE_CHECK(obj);
-   ELM_ROUTE_DATA_GET(obj, sd);
-
    if (min) *min = sd->lat_min;
    if (max) *max = sd->lat_max;
 }
+
+EOLIAN static void
+_elm_route_class_constructor(Eo_Class *klass)
+{
+   evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
+}
+
+#include "elm_route.eo.c"

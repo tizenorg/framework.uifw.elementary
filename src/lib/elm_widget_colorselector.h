@@ -1,7 +1,15 @@
 #ifndef ELM_WIDGET_COLORSELECTOR_H
 #define ELM_WIDGET_COLORSELECTOR_H
 
-#include "elm_widget_layout.h"
+#include "Elementary.h"
+#include "elm_color_item.eo.h"
+
+
+/* DO NOT USE THIS HEADER UNLESS YOU ARE PREPARED FOR BREAKING OF YOUR
+ * CODE. THIS IS ELEMENTARY'S INTERNAL WIDGET API (for now) AND IS NOT
+ * FINAL. CALL elm_widget_api_check(ELM_INTERNAL_API_VERSION) TO CHECK
+ * IT AT RUNTIME.
+ */
 
 /**
  * @internal
@@ -15,124 +23,19 @@
  * widgets which are a colorselector with some more logic on top.
  */
 
-/**
- * @def ELM_COLORSELECTOR_CLASS
- *
- * Use this macro to cast whichever subclass of
- * #Elm_Colorselector_Smart_Class into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_COLORSELECTOR_CLASS(x) ((Elm_Colorselector_Smart_Class *)x)
-
-/**
- * @def ELM_COLORSELECTOR_DATA
- *
- * Use this macro to cast whichever subdata of
- * #Elm_Colorselector_Smart_Data into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_COLORSELECTOR_DATA(x)  ((Elm_Colorselector_Smart_Data *)x)
-
-/**
- * @def ELM_COLORSELECTOR_SMART_CLASS_VERSION
- *
- * Current version for Elementary colorselector @b base smart class, a value
- * which goes to _Elm_Colorselector_Smart_Class::version.
- *
- * @ingroup Widget
- */
-#define ELM_COLORSELECTOR_SMART_CLASS_VERSION 1
-
-/**
- * @def ELM_COLORSELECTOR_SMART_CLASS_INIT
- *
- * Initializer for a whole #Elm_Colorselector_Smart_Class structure, with
- * @c NULL values on its specific fields.
- *
- * @param smart_class_init initializer to use for the "base" field
- * (#Evas_Smart_Class).
- *
- * @see EVAS_SMART_CLASS_INIT_NULL
- * @see EVAS_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_COLORSELECTOR_SMART_CLASS_INIT_NULL
- * @see ELM_COLORSELECTOR_SMART_CLASS_INIT_NAME_VERSION
- *
- * @ingroup Widget
- */
-#define ELM_COLORSELECTOR_SMART_CLASS_INIT(smart_class_init) \
-  {smart_class_init, ELM_COLORSELECTOR_SMART_CLASS_VERSION}
-
-/**
- * @def ELM_COLORSELECTOR_SMART_CLASS_INIT_NULL
- *
- * Initializer to zero out a whole #Elm_Colorselector_Smart_Class structure.
- *
- * @see ELM_COLORSELECTOR_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_COLORSELECTOR_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_COLORSELECTOR_SMART_CLASS_INIT_NULL \
-  ELM_COLORSELECTOR_SMART_CLASS_INIT(EVAS_SMART_CLASS_INIT_NULL)
-
-/**
- * @def ELM_COLORSELECTOR_SMART_CLASS_INIT_NAME_VERSION
- *
- * Initializer to zero out a whole #Elm_Colorselector_Smart_Class structure and
- * set its name and version.
- *
- * This is similar to #ELM_COLORSELECTOR_SMART_CLASS_INIT_NULL, but it will
- * also set the version field of #Elm_Colorselector_Smart_Class (base field)
- * to the latest #ELM_COLORSELECTOR_SMART_CLASS_VERSION and name it to the
- * specific value.
- *
- * It will keep a reference to the name field as a <c>"const char *"</c>,
- * i.e., the name must be available while the structure is
- * used (hint: static or global variable!) and must not be modified.
- *
- * @see ELM_COLORSELECTOR_SMART_CLASS_INIT_NULL
- * @see ELM_COLORSELECTOR_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_COLORSELECTOR_SMART_CLASS_INIT_NAME_VERSION(name) \
-  ELM_COLORSELECTOR_SMART_CLASS_INIT                          \
-    (ELM_LAYOUT_SMART_CLASS_INIT_NAME_VERSION(name))
-
-/**
- * Elementary colorselector base smart class. This inherits directly from
- * #Elm_Layout_Smart_Class and is meant to build widgets extending the
- * behavior of a colorselector.
- *
- * All of the functions listed on @ref Colorselector namespace will work for
- * objects deriving from #Elm_Colorselector_Smart_Class.
- */
-typedef struct _Elm_Colorselector_Smart_Class
-{
-   Elm_Layout_Smart_Class base;
-
-   int                    version;    /**< Version of this smart class definition */
-} Elm_Colorselector_Smart_Class;
-
 typedef struct _Color_Bar_Data Color_Bar_Data;
 
 /**
  * Base layout smart data extended with colorselector instance data.
  */
-typedef struct _Elm_Colorselector_Smart_Data Elm_Colorselector_Smart_Data;
-struct _Elm_Colorselector_Smart_Data
+typedef struct _Elm_Colorselector_Data Elm_Colorselector_Data;
+struct _Elm_Colorselector_Data
 {
-   Elm_Layout_Smart_Data  base;
-
    /* for the 3 displaying modes of the widget */
    Evas_Object           *col_bars_area;
    Evas_Object           *palette_box;
    Evas_Object           *picker;
    Evas_Object           *picker_display;
-   Evas_Object           *col_plane;
-   Evas_Object           *col_plane_access_obj;
    Evas_Object           *entries[4];
    Evas_Object           *button;
 
@@ -147,25 +50,21 @@ struct _Elm_Colorselector_Smart_Data
 #endif
    } grab;
 
-   Eina_List             *items, *selected, *highlighted;
+   Eina_List             *items, *selected;
    Color_Bar_Data        *cb_data[4];
 
    Ecore_Timer           *longpress_timer;
    const char            *palette_name;
    Evas_Coord             _x, _y, _w, _h;
 
-   unsigned int           h_pad, v_pad;
    /* color components */
    int                    r, g, b, a;
    int                    er, eg, eb;
-   int                    sr, sg, sb;
-   int                    lr, lg, lb;
 
    double                 h, s, l;
    Elm_Colorselector_Mode mode, focused;
    int                    sel_color_type;
 
-   Eina_Bool              longpressed : 1;
    Eina_Bool              config_load : 1;
 };
 
@@ -176,14 +75,6 @@ typedef enum _Color_Type
    LIGHTNESS,
    ALPHA
 } Color_Type;
-
-enum _Colorselector_Color_Component {
-   COLORSELECTOR_COLOR_COMPONETNT_B,
-   COLORSELECTOR_COLOR_COMPONETNT_G,
-   COLORSELECTOR_COLOR_COMPONETNT_R,
-   COLORSELECTOR_COLOR_COMPONETNT_A,
-   COLORSELECTOR_COLOR_COMPONETNT_NUM,
-};
 
 struct _Color_Bar_Data
 {
@@ -196,59 +87,58 @@ struct _Color_Bar_Data
    Evas_Object *arrow;
    Evas_Object *touch_area;
    Evas_Object *access_obj;
-   Color_Type color_type;
-   Eina_Bool focused : 1;
+   Color_Type   color_type;
 };
 
-typedef struct _Elm_Color_Item Elm_Color_Item;
-struct _Elm_Color_Item
+typedef struct _Elm_Color_Item_Data Elm_Color_Item_Data;
+struct _Elm_Color_Item_Data
 {
-   ELM_WIDGET_ITEM;
+   Elm_Widget_Item_Data *base;
 
    Evas_Object    *color_obj;
    Elm_Color_RGBA *color;
+
+   Eina_Bool       still_in : 1;
 };
 
 /**
  * @}
  */
 
-EAPI extern const char ELM_COLORSELECTOR_SMART_NAME[];
-EAPI const Elm_Colorselector_Smart_Class
-*elm_colorselector_smart_class_get(void);
-
 #define ELM_COLORSELECTOR_DATA_GET(o, sd) \
-  Elm_Colorselector_Smart_Data * sd = evas_object_smart_data_get(o)
+  Elm_Colorselector_Data * sd = eo_data_scope_get(o, ELM_COLORSELECTOR_CLASS)
 
 #define ELM_COLORSELECTOR_DATA_GET_OR_RETURN(o, ptr) \
   ELM_COLORSELECTOR_DATA_GET(o, ptr);                \
-  if (!ptr)                                          \
+  if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
-       CRITICAL("No widget data for object %p (%s)", \
-                o, evas_object_type_get(o));         \
+       CRI("No widget data for object %p (%s)",      \
+           o, evas_object_type_get(o));              \
        return;                                       \
     }
 
 #define ELM_COLORSELECTOR_DATA_GET_OR_RETURN_VAL(o, ptr, val) \
   ELM_COLORSELECTOR_DATA_GET(o, ptr);                         \
-  if (!ptr)                                                   \
+  if (EINA_UNLIKELY(!ptr))                                    \
     {                                                         \
-       CRITICAL("No widget data for object %p (%s)",          \
-                o, evas_object_type_get(o));                  \
+       CRI("No widget data for object %p (%s)",               \
+           o, evas_object_type_get(o));                       \
        return val;                                            \
     }
 
-#define ELM_COLORSELECTOR_CHECK(obj)                     \
-  if (!obj || !elm_widget_type_check                     \
-        ((obj), ELM_COLORSELECTOR_SMART_NAME, __func__)) \
+#define ELM_COLOR_ITEM_DATA_GET(o, sd) \
+  Elm_Color_Item_Data * sd = eo_data_scope_get(o, ELM_COLOR_ITEM_CLASS)
+
+#define ELM_COLORSELECTOR_CHECK(obj)                              \
+  if (EINA_UNLIKELY(!eo_isa((obj), ELM_COLORSELECTOR_CLASS))) \
     return
 
-#define ELM_COLORSELECTOR_ITEM_CHECK(it)                    \
-  ELM_WIDGET_ITEM_CHECK_OR_RETURN((Elm_Widget_Item *)it, ); \
-  ELM_COLORSELECTOR_CHECK(it->base.widget);
+#define ELM_COLORSELECTOR_ITEM_CHECK(it)                       \
+  if (EINA_UNLIKELY(!eo_isa(it->base->eo_obj, ELM_COLOR_ITEM_CLASS))) \
+    return
 
-#define ELM_COLORSELECTOR_ITEM_CHECK_OR_RETURN(it, ...)                \
-  ELM_WIDGET_ITEM_CHECK_OR_RETURN((Elm_Widget_Item *)it, __VA_ARGS__); \
-  ELM_COLORSELECTOR_CHECK(it->base.widget) __VA_ARGS__;
+#define ELM_COLORSELECTOR_ITEM_CHECK_OR_RETURN(it, ...)        \
+  if (EINA_UNLIKELY(!eo_isa(it->base->eo_obj, ELM_COLOR_ITEM_CLASS))) \
+    return __VA_ARGS__;
 
 #endif

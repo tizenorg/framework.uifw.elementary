@@ -1,7 +1,14 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
 #include <Elementary.h>
 #include "elm_priv.h"
 
-static const char GESTURE_LAYER_SMART_NAME[] = "elm_gesture_layer";
+#define MY_CLASS ELM_GESTURE_LAYER_CLASS
+
+#define MY_CLASS_NAME "Elm_Gesture_Layer"
+#define MY_CLASS_NAME_LEGACY "elm_gesture_layer"
 
 /* Some defaults */
 #define ELM_MOUSE_DEVICE             0
@@ -36,10 +43,10 @@ _glayer_buf_dup(void *buf, size_t size)
 
 #define SET_TEST_BIT(P)                               \
   do {                                                \
-       P->test = P->fn[ELM_GESTURE_STATE_START].cb || \
-         P->fn[ELM_GESTURE_STATE_MOVE].cb ||          \
-         P->fn[ELM_GESTURE_STATE_END].cb ||           \
-         P->fn[ELM_GESTURE_STATE_ABORT].cb;           \
+       P->test = P->cbs[ELM_GESTURE_STATE_START] || \
+         P->cbs[ELM_GESTURE_STATE_MOVE] ||          \
+         P->cbs[ELM_GESTURE_STATE_END] ||           \
+         P->cbs[ELM_GESTURE_STATE_ABORT];           \
     } while (0)
 
 #define IS_TESTED_GESTURE(gesture) \
@@ -49,13 +56,13 @@ _glayer_buf_dup(void *buf, size_t size)
   ((sd->gesture[T]) ? sd->gesture[T]->test : EINA_FALSE)
 
 #define ELM_GESTURE_LAYER_DATA_GET(o, sd) \
-  Elm_Gesture_Layer_Smart_Data * sd = evas_object_smart_data_get(o)
+  Elm_Gesture_Layer_Data * sd = eo_data_scope_get(o, MY_CLASS)
 
 #define ELM_GESTURE_LAYER_DATA_GET_OR_RETURN(o, ptr) \
   ELM_GESTURE_LAYER_DATA_GET(o, ptr);                \
   if (!ptr)                                          \
     {                                                \
-       CRITICAL("No widget data for object %p (%s)", \
+       CRI("No widget data for object %p (%s)", \
                 o, evas_object_type_get(o));         \
        return;                                       \
     }
@@ -64,19 +71,14 @@ _glayer_buf_dup(void *buf, size_t size)
   ELM_GESTURE_LAYER_DATA_GET(o, ptr);                         \
   if (!ptr)                                                   \
     {                                                         \
-       CRITICAL("No widget data for object %p (%s)",          \
+       CRI("No widget data for object %p (%s)",          \
                 o, evas_object_type_get(o));                  \
        return val;                                            \
     }
 
 #define ELM_GESTURE_LAYER_CHECK(obj)                                      \
-  if (!obj || !elm_widget_type_check((obj),                               \
-                                     GESTURE_LAYER_SMART_NAME, __func__)) \
+  if (!obj || !eo_isa(obj, MY_CLASS)) \
     return
-
-EVAS_SMART_SUBCLASS_NEW
-  (GESTURE_LAYER_SMART_NAME, _elm_gesture_layer, Elm_Widget_Smart_Class,
-  Elm_Widget_Smart_Class, elm_widget_smart_class_get, NULL);
 
 /**
  * @internal
@@ -115,6 +117,7 @@ typedef struct _Pointer_Event Pointer_Event;
  */
 struct _Func_Data
 {
+   EINA_INLIST;
    void                *user_data; /**< Holds user data to CB (like sd) */
    Elm_Gesture_Event_Cb cb;
 };
@@ -141,7 +144,7 @@ struct _Gesture_Info
 {
    Evas_Object      *obj;
    void             *data; /**< Holds gesture intemidiate processing data */
-   Func_Data         fn[ELM_GESTURE_STATE_ABORT + 1]; /**< Callback info for states */
+   Eina_Inlist      *cbs[ELM_GESTURE_STATE_ABORT + 1]; /**< Callback info (Func_Data) for states */
    Elm_Gesture_Type  g_type; /**< gesture type */
    Elm_Gesture_State state; /**< gesture state */
    void             *info; /**< Data for the state callback */
@@ -354,13 +357,9 @@ struct _Rotate_Type /* Fields used by _rotation_test() */
 };
 typedef struct _Rotate_Type                  Rotate_Type;
 
-typedef struct _Elm_Gesture_Layer_Smart_Data Elm_Gesture_Layer_Smart_Data;
-struct _Elm_Gesture_Layer_Smart_Data
+typedef struct _Elm_Gesture_Layer_Data Elm_Gesture_Layer_Data;
+struct _Elm_Gesture_Layer_Data
 {
-   Elm_Widget_Smart_Data base;    /* base widget smart data as
-                                   * first member obligatory, as
-                                   * we're inheriting from it */
-
    Evas_Object          *target; /* Target Widget */
    Event_History        *event_history_list;
 
@@ -535,7 +534,7 @@ _event_flag_get(void *event_info,
  * @ingroup Elm_Gesture_Layer
  */
 static void
-_event_consume(Elm_Gesture_Layer_Smart_Data *sd,
+_event_consume(Elm_Gesture_Layer_Data *sd,
                void *event_info,
                Evas_Callback_Type event_type,
                Evas_Event_Flags ev_flags)
@@ -607,14 +606,16 @@ static Evas_Event_Flags
 _state_report(Gesture_Info *gesture,
               void *info)
 {
+   Evas_Event_Flags flags = EVAS_EVENT_FLAG_NONE;
    /* We report current state (START, MOVE, END, ABORT), once */
    if ((gesture->state != ELM_GESTURE_STATE_UNDEFINED) &&
-       (gesture->fn[gesture->state].cb)) /* Fill state-info struct and
-                                          * send ptr to user
-                                          * callback */
+       (gesture->cbs[gesture->state])) /* Fill state-info struct and
+                                        * send ptr to user
+                                        * callback */
      {
-        return gesture->fn[gesture->state].cb(
-                 gesture->fn[gesture->state].user_data, info);
+        Func_Data *cb_info;
+        EINA_INLIST_FOREACH(gesture->cbs[gesture->state], cb_info)
+           flags |= cb_info->cb(cb_info->user_data, info);
      }
 
    return EVAS_EVENT_FLAG_NONE;
@@ -680,7 +681,7 @@ _state_set(Gesture_Info *g,
  * @ingroup Elm_Gesture_Layer
  */
 static void
-_states_reset(Elm_Gesture_Layer_Smart_Data *sd)
+_states_reset(Elm_Gesture_Layer_Data *sd)
 {
    int i;
    Gesture_Info *p;
@@ -710,7 +711,7 @@ _states_reset(Elm_Gesture_Layer_Smart_Data *sd)
  * @ingroup Elm_Gesture_Layer
  */
 static Eina_Bool
-_pointer_event_make(void *data __UNUSED__,
+_pointer_event_make(void *data EINA_UNUSED,
                     void *event_info,
                     Evas_Callback_Type event_type,
                     Pointer_Event *pe)
@@ -857,8 +858,8 @@ _event_history_add(Evas_Object *obj,
  */
 static void
 _mouse_down_cb(void *data,
-               Evas *e __UNUSED__,
-               Evas_Object *obj __UNUSED__,
+               Evas *e EINA_UNUSED,
+               Evas_Object *obj EINA_UNUSED,
                void *event_info)
 {
    if (((Evas_Event_Mouse_Down *)event_info)->button != 1)
@@ -869,8 +870,8 @@ _mouse_down_cb(void *data,
 
 static void
 _mouse_move_cb(void *data,
-               Evas *e __UNUSED__,
-               Evas_Object *obj __UNUSED__,
+               Evas *e EINA_UNUSED,
+               Evas_Object *obj EINA_UNUSED,
                void *event_info)
 {
    _event_process(data, obj, event_info, EVAS_CALLBACK_MOUSE_MOVE);
@@ -878,8 +879,8 @@ _mouse_move_cb(void *data,
 
 static void
 _key_down_cb(void *data,
-             Evas *e __UNUSED__,
-             Evas_Object *obj __UNUSED__,
+             Evas *e EINA_UNUSED,
+             Evas_Object *obj EINA_UNUSED,
              void *event_info)
 {
    _event_process(data, obj, event_info, EVAS_CALLBACK_KEY_DOWN);
@@ -887,8 +888,8 @@ _key_down_cb(void *data,
 
 static void
 _key_up_cb(void *data,
-           Evas *e __UNUSED__,
-           Evas_Object *obj __UNUSED__,
+           Evas *e EINA_UNUSED,
+           Evas_Object *obj EINA_UNUSED,
            void *event_info)
 {
    _event_process(data, obj, event_info, EVAS_CALLBACK_KEY_UP);
@@ -896,8 +897,8 @@ _key_up_cb(void *data,
 
 static void
 _mouse_up_cb(void *data,
-             Evas *e __UNUSED__,
-             Evas_Object *obj __UNUSED__,
+             Evas *e EINA_UNUSED,
+             Evas_Object *obj EINA_UNUSED,
              void *event_info)
 {
    if (((Evas_Event_Mouse_Up *)event_info)->button != 1)
@@ -908,8 +909,8 @@ _mouse_up_cb(void *data,
 
 static void
 _mouse_wheel_cb(void *data,
-                Evas *e __UNUSED__,
-                Evas_Object *obj __UNUSED__,
+                Evas *e EINA_UNUSED,
+                Evas_Object *obj EINA_UNUSED,
                 void *event_info)
 {
    _event_process(data, obj, event_info, EVAS_CALLBACK_MOUSE_WHEEL);
@@ -917,8 +918,8 @@ _mouse_wheel_cb(void *data,
 
 static void
 _multi_down_cb(void *data,
-               Evas *e __UNUSED__,
-               Evas_Object *obj __UNUSED__,
+               Evas *e EINA_UNUSED,
+               Evas_Object *obj EINA_UNUSED,
                void *event_info)
 {
    /* Skip the mouse duplicates. */
@@ -929,8 +930,8 @@ _multi_down_cb(void *data,
 
 static void
 _multi_move_cb(void *data,
-               Evas *e __UNUSED__,
-               Evas_Object *obj __UNUSED__,
+               Evas *e EINA_UNUSED,
+               Evas_Object *obj EINA_UNUSED,
                void *event_info)
 {
    /* Skip the mouse duplicates. */
@@ -941,8 +942,8 @@ _multi_move_cb(void *data,
 
 static void
 _multi_up_cb(void *data,
-             Evas *e __UNUSED__,
-             Evas_Object *obj __UNUSED__,
+             Evas *e EINA_UNUSED,
+             Evas_Object *obj EINA_UNUSED,
              void *event_info)
 {
    /* Skip the mouse duplicates. */
@@ -953,9 +954,9 @@ _multi_up_cb(void *data,
 
 static void
 _target_del_cb(void *data,
-               Evas *e __UNUSED__,
-               Evas_Object *obj __UNUSED__,
-               void *event_info __UNUSED__)
+               Evas *e EINA_UNUSED,
+               Evas_Object *obj EINA_UNUSED,
+               void *event_info EINA_UNUSED)
 {
    _callbacks_unregister(data);
    ELM_GESTURE_LAYER_DATA_GET(data, sd);
@@ -1335,7 +1336,7 @@ _continues_gestures_restart(void *data,
  */
 static void
 _event_process(void *data,
-               Evas_Object *obj __UNUSED__,
+               Evas_Object *obj EINA_UNUSED,
                void *event_info,
                Evas_Callback_Type event_type)
 {
@@ -1344,18 +1345,9 @@ _event_process(void *data,
 
    ELM_GESTURE_LAYER_DATA_GET(data, sd);
 
-   /* elm_gesture_layer object could be deleted in a test function
-      and accessed after the deletion. The crash occurs in this case */
-   evas_object_ref(data);
-
    /* Start testing candidate gesture from here */
-   if (!_pointer_event_make(data, event_info, event_type, &_pe))
-     {
-        evas_object_unref(data);
-        return;
-     }
-
-   pe = &_pe;
+   if (_pointer_event_make(data, event_info, event_type, &_pe))
+     pe = &_pe;
 
    /* Test all the gestures */
    {
@@ -1391,8 +1383,6 @@ _event_process(void *data,
    Eina_Bool states_reset = _clear_if_finished(data);
    if (sd->glayer_continues_enable)
      _continues_gestures_restart(data, states_reset);
-
-   evas_object_unref(data);
 }
 
 static Eina_Bool
@@ -1402,10 +1392,9 @@ _inside(Evas_Coord xx1,
         Evas_Coord yy2,
         Evas_Coord w)
 {
+   w >>= 1; /* Use half the distance, from center to all directions */
    if (!w)  /* use system default instead */
-     w = elm_config_finger_size_get();
-   /* Tizen only: comment out below, TODO: make configuable */
-   //int w = elm_config_finger_size_get();>> 1; /* Finger size devided by 2 */
+     w = elm_config_finger_size_get() >> 1; /* Finger size devided by 2 */
 
    if (xx1 < (xx2 - w))
      return EINA_FALSE;
@@ -1435,17 +1424,13 @@ _tap_gestures_test_reset(Gesture_Info *gesture)
    EINA_SAFETY_ON_NULL_RETURN(gesture);
    ELM_GESTURE_LAYER_DATA_GET(gesture->obj, sd);
 
-   if (sd->gest_taps_timeout)
-     {
-        ecore_timer_del(sd->gest_taps_timeout);
-        sd->gest_taps_timeout = NULL;
-     }
+   ELM_SAFE_FREE(sd->gest_taps_timeout, ecore_timer_del);
 
    if (!gesture->data)
      return;
 
-   EINA_LIST_FREE (((Taps_Type *)gesture->data)->l, data)
-     EINA_LIST_FREE (data, pe)
+   EINA_LIST_FREE(((Taps_Type *)gesture->data)->l, data)
+     EINA_LIST_FREE(data, pe)
        free(pe);
 
    memset(gesture->data, 0, sizeof(Taps_Type));
@@ -1458,7 +1443,6 @@ _tap_gestures_test_reset(Gesture_Info *gesture)
 static void
 _n_long_tap_test_reset(Gesture_Info *gesture)
 {
-   Eina_List *l;
    Pointer_Event *p;
    Long_Tap_Type *st;
 
@@ -1467,15 +1451,11 @@ _n_long_tap_test_reset(Gesture_Info *gesture)
 
    st = gesture->data;
 
-   EINA_LIST_FOREACH(st->touched, l, p)
+   EINA_LIST_FREE(st->touched, p)
      free(p);
+   st->touched = NULL;
 
-   eina_list_free(st->touched);
-   if (st->timeout)
-     {
-        ecore_timer_del(st->timeout);
-        st->timeout = NULL;
-     }
+   ELM_SAFE_FREE(st->timeout, ecore_timer_del);
    memset(gesture->data, 0, sizeof(Long_Tap_Type));
 }
 
@@ -1501,21 +1481,16 @@ _line_data_reset(Line_Data *st)
 static void
 _line_test_reset(Gesture_Info *gesture)
 {
-   Eina_List *l;
    Line_Type *st;
-   Eina_List *list;
    Line_Data *t_line;
 
    EINA_SAFETY_ON_NULL_RETURN(gesture);
    if (!gesture->data) return;
 
    st = gesture->data;
-   list = st->list;
 
-   EINA_LIST_FOREACH(list, l, t_line)
+   EINA_LIST_FREE(st->list, t_line)
      free(t_line);
-
-   eina_list_free(list);
    st->list = NULL;
 }
 
@@ -1558,10 +1533,10 @@ _rotate_test_reset(Gesture_Info *gesture)
 
 static Eina_List *
 _match_fingers_compare(Eina_List *list,
-      Pointer_Event *pe1,
-      Evas_Coord w)
+                       Pointer_Event *pe1,
+                       Evas_Coord w)
 {
-   /* Compare coords of first item in list to cur coords */
+    /* Compare coords of first item in list to cur coords */
    Eina_List *pe_list;
    Eina_List *l;
 
@@ -1570,10 +1545,10 @@ _match_fingers_compare(Eina_List *list,
         Pointer_Event *pe2 = eina_list_data_get(pe_list);
 
         if (_inside(pe1->x, pe1->y, pe2->x, pe2->y, w))
-           return pe_list;
+          return pe_list;
      }
 
-   return NULL;
+  return NULL;
 }
 
 static int
@@ -1596,7 +1571,7 @@ static Eina_List *
 _pointer_event_record(Taps_Type *st,
                       Eina_List *pe_list,
                       Pointer_Event *pe,
-                      Elm_Gesture_Layer_Smart_Data *sd,
+                      Elm_Gesture_Layer_Data *sd,
                       void *event_info,
                       Evas_Callback_Type event_type)
 {
@@ -1642,8 +1617,7 @@ static Eina_Bool
 _taps_rect_get(Eina_List *taps, int idx, Evas_Coord_Rectangle *r)
 {  /* Build a rect bounding all taps at index idx */
    Eina_List *l;
-   Evas_Coord bx=0;
-   Evas_Coord by=0;
+   Evas_Coord bx = 0, by = 0;
    Eina_List *pe_list;
    Eina_Bool was_init = EINA_FALSE;
 
@@ -1694,6 +1668,8 @@ _tap_gesture_check_finish(Gesture_Info *gesture, Evas_Coord tap_finger_size)
    Eina_List *pe_list;
    Evas_Coord_Rectangle base;
    Evas_Coord_Rectangle tmp;
+   if (!tap_finger_size)  /* Use system default if not set by user */
+     tap_finger_size = elm_config_finger_size_get();
 
    if (!st->l) return EINA_FALSE;
    EINA_LIST_FOREACH(st->l, l, pe_list)
@@ -1705,15 +1681,12 @@ _tap_gesture_check_finish(Gesture_Info *gesture, Evas_Coord tap_finger_size)
           }
      }
 
-   if (!tap_finger_size)  /* Use system default if not set by user */
-     tap_finger_size = elm_config_finger_size_get();
-
    /* Now bound each tap touches in a rect, compare diff within tolerance */
    /* Get rect based on first DOWN events for all devices */
    if (!_taps_rect_get(st->l, 0, &base))
      return EINA_FALSE;  /* Should not happen */
 
-   for(i = 1; i < st->n_taps_needed; i++)
+   for (i = 1; i < st->n_taps_needed; i++)
      {  /* Compare all other rects to base, tolerance is finger size */
         if (_taps_rect_get(st->l, i, &tmp))
           {
@@ -1964,8 +1937,7 @@ _tap_gesture_test(Evas_Object *obj,
          pe_list = eina_list_search_unsorted(st->l, _pe_device_compare, pe);
          if (!pe_list) return;
 
-         pe_list = _pointer_event_record
-            (st, pe_list, pe, sd, event_info, event_type);
+         _pointer_event_record(st, pe_list, pe, sd, event_info, event_type);
 
          if (((gesture->g_type == ELM_GESTURE_N_TAPS) &&
                   !IS_TESTED(ELM_GESTURE_N_DOUBLE_TAPS) &&
@@ -2133,6 +2105,11 @@ _n_long_tap_test(Evas_Object *obj,
         st->touched = _touched_device_add(st->touched, pe);
         st->info.n = eina_list_count(st->touched);
 
+        _event_consume(sd, event_info, event_type, ev_flag);
+        _compute_taps_center(st, &st->info.x, &st->info.y, pe);
+        st->center_x = st->info.x;  /* Update coords for */
+        st->center_y = st->info.y;  /* reporting START  */
+
         /* This is the first mouse down we got */
         if (eina_list_count(st->touched) == 1)
           {
@@ -2152,11 +2129,6 @@ _n_long_tap_test(Evas_Object *obj,
                 ecore_timer_reset(st->timeout);
           }
 
-
-        _event_consume(sd, event_info, event_type, ev_flag);
-        _compute_taps_center(st, &st->info.x, &st->info.y, pe);
-        st->center_x = st->info.x;
-        st->center_y = st->info.y;
         break;
 
       case EVAS_CALLBACK_MULTI_UP:
@@ -2172,11 +2144,7 @@ _n_long_tap_test(Evas_Object *obj,
                ev_flag = _state_set(gesture, ELM_GESTURE_STATE_ABORT,
                                     &st->info, EINA_FALSE);
 
-             if (st->timeout)
-               {
-                  ecore_timer_del(st->timeout);
-                  st->timeout = NULL;
-               }
+             ELM_SAFE_FREE(st->timeout, ecore_timer_del);
              _event_consume(sd, event_info, event_type, ev_flag);
           }
 
@@ -2195,13 +2163,9 @@ _n_long_tap_test(Evas_Object *obj,
              _compute_taps_center(st, &x, &y, pe);
              /* ABORT if user moved fingers out of tap area */
              if (!_inside(x, y, st->center_x, st->center_y,
-+                      sd->tap_finger_size))
+                      sd->tap_finger_size))
                {
-                  if (st->timeout)
-                    {
-                       ecore_timer_del(st->timeout);
-                       st->timeout = NULL;
-                    }
+                  ELM_SAFE_FREE(st->timeout, ecore_timer_del);
 
                   /* Report MOVE if gesture started */
                   ev_flag = _state_set(gesture, ELM_GESTURE_STATE_ABORT,
@@ -2224,10 +2188,10 @@ _n_long_tap_test(Evas_Object *obj,
  * This momentum value will be sent to widget when gesture is completed.
  *
  * @param momentum pointer to buffer where we record momentum value.
- * @param x1 x coord where user started gesture.
- * @param y1 y coord where user started gesture.
- * @param x2 x coord where user completed gesture.
- * @param y2 y coord where user completed gesture.
+ * @param xx1 x coord where user started gesture.
+ * @param yy1 y coord where user started gesture.
+ * @param xx2 x coord where user completed gesture.
+ * @param yy2 y coord where user completed gesture.
  * @param t1x timestamp for X, when user started gesture.
  * @param t1y timestamp for Y, when user started gesture.
  * @param t2  timestamp when user completed gesture.
@@ -2277,12 +2241,12 @@ _momentum_set(Elm_Gesture_Momentum_Info *momentum,
  *
  * This function is used for computing rotation angle (DEG).
  *
- * @param x1 first finger x location.
- * @param y1 first finger y location.
- * @param x2 second finger x location.
- * @param y2 second finger y location.
+ * @param xx1 first finger x location.
+ * @param yy1 first finger y location.
+ * @param xx2 second finger x location.
+ * @param yy2 second finger y location.
  *
- * @return angle of the line between (x1,y1), (x2,y2) in Deg.
+ * @return angle of the line between (xx1,yy1), (xx2,yy2) in Deg.
  * Angles now are given in DEG, not RAD.
  * ZERO angle at 12-oclock, growing clockwise.
  *
@@ -2345,10 +2309,10 @@ _angle_get(Evas_Coord xx1,
  * This function is used for computing the magnitude and direction
  * of vector between two points.
  *
- * @param x1 first finger x location.
- * @param y1 first finger y location.
- * @param x2 second finger x location.
- * @param y2 second finger y location.
+ * @param xx1 first finger x location.
+ * @param yy1 first finger y location.
+ * @param xx2 second finger x location.
+ * @param yy2 second finger y location.
  * @param l length computed (output)
  * @param a angle computed (output)
  *
@@ -3013,14 +2977,14 @@ _on_rotation_broke_tolerance(Rotate_Type *st)
  * This function is used for computing the gap between fingers.
  * It returns the length and center point between fingers.
  *
- * @param x1 first finger x location.
- * @param y1 first finger y location.
- * @param x2 second finger x location.
- * @param y2 second finger y location.
- * @param x  Gets center point x cord (output)
- * @param y  Gets center point y cord (output)
+ * @param xx1 first finger x location.
+ * @param yy1 first finger y location.
+ * @param xx2 second finger x location.
+ * @param yy2 second finger y location.
+ * @param x  Get center point x cord (output)
+ * @param y  Get center point y cord (output)
  *
- * @return length of the line between (x1,y1), (x2,y2) in pixels.
+ * @return length of the line between (xx1,yy1), (xx2,yy2) in pixels.
  *
  * @ingroup Elm_Gesture_Layer
  */
@@ -3139,10 +3103,10 @@ _zoom_momentum_get(Zoom_Type *st,
  * This function is used for computing zoom value.
  *
  * @param st Pointer to zoom data based on user input.
- * @param x1 first finger x location.
- * @param y1 first finger y location.
- * @param x2 second finger x location.
- * @param y2 second finger y location.
+ * @param xx1 first finger x location.
+ * @param yy1 first finger y location.
+ * @param xx2 second finger x location.
+ * @param yy2 second finger y location.
  * @param factor zoom-factor, used to determine how fast zoom works.
  *
  * @return zoom value, when 1.0 means no zoom, 0.5 half size...
@@ -3240,9 +3204,9 @@ _zoom_with_wheel_test(Evas_Object *obj,
       case EVAS_CALLBACK_KEY_UP:
       {
          Evas_Event_Key_Up *p = event_info;
-         if ((!strcmp(p->keyname, "Control_L")) ||
+         if ((!strcmp(p->key, "Control_L")) ||
              /* Test if we ended a zoom gesture when releasing CTRL */
-             (!strcmp(p->keyname, "Control_R")))
+             (!strcmp(p->key, "Control_R")))
            {
               if ((st->zoom_wheel) &&
                   ((gesture_zoom->state == ELM_GESTURE_STATE_START) ||
@@ -3388,8 +3352,8 @@ _zoom_test(Evas_Object *obj,
         /* if non-continues mode and gesture NOT started, ignore MOVE */
         if ((!sd->glayer_continues_enable) &&
             (!st->zoom_st.timestamp))
-          break;
-
+          return;
+        // fallthrough is intentional
       case EVAS_CALLBACK_MOUSE_DOWN:
       case EVAS_CALLBACK_MULTI_DOWN:
       { /* Here we take care of zoom-start and zoom move */
@@ -3405,15 +3369,12 @@ _zoom_test(Evas_Object *obj,
                  EINA_FALSE);
              _event_consume(sd, event_info, event_type, ev_flag);
 
-             break;
+             return;
           }
 
         if (!st->zoom_st.timestamp) /* Now scan touched-devices list
                                      * and find other finger */
           {
-             if (eina_list_count(sd->touched) < 2)
-               return;
-
              EINA_LIST_FOREACH(sd->touched, l, p)
                { /* Device of other finger <> pe device */
                  if (p->device != pe->device)
@@ -3421,7 +3382,7 @@ _zoom_test(Evas_Object *obj,
                }
 
              if (!p) /* Single finger on touch */
-               break;
+               return;
 
              /* Record down fingers */
              _event_consume(sd, event_info, event_type, ev_flag);
@@ -3452,7 +3413,7 @@ _zoom_test(Evas_Object *obj,
                   _event_consume(sd, event_info, event_type, ev_flag);
                }
 
-             break; /* Zoom started */
+             return; /* Zoom started */
           } /* End of ZOOM_START handling */
 
         /* if we got here, we have (exacally) two fingers on surfce */
@@ -3487,7 +3448,7 @@ _zoom_test(Evas_Object *obj,
                }
           } /* End of ZOOM_MOVE handling */
 
-        break;
+        return;
       }
 
       case EVAS_CALLBACK_MOUSE_UP:
@@ -3502,7 +3463,7 @@ _zoom_test(Evas_Object *obj,
                                   &st->info, EINA_FALSE);
              _event_consume(sd, event_info, event_type, ev_flag);
 
-             break;
+             return;
           }
 
         /* if we got here not a ZOOM */
@@ -3517,10 +3478,10 @@ _zoom_test(Evas_Object *obj,
 
         _zoom_test_reset(gesture_zoom);
 
-        break;
+        return;
 
       default:
-        break;
+        return;
      }
 }
 
@@ -3619,15 +3580,14 @@ _rotate_test(Evas_Object *obj,
    if (!sd->gesture[g_type]) return;
 
    gesture = sd->gesture[g_type];
-
    if (!gesture) return ;
 
    st = gesture->data;
    if (!st) /* Allocated once on first time */
      {
-        st = calloc(1, sizeof(Rotate_Type));
-        gesture->data = st;
-        _rotate_test_reset(gesture);
+       st = calloc(1, sizeof(Rotate_Type));
+       gesture->data = st;
+       _rotate_test_reset(gesture);
      }
 
    switch (event_type)
@@ -3637,8 +3597,8 @@ _rotate_test(Evas_Object *obj,
         /* if non-continues mode and gesture NOT started, ignore MOVE */
         if ((!sd->glayer_continues_enable) &&
             (!st->rotate_st.timestamp))
-          break;
-
+          return;
+        // fallthrough is intentional
       case EVAS_CALLBACK_MOUSE_DOWN:
       case EVAS_CALLBACK_MULTI_DOWN:
       { /* Here we take care of rotate-start and rotate move */
@@ -3653,7 +3613,7 @@ _rotate_test(Evas_Object *obj,
                  (gesture, ELM_GESTURE_STATE_ABORT, &st->info, EINA_FALSE);
              _event_consume(sd, event_info, event_type, ev_flag);
 
-             break;
+             return;
           }
 
         if (!st->rotate_st.timestamp) /* Now scan touched-devices list
@@ -3666,7 +3626,7 @@ _rotate_test(Evas_Object *obj,
                }
 
              if (!p)
-               break;  /* Single finger on touch */
+               return;  /* Single finger on touch */
 
              /* Record down fingers */
              _event_consume(sd, event_info, event_type, ev_flag);
@@ -3689,7 +3649,7 @@ _rotate_test(Evas_Object *obj,
                                   &st->info, EINA_FALSE);
              _event_consume(sd, event_info, event_type, ev_flag);
 
-             break; /* Rotate started */
+             return; /* Rotate started */
           } /* End of ROTATE_START handling */
 
         /* if we got here, we have (exacally) two fingers on surfce */
@@ -3724,7 +3684,7 @@ _rotate_test(Evas_Object *obj,
                }
           } /* End of ROTATE_MOVE handling */
 
-        break;
+        return;
       }
 
       case EVAS_CALLBACK_MOUSE_UP:
@@ -3738,7 +3698,7 @@ _rotate_test(Evas_Object *obj,
                                   &st->info, EINA_FALSE);
              _event_consume(sd, event_info, event_type, ev_flag);
 
-             break;
+             return;
           }
 
         /* Must be != undefined, if gesture started */
@@ -3750,15 +3710,15 @@ _rotate_test(Evas_Object *obj,
           }
 
         _rotate_test_reset(gesture);
-        break;
+        return;
 
       default:
-        break;
+        return;
      }
 }
 
-static Eina_Bool
-_elm_gesture_layer_smart_disable(Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_gesture_layer_elm_widget_disable(Eo *obj, Elm_Gesture_Layer_Data *_pd EINA_UNUSED)
 {
    if (elm_widget_disabled_get(obj))
      _callbacks_unregister(obj);
@@ -3768,21 +3728,44 @@ _elm_gesture_layer_smart_disable(Evas_Object *obj)
    return EINA_TRUE;
 }
 
-static void
-_elm_gesture_layer_smart_add(Evas_Object *obj)
+EOLIAN static void
+_elm_gesture_layer_evas_object_smart_add(Eo *obj, Elm_Gesture_Layer_Data *priv)
 {
-   EVAS_SMART_DATA_ALLOC(obj, Elm_Gesture_Layer_Smart_Data);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   elm_widget_sub_object_parent_add(obj);
 
-   _elm_gesture_layer_parent_sc->base.add(obj);
+   priv->line_min_length =
+     _elm_config->glayer_line_min_length * elm_config_finger_size_get();
+   priv->zoom_distance_tolerance = _elm_config->glayer_zoom_distance_tolerance
+     * elm_config_finger_size_get();
+   priv->line_distance_tolerance = _elm_config->glayer_line_distance_tolerance
+     * elm_config_finger_size_get();
+   priv->zoom_finger_factor = _elm_config->glayer_zoom_finger_factor;
+   /* mouse wheel zoom steps */
+   priv->zoom_wheel_factor = _elm_config->glayer_zoom_wheel_factor;
+   priv->rotate_angular_tolerance =
+     _elm_config->glayer_rotate_angular_tolerance;
+   priv->line_angular_tolerance = _elm_config->glayer_line_angular_tolerance;
+   priv->flick_time_limit_ms = _elm_config->glayer_flick_time_limit_ms;
+   priv->long_tap_start_timeout = _elm_config->glayer_long_tap_start_timeout;
+   priv->repeat_events = EINA_TRUE;
+   priv->glayer_continues_enable = _elm_config->glayer_continues_enable;
+
+   /* FIXME: Hack to get around old configs - if too small, enlarge. */
+   if (_elm_config->glayer_double_tap_timeout < 0.00001)
+     _elm_config->glayer_double_tap_timeout = 0.25;
+   priv->double_tap_timeout = _elm_config->glayer_double_tap_timeout;
+
+   memset(priv->gesture, 0, sizeof(priv->gesture));
 }
 
-static void
-_elm_gesture_layer_smart_del(Evas_Object *obj)
+static void _cbs_clean(Elm_Gesture_Layer_Data *sd, Elm_Gesture_Type idx, Elm_Gesture_State cb_type);
+
+EOLIAN static void
+_elm_gesture_layer_evas_object_smart_del(Eo *obj, Elm_Gesture_Layer_Data *sd)
 {
    Pointer_Event *data;
    int i;
-
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
 
    /* Clear all gestures intermediate data, stop any timers */
    {
@@ -3803,14 +3786,14 @@ _elm_gesture_layer_smart_del(Evas_Object *obj)
           if (sd->gesture[i]->data)
             free(sd->gesture[i]->data);
 
+          _cbs_clean(sd, i, ELM_GESTURE_STATE_START);
+          _cbs_clean(sd, i, ELM_GESTURE_STATE_MOVE);
+          _cbs_clean(sd, i, ELM_GESTURE_STATE_END);
+          _cbs_clean(sd, i, ELM_GESTURE_STATE_ABORT);
           free(sd->gesture[i]);
           sd->gesture[i] = NULL; /* Referenced by _event_history_clear */
        }
-   if (sd->gest_taps_timeout)
-     {
-        ecore_timer_del(sd->gest_taps_timeout);
-        sd->gest_taps_timeout = NULL;
-     }
+   ecore_timer_del(sd->gest_taps_timeout);
 
    /* Then take care of clearing events */
    _event_history_clear(obj);
@@ -3822,131 +3805,67 @@ _elm_gesture_layer_smart_del(Evas_Object *obj)
    if (!elm_widget_disabled_get(obj))
      _callbacks_unregister(obj);
 
-   _elm_gesture_layer_parent_sc->base.del(obj); /* handles freeing sd */
-}
-
-static void
-_elm_gesture_layer_smart_set_user(Elm_Widget_Smart_Class *sc)
-{
-   sc->base.add = _elm_gesture_layer_smart_add;
-   sc->base.del = _elm_gesture_layer_smart_del;
-   sc->disable = _elm_gesture_layer_smart_disable;
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_del());
 }
 
 EAPI Evas_Object *
 elm_gesture_layer_add(Evas_Object *parent)
 {
-   Evas_Object *obj;
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-
-   obj = elm_widget_add(_elm_gesture_layer_smart_class_new(), parent);
-   if (!obj) return NULL;
-
-   if (!elm_widget_sub_object_add(parent, obj))
-     ERR("could not add %p as sub object of %p", obj, parent);
-
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
-
-   sd->target = NULL;
-   sd->line_min_length =
-     _elm_config->glayer_line_min_length * elm_config_finger_size_get();
-   sd->zoom_distance_tolerance = _elm_config->glayer_zoom_distance_tolerance
-     * elm_config_finger_size_get();
-   sd->line_distance_tolerance = _elm_config->glayer_line_distance_tolerance
-     * elm_config_finger_size_get();
-   sd->zoom_finger_factor = _elm_config->glayer_zoom_finger_factor;
-   /* mouse wheel zoom steps */
-   sd->zoom_wheel_factor = _elm_config->glayer_zoom_wheel_factor;
-   sd->rotate_angular_tolerance =
-     _elm_config->glayer_rotate_angular_tolerance;
-   sd->line_angular_tolerance = _elm_config->glayer_line_angular_tolerance;
-   sd->flick_time_limit_ms = _elm_config->glayer_flick_time_limit_ms;
-   sd->long_tap_start_timeout = _elm_config->glayer_long_tap_start_timeout;
-   sd->repeat_events = EINA_TRUE;
-   sd->glayer_continues_enable = _elm_config->glayer_continues_enable;
-
-   /* FIXME: Hack to get around old configs - if too small, enlarge. */
-   if (_elm_config->glayer_double_tap_timeout < 0.00001)
-     _elm_config->glayer_double_tap_timeout = 0.25;
-   sd->double_tap_timeout = _elm_config->glayer_double_tap_timeout;
-
-   memset(sd->gesture, 0, sizeof(sd->gesture));
-
-   //Tizen Only: This should be removed when eo is applied.
-   ELM_WIDGET_DATA_GET(obj, wsd);
-   wsd->on_create = EINA_FALSE;
-
+   Evas_Object *obj = eo_add(MY_CLASS, parent);
    return obj;
 }
 
-EAPI Eina_Bool
-elm_gesture_layer_hold_events_get(const Evas_Object *obj)
+EOLIAN static void
+_elm_gesture_layer_eo_base_constructor(Eo *obj, Elm_Gesture_Layer_Data *_pd EINA_UNUSED)
 {
-   ELM_GESTURE_LAYER_CHECK(obj) EINA_FALSE;
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
+   eo_do_super(obj, MY_CLASS, eo_constructor());
+   eo_do(obj, evas_obj_type_set(MY_CLASS_NAME_LEGACY));
+}
 
+EOLIAN static Eina_Bool
+_elm_gesture_layer_hold_events_get(Eo *obj EINA_UNUSED, Elm_Gesture_Layer_Data *sd)
+{
    return !sd->repeat_events;
 }
 
-EAPI void
-elm_gesture_layer_hold_events_set(Evas_Object *obj,
-                                  Eina_Bool hold_events)
+EOLIAN static void
+_elm_gesture_layer_hold_events_set(Eo *obj EINA_UNUSED, Elm_Gesture_Layer_Data *sd, Eina_Bool hold_events)
 {
-   ELM_GESTURE_LAYER_CHECK(obj);
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
-
    sd->repeat_events = !(!!hold_events);
 }
 
-EAPI double
-elm_gesture_layer_zoom_step_get(const Evas_Object *obj)
+EOLIAN static double
+_elm_gesture_layer_zoom_step_get(Eo *obj EINA_UNUSED, Elm_Gesture_Layer_Data *sd)
 {
-   ELM_GESTURE_LAYER_CHECK(obj) 0;
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
-
    return sd->zoom_step;
 }
 
-EAPI void
-elm_gesture_layer_zoom_step_set(Evas_Object *obj,
-                                double step)
+EOLIAN static void
+_elm_gesture_layer_zoom_step_set(Eo *obj EINA_UNUSED, Elm_Gesture_Layer_Data *sd, double step)
 {
-   ELM_GESTURE_LAYER_CHECK(obj);
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
-
    if (step < 0) return;
 
    sd->zoom_step = step;
 }
 
-EAPI double
-elm_gesture_layer_rotate_step_get(const Evas_Object *obj)
+EOLIAN static double
+_elm_gesture_layer_rotate_step_get(Eo *obj EINA_UNUSED, Elm_Gesture_Layer_Data *sd)
 {
-   ELM_GESTURE_LAYER_CHECK(obj) 0;
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
-
    return sd->rotate_step;
 }
 
-EAPI void
-elm_gesture_layer_rotate_step_set(Evas_Object *obj,
-                                  double step)
+EOLIAN static void
+_elm_gesture_layer_rotate_step_set(Eo *obj EINA_UNUSED, Elm_Gesture_Layer_Data *sd, double step)
 {
-   ELM_GESTURE_LAYER_CHECK(obj);
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
-
    if (step < 0) return;
 
    sd->rotate_step = step;
 }
 
-EAPI Eina_Bool
-elm_gesture_layer_attach(Evas_Object *obj,
-                         Evas_Object *target)
+EOLIAN static Eina_Bool
+_elm_gesture_layer_attach(Eo *obj, Elm_Gesture_Layer_Data *sd, Evas_Object *target)
 {
-   ELM_GESTURE_LAYER_CHECK(obj) EINA_FALSE;
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
-
    if (!target) return EINA_FALSE;
 
    /* if was attached before, unregister callbacks first */
@@ -3959,33 +3878,81 @@ elm_gesture_layer_attach(Evas_Object *obj,
    return EINA_TRUE;
 }
 
-EAPI void
-elm_gesture_layer_cb_set(Evas_Object *obj,
-                         Elm_Gesture_Type idx,
-                         Elm_Gesture_State cb_type,
-                         Elm_Gesture_Event_Cb cb,
-                         void *data)
+static void
+_cbs_clean(Elm_Gesture_Layer_Data *sd,
+          Elm_Gesture_Type idx,
+          Elm_Gesture_State cb_type)
 {
-   Gesture_Info *p;
+   if (!sd->gesture[idx]) return;
 
-   ELM_GESTURE_LAYER_CHECK(obj);
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
+   Func_Data *cb_info;
+   EINA_INLIST_FREE(sd->gesture[idx]->cbs[cb_type], cb_info)
+     {
+        sd->gesture[idx]->cbs[cb_type] = eina_inlist_remove(
+              sd->gesture[idx]->cbs[cb_type], EINA_INLIST_GET(cb_info));
+        free(cb_info);
+     }
+   SET_TEST_BIT(sd->gesture[idx]);
+}
 
+EOLIAN static void
+_elm_gesture_layer_cb_set(Eo *obj, Elm_Gesture_Layer_Data *sd, Elm_Gesture_Type idx, Elm_Gesture_State cb_type, Elm_Gesture_Event_Cb cb, void *data)
+{
    /* Clear gesture intermediate data, stop any timers */
    if (IS_TESTED_GESTURE(sd->gesture[idx]))
      _glayer_tests_array[idx].reset(sd->gesture[idx]);
+
+   _cbs_clean(sd, idx, cb_type); // for ABI compat.
+   eo_do(obj, elm_obj_gesture_layer_cb_add(idx, cb_type, cb, data));
+}
+
+EOLIAN static void
+_elm_gesture_layer_cb_add(Eo *obj, Elm_Gesture_Layer_Data *sd, Elm_Gesture_Type idx, Elm_Gesture_State cb_type, Elm_Gesture_Event_Cb cb, void *data)
+{
+   if (!cb) return;
+
+   Gesture_Info *p;
 
    if (!sd->gesture[idx])
      sd->gesture[idx] = calloc(1, sizeof(Gesture_Info));
    if (!sd->gesture[idx]) return;
 
+   Func_Data *cb_info = calloc(1, sizeof(*cb_info));
+   if (!cb_info) return;
+   cb_info->cb = cb;
+   cb_info->user_data = data;
+
    p = sd->gesture[idx];
    p->obj = obj;
    p->g_type = idx;
-   p->fn[cb_type].cb = cb;
-   p->fn[cb_type].user_data = data;
+   p->cbs[cb_type] = eina_inlist_append(p->cbs[cb_type],
+         EINA_INLIST_GET(cb_info));
    p->state = ELM_GESTURE_STATE_UNDEFINED;
    SET_TEST_BIT(p);
+}
+
+EOLIAN static void
+_elm_gesture_layer_cb_del(Eo *obj EINA_UNUSED, Elm_Gesture_Layer_Data *sd, Elm_Gesture_Type idx, Elm_Gesture_State cb_type, Elm_Gesture_Event_Cb cb, void *data)
+{
+   if (!sd->gesture[idx]) return;
+
+   Eina_Inlist *itr;
+   Func_Data *cb_info;
+   EINA_INLIST_FOREACH_SAFE(sd->gesture[idx]->cbs[cb_type], itr, cb_info)
+     {
+        if (cb_info->cb == cb && cb_info->user_data == data)
+          {
+             /* Clear gesture intermediate data, stop any timers */
+             if (IS_TESTED_GESTURE(sd->gesture[idx]))
+                _glayer_tests_array[idx].reset(sd->gesture[idx]);
+
+             sd->gesture[idx]->cbs[cb_type] = eina_inlist_remove(
+                   sd->gesture[idx]->cbs[cb_type], EINA_INLIST_GET(cb_info));
+             free(cb_info);
+             SET_TEST_BIT(sd->gesture[idx]);
+             return;
+          }
+     }
 }
 
 EAPI void
@@ -3995,7 +3962,6 @@ elm_gesture_layer_line_min_length_set(Evas_Object *obj, int line_min_length)
    ELM_GESTURE_LAYER_DATA_GET(obj, sd);
    sd->line_min_length = line_min_length;
 }
-
 
 EAPI int
 elm_gesture_layer_line_min_length_get(const Evas_Object *obj)
@@ -4165,24 +4131,25 @@ elm_gesture_layer_double_tap_timeout_get(const Evas_Object *obj)
    return sd->double_tap_timeout;
 }
 
-EAPI void
-elm_gesture_layer_tap_finger_size_set(Evas_Object *obj,
-      Evas_Coord sz)
+EOLIAN static void
+_elm_gesture_layer_tap_finger_size_set(Eo *obj EINA_UNUSED, Elm_Gesture_Layer_Data *sd, Evas_Coord sz)
 {
-   ELM_GESTURE_LAYER_CHECK(obj);
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
-
    if (sz < 0)
-     sz = 0;  /* Should not be negative, will reset to system value */
+      sz = 0;  /* Should not be negative, will reset to system value */
 
    sd->tap_finger_size = sz;
 }
 
-EAPI Evas_Coord
-elm_gesture_layer_tap_finger_size_get(const Evas_Object *obj)
+EOLIAN static Evas_Coord
+_elm_gesture_layer_tap_finger_size_get(Eo *obj EINA_UNUSED, Elm_Gesture_Layer_Data *sd)
 {
-   ELM_GESTURE_LAYER_CHECK(obj) elm_config_finger_size_get();
-   ELM_GESTURE_LAYER_DATA_GET(obj, sd);
    return sd->tap_finger_size;
 }
 
+static void
+_elm_gesture_layer_class_constructor(Eo_Class *klass)
+{
+   evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
+}
+
+#include "elm_gesture_layer.eo.c"

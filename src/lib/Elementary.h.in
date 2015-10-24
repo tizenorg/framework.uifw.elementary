@@ -1,4 +1,4 @@
-/* This is the primary Elementary header file that includes all other useful
+/* This is the prmary Elementary header file that includes all other useful
  * headers.
  *
  * Elementary is distributed under the LGPLv2 license. Please see the COPYING
@@ -7,18 +7,25 @@
 #ifndef ELEMENTARY_H
 #define ELEMENTARY_H
 
+#define ELM_ELDBUS
+#define ELM_EFREET
+#define ELM_ETHUMB
+
 @ELM_UNIX_DEF@ ELM_UNIX
 @ELM_WIN32_DEF@ ELM_WIN32
-@ELM_WINCE_DEF@ ELM_WINCE
-@ELM_EDBUS_DEF@ ELM_EDBUS
-@ELM_EFREET_DEF@ ELM_EFREET
-@ELM_ETHUMB_DEF@ ELM_ETHUMB
-@ELM_WEB_DEF@ ELM_WEB
+@ELM_WEB2_DEF@ ELM_WEB2
 @ELM_EMAP_DEF@ ELM_EMAP
 @ELM_DEBUG_DEF@ ELM_DEBUG
 @ELM_ALLOCA_H_DEF@ ELM_ALLOCA_H
 @ELM_LIBINTL_H_DEF@ ELM_LIBINTL_H
 @ELM_DIRENT_H_DEF@ ELM_DIRENT_H
+// TIZEN ONLY (20150102) : NOT FIXED
+@ELM_EDBUS_H_DEF@ ELM_EDBUS_H
+//
+
+#ifdef EFL_BETA_API_SUPPORT
+@ELM_ELOCATION_DEF@ ELM_ELOCATION
+#endif
 
 /* Standard headers for standard system calls etc. */
 #include <stdio.h>
@@ -54,7 +61,7 @@
 #include <alloca.h>
 #endif
 
-#if defined (ELM_WIN32) || defined (ELM_WINCE)
+#ifdef ELM_WIN32
 #include <malloc.h>
 #ifndef alloca
 #define alloca _alloca
@@ -62,6 +69,8 @@
 #endif
 
 /* EFL headers */
+#include "Efl_Config.h"
+
 #include <Eina.h>
 #include <Eet.h>
 #include <Evas.h>
@@ -69,21 +78,26 @@
 #include <Ecore.h>
 #include <Ecore_Evas.h>
 #include <Ecore_File.h>
-@ELEMENTARY_ECORE_IMF_INC@
-@ELEMENTARY_ECORE_CON_INC@
+#include <Ecore_Input.h>
+#include <Ecore_IMF.h>
+#include <Ecore_Con.h>
 #include <Edje.h>
-
-#ifdef ELM_EDBUS
-#include <E_DBus.h>
-#endif
-
-#ifdef ELM_EFREET
+#include <Eldbus.h>
 #include <Efreet.h>
 #include <Efreet_Mime.h>
-#endif
-
-#ifdef ELM_ETHUMB
+#include <Efreet_Trash.h>
 #include <Ethumb_Client.h>
+
+// TIZEN ONLY (20150102) : NOT FIXED
+#ifndef _WIN32
+# ifdef ELM_EDBUS_H
+#  include <E_DBus.h>
+# endif
+#endif
+//
+
+#ifdef ELM_ELOCATION
+#include <Elocation.h>
 #endif
 
 #ifdef ELM_EMAP
@@ -133,8 +147,8 @@ extern "C"
 #include <elm_getting_started.h>
 #include <elm_authors.h>
 
-#define ELM_VERSION_MAJOR 1
-#define ELM_VERSION_MINOR 8
+#define ELM_VERSION_MAJOR @ELM_VERSION_MAJOR@
+#define ELM_VERSION_MINOR @ELM_VERSION_MINOR@
 
 typedef struct _Elm_Version
 {
@@ -151,12 +165,20 @@ EAPI extern Elm_Version *elm_version;
 #include <elm_tooltip.h>
 #include <elm_object_item.h>
 
+#include <elm_prefs_data.h>
+#include <elm_prefs.h>
+#include <elm_systray.h>
+#include <elm_sys_notify.h>
+
 /* special widgets - types used elsewhere */
 #include <elm_access.h>
 #include <elm_icon.h>
 #include <elm_scroller.h>
 #include <elm_entry.h>
 #include <elm_list.h>
+
+/* Interfaces */
+#include <elm_interfaces.h>
 
 /* other includes */
 #include <elc_ctxpopup.h>
@@ -169,7 +191,15 @@ EAPI extern Elm_Version *elm_version;
 #include <elc_naviframe.h>
 #include <elc_popup.h>
 #include <elm_actionslider.h>
+#include <elm_app_common.h>
+#include <elm_app_server.h>
+#include <elm_app_server_view.h>
+#include <elm_app_client.h>
+#include <elm_app_client_view.h>
 #include <elm_app.h>
+#include <elm_atspi_app_object.h>
+#include <elm_atspi_proxy.h>
+#include <elm_atspi_bridge.h>
 #include <elm_bg.h>
 #include <elm_box.h>
 
@@ -183,6 +213,7 @@ EAPI extern Elm_Version *elm_version;
 #include <elm_colorselector.h>
 #include <elm_config.h>
 #include <elm_conform.h>
+#include <elm_container.h>
 #include <elm_cursor.h>
 #include <elm_datetime.h>
 #include <elm_debug.h>
@@ -239,8 +270,9 @@ EAPI extern Elm_Version *elm_version;
 #include <elm_thumb.h>
 #include <elm_toolbar.h>
 #include <elm_transit.h>
-#include <elm_video.h>
-#include <elm_web.h>
+// TIZEN_ONLY(20150709): Don't build unused widget
+//#include <elm_video.h>
+//
 #include <elm_win.h>
 
 /* include deprecated calls last of all */

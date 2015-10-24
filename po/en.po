@@ -71,8 +71,16 @@ msgid "double tap to edit"
 msgstr "Double tap to edit."
 
 #: src/lib/elc_naviframe.c:418
-msgid "title"
+msgid "Title"
 msgstr "Title"
+
+#: src/lib/elc_naviframe.c:398
+msgid "Subtitle"
+msgstr "Subtitle"
+
+#: src/lib/elc_naviframe.c:983
+msgid "Navigate back"
+msgstr "Navigate back"
 
 #: src/lib/elc_popup.c:343
 msgid "Popup Title"
@@ -307,6 +315,14 @@ msgstr " "
 #: src/lib/elm_entry.c
 msgid ", Not Editable"
 msgstr " "
+
+#: src/lib/elm_flipselector.c
+msgid "Decrease"
+msgstr "Decrease"
+
+#: src/lib/elm_flipselector.c
+msgid "Increase"
+msgstr "Increase"
 
 #: src/lib/elm_index.c:672
 msgid "Index"
@@ -546,6 +562,24 @@ msgstr "Increase month"
 msgid "IDS_COM_BODY_INCREASE_YEAR"
 msgstr "Increase year"
 
+msgid "IDS_COM_BODY_DECREASE_HOUR_ACCESS"
+msgstr "Decrement by 1 hour"
+
+msgid "IDS_COM_BODY_DECREASE_MINUTE_ACCESS"
+msgstr "Decrement by 1 minute"
+
+msgid "IDS_COM_BODY_INCREASE_HOUR_ACCESS"
+msgstr "Increment by 1 hour"
+
+msgid "IDS_COM_BODY_INCREASE_MINUTE_ACCESS"
+msgstr "Increment by 1 minute"
+
+msgid "IDS_COM_BODY_INCREASE"
+msgstr "Increase"
+
+msgid "IDS_COM_BODY_DECREASE"
+msgstr "Decrease"
+
 msgid "IDS_IDLE_BODY_TAP_TO_CHANGE"
 msgstr "Tap to change."
 
@@ -567,17 +601,5 @@ msgstr "Paste"
 msgid "IDS_COM_BODY_CLIPBOARD"
 msgstr "Clipboard"
 
-msgid "WDS_ST_OPT_DAY_ABB"
-msgstr "Day"
-
-msgid "WDS_ST_OPT_HRS_ABB"
-msgstr "Hrs"
-
-msgid "WDS_ST_OPT_MINS_ABB"
-msgstr "Mins"
-
-msgid "WDS_ST_OPT_MONTH_ABB"
-msgstr "Month"
-
-msgid "WDS_ST_OPT_YEAR_ABB"
-msgstr "Year"
+msgid "group index"
+msgstr "group index"

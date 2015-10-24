@@ -5,15 +5,13 @@ EET_EET = @eet_eet@
 EXTRA_DIST = \
         profile.desktop \
         icon.png \
-	base.src \
-	theme.src
+        base.src.in
 
 filesdir = $(datadir)/elementary/config/mobile
 files_DATA = \
         profile.desktop \
         icon.png \
-	base.cfg \
-	theme.cfg
+        base.cfg
 
 %.cfg: %.src
 	$(EET_EET) -e \
@@ -21,5 +19,4 @@ files_DATA = \
 	$< 1
 
 clean-local:
-	rm -rf *.cfg *~ *.in
-	
+	rm -rf *.cfg *~

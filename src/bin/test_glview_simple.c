@@ -2,27 +2,29 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
-typedef struct _GLData GLData;
+typedef struct _GL_Data GL_Data;
 
 // GL related data here..
-struct _GLData
+struct _GL_Data
 {
    Evas_GL_API *glapi;
    GLuint       program;
    GLuint       vtx_shader;
    GLuint       fgmt_shader;
    GLuint       vbo;
-   int          initialized : 1;
 };
-
 
 static float red = 1.0;
 
-//--------------------------------//
+static void
+_win_free_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   free(data);
+}
+
 static GLuint
-load_shader( GLData *gld, GLenum type, const char *shader_src )
+load_shader(GL_Data *gld, GLenum type, const char *shader_src)
 {
    Evas_GL_API *gl = gld->glapi;
    GLuint shader;
@@ -59,24 +61,24 @@ load_shader( GLData *gld, GLenum type, const char *shader_src )
 
 // Initialize the shader and program object
 static int
-init_shaders(GLData *gld)
+init_shaders(GL_Data *gld)
 {
    Evas_GL_API *gl = gld->glapi;
    GLbyte vShaderStr[] =
-      "attribute vec4 vPosition;    \n"
-      "void main()                  \n"
-      "{                            \n"
-      "   gl_Position = vPosition;  \n"
-      "}                            \n";
+      "attribute vec4 vPosition;\n"
+      "void main()\n"
+      "{\n"
+      "   gl_Position = vPosition;\n"
+      "}\n";
 
    GLbyte fShaderStr[] =
-      "#ifdef GL_ES                                 \n"
-      "precision mediump float;                     \n"
-      "#endif                                       \n"
-      "void main()                                  \n"
-      "{                                            \n"
+      "#ifdef GL_ES\n"
+      "precision mediump float;\n"
+      "#endif\n"
+      "void main()\n"
+      "{\n"
       "  gl_FragColor = vec4 ( 1.0, 0.0, 0.0, 1.0 );\n"
-      "}                                            \n";
+      "}\n";
 
    GLint linked;
 
@@ -114,13 +116,11 @@ init_shaders(GLData *gld)
    return 1;
 }
 
-
-
 // Callbacks
 static void
 _init_gl(Evas_Object *obj)
 {
-   GLData *gld = evas_object_data_get(obj, "gld");
+   GL_Data *gld = evas_object_data_get(obj, "gld");
    Evas_GL_API *gl = gld->glapi;
    GLfloat vVertices[] = {  0.0f,  0.5f, 0.0f,
                            -0.5f, -0.5f, 0.0f,
@@ -134,16 +134,19 @@ _init_gl(Evas_Object *obj)
 
    gl->glGenBuffers(1, &gld->vbo);
    gl->glBindBuffer(GL_ARRAY_BUFFER, gld->vbo);
-   gl->glBufferData(GL_ARRAY_BUFFER, 3 * 3 * 4, vVertices, GL_STATIC_DRAW);
+   gl->glBufferData(GL_ARRAY_BUFFER, sizeof(vVertices), vVertices, GL_STATIC_DRAW);
+   gl->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+                             0, 0);
+   gl->glEnableVertexAttribArray(0);
 }
 
 static void
 _del_gl(Evas_Object *obj)
 {
-   GLData *gld = evas_object_data_get(obj, "gld");
+   GL_Data *gld = evas_object_data_get(obj, "gld");
    if (!gld)
      {
-        printf("Unable to get GLData. \n");
+        printf("Unable to get GL_Data. \n");
         return;
      }
    Evas_GL_API *gl = gld->glapi;
@@ -153,16 +156,14 @@ _del_gl(Evas_Object *obj)
    gl->glDeleteProgram(gld->program);
    gl->glDeleteBuffers(1, &gld->vbo);
 
-   evas_object_data_del((Evas_Object*)obj, "..gld");
-   free(gld);
+   evas_object_data_del(obj, "gld");
 }
-
 
 static void
 _resize_gl(Evas_Object *obj)
 {
    int w, h;
-   GLData *gld = evas_object_data_get(obj, "gld");
+   GL_Data *gld = evas_object_data_get(obj, "gld");
    Evas_GL_API *gl = gld->glapi;
 
    elm_glview_size_get(obj, &w, &h);
@@ -172,20 +173,18 @@ _resize_gl(Evas_Object *obj)
    gl->glViewport(0, 0, w, h);
 }
 
-
-
 static void
 _draw_gl(Evas_Object *obj)
 {
    Evas_GL_API *gl = elm_glview_gl_api_get(obj);
-   GLData *gld = evas_object_data_get(obj, "gld");
+   GL_Data *gld = evas_object_data_get(obj, "gld");
    if (!gld) return;
    int w, h;
 
    elm_glview_size_get(obj, &w, &h);
 
    gl->glViewport(0, 0, w, h);
-   gl->glClearColor(red,0.8,0.3,1);
+   gl->glClearColor(red, 0.8, 0.3, 1);
    gl->glClear(GL_COLOR_BUFFER_BIT);
 
    // Draw a Triangle
@@ -194,9 +193,6 @@ _draw_gl(Evas_Object *obj)
    gl->glUseProgram(gld->program);
 
    gl->glBindBuffer(GL_ARRAY_BUFFER, gld->vbo);
-   gl->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                             0, 0);
-   gl->glEnableVertexAttribArray(0);
 
    gl->glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -211,36 +207,34 @@ static Eina_Bool
 _anim(void *data)
 {
    elm_glview_changed_set(data);
-   return EINA_TRUE;
+   return ECORE_CALLBACK_RENEW;
 }
 
 static void
-_on_done(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_close_cb(void *data, Evas_Object *obj EINA_UNUSED,
+          void *event_info EINA_UNUSED)
 {
-   evas_object_del((Evas_Object*)data);
+   evas_object_del(data);
 }
-
 
 static void
-_del(void *data __UNUSED__, Evas *evas __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_gl_del_cb(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   Ecore_Animator *ani = evas_object_data_get(obj, "ani");
-   ecore_animator_del(ani);
+   ecore_animator_del(data);
 }
-
 
 void
-test_glview_simple(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_glview_simple(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   Evas_Object *win, *bx, *bt, *gl;
+   Evas_Object *win, *bx, *bt, *gl, *lb;
    Ecore_Animator *ani;
-   GLData *gld = NULL;
+   GL_Data *gld = NULL;
 
-   if (!(gld = calloc(1, sizeof(GLData)))) return;
+   if (!(gld = calloc(1, sizeof(GL_Data)))) return;
 
-   win = elm_win_util_standard_add("glview simple", "GLView Simple");
-
+   win = elm_win_util_standard_add("glview-simple", "GLView Simple");
    elm_win_autodel_set(win, EINA_TRUE);
+   evas_object_event_callback_add(win, EVAS_CALLBACK_FREE, _win_free_cb, gld);
 
    bx = elm_box_add(win);
    evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -248,35 +242,49 @@ test_glview_simple(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *eve
    evas_object_show(bx);
 
    gl = elm_glview_add(win);
-   evas_object_size_hint_align_set(gl, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   evas_object_size_hint_weight_set(gl, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   elm_glview_mode_set(gl, ELM_GLVIEW_ALPHA | ELM_GLVIEW_DEPTH);
-   elm_glview_resize_policy_set(gl, ELM_GLVIEW_RESIZE_POLICY_RECREATE);
-   elm_glview_render_policy_set(gl, ELM_GLVIEW_RENDER_POLICY_ON_DEMAND);
-   elm_glview_init_func_set(gl, _init_gl);
-   elm_glview_del_func_set(gl, _del_gl);
-   elm_glview_resize_func_set(gl, _resize_gl);
-   elm_glview_render_func_set(gl, _draw_gl);
-   elm_box_pack_end(bx, gl);
-   evas_object_show(gl);
+   if (gl)
+     {
+        evas_object_size_hint_align_set(gl, EVAS_HINT_FILL, EVAS_HINT_FILL);
+        evas_object_size_hint_weight_set(gl, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+        elm_glview_mode_set(gl, ELM_GLVIEW_ALPHA | ELM_GLVIEW_DEPTH);
+        elm_glview_resize_policy_set(gl, ELM_GLVIEW_RESIZE_POLICY_RECREATE);
+        elm_glview_render_policy_set(gl, ELM_GLVIEW_RENDER_POLICY_ON_DEMAND);
+        elm_glview_init_func_set(gl, _init_gl);
+        elm_glview_del_func_set(gl, _del_gl);
+        elm_glview_resize_func_set(gl, _resize_gl);
+        elm_glview_render_func_set(gl, _draw_gl);
+        elm_box_pack_end(bx, gl);
+        evas_object_show(gl);
 
-   elm_object_focus_set(gl, EINA_TRUE);
+        elm_object_focus_set(gl, EINA_TRUE);
 
-   ani = ecore_animator_add(_anim, gl);
-   gld->glapi = elm_glview_gl_api_get(gl);
-   evas_object_data_set(gl, "ani", ani);
-   evas_object_data_set(gl, "gld", gld);
-   evas_object_event_callback_add(gl, EVAS_CALLBACK_DEL, _del, gl);
+        ani = ecore_animator_add(_anim, gl);
+        gld->glapi = elm_glview_gl_api_get(gl);
+        evas_object_data_set(gl, "gld", gld);
+        evas_object_event_callback_add(gl, EVAS_CALLBACK_DEL, _gl_del_cb, ani);
+     }
+   else
+     {
+        lb = elm_label_add(bx);
+        elm_object_text_set(lb, "<align=left> GL backend engine is not supported.<br/>"
+                            " 1. Check your back-end engine or<br/>"
+                            " 2. Run elementary_test with engine option or<br/>"
+                            "    ex) $ <b>ELM_ENGINE=gl</b> elementary_test<br/>"
+                            " 3. Change your back-end engine from elementary_config.<br/></align>");
+        evas_object_size_hint_weight_set(lb, 0.0, 0.0);
+        evas_object_size_hint_align_set(lb, EVAS_HINT_FILL, EVAS_HINT_FILL);
+        elm_box_pack_end(bx, lb);
+        evas_object_show(lb);
+     }
 
    bt = elm_button_add(win);
-   elm_object_text_set(bt, "OK");
-   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_object_text_set(bt, "Close");
    evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
+   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_box_pack_end(bx, bt);
    evas_object_show(bt);
-   evas_object_smart_callback_add(bt, "clicked", _on_done, win);
+   evas_object_smart_callback_add(bt, "clicked", _close_cb, win);
 
    evas_object_resize(win, 320, 480);
    evas_object_show(win);
 }
-#endif

@@ -1,8 +1,28 @@
-#include <fnmatch.h>
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
+#define ELM_INTERFACE_ATSPI_ACCESSIBLE_PROTECTED
+#define ELM_INTERFACE_ATSPI_COMPONENT_PROTECTED
+#define ELM_INTERFACE_ATSPI_SELECTION_PROTECTED
+#define ELM_INTERFACE_ATSPI_WIDGET_ACTION_PROTECTED
+#define ELM_WIDGET_ITEM_PROTECTED
+
 #include <Elementary.h>
 #include <Elementary_Cursor.h>
 #include "elm_priv.h"
 #include "elm_widget_gengrid.h"
+#include "elm_interface_scrollable.h"
+
+#define MY_PAN_CLASS ELM_GENGRID_PAN_CLASS
+
+#define MY_PAN_CLASS_NAME "Elm_Gengrid_Pan"
+#define MY_PAN_CLASS_NAME_LEGACY "elm_gengrid_pan"
+
+#define MY_CLASS ELM_GENGRID_CLASS
+
+#define MY_CLASS_NAME "Elm_Gengrid"
+#define MY_CLASS_NAME_LEGACY "elm_gengrid"
 
 // internally allocated
 #define CLASS_ALLOCATED     0x3a70f00f
@@ -14,188 +34,189 @@
 
 #define PRELOAD             1
 #define REORDER_EFFECT_TIME 0.5
-#define FX_MOVE_TIME 0.5
-#define ITEM_CACHE_MAX 30
-#define ITEM_SELECT_TIMER 0.01  // This is needed for highlight effect when item is unhighlighted right after item is highlighted and selected
 
-typedef enum
-{
-   FOCUS_DIR_UP = 0,
-   FOCUS_DIR_DOWN,
-   FOCUS_DIR_LEFT,
-   FOCUS_DIR_RIGHT
-} Focus_Dir;
+#define CACHE_MAX 40
 
 EAPI const char ELM_GENGRID_SMART_NAME[] = "elm_gengrid";
 EAPI const char ELM_GENGRID_PAN_SMART_NAME[] = "elm_gengrid_pan";
 
-#define GG_IT(_it) (_it->item)
+#define ELM_PRIV_GENGRID_SIGNALS(cmd) \
+   cmd(SIG_ACTIVATED, "activated", "") \
+   cmd(SIG_CLICKED_DOUBLE, "clicked,double", "") \
+   cmd(SIG_CLICKED_RIGHT, "clicked,right", "") \
+   cmd(SIG_LONGPRESSED, "longpressed", "") \
+   cmd(SIG_SELECTED, "selected", "") \
+   cmd(SIG_UNSELECTED, "unselected", "") \
+   cmd(SIG_REALIZED, "realized", "") \
+   cmd(SIG_UNREALIZED, "unrealized", "") \
+   cmd(SIG_CHANGED, "changed", "") \
+   cmd(SIG_DRAG_START_UP, "drag,start,up", "") \
+   cmd(SIG_DRAG_START_DOWN, "drag,start,down", "") \
+   cmd(SIG_DRAG_START_LEFT, "drag,start,left", "") \
+   cmd(SIG_DRAG_START_RIGHT, "drag,start,right", "") \
+   cmd(SIG_DRAG_STOP, "drag,stop", "") \
+   cmd(SIG_DRAG, "drag", "") \
+   cmd(SIG_SCROLL, "scroll", "") \
+   cmd(SIG_SCROLL_ANIM_START, "scroll,anim,start", "") \
+   cmd(SIG_SCROLL_ANIM_STOP, "scroll,anim,stop", "") \
+   cmd(SIG_SCROLL_DRAG_START, "scroll,drag,start", "") \
+   cmd(SIG_SCROLL_DRAG_STOP, "scroll,drag,stop", "") \
+   cmd(SIG_SCROLL_PAGE_CHANGE, "scroll,page,changed", "") \
+   cmd(SIG_EDGE_TOP, "edge,top", "") \
+   cmd(SIG_EDGE_BOTTOM, "edge,bottom", "") \
+   cmd(SIG_EDGE_LEFT, "edge,left", "") \
+   cmd(SIG_EDGE_RIGHT, "edge,right", "") \
+   cmd(SIG_MOVED, "moved", "") \
+   cmd(SIG_INDEX_UPDATE, "index,update", "") \
+   cmd(SIG_HIGHLIGHTED, "highlighted", "") \
+   cmd(SIG_UNHIGHLIGHTED, "unhighlighted", "") \
+   cmd(SIG_ITEM_FOCUSED, "item,focused", "") \
+   cmd(SIG_ITEM_UNFOCUSED, "item,unfocused", "") \
+   cmd(SIG_PRESSED, "pressed", "") \
+   cmd(SIG_RELEASED, "released", "") \
+   cmd(SIG_ITEM_REORDER_START, "item,reorder,anim,start", "") \
+   cmd(SIG_ITEM_REORDER_STOP, "item,reorder,anim,stop", "")
 
-static const Evas_Smart_Interface *_smart_interfaces[] =
-{
-   (Evas_Smart_Interface *)&ELM_SCROLLABLE_IFACE, NULL
-};
-
-static const char SIG_ACTIVATED[] = "activated";
-static const char SIG_CLICKED_DOUBLE[] = "clicked,double";
-static const char SIG_LONGPRESSED[] = "longpressed";
-static const char SIG_SELECTED[] = "selected";
-static const char SIG_UNSELECTED[] = "unselected";
-static const char SIG_REALIZED[] = "realized";
-static const char SIG_UNREALIZED[] = "unrealized";
-static const char SIG_CHANGED[] = "changed";
-static const char SIG_DRAG_START_UP[] = "drag,start,up";
-static const char SIG_DRAG_START_DOWN[] = "drag,start,down";
-static const char SIG_DRAG_START_LEFT[] = "drag,start,left";
-static const char SIG_DRAG_START_RIGHT[] = "drag,start,right";
-static const char SIG_DRAG_STOP[] = "drag,stop";
-static const char SIG_DRAG[] = "drag";
-static const char SIG_SCROLL[] = "scroll";
-static const char SIG_SCROLL_ANIM_START[] = "scroll,anim,start";
-static const char SIG_SCROLL_ANIM_STOP[] = "scroll,anim,stop";
-static const char SIG_SCROLL_DRAG_START[] = "scroll,drag,start";
-static const char SIG_SCROLL_DRAG_STOP[] = "scroll,drag,stop";
-static const char SIG_EDGE_TOP[] = "edge,top";
-static const char SIG_EDGE_BOTTOM[] = "edge,bottom";
-static const char SIG_EDGE_LEFT[] = "edge,left";
-static const char SIG_EDGE_RIGHT[] = "edge,right";
-static const char SIG_MOVED[] = "moved";
-static const char SIG_INDEX_UPDATE[] = "index,update";
-static const char SIG_HIGHLIGHTED[] = "highlighted";
-static const char SIG_UNHIGHLIGHTED[] = "unhighlighted";
-static const char SIG_LANG_CHANGED[] = "language,changed";
-static const char SIG_PRESSED[] = "pressed";
-static const char SIG_RELEASED[] = "released";
-static const char SIG_ITEM_FOCUSED[] = "item,focused";
-static const char SIG_ITEM_UNFOCUSED[] = "item,unfocused";
+ELM_PRIV_GENGRID_SIGNALS(ELM_PRIV_STATIC_VARIABLE_DECLARE);
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
-   {SIG_ACTIVATED, ""},
-   {SIG_CLICKED_DOUBLE, ""},
-   {SIG_LONGPRESSED, ""},
-   {SIG_SELECTED, ""},
-   {SIG_UNSELECTED, ""},
-   {SIG_REALIZED, ""},
-   {SIG_UNREALIZED, ""},
-   {SIG_CHANGED, ""},
-   {SIG_DRAG_START_UP, ""},
-   {SIG_DRAG_START_DOWN, ""},
-   {SIG_DRAG_START_LEFT, ""},
-   {SIG_DRAG_START_RIGHT, ""},
-   {SIG_DRAG_STOP, ""},
-   {SIG_DRAG, ""},
-   {SIG_SCROLL, ""},
-   {SIG_SCROLL_ANIM_START, ""},
-   {SIG_SCROLL_ANIM_STOP, ""},
-   {SIG_SCROLL_DRAG_START, ""},
-   {SIG_SCROLL_DRAG_STOP, ""},
-   {SIG_EDGE_TOP, ""},
-   {SIG_EDGE_BOTTOM, ""},
-   {SIG_EDGE_LEFT, ""},
-   {SIG_EDGE_RIGHT, ""},
-   {SIG_MOVED, ""},
-   {SIG_HIGHLIGHTED, ""},
-   {SIG_UNHIGHLIGHTED, ""},
-   {SIG_LANG_CHANGED, ""},
-   {SIG_PRESSED, ""},
-   {SIG_RELEASED, ""},
+   ELM_PRIV_GENGRID_SIGNALS(ELM_PRIV_SMART_CALLBACKS_DESC)
+   {SIG_WIDGET_LANG_CHANGED, ""}, /**< handled by elm_widget */
+   {SIG_WIDGET_ACCESS_CHANGED, ""}, /**< handled by elm_widget */
+   {SIG_LAYOUT_FOCUSED, ""}, /**< handled by elm_layout */
+   {SIG_LAYOUT_UNFOCUSED, ""}, /**< handled by elm_layout */
    {SIG_ITEM_FOCUSED, ""},
    {SIG_ITEM_UNFOCUSED, ""},
+
+   {NULL, NULL}
+};
+#undef ELM_PRIV_GENGRID_SIGNALS
+
+static Eina_Bool _key_action_move(Evas_Object *obj, const char *params);
+static Eina_Bool _key_action_select(Evas_Object *obj, const char *params);
+static Eina_Bool _key_action_escape(Evas_Object *obj, const char *params);
+static void _item_position_update(Eina_Inlist *list, int idx);
+static void _item_mouse_callbacks_add(Elm_Gen_Item *it, Evas_Object *view);
+static void _item_mouse_callbacks_del(Elm_Gen_Item *it, Evas_Object *view);
+
+
+static const Elm_Action key_actions[] = {
+   {"move", _key_action_move},
+   {"select", _key_action_select},
+   {"escape", _key_action_escape},
    {NULL, NULL}
 };
 
-EVAS_SMART_SUBCLASS_IFACE_NEW
-  (ELM_GENGRID_SMART_NAME, _elm_gengrid, Elm_Gengrid_Smart_Class,
-  Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks,
-  _smart_interfaces);
 
-ELM_INTERNAL_SMART_SUBCLASS_NEW
-  (ELM_GENGRID_PAN_SMART_NAME, _elm_gengrid_pan, Elm_Gengrid_Pan_Smart_Class,
-  Elm_Pan_Smart_Class, elm_pan_smart_class_get, NULL);
-
-#if GENGRID_FX_SUPPORT
-static Eina_Bool      _elm_gengrid_fx_capture(Evas_Object *obj, int level);
-static void           _elm_gengrid_fx_play(Evas_Object *obj);
-#endif
-
-static void _gengrid_item_unfocused(Elm_Gen_Item *it);
-static void
-_elm_gengrid_pan_smart_pos_max_get(const Evas_Object *obj,
-                                   Evas_Coord *x,
-                                   Evas_Coord *y);
-static void
-_elm_gengrid_pan_smart_pos_min_get(const Evas_Object *obj,
-                                   Evas_Coord *x,
-                                   Evas_Coord *y);
-static void
-_view_theme_update(Elm_Gen_Item *it);
-
-static void
-_item_mouse_down_cb(void *data,
-                    Evas *evas,
-                    Evas_Object *obj,
-                    void *event_info);
-static void
-_item_mouse_up_cb(void *data,
-                  Evas *evas,
-                  Evas_Object *obj __UNUSED__,
-                  void *event_info);
-
-static void
-_item_mouse_move_cb(void *data,
-                    Evas *evas __UNUSED__,
-                    Evas_Object *obj,
-                    void *event_info);
-
-static void
-_item_select(Elm_Gen_Item *it);
-
-static void
-_item_unselect(Elm_Gen_Item *it);
-
-static void
-_item_cache_all_free(Elm_Gengrid_Smart_Data *sd)
+//-- item cache handle routine --//
+// push item cache into caches
+static Eina_Bool
+_item_cache_push(Elm_Gengrid_Data *sd, Item_Cache *itc)
 {
-   // It would be better not to use
-   // EINA_INLIST_FOREACH or EINA_INLIST_FOREACH_SAFE
-   while (sd->item_cache)
-     {
-        Item_Cache *ic = EINA_INLIST_CONTAINER_GET(sd->item_cache->last, Item_Cache);
-        if (ic->base_view) evas_object_del(ic->base_view);
-        if (ic->item_style) eina_stringshare_del(ic->item_style);
-        sd->item_cache = eina_inlist_remove(sd->item_cache, EINA_INLIST_GET(ic));
-        // Free should be performed after inlist is poped
-        free(ic);
-     }
-   sd->item_cache = NULL;
-   sd->item_cache_count = 0;
+   if ((!itc) || (sd->item_cache_max <= 0))
+     return EINA_FALSE;
+
+   sd->item_cache_count++;
+   sd->item_cache =
+     eina_inlist_prepend(sd->item_cache, EINA_INLIST_GET(itc));
+
+   return EINA_TRUE;
 }
 
-static Eina_Bool
-_item_cache_push(Elm_Gen_Item *it)
+// pop item cache from caches
+static Item_Cache *
+_item_cache_pop(Elm_Gengrid_Data *sd, Item_Cache *itc)
 {
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
-   Item_Cache *ic = NULL;
+   if ((!itc) || (!sd->item_cache) ||
+       (sd->item_cache_count <= 0))
+     return NULL;
 
-   if (sd->no_cache) return EINA_FALSE;
+   sd->item_cache =
+     eina_inlist_remove (sd->item_cache, EINA_INLIST_GET(itc));
+   sd->item_cache_count--;
 
-   if (sd->item_cache_count >= sd->item_cache_max)
-    {
-        ic = EINA_INLIST_CONTAINER_GET(sd->item_cache->last, Item_Cache);
-        if (ic->base_view) evas_object_del(ic->base_view);
-        eina_stringshare_del(ic->item_style);
-        sd->item_cache = eina_inlist_remove(sd->item_cache,
-                                            sd->item_cache->last);
-        sd->item_cache_count--;
-        // Free should be performed after inlist is poped
-        free(ic);
+   return itc;
+}
+
+// free one item cache from caches
+static void
+_item_cache_free(Item_Cache *itc)
+{
+   if (!itc) return;
+
+   evas_object_del(itc->spacer);
+   evas_object_del(itc->base_view);
+   eina_stringshare_del(itc->item_style);
+   ELM_SAFE_FREE(itc ,free);
+}
+
+// clean up item cache by removing overflowed caches
+static void
+_item_cache_clean(Elm_Gengrid_Data *sd)
+{
+   evas_event_freeze(evas_object_evas_get(sd->obj));
+
+   while ((sd->item_cache) && (sd->item_cache_count > sd->item_cache_max))
+     {
+        Item_Cache *itc =
+           EINA_INLIST_CONTAINER_GET(sd->item_cache->last, Item_Cache);
+        _item_cache_free(_item_cache_pop(sd, itc));
+     }
+   evas_event_thaw(evas_object_evas_get(sd->obj));
+   evas_event_thaw_eval(evas_object_evas_get(sd->obj));
+}
+
+// empty all item caches
+static void
+_item_cache_zero(Elm_Gengrid_Data *sd)
+{
+   int pmax = sd->item_cache_max;
+
+   sd->item_cache_max = 0;
+   _item_cache_clean(sd);
+   sd->item_cache_max = pmax;
+}
+
+// add an item to item cache
+static Eina_Bool
+_item_cache_add(Elm_Gen_Item *it)
+{
+   if (it->item->nocache_once || it->item->nocache) return EINA_FALSE;
+
+   Item_Cache *itc = NULL;
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+   Evas_Object *obj = sd->obj;
+
+   evas_event_freeze(evas_object_evas_get(obj));
+   if (sd->item_cache_max > 0)
+     itc = ELM_NEW(Item_Cache);
+   if (!_item_cache_push(sd, itc))
+     {
+        if (itc) ELM_SAFE_FREE(itc, free);
+
+        evas_event_thaw(evas_object_evas_get(obj));
+        evas_event_thaw_eval(evas_object_evas_get(obj));
+        return EINA_FALSE;
      }
 
-   ic = ELM_NEW(Item_Cache);
-   if (!ic) return EINA_FALSE;
+   itc->spacer = it->spacer;
+   itc->base_view = VIEW(it);
+   itc->item_style = eina_stringshare_add(it->itc->item_style);
 
-   // set item's state as default before pushing item into cache.
-   edje_object_signal_emit(VIEW(it), "elm,state,default", "elm");
+   if (!it->group)
+     {
+        if (it->selected)
+          edje_object_signal_emit(itc->base_view, "elm,state,unselected", "elm");
+        if (eo_do(EO_OBJ(it), elm_wdg_item_disabled_get()))
+          edje_object_signal_emit(itc->base_view, "elm,state,enabled", "elm");
+        if (it == (Elm_Gen_Item *)sd->focused_item &&
+            elm_widget_focus_highlight_enabled_get(obj))
+          edje_object_signal_emit(itc->base_view, "elm,state,unfocused", "elm");
+
+        ELM_SAFE_FREE(it->long_timer, ecore_timer_del);
+        // FIXME: other callbacks?
+        _item_mouse_callbacks_del(it, itc->base_view);
+     }
 
    edje_object_mirrored_set(VIEW(it),
                             elm_widget_mirrored_get(WIDGET(it)));
@@ -203,41 +224,44 @@ _item_cache_push(Elm_Gen_Item *it)
                          elm_widget_scale_get(WIDGET(it))
                          * elm_config_scale_get());
 
-   ic->base_view = VIEW(it);
-   ic->item_style = eina_stringshare_add(it->itc->item_style);
-   evas_object_hide(ic->base_view);
-
-   sd->item_cache = eina_inlist_prepend(sd->item_cache, EINA_INLIST_GET(ic));
-   sd->item_cache_count++;
-
+   evas_object_hide(itc->base_view);
+   evas_object_move(itc->base_view, -9999, -9999);
+   it->spacer = NULL;
    VIEW(it) = NULL;
+
+   _item_cache_clean(sd);
+
+   evas_event_thaw(evas_object_evas_get(obj));
+   evas_event_thaw_eval(evas_object_evas_get(obj));
 
    return EINA_TRUE;
 }
 
+// find an item from item cache and remove it from the cache
 static Eina_Bool
-_item_cache_pop(Elm_Gen_Item *it)
+_item_cache_find(Elm_Gen_Item *it)
 {
+   if (it->item->nocache_once || it->item->nocache) return EINA_FALSE;
 
-   Item_Cache *ic = NULL;
+   Item_Cache *itc = NULL;
    Eina_Inlist *l;
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
 
-   if (!it->itc->item_style) return EINA_FALSE;
-
-   EINA_INLIST_FOREACH_SAFE(sd->item_cache, l, ic)
+   EINA_INLIST_FOREACH_SAFE(sd->item_cache, l, itc)
      {
-        if (ic->item_style &&
-            (!strcmp(it->itc->item_style, ic->item_style)))
+        if (((!it->itc->item_style) && (!itc->item_style)) ||
+            (it->itc->item_style && itc->item_style &&
+             (!strcmp(it->itc->item_style, itc->item_style))))
           {
-             sd->item_cache =
-                eina_inlist_remove(sd->item_cache, EINA_INLIST_GET(ic));
-             sd->item_cache_count--;
+             itc = _item_cache_pop(sd, itc);
+             if (!itc) continue;
 
-             VIEW(it) = ic->base_view;
-             eina_stringshare_del(ic->item_style);
+             it->spacer = itc->spacer;
+             VIEW(it) = itc->base_view;
+             itc->spacer = NULL;
+             itc->base_view = NULL;
 
-             free(ic);
+             _item_cache_free(itc);
              return EINA_TRUE;
           }
      }
@@ -245,53 +269,104 @@ _item_cache_pop(Elm_Gen_Item *it)
 }
 
 static Eina_Bool
-_elm_gengrid_smart_translate(Evas_Object *obj)
+_is_no_select(Elm_Gen_Item *it)
 {
-   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
 
-   return EINA_TRUE;
+   if ((sd->select_mode == ELM_OBJECT_SELECT_MODE_NONE) ||
+       (sd->select_mode == ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY) ||
+       (it->select_mode == ELM_OBJECT_SELECT_MODE_NONE) ||
+       (it->select_mode == ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY))
+     return EINA_TRUE;
+   return EINA_FALSE;
+}
+
+EOLIAN static Elm_Object_Item *
+_elm_gengrid_search_by_text_item_get(Eo *obj EINA_UNUSED,
+                                     Elm_Gengrid_Data *sd,
+                                     Elm_Object_Item *eo_item_to_search_from,
+                                     const char *part_name,
+                                     const char *pattern,
+                                     Elm_Glob_Match_Flags flags)
+{
+   Elm_Gen_Item *it = NULL;
+   char *str = NULL;
+   Eina_Inlist *start = NULL;
+   int fnflags = 0;
+
+   if (!pattern) return NULL;
+   if (!sd->items) return NULL;
+
+   if (flags & ELM_GLOB_MATCH_NO_ESCAPE) fnflags |= FNM_NOESCAPE;
+   if (flags & ELM_GLOB_MATCH_PATH) fnflags |= FNM_PATHNAME;
+   if (flags & ELM_GLOB_MATCH_PERIOD) fnflags |= FNM_PERIOD;
+#ifdef FNM_CASEFOLD
+   if (flags & ELM_GLOB_MATCH_NOCASE) fnflags |= FNM_CASEFOLD;
+#endif
+
+   ELM_GENGRID_ITEM_DATA_GET(eo_item_to_search_from, item_to_search_from);
+   start = (item_to_search_from) ?
+     EINA_INLIST_GET(item_to_search_from) :
+     sd->items;
+   EINA_INLIST_FOREACH(start, it)
+     {
+        if (!it->itc->func.text_get) continue;
+        str = it->itc->func.text_get((void *)WIDGET_ITEM_DATA_GET(EO_OBJ(it)),
+                                     WIDGET(it), part_name);
+        if (!str) continue;
+        if (!fnmatch(pattern, str, fnflags))
+          {
+             free(str);
+             return EO_OBJ(it);
+          }
+        free(str);
+     }
+   return NULL;
 }
 
 static void
 _item_show_region(void *data)
 {
-   Elm_Gengrid_Smart_Data *sd = data;
+   Elm_Gengrid_Data *sd = data;
    Evas_Coord cvw, cvh, it_xpos = 0, it_ypos = 0, col = 0, row = 0, minx = 0, miny = 0;
    Evas_Coord vw = 0, vh = 0;
-   Elm_Gen_Item *it = NULL;
-
-#if GENGRID_FX_SUPPORT
-   if (sd->fx_first_captured) return;
-#endif
+   Elm_Object_Item *eo_it = NULL;
    evas_object_geometry_get(sd->pan_obj, NULL, NULL, &cvw, &cvh);
 
    if ((cvw != 0) && (cvh != 0))
        {
           int x = 0, y = 0;
           if (sd->show_region)
-            it = sd->show_it;
+            eo_it = sd->show_it;
           else if (sd->bring_in)
-            it = sd->bring_in_it;
-          if (!it) return;
+            eo_it = sd->bring_in_it;
 
-          _elm_gengrid_pan_smart_pos_min_get(sd->pan_obj, &minx, &miny);
+          if (!eo_it) return;
+          ELM_GENGRID_ITEM_DATA_GET(eo_it, it);
 
+          eo_do(sd->pan_obj, elm_obj_pan_pos_min_get(&minx, &miny));
           if (sd->horizontal && (sd->item_height > 0))
             {
                row = cvh / sd->item_height;
                if (row <= 0) row = 1;
                x = (it->position - 1) / row;
-               if (x == 0) y = (it->position - 1);
-               else if (x > 0) y = (it->position - 1) % x;
+               if (elm_widget_mirrored_get(sd->obj))
+                 {
+                    col = sd->item_count / row;
+                    if (sd->item_count % row == 0)
+                      col--;
+                    x = col - x;
+                 }
+
+               y = (it->position - 1) % row;
                if (x >= 1)
                  it_xpos = ((x - GG_IT(it)->prev_group) * sd->item_width)
                     + (GG_IT(it)->prev_group * sd->group_item_width)
                     + minx;
                else it_xpos = minx;
-                 miny = miny + ((cvh - (sd->item_height * row))
-                    * GG_IT(it)->wsd->align_y);
+               miny = miny + ((cvh - (sd->item_height * row))
+                    * sd->align_y);
                it_ypos = y * sd->item_height + miny;
-
                it->x = x;
                it->y = y;
             }
@@ -300,17 +375,15 @@ _item_show_region(void *data)
                col = cvw / sd->item_width;
                if (col <= 0) col = 1;
                y = (it->position - 1) / col;
-                 minx = minx + ((cvw - (sd->item_width * col))
-                    * GG_IT(it)->wsd->align_x);
-               if (y == 0) x = (it->position - 1);
-               else if (y > 0) x = (it->position - 1) % y;
+               x = (it->position - 1) % col;
                it_xpos = x * sd->item_width + minx;
                if (y >= 1)
                  it_ypos = ((y - GG_IT(it)->prev_group) * sd->item_height)
                     + (GG_IT(it)->prev_group * sd->group_item_height)
                     + miny;
                else it_ypos = miny;
-
+               minx = minx + ((cvw - (sd->item_width * col))
+                    * sd->align_x);
                it->x = x;
                it->y = y;
             }
@@ -318,10 +391,12 @@ _item_show_region(void *data)
           switch (sd->scroll_to_type)
             {
                case ELM_GENGRID_ITEM_SCROLLTO_TOP:
-                  sd->s_iface->content_viewport_size_get(WIDGET(it), &vw, &vh);
+                  eo_do(WIDGET(it), elm_interface_scrollable_content_viewport_geometry_get
+                        (NULL, NULL, &vw, &vh));
                   break;
                case ELM_GENGRID_ITEM_SCROLLTO_MIDDLE:
-                  sd->s_iface->content_viewport_size_get(WIDGET(it), &vw, &vh);
+                  eo_do(WIDGET(it), elm_interface_scrollable_content_viewport_geometry_get
+                        (NULL, NULL, &vw, &vh));
                   it_xpos = it_xpos - ((vw - sd->item_width) / 2);
                   it_ypos = it_ypos - ((vh - sd->item_height) / 2);
                   break;
@@ -333,31 +408,36 @@ _item_show_region(void *data)
 
           if (sd->show_region)
             {
-               sd->s_iface->content_region_show(WIDGET(it),
-                                           it_xpos, it_ypos, vw, vh);
+               eo_do(WIDGET(it), elm_interface_scrollable_content_region_show(
+                                                     it_xpos, it_ypos, vw, vh));
                sd->show_region = EINA_FALSE;
             }
           if (sd->bring_in)
             {
-               sd->s_iface->region_bring_in(WIDGET(it),
-                                           it_xpos, it_ypos, vw, vh);
+               eo_do(WIDGET(it), elm_interface_scrollable_region_bring_in(
+                                                 it_xpos, it_ypos, vw, vh));
                sd->bring_in = EINA_FALSE;
             }
        }
 }
 
+//TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+//static void
+//_calc_job(void *data)
 static void
 _calc(void *data)
 {
-   Elm_Gengrid_Smart_Data *sd = data;
+   ELM_GENGRID_DATA_GET(data, sd);
    Evas_Coord minw = 0, minh = 0, nmax = 0, cvw, cvh;
    Elm_Gen_Item *it, *group_item = NULL;
    int count_group = 0;
    long count = 0;
 
-   sd->items_lost = 0;
-
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
    if (sd->calc_done) return;
+   //
+
+   sd->items_lost = 0;
 
    evas_object_geometry_get(sd->pan_obj, NULL, NULL, &cvw, &cvh);
 
@@ -409,209 +489,400 @@ _calc(void *data)
           {
              sd->minh = minh;
              sd->minw = minw;
-             elm_layout_sizing_eval(ELM_WIDGET_DATA(sd)->obj);
              evas_object_smart_callback_call(sd->pan_obj, "changed", NULL);
           }
 
         sd->nmax = nmax;
+
+        //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+        //evas_object_smart_changed(sd->pan_obj);
+        //
+
+        if (sd->show_region || sd->bring_in)
+          _item_show_region(sd);
      }
-     sd->calc_done = EINA_TRUE;
+
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+   sd->calc_done = EINA_TRUE;
+   //
 }
 
-static void
-_elm_gengrid_pan_smart_add(Evas_Object *obj)
+EOLIAN static void
+_elm_gengrid_pan_eo_base_destructor(Eo *obj, Elm_Gengrid_Pan_Data *psd)
 {
-   /* here just to allocate our extended data */
-   EVAS_SMART_DATA_ALLOC(obj, Elm_Gengrid_Pan_Smart_Data);
-
-   ELM_PAN_CLASS(_elm_gengrid_pan_parent_sc)->base.add(obj);
+   eo_data_unref(psd->wobj, psd->wsd);
+   eo_do_super(obj, MY_PAN_CLASS, eo_destructor());
 }
 
-static void
-_elm_gengrid_pan_smart_move(Evas_Object *obj,
-                            Evas_Coord x __UNUSED__,
-                            Evas_Coord y __UNUSED__)
+EOLIAN static void
+_elm_gengrid_pan_evas_object_smart_move(Eo *obj, Elm_Gengrid_Pan_Data *psd, Evas_Coord _gen_param2 EINA_UNUSED, Evas_Coord _gen_param3 EINA_UNUSED)
 {
-   ELM_GENGRID_PAN_DATA_GET(obj, psd);
-   evas_object_smart_changed(psd->wsd->pan_obj);
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+   psd->wsd->calc_done = EINA_FALSE;
+   evas_object_smart_changed(obj);
+   //ecore_job_del(psd->wsd->calc_job);
+   //psd->wsd->calc_job = ecore_job_add(_calc_job, psd->wobj);
+   //
 }
 
-static void
-_elm_gengrid_pan_smart_resize(Evas_Object *obj,
-                              Evas_Coord w,
-                              Evas_Coord h)
+EOLIAN static void
+_elm_gengrid_pan_evas_object_smart_resize(Eo *obj, Elm_Gengrid_Pan_Data *psd, Evas_Coord w, Evas_Coord h)
 {
    Evas_Coord ow, oh;
 
-   ELM_GENGRID_PAN_DATA_GET(obj, psd);
-
    evas_object_geometry_get(obj, NULL, NULL, &ow, &oh);
    if ((ow == w) && (oh == h)) return;
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
    psd->wsd->calc_done = EINA_FALSE;
-   evas_object_smart_changed(psd->wsd->pan_obj);
-}
-
-static void
-_item_unhighlight(Elm_Gen_Item *it)
-{
-   if (!it->highlighted) return;
-
-   it->highlighted = EINA_FALSE;
-
-   edje_object_signal_emit(VIEW(it), "elm,state,unselected", "elm");
-//******************** TIZEN Only
-// If check is used on gengrid item, unhighlight it also.
-   Eina_List *l;
-   Evas_Object *content;
-   EINA_LIST_FOREACH(it->content_objs, l, content)
-     {
-        const char *type = elm_widget_type_get(content);
-        if (type && !strcmp(type, "elm_check"))
-           elm_object_signal_emit(content, "elm,state,mouse,up", "elm");
-     }
-   //*******************************
-   evas_object_smart_callback_call(WIDGET(it), SIG_UNHIGHLIGHTED, it);
+   evas_object_smart_changed(obj);
+   //ecore_job_del(psd->wsd->calc_job);
+   //psd->wsd->calc_job = ecore_job_add(_calc_job, psd->wobj);
+   //
 }
 
 static void
 _item_unselect(Elm_Gen_Item *it)
 {
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
+   Elm_Gen_Item_Type *item = GG_IT(it);
+   Elm_Gengrid_Data *sd = item->wsd;
+   Elm_Object_Item *eo_it = EO_OBJ(it);
 
-   if (!it->selected) return;
-   if (it->generation < sd->generation) return;
+   if ((it->generation < sd->generation) || (!it->selected))
+     return;
 
-   it->selected = EINA_FALSE;
-   sd->selected = eina_list_remove(sd->selected, it);
-   _item_unhighlight(it);
-   evas_object_smart_callback_call(WIDGET(it), SIG_UNSELECTED, it);
+   if (it->selected)
+     {
+        it->selected = EINA_FALSE;
+        sd->selected = eina_list_remove(sd->selected, eo_it);
+        evas_object_smart_callback_call(WIDGET(it), SIG_UNSELECTED, eo_it);
+     }
+}
+
+static void
+_item_mouse_in_cb(void *data,
+                  Evas *evas EINA_UNUSED,
+                  Evas_Object *obj EINA_UNUSED,
+                  void *event_info EINA_UNUSED)
+{
+   Elm_Gen_Item *it = data;
+   if (!elm_object_item_disabled_get(EO_OBJ(it)) &&
+       (_elm_config->focus_move_policy == ELM_FOCUS_MOVE_POLICY_IN))
+     elm_object_item_focus_set(EO_OBJ(it), EINA_TRUE);
+}
+
+static void
+_item_mouse_move_cb(void *data,
+                    Evas *evas EINA_UNUSED,
+                    Evas_Object *obj,
+                    void *event_info)
+{
+   Elm_Gen_Item *it = data;
+   Evas_Event_Mouse_Move *ev = event_info;
+   Evas_Coord ox, oy, ow, oh, it_scrl_x, it_scrl_y;
+   Evas_Coord minw = 0, minh = 0, x, y, w, h, dx, dy, adx, ady;
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+   Elm_Object_Item *eo_it = EO_OBJ(it);
+
+   evas_object_geometry_get(obj, &x, &y, &w, &h);
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
+     {
+        if (!sd->on_hold)
+          {
+             sd->on_hold = EINA_TRUE;
+             ELM_SAFE_FREE(it->long_timer, ecore_timer_del);
+             if (!sd->was_selected)
+               {
+                  it->unhighlight_cb(it);
+                  it->unsel_cb(it);
+               }
+          }
+     }
+   else if (ELM_RECTS_POINT_OUT(x, y, w, h, ev->cur.canvas.x, ev->cur.canvas.y) &&
+            !sd->reorder_it)
+     {
+        ELM_SAFE_FREE(it->long_timer, ecore_timer_del);
+        if (!sd->was_selected)
+          {
+             it->unhighlight_cb(it);
+             it->unsel_cb(it);
+          }
+        it->base->still_in = EINA_FALSE;
+     }
+
+   if ((it->dragging) && (it->down))
+     {
+        ELM_SAFE_FREE(it->long_timer, ecore_timer_del);
+        evas_object_smart_callback_call(WIDGET(it), SIG_DRAG, eo_it);
+        return;
+     }
+
+   if ((!it->down) || (sd->longpressed))
+     {
+        ELM_SAFE_FREE(it->long_timer, ecore_timer_del);
+        if ((sd->reorder_mode) && (sd->reorder_it))
+          {
+             evas_object_geometry_get
+               (sd->pan_obj, &ox, &oy, &ow, &oh);
+
+             it_scrl_x = ev->cur.canvas.x - sd->reorder_it->dx;
+             it_scrl_y = ev->cur.canvas.y - sd->reorder_it->dy;
+
+             if (it_scrl_x < ox) sd->reorder_item_x = ox;
+             else if (it_scrl_x + sd->item_width > ox + ow)
+               sd->reorder_item_x = ox + ow - sd->item_width;
+             else sd->reorder_item_x = it_scrl_x;
+
+             if (it_scrl_y < oy) sd->reorder_item_y = oy;
+             else if (it_scrl_y + sd->item_height > oy + oh)
+               sd->reorder_item_y = oy + oh - sd->item_height;
+             else sd->reorder_item_y = it_scrl_y;
+
+             //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+             sd->calc_done = EINA_FALSE;
+             evas_object_smart_changed(sd->pan_obj);
+             //ecore_job_del(sd->calc_job);
+             //sd->calc_job = ecore_job_add(_calc_job, sd->obj);
+             //
+          }
+        return;
+     }
+
+   if (it->select_mode != ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
+     elm_coords_finger_size_adjust(1, &minw, 1, &minh);
+
+   x = ev->cur.canvas.x - x;
+   y = ev->cur.canvas.y - y;
+   dx = x - it->dx;
+   adx = dx;
+
+   if (adx < 0) adx = -dx;
+   dy = y - it->dy;
+   ady = dy;
+
+   if (ady < 0) ady = -dy;
+   minw /= 2;
+   minh /= 2;
+
+   if ((adx > minw) || (ady > minh))
+     {
+        const char *left_drag, *right_drag;
+
+        if (!elm_widget_mirrored_get(WIDGET(it)))
+          {
+             left_drag = SIG_DRAG_START_LEFT;
+             right_drag = SIG_DRAG_START_RIGHT;
+          }
+        else
+          {
+             left_drag = SIG_DRAG_START_RIGHT;
+             right_drag = SIG_DRAG_START_LEFT;
+          }
+
+        it->dragging = 1;
+
+        if (dy < 0)
+          {
+             if (ady > adx)
+               evas_object_smart_callback_call
+                 (WIDGET(it), SIG_DRAG_START_UP, eo_it);
+             else
+               {
+                  if (dx < 0)
+                    evas_object_smart_callback_call(WIDGET(it), left_drag, eo_it);
+               }
+          }
+        else
+          {
+             if (ady > adx)
+               evas_object_smart_callback_call
+                 (WIDGET(it), SIG_DRAG_START_DOWN, eo_it);
+             else
+               {
+                  if (dx < 0)
+                    evas_object_smart_callback_call(WIDGET(it), left_drag, eo_it);
+                  else
+                    evas_object_smart_callback_call
+                      (WIDGET(it), right_drag, eo_it);
+               }
+          }
+     }
+}
+
+static Eina_Bool
+_long_press_cb(void *data)
+{
+   Elm_Gen_Item *it = data;
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+
+   it->long_timer = NULL;
+   if (eo_do(EO_OBJ(it), elm_wdg_item_disabled_get()) || (it->dragging))
+     return ECORE_CALLBACK_CANCEL;
+   sd->longpressed = EINA_TRUE;
+   evas_object_smart_callback_call(WIDGET(it), SIG_LONGPRESSED, EO_OBJ(it));
+
+   if (sd->reorder_mode)
+     {
+        sd->reorder_it = it;
+        evas_object_raise(VIEW(it));
+        eo_do(WIDGET(it), elm_interface_scrollable_hold_set(EINA_TRUE));
+        eo_do(WIDGET(it), elm_interface_scrollable_bounce_allow_get(
+          &(sd->old_h_bounce),
+          &(sd->old_v_bounce)));
+
+        eo_do(WIDGET(it), elm_interface_scrollable_bounce_allow_set(EINA_FALSE, EINA_FALSE));
+        edje_object_signal_emit(VIEW(it), "elm,state,reorder,enabled", "elm");
+     }
+
+   return ECORE_CALLBACK_CANCEL;
 }
 
 static void
 _item_highlight(Elm_Gen_Item *it)
 {
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
+   const char *selectraise = NULL;
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
 
-   if (!sd->highlight) return;
-   if (elm_widget_item_disabled_get(it)) return;
-   if (it->generation < GG_IT(it)->wsd->generation) return;
-   if ((sd->select_mode == ELM_OBJECT_SELECT_MODE_NONE) ||
-       (sd->select_mode == ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY ) ||
-       (it->select_mode == ELM_OBJECT_SELECT_MODE_NONE) ||
-       (it->select_mode == ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY ))
+   if (_is_no_select(it) ||
+       (!sd->highlight) || (it->highlighted) ||
+       (it->generation < sd->generation))
      return;
-   if (it->highlighted) return;
+
+   edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
+   evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, EO_OBJ(it));
+
+   selectraise = edje_object_data_get(VIEW(it), "selectraise");
+   if ((selectraise) && (!strcmp(selectraise, "on")))
+     evas_object_stack_above(VIEW(it), sd->stack);
 
    it->highlighted = EINA_TRUE;
-   edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
-   edje_object_message_signal_process(VIEW(it));
-
-//***************** TIZEN Only
-// If check is used on gengrid item, highlight it also.
-   Eina_List *l;
-   Evas_Object *content;
-   EINA_LIST_FOREACH(it->content_objs, l, content)
-     {
-        const char *type = elm_widget_type_get(content);
-        if (elm_widget_can_focus_get(content)) sd->focused_content = content;
-        if (type && !strcmp(type, "elm_check"))
-           elm_object_signal_emit(content, "elm,state,mouse,down", "elm");
-     }
-//****************************
-   evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, it);
-}
-
-static Eina_Bool
-_highlight_timer(void *data)
-{
-   Elm_Gen_Item *it = data;
-   it->item->highlight_timer = NULL;
-   _item_highlight(it);
-   return EINA_FALSE;
-}
-
-static Eina_Bool
-_select_timer(void *data)
-{
-   Elm_Gen_Item *it = data;
-   it->item->highlight_timer = NULL;
-
-   if ((GG_IT(it)->wsd->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS) ||
-       (it->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS))
-      _item_select(it);
-   else
-     {
-        if (!it->selected)_item_select(it);
-        else _item_unselect(it);
-     }
-
-   return EINA_FALSE;
 }
 
 static void
-_highlight_timer_disable(Elm_Gen_Item *it)
+_item_unhighlight(Elm_Gen_Item *it)
 {
-   if (it->item->highlight_timer)
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+   Elm_Object_Item *eo_it = EO_OBJ(it);
+
+   if (!it->highlighted ||
+       (it->generation < sd->generation))
+      return;
+
+   edje_object_signal_emit(VIEW(it), "elm,state,unselected", "elm");
+   evas_object_smart_callback_call(WIDGET(it), SIG_UNHIGHLIGHTED, eo_it);
+
+   evas_object_stack_below(VIEW(it), sd->stack);
+
+   it->highlighted = EINA_FALSE;
+}
+
+static void
+_item_mouse_down_cb(void *data,
+                    Evas *evas EINA_UNUSED,
+                    Evas_Object *obj,
+                    void *event_info)
+{
+   Evas_Event_Mouse_Down *ev = event_info;
+   Elm_Gen_Item *it = data;
+   Evas_Coord x, y;
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+
+   if (ev->button == 3)
      {
-        ecore_timer_del(it->item->highlight_timer);
-        it->item->highlight_timer = NULL;
+        evas_object_geometry_get(obj, &x, &y, NULL, NULL);
+        it->dx = ev->canvas.x - x;
+        it->dy = ev->canvas.y - y;
+        return;
      }
+
+   if (ev->button != 1) return;
+
+   it->down = 1;
+   sd->mouse_down = EINA_TRUE;
+   it->dragging = 0;
+   evas_object_geometry_get(obj, &x, &y, NULL, NULL);
+   it->dx = ev->canvas.x - x;
+   it->dy = ev->canvas.y - y;
+   sd->longpressed = EINA_FALSE;
+   it->base->still_in = EINA_TRUE;
+
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
+     sd->on_hold = EINA_TRUE;
+   else sd->on_hold = EINA_FALSE;
+
+   if (sd->on_hold) return;
+
+   sd->was_selected = it->selected;
+   it->highlight_cb(it);
+   if (ev->flags & EVAS_BUTTON_DOUBLE_CLICK)
+     {
+        evas_object_smart_callback_call(WIDGET(it), SIG_CLICKED_DOUBLE, EO_OBJ(it));
+        evas_object_smart_callback_call(WIDGET(it), SIG_ACTIVATED, EO_OBJ(it));
+     }
+
+   evas_object_smart_callback_call(WIDGET(it), SIG_PRESSED, EO_OBJ(it));
+   ELM_SAFE_FREE(it->long_timer, ecore_timer_del);
+   if (it->realized)
+     it->long_timer = ecore_timer_add
+         (_elm_config->longpress_timeout, _long_press_cb, it);
+   else
+     it->long_timer = NULL;
 }
 
 static void
 _item_text_realize(Elm_Gen_Item *it,
                    Evas_Object *target,
+                   Eina_List **source,
                    const char *parts)
 {
-   if (it->itc->func.text_get)
+   const Eina_List *l;
+   const char *key;
+   char *s;
+
+   if (!it->itc->func.text_get) return;
+
+   if (!(*source))
+     *source = elm_widget_stringlist_get
+        (edje_object_data_get(target, "texts"));
+   EINA_LIST_FOREACH(*source, l, key)
      {
-        Eina_List *source;
-        const char *key;
+        if (parts && fnmatch(parts, key, FNM_PERIOD)) continue;
 
-        source =
-          elm_widget_stringlist_get(edje_object_data_get(target, "texts"));
-        EINA_LIST_FREE(source, key)
-           {
-              if (parts && fnmatch(parts, key, FNM_PERIOD))
-                 continue;
-
-              char *s = it->itc->func.text_get
-                  ((void *)it->base.data, WIDGET(it), key);
-
-              if (s)
-                {
-                    edje_object_part_text_escaped_set(target, key, s);
-                    free(s);
-                }
-              else
-                {
-                     edje_object_part_text_set(target, key, "");
-                }
-           }
+        s = it->itc->func.text_get
+           ((void *)WIDGET_ITEM_DATA_GET(EO_OBJ(it)), WIDGET(it), key);
+        if (s)
+          {
+             edje_object_part_text_escaped_set(target, key, s);
+             free(s);
+          }
+        else
+          {
+             edje_object_part_text_set(target, key, "");
+          }
+        if (_elm_config->atspi_mode)
+          elm_interface_atspi_accessible_name_changed_signal_emit(EO_OBJ(it));
      }
 }
 
-static Eina_List *
+static void
 _item_content_realize(Elm_Gen_Item *it,
                       Evas_Object *target,
-                      Eina_List *contents,
+                      Eina_List **contents,
                       const char *src,
                       const char *parts)
 {
+   Evas_Object *content;
+
    if (!parts)
      {
-        Evas_Object *c;
-        EINA_LIST_FREE(it->content_objs, c)
-          evas_object_del(c);
+        EINA_LIST_FREE(*contents, content)
+          evas_object_del(content);
      }
    if (it->itc->func.content_get)
      {
-        const char *key;
-        Evas_Object *ic = NULL;
         Eina_List *source;
+        const char *key;
 
-        source = elm_widget_stringlist_get
-           (edje_object_data_get(target, src));
+        source = elm_widget_stringlist_get(edje_object_data_get(target, src));
 
         EINA_LIST_FREE(source, key)
           {
@@ -621,308 +892,170 @@ _item_content_realize(Elm_Gen_Item *it,
              Evas_Object *old = edje_object_part_swallow_get(target, key);
              if (old)
                {
-                  contents = eina_list_remove(contents, old);
+                  *contents = eina_list_remove(*contents, old);
                   evas_object_del(old);
                }
-
+             content = NULL;
              if (it->itc->func.content_get)
-               ic = it->itc->func.content_get
-                   ((void *)it->base.data, WIDGET(it), key);
-             if (ic)
+               content = it->itc->func.content_get
+                  ((void *)WIDGET_ITEM_DATA_GET(EO_OBJ(it)), WIDGET(it), key);
+             if (!content) continue;
+             *contents = eina_list_append(*contents, content);
+             if (!edje_object_part_swallow(target, key, content))
                {
-                  if (!edje_object_part_swallow(target, key, ic))
-                    {
-                      WRN("%s (%p) can not be swallowed into %s",
-                           evas_object_type_get(ic), ic, key);
-                       continue;
-
-                    }
-                  evas_object_show(ic);
-                  elm_widget_sub_object_add(WIDGET(it), ic);
-                  contents = eina_list_append(contents, ic);
+                  ERR("%s (%p) can not be swallowed into %s",
+                      evas_object_type_get(content), content, key);
+                  evas_object_hide(content);
+                  continue;
                }
+             elm_widget_sub_object_add(WIDGET(it), content);
+             if (eo_do(EO_OBJ(it), elm_wdg_item_disabled_get()))
+               elm_widget_disabled_set(content, EINA_TRUE);
+             if (_elm_config->atspi_mode && eo_isa(content, ELM_INTERFACE_ATSPI_ACCESSIBLE_MIXIN))
+               eo_do(content, elm_interface_atspi_accessible_parent_set(EO_OBJ(it)));
+
           }
-     }
-   return contents;
-}
-
-static void
-_item_state_realize(Elm_Gen_Item *it,
-                    Evas_Object *target,
-                    const char *parts)
-{
-   if (it->itc->func.state_get)
-     {
-        Eina_List *source;
-        const char *key;
-        char buf[4096];
-
-        source =
-            elm_widget_stringlist_get(edje_object_data_get(target, "states"));
-        EINA_LIST_FREE(source, key)
-          {
-             if (parts && fnmatch(parts, key, FNM_PERIOD))
-               continue;
-
-             Eina_Bool on = it->itc->func.state_get
-                 ((void *)it->base.data, WIDGET(it), key);
-
-             if (on)
-               {
-                   snprintf(buf, sizeof(buf), "elm,state,%s,active", key);
-                   edje_object_signal_emit(target, buf, "elm");
-                }
-             else
-                {
-                   snprintf(buf, sizeof(buf), "elm,state,%s,passive", key);
-                   edje_object_signal_emit(target, buf, "elm");
-                }
-           }
      }
 }
 
 static void
-_item_mouse_move_cb(void *data,
-                    Evas *evas __UNUSED__,
-                    Evas_Object *obj,
-                    void *event_info)
+_item_state_realize(Elm_Gen_Item *it, Evas_Object *target, const char *parts)
 {
-   Elm_Gen_Item *it = data;
-   Evas_Event_Mouse_Move *ev = event_info;
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
-   Evas_Coord ox, oy, ow, oh, it_scrl_x, it_scrl_y;
-   Evas_Coord minw = 0, minh = 0, x, y, dx, dy, adx, ady;
+   Eina_List *src;
+   const char *key;
+   char buf[4096];
 
-   if (!it->down) return;
+   if (!it->itc->func.state_get) return;
 
-   if ((sd->reorder_mode) && (sd->reorder_it == it))
+   src = elm_widget_stringlist_get(edje_object_data_get(target, "states"));
+   EINA_LIST_FREE(src, key)
      {
-        evas_object_geometry_get
-          (sd->pan_obj, &ox, &oy, &ow, &oh);
-        it_scrl_x = ev->cur.canvas.x - sd->reorder_it->dx;
-        it_scrl_y = ev->cur.canvas.y - sd->reorder_it->dy;
+        if (parts && fnmatch(parts, key, FNM_PERIOD)) continue;
 
-        if (it_scrl_x < ox) sd->reorder_item_x = ox;
-        else if (it_scrl_x + sd->item_width > ox + ow)
-          sd->reorder_item_x = ox + ow - sd->item_width;
-        else sd->reorder_item_x = it_scrl_x;
+        Eina_Bool on = it->itc->func.state_get
+           ((void *)WIDGET_ITEM_DATA_GET(EO_OBJ(it)), WIDGET(it), key);
 
-        if (it_scrl_y < oy) sd->reorder_item_y = oy;
-        else if (it_scrl_y + sd->item_height > oy + oh)
-          sd->reorder_item_y = oy + oh - sd->item_height;
-        else sd->reorder_item_y = it_scrl_y;
-        sd->calc_done = EINA_FALSE;
-        evas_object_smart_changed(sd->pan_obj);
-     }
-
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
-     {
-        if (it->item->highlight_timer)
+        if (on)
           {
-             ecore_timer_del(it->item->highlight_timer);
-             it->item->highlight_timer = NULL;
+             snprintf(buf, sizeof(buf), "elm,state,%s,active", key);
+             edje_object_signal_emit(target, buf, "elm");
           }
-        else if (!it->selected) _item_unhighlight(it);
-
-        if (it->long_timer)
+        else
           {
-             ecore_timer_del(it->long_timer);
-             it->long_timer = NULL;
+             snprintf(buf, sizeof(buf), "elm,state,%s,passive", key);
+             edje_object_signal_emit(target, buf, "elm");
           }
      }
-   //******************** TIZEN Only
-   else
-     {
-        if ((sd->reorder_mode) && (sd->reorder_it == it) && (!it->hide)) return;
-        Evas_Coord x, y, w, h;
-        evas_object_geometry_get(obj, &x, &y, &w, &h);
-        if (ELM_RECTS_POINT_OUT(x, y, w, h, ev->cur.canvas.x, ev->cur.canvas.y))
-          {
-             if (it->long_timer)
-               {
-                  ecore_timer_del(it->long_timer);
-                  it->long_timer = NULL;
-               }
-             if (GG_IT(it)->highlight_timer)
-               {
-                  ecore_timer_del(GG_IT(it)->highlight_timer);
-                  GG_IT(it)->highlight_timer = NULL;
-               }
-             else if (!it->selected) _item_unhighlight(it);
-          }
-     }
-   //*******************************
-   evas_object_ref(obj);
-
-   if (!it->dragging)
-     {
-        elm_coords_finger_size_adjust(1, &minw, 1, &minh);
-
-        evas_object_geometry_get(obj, &x, &y, NULL, NULL);
-        dx = ev->cur.canvas.x - x;
-        dy = ev->cur.canvas.y - y;
-        dx = dx - it->dx;
-        dy = dy - it->dy;
-        adx = dx;
-        ady = dy;
-        if (adx < 0) adx = -dx;
-        if (ady < 0) ady = -dy;
-        if ((adx > minw) || (ady > minh))
-          {
-             it->dragging = EINA_TRUE;
-             if (adx > ady)
-               {
-                  if (dx < 0)
-                    evas_object_smart_callback_call
-                       (WIDGET(it), SIG_DRAG_START_LEFT, it);
-                  else
-                    evas_object_smart_callback_call
-                       (WIDGET(it), SIG_DRAG_START_RIGHT, it);
-               }
-             else
-               {
-                  if (dy < 0)
-                    evas_object_smart_callback_call
-                       (WIDGET(it), SIG_DRAG_START_UP, it);
-                  else
-                    evas_object_smart_callback_call
-                       (WIDGET(it), SIG_DRAG_START_DOWN, it);
-               }
-          }
-     }
-
-   /* If item magic value is changed, do not call smart callback*/
-   if (EINA_MAGIC_CHECK((Elm_Widget_Item *)it, ELM_WIDGET_ITEM_MAGIC))
-     {
-        if (it->dragging)
-          evas_object_smart_callback_call(WIDGET(it), SIG_DRAG, it);
-     }
-
-   evas_object_unref(obj);
-}
-
-static Eina_Bool
-_long_press_cb(void *data)
-{
-   Elm_Gen_Item *it = data,*it2;
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
-   Eina_List *l, *ll;
-
-   it->long_timer = NULL;
-
-   if (elm_widget_item_disabled_get(it) ||
-       (it->select_mode == ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY) ||
-       (sd->select_mode == ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY))
-     return ECORE_CALLBACK_CANCEL;
-
-   if ((sd->reorder_mode) && (!sd->key_down))
-     {
-        sd->reorder_it = it;
-        EINA_LIST_FOREACH_SAFE(sd->selected, l, ll, it2)
-          {
-             if (it != it2) _item_unselect(it2);
-          }
-        evas_object_raise(VIEW(it));
-        sd->s_iface->hold_set(WIDGET(it), EINA_TRUE);
-        sd->s_iface->bounce_allow_get
-          (WIDGET(it), &(GG_IT(it)->wsd->old_h_bounce),
-          &(GG_IT(it)->wsd->old_v_bounce));
-
-        sd->s_iface->bounce_allow_set(WIDGET(it), EINA_FALSE, EINA_FALSE);
-        edje_object_signal_emit(VIEW(it), "elm,state,reorder,enabled", "elm");
-     }
-
-   evas_object_smart_callback_call(WIDGET(it), SIG_LONGPRESSED, it);
-
-   return ECORE_CALLBACK_CANCEL;
+   edje_object_message_signal_process(target);
 }
 
 static void
-_item_mouse_down_cb(void *data,
-                    Evas *evas,
-                    Evas_Object *obj,
-                    void *event_info)
+_view_inflate(Evas_Object *view, Elm_Gen_Item *it, Eina_List **sources,
+              Eina_List **contents)
 {
-   Evas_Event_Mouse_Down *ev = event_info;
-   Elm_Gen_Item *it = data;
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
-   Evas_Coord x, y;
+   if (!view) return;
+   if (sources) _item_text_realize(it, view, sources, NULL);
+   if (contents) _item_content_realize(it, view, contents, "contents", NULL);
+   _item_state_realize(it, view, NULL);
+}
 
-   // FIXME: To prevent duplicated callback call
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
+/**
+ * Apply the right style for the created item view.
+ */
+static void
+_view_style_update(Elm_Gen_Item *it, Evas_Object *view, const char *style)
+{
+   char buf[1024];
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+   snprintf(buf, sizeof(buf), "item/%s", style ? style : "default");
 
-   if (ev->button != 1) return;
-   // mouse down activate only one finger touched
-   if (evas_event_down_count_get(evas) != 1) return;
-
-   it->down = EINA_TRUE;
-
-   evas_object_geometry_get(obj, &x, &y, NULL, NULL);
-   it->dx = ev->canvas.x - x;
-   it->dy = ev->canvas.y - y;
-
-   sd->was_selected = it->selected;
-   if (it->item->highlight_timer) ecore_timer_del(it->item->highlight_timer);
-   it->item->highlight_timer = ecore_timer_add(ELM_ITEM_HIGHLIGHT_TIMER,
-                                               _highlight_timer, it);
-   if (it->long_timer) ecore_timer_del(it->long_timer);
-   it->long_timer = ecore_timer_add(sd->longpress_timeout, _long_press_cb, it);
-
-   if (ev->flags & EVAS_BUTTON_DOUBLE_CLICK)
+   if (!elm_widget_theme_object_set(WIDGET(it), view,
+                                    "gengrid", buf,
+                                    elm_widget_style_get(WIDGET(it))))
      {
-        evas_object_smart_callback_call(WIDGET(it), SIG_CLICKED_DOUBLE, it);
-        evas_object_smart_callback_call(WIDGET(it), SIG_ACTIVATED, it);
+        ERR("%s is not a valid gengrid item style. "
+            "Automatically falls back into default style.",
+            style);
+        elm_widget_theme_object_set
+          (WIDGET(it), view, "gengrid", "item/default", "default");
      }
-   evas_object_smart_callback_call(WIDGET(it), SIG_PRESSED, it);
+
+   edje_object_mirrored_set(view, elm_widget_mirrored_get(WIDGET(it)));
+   edje_object_scale_set(view, elm_widget_scale_get(WIDGET(it)) *
+                         elm_config_scale_get());
+   evas_object_stack_below(view, sd->stack);
+}
+
+/**
+ * Create a VIEW(it) during _item_realize()
+ */
+static Evas_Object *
+_view_create(Elm_Gen_Item *it, const char *style)
+{
+   Evas_Object *view = edje_object_add(evas_object_evas_get(WIDGET(it)));
+   evas_object_smart_member_add(view, GG_IT(it)->wsd->pan_obj);
+   elm_widget_sub_object_add(WIDGET(it), view);
+   edje_object_scale_set(view, elm_widget_scale_get(WIDGET(it)) *
+                         elm_config_scale_get());
+
+   _view_style_update(it, view, style);
+   return view;
+}
+
+static void
+_view_clear(Evas_Object *view, Eina_List **texts, Eina_List **contents)
+{
+   const char *part;
+   Evas_Object *c;
+   const Eina_List *l;
+
+   EINA_LIST_FOREACH(*texts, l, part)
+     edje_object_part_text_set(view, part, NULL);
+   ELM_SAFE_FREE(*texts, elm_widget_stringlist_free);
+
+   EINA_LIST_FREE(*contents, c)
+     evas_object_del(c);
+}
+
+EOLIAN static void
+_elm_gengrid_item_all_contents_unset(Eo *eo_item EINA_UNUSED, Elm_Gen_Item *it, Eina_List **l)
+{
+   Evas_Object *content;
+
+   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
+
+   EINA_LIST_FREE (it->contents, content)
+     {
+        evas_object_smart_member_del(content);
+        // edje can be reused by item caching,
+        // content should be un-swallowed from edje
+        edje_object_part_unswallow(VIEW(it), content);
+        evas_object_hide(content);
+        if (l) *l = eina_list_append(*l, content);
+     }
 }
 
 static void
 _elm_gengrid_item_unrealize(Elm_Gen_Item *it,
                             Eina_Bool calc)
 {
-   Evas_Object *content;
-
    if (!it->realized) return;
    if (GG_IT(it)->wsd->reorder_it == it) return;
-#if GENGRID_FX_SUPPORT
-   if ((GG_IT(it)->has_proxy_it) && (!GG_IT(it)->wsd->gengrid_clearing))
-     {
-        if (!eina_list_data_find(GG_IT(it)->wsd->pending_unrealized_items, it))
-          GG_IT(it)->wsd->pending_unrealized_items =
-             eina_list_append(GG_IT(it)->wsd->pending_unrealized_items, it);
-        return;
-     }
-#endif
+
    evas_event_freeze(evas_object_evas_get(WIDGET(it)));
    if (!calc)
-     evas_object_smart_callback_call(WIDGET(it), SIG_UNREALIZED, it);
-   if (it->long_timer)
-     {
-        ecore_timer_del(it->long_timer);
-        it->long_timer = NULL;
-     }
+     evas_object_smart_callback_call(WIDGET(it), SIG_UNREALIZED, EO_OBJ(it));
+   ELM_SAFE_FREE(it->long_timer, ecore_timer_del);
 
-   elm_widget_stringlist_free(it->texts);
-   it->texts = NULL;
-   elm_widget_stringlist_free(it->contents);
-   it->contents = NULL;
-   elm_widget_stringlist_free(it->states);
-   it->states = NULL;
-   EINA_LIST_FREE (it->content_objs, content)
-     evas_object_del(content);
+   _view_clear(VIEW(it), &(it->texts), &(it->contents));
 
-   elm_widget_item_track_cancel(it);
+   ELM_SAFE_FREE(it->states, elm_widget_stringlist_free);
+   eo_do(EO_OBJ(it), elm_wdg_item_track_cancel());
 
-   evas_object_event_callback_del_full
-      (VIEW(it), EVAS_CALLBACK_MOUSE_DOWN, _item_mouse_down_cb, it);
-   evas_object_event_callback_del_full
-      (VIEW(it), EVAS_CALLBACK_MOUSE_UP, _item_mouse_up_cb, it);
-   evas_object_event_callback_del_full
-      (VIEW(it), EVAS_CALLBACK_MOUSE_MOVE, _item_mouse_move_cb, it);
+   it->unrealize_cb(it);
 
    it->realized = EINA_FALSE;
    it->want_unrealize = EINA_FALSE;
-   if (!_item_cache_push(it)) it->unrealize_cb(it);
 
    evas_event_thaw(evas_object_evas_get(WIDGET(it)));
    evas_event_thaw_eval(evas_object_evas_get(WIDGET(it)));
@@ -930,82 +1063,172 @@ _elm_gengrid_item_unrealize(Elm_Gen_Item *it,
 
 static void
 _item_mouse_up_cb(void *data,
-                  Evas *evas,
-                  Evas_Object *obj __UNUSED__,
+                  Evas *evas EINA_UNUSED,
+                  Evas_Object *obj EINA_UNUSED,
                   void *event_info)
 {
    Evas_Event_Mouse_Up *ev = event_info;
+   Eina_Bool dragged = EINA_FALSE;
    Elm_Gen_Item *it = data;
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
+   Elm_Object_Item *eo_it = EO_OBJ(it);
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+   Evas_Coord x, y, dx, dy;
 
-   it->down = EINA_FALSE;
+   if ((ev->button == 3) && (!it->dragging))
+     {
+        evas_object_geometry_get(obj, &x, &y, NULL, NULL);
+        dx = it->dx - (ev->canvas.x - x);
+        dy = it->dy - (ev->canvas.y - y);
+        if (dx < 0) dx = -dx;
+        if (dy < 0) dy = -dy;
+        if ((dx < 5) && (dy < 5))
+          evas_object_smart_callback_call(WIDGET(it), SIG_CLICKED_RIGHT, EO_OBJ(it));
+        return;
+     }
 
    if (ev->button != 1) return;
 
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
-     {
-        if (it->dragging)
-          {
-             it ->dragging = EINA_FALSE;
-             evas_object_smart_callback_call(WIDGET(it), SIG_DRAG_STOP, it);
-          }
-     }
-   if (evas_event_down_count_get(evas) != 0)
-     {
-        if (!it->item->highlight_timer) _item_unhighlight(it);
-     }
+   // TIZEN_ONLY(20150209): fix the unremoved highlight
+   if (!it->down) return;
+   //
 
-   if (it->long_timer)
+   it->down = EINA_FALSE;
+   sd->mouse_down = EINA_FALSE;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
+     sd->on_hold = EINA_TRUE;
+   else sd->on_hold = EINA_FALSE;
+
+   evas_object_smart_callback_call(WIDGET(it), SIG_RELEASED, eo_it);
+   ELM_SAFE_FREE(it->long_timer, ecore_timer_del);
+   if (it->dragging)
      {
-        ecore_timer_del(it->long_timer);
-        it->long_timer = NULL;
-     }
-   if (it->item->highlight_timer)
-     {
-        ecore_timer_del(it->item->highlight_timer);
-        it->item->highlight_timer = NULL;
-        // Because naviframe can drop the all evevents.
-        // highlight it before select timer is called.
-        if (evas_event_down_count_get(evas) == 0) _item_highlight(it);
+        it->dragging = EINA_FALSE;
+        evas_object_smart_callback_call(WIDGET(it), SIG_DRAG_STOP, eo_it);
+        dragged = EINA_TRUE;
      }
    if ((sd->reorder_mode) &&
-       (sd->reorder_it == it))
+       (sd->reorder_it))
      {
-        if (!it->selected) _item_unhighlight(it);
         evas_object_smart_callback_call
-          (WIDGET(it), SIG_MOVED, sd->reorder_it);
+          (WIDGET(it), SIG_MOVED, EO_OBJ(sd->reorder_it));
         sd->reorder_it = NULL;
         sd->move_effect_enabled = EINA_FALSE;
+        //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
         sd->calc_done = EINA_FALSE;
         evas_object_smart_changed(sd->pan_obj);
-        sd->s_iface->hold_set(WIDGET(it), EINA_FALSE);
-        sd->s_iface->bounce_allow_set
-          (WIDGET(it), GG_IT(it)->wsd->old_h_bounce,
-          GG_IT(it)->wsd->old_v_bounce);
+        //ecore_job_del(sd->calc_job);
+        //sd->calc_job =
+        //  ecore_job_add(_calc_job, sd->obj);
+        //
+
+        eo_do(WIDGET(it), elm_interface_scrollable_hold_set(EINA_FALSE));
+        eo_do(WIDGET(it), elm_interface_scrollable_bounce_allow_set(
+              sd->old_h_bounce, sd->old_v_bounce));
 
         edje_object_signal_emit(VIEW(it), "elm,state,reorder,disabled", "elm");
      }
-   else if ((evas_event_down_count_get(evas) == 0) &&
-            !(ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD))
+   //TIZEN_ONLY(20150819) : longpress not unselect item select
+   if (sd->longpressed) sd->longpressed = EINA_FALSE;
+   if (dragged)
      {
-        // FIXME: if highlight mode is not used, mouse move cannot disable
-        // _item_select
-        if ((sd->highlight && it->highlighted) || !sd->highlight)
+        if (it->want_unrealize)
+          _elm_gengrid_item_unrealize(it, EINA_FALSE);
+     }
+
+   if (eo_do(eo_it, elm_wdg_item_disabled_get())) return;
+
+   if (sd->on_hold || !it->base->still_in)
+     {
+        sd->longpressed = EINA_FALSE;
+        sd->on_hold = EINA_FALSE;
+        return;
+     }
+   if (sd->focused_item != eo_it)
+     elm_object_item_focus_set(eo_it, EINA_TRUE);
+
+   if (sd->multi &&
+       ((sd->multi_select_mode != ELM_OBJECT_MULTI_SELECT_MODE_WITH_CONTROL) ||
+        (evas_key_modifier_is_set(ev->modifiers, "Control"))))
+     {
+        if (!it->selected)
           {
-             if (sd->was_selected == it->selected)
-             it->item->highlight_timer =
-                ecore_timer_add(ITEM_SELECT_TIMER, _select_timer, it);
+             it->highlight_cb(it);
+             it->sel_cb(it);
+          }
+        else
+          {
+             it->unhighlight_cb(it);
+             it->unsel_cb(it);
           }
      }
-   evas_object_smart_callback_call(WIDGET(it), SIG_RELEASED, it);
+   else
+     {
+        if (!it->selected)
+          {
+             while (sd->selected)
+               {
+                  Elm_Object_Item *eo_sel = sd->selected->data;
+                  Elm_Gen_Item *sel = eo_data_scope_get(eo_sel, ELM_GENGRID_ITEM_CLASS);
+                  it->unhighlight_cb(sel);
+                  it->unsel_cb(sel);
+               }
+          }
+        else
+          {
+             const Eina_List *l, *l_next;
+             Elm_Object_Item *eo_item2;
+
+             EINA_LIST_FOREACH_SAFE(sd->selected, l, l_next, eo_item2)
+               {
+                  ELM_GENGRID_ITEM_DATA_GET(eo_item2, item2);
+                  if (item2 != it)
+                    {
+                       it->unhighlight_cb(item2);
+                       it->unsel_cb(item2);
+                    }
+               }
+          }
+        it->highlight_cb(it);
+        it->sel_cb(it);
+     }
 }
+
+static void
+_item_mouse_callbacks_add(Elm_Gen_Item *it,
+                          Evas_Object *view)
+{
+   evas_object_event_callback_add
+     (view, EVAS_CALLBACK_MOUSE_IN, _item_mouse_in_cb, it);
+   evas_object_event_callback_add
+     (view, EVAS_CALLBACK_MOUSE_MOVE, _item_mouse_move_cb, it);
+   evas_object_event_callback_add
+     (view, EVAS_CALLBACK_MOUSE_DOWN, _item_mouse_down_cb, it);
+   evas_object_event_callback_add
+     (view, EVAS_CALLBACK_MOUSE_UP, _item_mouse_up_cb, it);
+}
+
+static void
+_item_mouse_callbacks_del(Elm_Gen_Item *it,
+                          Evas_Object *view)
+{
+   evas_object_event_callback_del_full
+     (view, EVAS_CALLBACK_MOUSE_IN, _item_mouse_in_cb, it);
+   evas_object_event_callback_del_full
+     (view, EVAS_CALLBACK_MOUSE_MOVE, _item_mouse_move_cb, it);
+   evas_object_event_callback_del_full
+     (view, EVAS_CALLBACK_MOUSE_DOWN, _item_mouse_down_cb, it);
+   evas_object_event_callback_del_full
+     (view, EVAS_CALLBACK_MOUSE_UP, _item_mouse_up_cb, it);
+}
+
+
 
 static void
 _elm_gengrid_item_index_update(Elm_Gen_Item *it)
 {
    if (it->position_update)
      {
-        evas_object_smart_callback_call(WIDGET(it), SIG_INDEX_UPDATE, it);
+        evas_object_smart_callback_call(WIDGET(it), SIG_INDEX_UPDATE, EO_OBJ(it));
         it->position_update = EINA_FALSE;
      }
 }
@@ -1013,17 +1236,23 @@ _elm_gengrid_item_index_update(Elm_Gen_Item *it)
 static void
 _item_unrealize_cb(Elm_Gen_Item *it)
 {
-   evas_object_del(VIEW(it));
-   VIEW(it) = NULL;
-   evas_object_del(it->spacer);
-   it->spacer = NULL;
+   if (!_item_cache_add(it))
+     {
+        ELM_SAFE_FREE(VIEW(it), evas_object_del);
+        ELM_SAFE_FREE(it->spacer, evas_object_del);
+     }
 }
 
 static char *
-_access_info_cb(void *data, Evas_Object *obj __UNUSED__)
+_access_info_cb(void *data, Evas_Object *obj EINA_UNUSED)
 {
+   char *ret;
+   Eina_Strbuf *buf;
+
    Elm_Gen_Item *it = (Elm_Gen_Item *)data;
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, NULL);
+
+   buf = eina_strbuf_new();
 
    if (it->itc->func.text_get)
      {
@@ -1036,27 +1265,33 @@ _access_info_cb(void *data, Evas_Object *obj __UNUSED__)
         EINA_LIST_FOREACH(it->texts, l, key)
           {
              char *s = it->itc->func.text_get
-                ((void *)it->base.data, WIDGET(it), key);
-             return s;
+                ((void *)WIDGET_ITEM_DATA_GET(EO_OBJ(it)), WIDGET(it), key);
+             //TIZEN_ONLY(20150817)
+             if (s)
+               {
+                  if (eina_strbuf_length_get(buf) > 0) eina_strbuf_append(buf, ", ");
+                  eina_strbuf_append(buf, s);
+                  free(s);
+               }
+             //
           }
      }
-
-   return NULL;
+   ret = eina_strbuf_string_steal(buf);
+   eina_strbuf_free(buf);
+   return ret;
 }
 
-/*
 static char *
-_access_state_cb(void *data, Evas_Object *obj __UNUSED__)
+_access_state_cb(void *data, Evas_Object *obj EINA_UNUSED)
 {
    Elm_Gen_Item *it = (Elm_Gen_Item *)data;
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, NULL);
 
-   if (it->base.disabled)
+   if (it->base->disabled)
      return strdup(E_("State: Disabled"));
 
    return NULL;
 }
-*/
 
 static void
 _access_on_highlight_cb(void *data)
@@ -1066,26 +1301,12 @@ _access_on_highlight_cb(void *data)
    Elm_Gen_Item *it = (Elm_Gen_Item *)data;
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
 
-   ELM_GENGRID_DATA_GET(it->base.widget, sd);
+   evas_object_geometry_get(it->base->view, &x, &y, &w, &h);
 
-   evas_object_geometry_get(it->base.view, &x, &y, &w, &h);
-
-   evas_object_geometry_get(ELM_WIDGET_DATA(sd)->obj, &sx, &sy, &sw, &sh);
+   evas_object_geometry_get(it->base->widget, &sx, &sy, &sw, &sh);
    if ((x < sx) || (y < sy) || ((x + w) > (sx + sw)) || ((y + h) > (sy + sh)))
-     elm_gengrid_item_bring_in((Elm_Object_Item *)it,
+     elm_gengrid_item_bring_in(EO_OBJ(it),
                                ELM_GENGRID_ITEM_SCROLLTO_IN);
-}
-
-static void
-_access_activate_cb(void *data __UNUSED__,
-                    Evas_Object *part_obj __UNUSED__,
-                    Elm_Object_Item *item)
-{
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
-
-   if (!_elm_util_freeze_events_get(WIDGET(item)))
-      _item_select((Elm_Gen_Item *)item);
 }
 
 static void
@@ -1093,209 +1314,123 @@ _access_widget_item_register(Elm_Gen_Item *it)
 {
    Elm_Access_Info *ai;
 
-   _elm_access_widget_item_register((Elm_Widget_Item *)it);
+   _elm_access_widget_item_register(it->base);
 
-   ai = _elm_access_object_get(it->base.access_obj);
+   ai = _elm_access_info_get(it->base->access_obj);
 
-   //Tinzen only: comment out type information & state information
+   //TIZEN_ONLY(20150817): comment out type information
    //_elm_access_text_set(ai, ELM_ACCESS_TYPE, E_("Gengrid Item"));
    _elm_access_callback_set(ai, ELM_ACCESS_INFO, _access_info_cb, it);
-   //_elm_access_callback_set(ai, ELM_ACCESS_STATE, _access_state_cb, it);
+   _elm_access_callback_set(ai, ELM_ACCESS_STATE, _access_state_cb, it);
    _elm_access_on_highlight_hook_set(ai, _access_on_highlight_cb, it);
-   _elm_access_activate_callback_set(ai, _access_activate_cb, it);
-}
-
-// FIXME: There are applications which do not use elm_win as top widget.
-// This is workaround! Those could not use focus!
-static Eina_Bool _focus_enabled(Evas_Object *obj)
-{
-   if (!elm_widget_focus_get(obj)) return EINA_FALSE;
-
-   const Evas_Object *win = elm_widget_top_get(obj);
-   const char *type = evas_object_type_get(win);
-
-   if (type && !strcmp(type, "elm_win"))
-     {
-        return elm_win_focus_highlight_enabled_get(win);
-     }
-   return EINA_FALSE;
-}
-
-static void
-_view_theme_update(Elm_Gen_Item *it)
-{
-   char style[1024];
-
-   snprintf(style, sizeof(style), "item/%s",
-         it->itc->item_style ? it->itc->item_style : "default");
-   elm_widget_theme_object_set(WIDGET(it), VIEW(it), "gengrid", style,
-                            elm_widget_style_get(WIDGET(it)));
-   edje_object_mirrored_set(VIEW(it), elm_widget_mirrored_get(WIDGET(it)));
-   edje_object_scale_set
-      (VIEW(it), elm_widget_scale_get(WIDGET(it)) * elm_config_scale_get());
 }
 
 static void
 _item_realize(Elm_Gen_Item *it)
 {
-   char buf[1024];
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+   Elm_Object_Item *eo_it = EO_OBJ(it);
 
    if ((it->realized) ||
-       (it->generation < GG_IT(it)->wsd->generation))
+       (it->generation < sd->generation))
      return;
 
-   if (!_item_cache_pop(it))
+   if (!_item_cache_find(it))
      {
-        VIEW(it) = edje_object_add(evas_object_evas_get(WIDGET(it)));
-        evas_object_smart_member_add(VIEW(it), GG_IT(it)->wsd->pan_obj);
-        elm_widget_sub_object_add(WIDGET(it), VIEW(it));
-        _view_theme_update(it);
+        VIEW(it) = _view_create(it, it->itc->item_style);
+
+        if (it->item->nocache_once)
+          it->item->nocache_once = EINA_FALSE;
      }
 
-   it->spacer =
-     evas_object_rectangle_add(evas_object_evas_get(WIDGET(it)));
-   evas_object_color_set(it->spacer, 0, 0, 0, 0);
-   elm_widget_sub_object_add(WIDGET(it), it->spacer);
-   evas_object_size_hint_min_set(it->spacer, 2 * elm_config_scale_get(), 1);
-   edje_object_part_swallow(VIEW(it), "elm.swallow.pad", it->spacer);
+   if (it->spacer && edje_object_part_exists(VIEW(it), "elm.swallow.pad"))
+     {
+        it->spacer =
+           evas_object_rectangle_add(evas_object_evas_get(WIDGET(it)));
+        evas_object_color_set(it->spacer, 0, 0, 0, 0);
+        elm_widget_sub_object_add(WIDGET(it), it->spacer);
+        evas_object_size_hint_min_set(it->spacer, 2 * elm_config_scale_get(), 1);
+        edje_object_part_swallow(VIEW(it), "elm.swallow.pad", it->spacer);
+     }
 
    /* access */
    if (_elm_config->access_mode) _access_widget_item_register(it);
 
-   if (it->itc->func.text_get)
-     {
-        const Eina_List *l;
-        const char *key;
-
-        it->texts =
-          elm_widget_stringlist_get(edje_object_data_get(VIEW(it), "texts"));
-        EINA_LIST_FOREACH(it->texts, l, key)
-          {
-             char *s = it->itc->func.text_get
-                 ((void *)it->base.data, WIDGET(it), key);
-             if (s)
-               {
-                  edje_object_part_text_escaped_set(VIEW(it), key, s);
-                  free(s);
-               }
-             else
-               edje_object_part_text_set(VIEW(it), key, "");
-          }
-     }
-
-   if (it->itc->func.content_get)
-     {
-        const Eina_List *l;
-        const char *key;
-        Evas_Object *ic = NULL;
-
-        it->contents = elm_widget_stringlist_get
-            (edje_object_data_get(VIEW(it), "contents"));
-        EINA_LIST_FOREACH(it->contents, l, key)
-          {
-             if (it->itc->func.content_get)
-               ic = it->itc->func.content_get
-                   ((void *)it->base.data, WIDGET(it), key);
-             if (ic)
-               {
-                  it->content_objs = eina_list_append(it->content_objs, ic);
-                  edje_object_part_swallow(VIEW(it), key, ic);
-                  evas_object_show(ic);
-                  elm_widget_sub_object_add(WIDGET(it), ic);
-               }
-          }
-     }
-
-   if (it->itc->func.state_get)
-     {
-        const Eina_List *l;
-        const char *key;
-
-        it->states =
-          elm_widget_stringlist_get(edje_object_data_get(VIEW(it), "states"));
-        EINA_LIST_FOREACH(it->states, l, key)
-          {
-             Eina_Bool on = it->itc->func.state_get
-                 ((void *)it->base.data, WIDGET(it), l->data);
-             if (on)
-               {
-                  snprintf(buf, sizeof(buf), "elm,state,%s,active", key);
-                  edje_object_signal_emit(VIEW(it), buf, "elm");
-               }
-          }
-     }
+   /* infate texts, contents and states of view object */
+   _view_inflate(VIEW(it), it, &it->texts, &it->contents);
 
    if (it->group)
      {
-        if ((!GG_IT(it)->wsd->group_item_width)
-            && (!GG_IT(it)->wsd->group_item_height))
+        if ((!sd->group_item_width)
+            && (!sd->group_item_height))
           {
              edje_object_size_min_restricted_calc
-               (VIEW(it), &GG_IT(it)->wsd->group_item_width,
-               &GG_IT(it)->wsd->group_item_height,
-               GG_IT(it)->wsd->group_item_width,
-               GG_IT(it)->wsd->group_item_height);
+               (VIEW(it), &sd->group_item_width,
+               &sd->group_item_height,
+               sd->group_item_width,
+               sd->group_item_height);
           }
      }
    else
      {
-        if ((!GG_IT(it)->wsd->item_width)
-            && (!GG_IT(it)->wsd->item_height))
+        if ((!sd->item_width)
+            && (!sd->item_height))
           {
              edje_object_size_min_restricted_calc
-               (VIEW(it), &GG_IT(it)->wsd->item_width,
-               &GG_IT(it)->wsd->item_height,
-               GG_IT(it)->wsd->item_width,
-               GG_IT(it)->wsd->item_height);
+               (VIEW(it), &sd->item_width,
+               &sd->item_height,
+               sd->item_width,
+               sd->item_height);
              elm_coords_finger_size_adjust
-               (1, &GG_IT(it)->wsd->item_width, 1,
-               &GG_IT(it)->wsd->item_height);
+               (1, &sd->item_width, 1,
+               &sd->item_height);
           }
 
-        evas_object_event_callback_add
-          (VIEW(it), EVAS_CALLBACK_MOUSE_DOWN, _item_mouse_down_cb, it);
-        evas_object_event_callback_add
-          (VIEW(it), EVAS_CALLBACK_MOUSE_UP, _item_mouse_up_cb, it);
-
-        evas_object_event_callback_add
-          (VIEW(it), EVAS_CALLBACK_MOUSE_MOVE, _item_mouse_move_cb, it);
-
-        _elm_gengrid_item_index_update(it);
+        _item_mouse_callbacks_add(it, VIEW(it));
 
         if (it->selected)
           edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
-
-        if (_focus_enabled(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj))
-          {
-             if (GG_IT(it)->wsd->focused)
-                edje_object_signal_emit (VIEW(GG_IT(it)->wsd->focused), "elm,action,focus_highlight,show", "elm");
-          }
-        if (elm_widget_item_disabled_get(it))
+        if (eo_do(eo_it, elm_wdg_item_disabled_get()))
           edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
      }
-
+   edje_object_message_signal_process(VIEW(it));
    evas_object_show(VIEW(it));
 
    if (it->tooltip.content_cb)
      {
-        elm_widget_item_tooltip_content_cb_set
-          (it, it->tooltip.content_cb, it->tooltip.data, NULL);
-        elm_widget_item_tooltip_style_set(it, it->tooltip.style);
-        elm_widget_item_tooltip_window_mode_set(it, it->tooltip.free_size);
+        eo_do(eo_it,
+              elm_wdg_item_tooltip_content_cb_set(
+                 it->tooltip.content_cb, it->tooltip.data, NULL),
+              elm_wdg_item_tooltip_style_set(it->tooltip.style),
+              elm_wdg_item_tooltip_window_mode_set(it->tooltip.free_size));
      }
 
    if (it->mouse_cursor)
-     elm_widget_item_cursor_set(it, it->mouse_cursor);
+     eo_do(eo_it, elm_wdg_item_cursor_set(it->mouse_cursor));
+
+   if (it->cursor_engine_only)
+     eo_do(eo_it, elm_wdg_item_cursor_engine_only_set(it->cursor_engine_only));
+
+   if (eo_it == sd->focused_item)
+     {
+        const char *focus_raise;
+        if (elm_widget_focus_highlight_enabled_get(WIDGET(it)))
+          {
+             edje_object_signal_emit
+                (VIEW(it), "elm,state,focused", "elm");
+          }
+
+        focus_raise = edje_object_data_get(VIEW(it), "focusraise");
+        if ((focus_raise) && (!strcmp(focus_raise, "on")))
+          evas_object_raise(VIEW(it));
+
+        _elm_widget_item_highlight_in_theme(WIDGET(it), EO_OBJ(it));
+        _elm_widget_highlight_in_theme_update(WIDGET(it));
+        _elm_widget_focus_highlight_start(WIDGET(it));
+     }
 
    it->realized = EINA_TRUE;
    it->want_unrealize = EINA_FALSE;
-
-//The item should be lowered if realized while reorder mode is on.
-   if (GG_IT(it)->wsd->reorder_mode)
-      evas_object_lower(VIEW(it));
-
-   edje_object_message_signal_process(VIEW(it));
 }
 
 static Eina_Bool
@@ -1304,6 +1439,7 @@ _reorder_item_move_animator_cb(void *data)
    Elm_Gen_Item *it = data;
    Evas_Coord dx, dy;
    double tt, t;
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
 
    tt = REORDER_EFFECT_TIME;
    t = ((0.0 > (t = ecore_loop_time_get() -
@@ -1335,17 +1471,16 @@ _reorder_item_move_animator_cb(void *data)
              Evas_Coord vw, vh;
 
              evas_object_geometry_get
-               (GG_IT(it)->wsd->pan_obj, NULL, NULL, &vw, &vh);
-             if (GG_IT(it)->wsd->horizontal)
+               (sd->pan_obj, NULL, NULL, &vw, &vh);
+             if (sd->horizontal)
                evas_object_resize
-                 (VIEW(it), GG_IT(it)->wsd->group_item_width, vh);
+                 (VIEW(it), sd->group_item_width, vh);
              else
                evas_object_resize
-                 (VIEW(it), vw, GG_IT(it)->wsd->group_item_height);
+                 (VIEW(it), vw, sd->group_item_height);
           }
         else
-          evas_object_resize(VIEW(it), GG_IT(it)->wsd->item_width,
-                             GG_IT(it)->wsd->item_height);
+          evas_object_resize(VIEW(it), sd->item_width, sd->item_height);
         GG_IT(it)->moving = EINA_FALSE;
         GG_IT(it)->item_reorder_move_animator = NULL;
 
@@ -1357,19 +1492,14 @@ _reorder_item_move_animator_cb(void *data)
      {
         Evas_Coord vw, vh;
 
-        evas_object_geometry_get
-          (GG_IT(it)->wsd->pan_obj, NULL, NULL, &vw, &vh);
-        if (GG_IT(it)->wsd->horizontal)
-          evas_object_resize
-            (VIEW(it), GG_IT(it)->wsd->group_item_width, vh);
+        evas_object_geometry_get(sd->pan_obj, NULL, NULL, &vw, &vh);
+        if (sd->horizontal)
+          evas_object_resize(VIEW(it), sd->group_item_width, vh);
         else
-          evas_object_resize
-            (VIEW(it), vw, GG_IT(it)->wsd->group_item_height);
+          evas_object_resize(VIEW(it), vw, sd->group_item_height);
      }
    else
-     evas_object_resize
-       (VIEW(it), GG_IT(it)->wsd->item_width,
-       GG_IT(it)->wsd->item_height);
+     evas_object_resize(VIEW(it), sd->item_width, sd->item_height);
 
    return ECORE_CALLBACK_RENEW;
 }
@@ -1382,17 +1512,16 @@ _item_place(Elm_Gen_Item *it,
    Evas_Coord x, y, ox, oy, cvx, cvy, cvw, cvh, iw, ih, ww;
    Evas_Coord tch, tcw, alignw = 0, alignh = 0, vw, vh;
    Eina_Bool reorder_item_move_forward = EINA_FALSE;
-   Elm_Gengrid_Smart_Data *wsd;
    Eina_Bool was_realized;
    Elm_Gen_Item_Type *item;
    long items_count;
+   int item_pos;
 
    item = GG_IT(it);
-   wsd = GG_IT(it)->wsd;
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, wsd);
 
    it->x = cx;
    it->y = cy;
-
    evas_object_geometry_get(wsd->pan_obj, &ox, &oy, &vw, &vh);
 
    /* Preload rows/columns at each side of the Gengrid */
@@ -1400,9 +1529,6 @@ _item_place(Elm_Gen_Item *it,
    cvy = oy - PRELOAD * wsd->item_height;
    cvw = vw + 2 * PRELOAD * wsd->item_width;
    cvh = vh + 2 * PRELOAD * wsd->item_height;
-
-   alignh = 0;
-   alignw = 0;
 
    items_count = wsd->item_count -
      eina_list_count(wsd->group_items) + wsd->items_lost;
@@ -1432,7 +1558,12 @@ _item_place(Elm_Gen_Item *it,
         else
           tch = items_row * wsd->item_height;
         alignh = (vh - tch) * wsd->align_y;
-        it->position = items_row * cx + cy + 1;
+        item_pos = items_row * cx + cy + 1;
+        if (item_pos != it->position && !it->position_update)
+          {
+             it->position = item_pos;
+             it->position_update = EINA_TRUE;
+          }
      }
    else
      {
@@ -1460,7 +1591,12 @@ _item_place(Elm_Gen_Item *it,
         else
           tcw = items_col * wsd->item_width;
         alignw = (vw - tcw) * wsd->align_x;
-        it->position = cx + items_col * cy + 1;
+        item_pos = cx + items_col * cy + 1;
+        if (item_pos != it->position && !it->position_update)
+          {
+             it->position = item_pos;
+             it->position_update = EINA_TRUE;
+          }
      }
 
    if (it->group)
@@ -1509,7 +1645,7 @@ _item_place(Elm_Gen_Item *it,
                                                   * mode */
           {
              evas_object_geometry_get(WIDGET(it), NULL, NULL, &ww, NULL);
-             x = ww - x - wsd->item_width - wsd->pan_x - wsd->pan_x;
+             x = ww - x - wsd->item_width - wsd->pan_x - wsd->pan_x + ox + ox;
           }
         iw = wsd->item_width;
         ih = wsd->item_height;
@@ -1520,9 +1656,35 @@ _item_place(Elm_Gen_Item *it,
      {
         _item_realize(it);
         if (!was_realized)
-          evas_object_smart_callback_call(WIDGET(it), SIG_REALIZED, it);
+          {
+             _elm_gengrid_item_index_update(it);
+             evas_object_smart_callback_call(WIDGET(it), SIG_REALIZED, EO_OBJ(it));
+          }
         if (it->parent)
-          it->parent->item->group_realized = EINA_TRUE;
+          {
+             if (wsd->horizontal)
+               {
+                  if (it->parent->item->gx < ox)
+                    {
+                       it->parent->item->gx = x + wsd->item_width -
+                         wsd->group_item_width;
+                       if (it->parent->item->gx > ox)
+                         it->parent->item->gx = ox;
+                    }
+                  it->parent->item->group_realized = EINA_TRUE;
+               }
+             else
+               {
+                  if (it->parent->item->gy < oy)
+                    {
+                       it->parent->item->gy = y + wsd->item_height -
+                         wsd->group_item_height;
+                       if (it->parent->item->gy > oy)
+                         it->parent->item->gy = oy;
+                    }
+                  it->parent->item->group_realized = EINA_TRUE;
+               }
+          }
         if (wsd->reorder_mode)
           {
              if (wsd->reorder_it)
@@ -1564,9 +1726,6 @@ _item_place(Elm_Gen_Item *it,
                                    item->moving = EINA_TRUE;
                                    item->moving_effect_start_time =
                                      ecore_loop_time_get();
-                                   if (item->item_reorder_move_animator)
-                                     ecore_animator_del
-                                       (item->item_reorder_move_animator);
                                    item->item_reorder_move_animator =
                                      ecore_animator_add
                                        (_reorder_item_move_animator_cb, it);
@@ -1636,27 +1795,33 @@ _item_place(Elm_Gen_Item *it,
 
                             wsd->reorder_item_changed = EINA_TRUE;
                             wsd->move_effect_enabled = EINA_TRUE;
-                             wsd->calc_done = EINA_FALSE;
+
+                            //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+                            wsd->calc_done = EINA_FALSE;
                             evas_object_smart_changed(wsd->pan_obj);
+                            //ecore_job_del(wsd->calc_job);
+                            //wsd->calc_job =
+                            //  ecore_job_add(_calc_job, wsd->obj);
+                            //
+
                             return;
                          }
                     }
                }
              else if (item->item_reorder_move_animator)
                {
-                  ecore_animator_del
-                    (item->item_reorder_move_animator);
-                  item->item_reorder_move_animator = NULL;
+                  ELM_SAFE_FREE(item->item_reorder_move_animator,
+                                ecore_animator_del);
                   item->moving = EINA_FALSE;
                }
           }
-        GG_IT(it)->scrl_x = x;
-        GG_IT(it)->scrl_y = y;
-        GG_IT(it)->w = iw;
-        GG_IT(it)->h = ih;
-        if (it->group) item->group_realized = EINA_TRUE;
-        evas_object_move(VIEW(it), x, y);
-        evas_object_resize(VIEW(it), iw, ih);
+        if (!it->group)
+          {
+             evas_object_move(VIEW(it), x, y);
+             evas_object_resize(VIEW(it), iw, ih);
+          }
+        else
+          item->group_realized = EINA_TRUE;
      }
    else
      {
@@ -1668,7 +1833,7 @@ _item_place(Elm_Gen_Item *it,
 }
 
 static void
-_group_item_place(Elm_Gengrid_Pan_Smart_Data *psd)
+_group_item_place(Elm_Gengrid_Pan_Data *psd)
 {
    Evas_Coord iw, ih, vw, vh;
    Eina_Bool was_realized;
@@ -1693,10 +1858,10 @@ _group_item_place(Elm_Gengrid_Pan_Smart_Data *psd)
           {
              _item_realize(it);
              if (!was_realized)
-               evas_object_smart_callback_call(WIDGET(it), SIG_REALIZED, it);
-             //Need to update the correct coordenates for group index fo fx use.
-             GG_IT(it)->scrl_x = GG_IT(it)->gx;
-             GG_IT(it)->scrl_y = GG_IT(it)->gy;
+               {
+                  _elm_gengrid_item_index_update(it);
+                  evas_object_smart_callback_call(WIDGET(it), SIG_REALIZED, EO_OBJ(it));
+               }
              evas_object_move
                (VIEW(it), GG_IT(it)->gx,
                GG_IT(it)->gy);
@@ -1708,29 +1873,29 @@ _group_item_place(Elm_Gengrid_Pan_Smart_Data *psd)
      }
 }
 
-static void
-_elm_gengrid_pan_smart_calculate(Evas_Object *obj)
+EOLIAN static void
+_elm_gengrid_pan_evas_object_smart_calculate(Eo *obj EINA_UNUSED, Elm_Gengrid_Pan_Data *psd)
 {
    Evas_Coord cx = 0, cy = 0;
    Elm_Gen_Item *it;
 
-   ELM_GENGRID_PAN_DATA_GET(obj, psd);
+   Elm_Gengrid_Data *sd = psd->wsd;
 
-   if (!psd->wsd->calc_done) _calc(psd->wsd);
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+   if (!sd->calc_done) _calc(sd->obj);
+   //
+   if (!sd->nmax) return;
 
-#if GENGRID_FX_SUPPORT
-   if (psd->wsd->fx_playing) return;
-#endif
+   //TIZEN_ONLY(20150825) : Use the specific wanted_region_set func only for gengrid.
+   sd->is_append = EINA_FALSE;
+   //
+   sd->reorder_item_changed = EINA_FALSE;
 
-   if (!psd->wsd->nmax) return;
-
-   psd->wsd->reorder_item_changed = EINA_FALSE;
-
-   EINA_INLIST_FOREACH(psd->wsd->items, it)
+   EINA_INLIST_FOREACH(sd->items, it)
      {
         if (it->group)
           {
-             if (psd->wsd->horizontal)
+             if (sd->horizontal)
                {
                   if (cy)
                     {
@@ -1747,11 +1912,12 @@ _elm_gengrid_pan_smart_calculate(Evas_Object *obj)
                     }
                }
           }
+
         _item_place(it, cx, cy);
-        if (psd->wsd->reorder_item_changed) return;
+        if (sd->reorder_item_changed) return;
         if (it->group)
           {
-             if (psd->wsd->horizontal)
+             if (sd->horizontal)
                {
                   cx++;
                   cy = 0;
@@ -1764,87 +1930,64 @@ _elm_gengrid_pan_smart_calculate(Evas_Object *obj)
           }
         else
           {
-             if (psd->wsd->horizontal)
+             if (sd->horizontal)
                {
-                  cy = (cy + 1) % psd->wsd->nmax;
+                  cy = (cy + 1) % sd->nmax;
                   if (!cy) cx++;
                }
              else
                {
-                  cx = (cx + 1) % psd->wsd->nmax;
+                  cx = (cx + 1) % sd->nmax;
                   if (!cx) cy++;
                }
           }
      }
    _group_item_place(psd);
 
-   if ((psd->wsd->reorder_mode) && (psd->wsd->reorder_it))
+   if ((sd->reorder_mode) && (sd->reorder_it))
      {
-        if (!psd->wsd->reorder_item_changed)
+        if (!sd->reorder_item_changed)
           {
-             psd->wsd->old_pan_x = psd->wsd->pan_x;
-             psd->wsd->old_pan_y = psd->wsd->pan_y;
+             sd->old_pan_x = sd->pan_x;
+             sd->old_pan_y = sd->pan_y;
           }
-        psd->wsd->move_effect_enabled = EINA_FALSE;
+        sd->move_effect_enabled = EINA_FALSE;
      }
-   evas_object_smart_callback_call
-     (ELM_WIDGET_DATA(psd->wsd)->obj, SIG_CHANGED, NULL);
-   if ((psd->wsd->show_region || psd->wsd->bring_in))
-     _item_show_region(psd->wsd);
 
-#if GENGRID_FX_SUPPORT
-   psd->wsd->rendered = EINA_TRUE;
-   if (psd->wsd->fx_mode)
-     {
-        if (_elm_gengrid_fx_capture(ELM_WIDGET_DATA(psd->wsd)->obj, 1))
-          _elm_gengrid_fx_play(ELM_WIDGET_DATA(psd->wsd)->obj);
-     }
-#endif
+   evas_object_smart_callback_call
+     (psd->wobj, SIG_CHANGED, NULL);
+
+   if (sd->focused_item)
+     _elm_widget_focus_highlight_start(psd->wobj);
 }
 
-static void
-_elm_gengrid_pan_smart_pos_set(Evas_Object *obj,
-                               Evas_Coord x,
-                               Evas_Coord y)
+EOLIAN static void
+_elm_gengrid_pan_elm_pan_pos_set(Eo *obj, Elm_Gengrid_Pan_Data *psd, Evas_Coord x, Evas_Coord y)
 {
-   ELM_GENGRID_PAN_DATA_GET(obj, psd);
-
    if ((x == psd->wsd->pan_x) && (y == psd->wsd->pan_y)) return;
    psd->wsd->pan_x = x;
    psd->wsd->pan_y = y;
    evas_object_smart_changed(obj);
 }
 
-static void
-_elm_gengrid_pan_smart_pos_get(const Evas_Object *obj,
-                               Evas_Coord *x,
-                               Evas_Coord *y)
+EOLIAN static void
+_elm_gengrid_pan_elm_pan_pos_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Pan_Data *psd, Evas_Coord *x, Evas_Coord *y)
 {
-   ELM_GENGRID_PAN_DATA_GET(obj, psd);
-
    if (x) *x = psd->wsd->pan_x;
    if (y) *y = psd->wsd->pan_y;
 }
 
-static void
-_elm_gengrid_pan_smart_content_size_get(const Evas_Object *obj,
-                                        Evas_Coord *w,
-                                        Evas_Coord *h)
+EOLIAN static void
+_elm_gengrid_pan_elm_pan_content_size_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Pan_Data *psd, Evas_Coord *w, Evas_Coord *h)
 {
-   ELM_GENGRID_PAN_DATA_GET(obj, psd);
-
    if (w) *w = psd->wsd->minw;
    if (h) *h = psd->wsd->minh;
 }
 
-static void
-_elm_gengrid_pan_smart_pos_max_get(const Evas_Object *obj,
-                                   Evas_Coord *x,
-                                   Evas_Coord *y)
+EOLIAN static void
+_elm_gengrid_pan_elm_pan_pos_max_get(Eo *obj, Elm_Gengrid_Pan_Data *psd, Evas_Coord *x, Evas_Coord *y)
 {
    Evas_Coord ow, oh;
-
-   ELM_GENGRID_PAN_DATA_GET(obj, psd);
 
    evas_object_geometry_get(obj, NULL, NULL, &ow, &oh);
    if (x)
@@ -1853,93 +1996,295 @@ _elm_gengrid_pan_smart_pos_max_get(const Evas_Object *obj,
      *y = (oh < psd->wsd->minh) ? psd->wsd->minh - oh : 0;
 }
 
-static void
-_elm_gengrid_pan_smart_pos_min_get(const Evas_Object *obj,
-                                   Evas_Coord *x,
-                                   Evas_Coord *y)
+EOLIAN static void
+_elm_gengrid_pan_elm_pan_pos_min_get(Eo *obj, Elm_Gengrid_Pan_Data *psd, Evas_Coord *x, Evas_Coord *y)
 {
    Evas_Coord mx = 0, my = 0;
+   Eina_Bool mirrored = elm_widget_mirrored_get(psd->wsd->obj);
 
-   ELM_GENGRID_PAN_DATA_GET(obj, psd);
-
-   _elm_gengrid_pan_smart_pos_max_get(obj, &mx, &my);
+   eo_do(obj, elm_obj_pan_pos_max_get(&mx, &my));
    if (x)
-     *x = -mx * psd->wsd->align_x;
+     *x = -mx * (mirrored ? 1 - psd->wsd->align_x : psd->wsd->align_x);
    if (y)
      *y = -my * psd->wsd->align_y;
 }
 
+EOLIAN static void
+_elm_gengrid_pan_class_constructor(Eo_Class *klass)
+{
+   evas_smart_legacy_type_register(MY_PAN_CLASS_NAME_LEGACY, klass);
+}
+
+#include "elm_gengrid_pan.eo.c"
+
 static void
-_elm_gengrid_pan_smart_set_user(Elm_Gengrid_Pan_Smart_Class *sc)
+_elm_gengrid_item_focused(Elm_Object_Item *eo_it)
 {
-   ELM_PAN_CLASS(sc)->base.add = _elm_gengrid_pan_smart_add;
-   ELM_PAN_CLASS(sc)->base.move = _elm_gengrid_pan_smart_move;
-   ELM_PAN_CLASS(sc)->base.resize = _elm_gengrid_pan_smart_resize;
-   ELM_PAN_CLASS(sc)->base.calculate = _elm_gengrid_pan_smart_calculate;
+   ELM_GENGRID_ITEM_DATA_GET(eo_it, it);
+   Evas_Object *obj = WIDGET(it);
+   ELM_GENGRID_DATA_GET(obj, sd);
+   const char *focus_raise;
 
-   ELM_PAN_CLASS(sc)->pos_set = _elm_gengrid_pan_smart_pos_set;
-   ELM_PAN_CLASS(sc)->pos_get = _elm_gengrid_pan_smart_pos_get;
-   ELM_PAN_CLASS(sc)->pos_max_get = _elm_gengrid_pan_smart_pos_max_get;
-   ELM_PAN_CLASS(sc)->pos_min_get = _elm_gengrid_pan_smart_pos_min_get;
-   ELM_PAN_CLASS(sc)->content_size_get =
-     _elm_gengrid_pan_smart_content_size_get;
+   if (it->generation < sd->generation)
+     return;
 
+   if (_is_no_select(it) ||
+       (eo_it == sd->focused_item) ||
+       (eo_do(eo_it, elm_wdg_item_disabled_get())))
+     return;
+
+   switch (_elm_config->focus_autoscroll_mode)
+     {
+      case ELM_FOCUS_AUTOSCROLL_MODE_SHOW:
+         elm_gengrid_item_show
+            (eo_it, ELM_GENGRID_ITEM_SCROLLTO_IN);
+         break;
+      case ELM_FOCUS_AUTOSCROLL_MODE_BRING_IN:
+         elm_gengrid_item_bring_in
+            (eo_it, ELM_GENGRID_ITEM_SCROLLTO_IN);
+         break;
+      default:
+         break;
+     }
+
+   sd->focused_item = eo_it;
+
+   if (it->realized)
+     {
+        if (elm_widget_focus_highlight_enabled_get(obj))
+          {
+             edje_object_signal_emit
+                (VIEW(it), "elm,state,focused", "elm");
+          }
+
+        //TIZEN_ONLY(20150817): invoke _elm_access_hilight_set if access_mode is on
+        if (_elm_config->access_mode) _elm_access_highlight_set(it->base->access_obj);
+
+        focus_raise = edje_object_data_get(VIEW(it), "focusraise");
+        if ((focus_raise) && (!strcmp(focus_raise, "on")))
+          evas_object_raise(VIEW(it));
+
+        _elm_widget_item_highlight_in_theme(obj, eo_it);
+        _elm_widget_highlight_in_theme_update(obj);
+        _elm_widget_focus_highlight_start(obj);
+     }
+
+   evas_object_smart_callback_call(obj, SIG_ITEM_FOCUSED, eo_it);
+   if (_elm_config->atspi_mode)
+     elm_interface_atspi_accessible_state_changed_signal_emit(eo_it, ELM_ATSPI_STATE_FOCUSED, EINA_TRUE);
+}
+
+static void
+_elm_gengrid_item_unfocused(Elm_Object_Item *eo_it)
+{
+   ELM_GENGRID_ITEM_DATA_GET(eo_it, it);
+   Evas_Object *obj = WIDGET(it);
+   ELM_GENGRID_DATA_GET(obj, sd);
+
+   if (it->generation < sd->generation)
+     return;
+
+   if (_is_no_select(it))
+     return;
+
+   if ((!sd->focused_item) ||
+       (eo_it != sd->focused_item))
+     return;
+
+   if (elm_widget_focus_highlight_enabled_get(obj))
+     {
+        ELM_GENGRID_ITEM_DATA_GET(sd->focused_item, focus_it);
+        edje_object_signal_emit
+           (VIEW(focus_it), "elm,state,unfocused", "elm");
+     }
+
+   sd->focused_item = NULL;
+   evas_object_smart_callback_call(obj, SIG_ITEM_UNFOCUSED, eo_it);
+   if (_elm_config->atspi_mode)
+     elm_interface_atspi_accessible_state_changed_signal_emit(eo_it, ELM_ATSPI_STATE_FOCUSED, EINA_FALSE);
 }
 
 static Eina_Bool
-_item_multi_select_left(Elm_Gengrid_Smart_Data *sd)
+_item_focus_up(Elm_Gengrid_Data *sd)
 {
-   Elm_Object_Item *prev;
+   unsigned int i;
+   Elm_Gen_Item *prev = NULL;
 
-   if (!sd->selected) return EINA_FALSE;
-
-   prev = elm_gengrid_item_prev_get(sd->last_selected_item);
-   if (!prev) return EINA_TRUE;
-
-   if (elm_gengrid_item_selected_get(prev))
+   if (!sd->focused_item)
      {
-        elm_gengrid_item_selected_set(sd->last_selected_item, EINA_FALSE);
-        sd->last_selected_item = prev;
-        elm_gengrid_item_show
-          (sd->last_selected_item, ELM_GENGRID_ITEM_SCROLLTO_IN);
+        prev = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
+        while ((prev) && (prev->generation < sd->generation))
+          prev = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(prev)->prev);
+        elm_object_item_focus_set(EO_OBJ(prev), EINA_TRUE);
+        return EINA_TRUE;
      }
    else
      {
-        elm_gengrid_item_selected_set(prev, EINA_TRUE);
-        elm_gengrid_item_show(prev, ELM_GENGRID_ITEM_SCROLLTO_IN);
+        Elm_Object_Item *eo_prev = elm_gengrid_item_prev_get(sd->focused_item);
+        if (!eo_prev) return EINA_FALSE;
+        prev = eo_data_scope_get(eo_prev, ELM_GENGRID_ITEM_CLASS);
+        if (eo_prev == sd->focused_item) return EINA_FALSE;
+     }
+
+   for (i = 1; i < sd->nmax; i++)
+     {
+        Elm_Object_Item *eo_tmp =
+          elm_gengrid_item_prev_get(EO_OBJ(prev));
+        if (!eo_tmp) return EINA_FALSE;
+        prev = eo_data_scope_get(eo_tmp, ELM_GENGRID_ITEM_CLASS);
+     }
+
+   elm_object_item_focus_set(EO_OBJ(prev), EINA_TRUE);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_item_focus_down(Elm_Gengrid_Data *sd)
+{
+   unsigned int i, idx;
+   Elm_Gen_Item *next = NULL;
+   Elm_Object_Item *eo_tmp = NULL;
+
+   if (!sd->focused_item)
+     {
+        next = ELM_GEN_ITEM_FROM_INLIST(sd->items);
+        while ((next) && (next->generation < sd->generation))
+          next = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(next)->next);
+     }
+   else
+     {
+
+        idx = elm_gengrid_item_index_get(sd->focused_item);
+
+        if (idx > sd->item_count -
+            ((sd->item_count % sd->nmax) == 0 ?
+             sd->nmax : (sd->item_count % sd->nmax)))
+          return EINA_FALSE;
+        if (idx > sd->item_count - sd->nmax)
+          {
+             eo_tmp = elm_gengrid_last_item_get(sd->obj);
+             next = eo_data_scope_get(eo_tmp, ELM_GENGRID_ITEM_CLASS);
+          }
+        else
+          {
+             next = eo_data_scope_get(sd->focused_item, ELM_GENGRID_ITEM_CLASS);
+             for (i = 0; i < sd->nmax; i++)
+               {
+                  eo_tmp = elm_gengrid_item_next_get(EO_OBJ(next));
+                  if (!eo_tmp) return EINA_FALSE;
+                  next = eo_data_scope_get(eo_tmp, ELM_GENGRID_ITEM_CLASS);
+               }
+          }
+     }
+
+   elm_object_item_focus_set(EO_OBJ(next), EINA_TRUE);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_item_focus_left(Elm_Gengrid_Data *sd)
+{
+   Elm_Gen_Item *prev;
+
+   if (!sd->focused_item)
+     {
+        prev = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
+        while ((prev) && (prev->generation < sd->generation))
+          prev = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(prev)->prev);
+     }
+   else
+     {
+        Elm_Object_Item *eo_prev = elm_gengrid_item_prev_get(sd->focused_item);
+        if (!eo_prev) return EINA_FALSE;
+        prev = eo_data_scope_get(eo_prev, ELM_GENGRID_ITEM_CLASS);
+        if (eo_prev == sd->focused_item) return EINA_FALSE;
+     }
+
+   elm_object_item_focus_set(EO_OBJ(prev), EINA_TRUE);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_item_focus_right(Elm_Gengrid_Data *sd)
+{
+   Elm_Gen_Item *next;
+
+   if (!sd->focused_item)
+     {
+        next = ELM_GEN_ITEM_FROM_INLIST(sd->items);
+        while ((next) && (next->generation < sd->generation))
+          next = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(next)->next);
+     }
+   else
+     {
+        Elm_Object_Item *eo_next = elm_gengrid_item_next_get(sd->focused_item);
+        if (!eo_next) return EINA_FALSE;
+        next = eo_data_scope_get(eo_next, ELM_GENGRID_ITEM_CLASS);
+        if (eo_next == sd->focused_item) return EINA_FALSE;
+     }
+
+   elm_object_item_focus_set(EO_OBJ(next), EINA_TRUE);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_item_multi_select_left(Elm_Gengrid_Data *sd)
+{
+   Elm_Object_Item *eo_prev;
+
+   if (!sd->selected) return EINA_FALSE;
+
+   eo_prev = elm_gengrid_item_prev_get(sd->last_selected_item);
+   if (!eo_prev) return EINA_TRUE;
+
+   if (elm_gengrid_item_selected_get(eo_prev))
+     {
+        elm_gengrid_item_selected_set(sd->last_selected_item, EINA_FALSE);
+        sd->last_selected_item = eo_prev;
+        elm_gengrid_item_show
+          (eo_prev, ELM_GENGRID_ITEM_SCROLLTO_IN);
+     }
+   else
+     {
+        elm_gengrid_item_selected_set(eo_prev, EINA_TRUE);
+        elm_gengrid_item_show(eo_prev, ELM_GENGRID_ITEM_SCROLLTO_IN);
      }
 
    return EINA_TRUE;
 }
 
 static Eina_Bool
-_item_multi_select_right(Elm_Gengrid_Smart_Data *sd)
+_item_multi_select_right(Elm_Gengrid_Data *sd)
 {
-   Elm_Object_Item *next;
+   Elm_Object_Item *eo_next;
 
    if (!sd->selected) return EINA_FALSE;
 
-   next = elm_gengrid_item_next_get(sd->last_selected_item);
-   if (!next) return EINA_TRUE;
+   eo_next = elm_gengrid_item_next_get(sd->last_selected_item);
+   if (!eo_next) return EINA_TRUE;
 
-   if (elm_gengrid_item_selected_get(next))
+   if (elm_gengrid_item_selected_get(eo_next))
      {
         elm_gengrid_item_selected_set(sd->last_selected_item, EINA_FALSE);
-        sd->last_selected_item = next;
+        sd->last_selected_item = eo_next;
         elm_gengrid_item_show
-          (sd->last_selected_item, ELM_GENGRID_ITEM_SCROLLTO_IN);
+          (eo_next, ELM_GENGRID_ITEM_SCROLLTO_IN);
      }
    else
      {
-        elm_gengrid_item_selected_set(next, EINA_TRUE);
-        elm_gengrid_item_show(next, ELM_GENGRID_ITEM_SCROLLTO_IN);
+        elm_gengrid_item_selected_set(eo_next, EINA_TRUE);
+        elm_gengrid_item_show(eo_next, ELM_GENGRID_ITEM_SCROLLTO_IN);
      }
 
    return EINA_TRUE;
 }
 
 static Eina_Bool
-_item_multi_select_up(Elm_Gengrid_Smart_Data *sd)
+_item_multi_select_up(Elm_Gengrid_Data *sd)
 {
    unsigned int i;
    Eina_Bool r = EINA_TRUE;
@@ -1953,7 +2298,7 @@ _item_multi_select_up(Elm_Gengrid_Smart_Data *sd)
 }
 
 static Eina_Bool
-_item_multi_select_down(Elm_Gengrid_Smart_Data *sd)
+_item_multi_select_down(Elm_Gengrid_Data *sd)
 {
    unsigned int i;
    Eina_Bool r = EINA_TRUE;
@@ -1967,330 +2312,780 @@ _item_multi_select_down(Elm_Gengrid_Smart_Data *sd)
 }
 
 static Eina_Bool
-_all_items_deselect(Elm_Gengrid_Smart_Data *sd)
+_all_items_deselect(Elm_Gengrid_Data *sd)
 {
    if (!sd->selected) return EINA_FALSE;
 
    while (sd->selected)
-     elm_gengrid_item_selected_set
-       ((Elm_Object_Item *)sd->selected->data, EINA_FALSE);
+     {
+        Elm_Object_Item *eo_it = sd->selected->data;
+        elm_gengrid_item_selected_set(eo_it, EINA_FALSE);
+     }
 
    return EINA_TRUE;
 }
 
 static Eina_Bool
-_item_single_select_up(Elm_Gengrid_Smart_Data *sd)
+_item_single_select_up(Elm_Gengrid_Data *sd)
 {
    unsigned int i;
+   Elm_Object_Item *eo_prev;
+
+   if (!sd->selected)
+     eo_prev = EO_OBJ(ELM_GEN_ITEM_FROM_INLIST(sd->items->last));
+   else
+     eo_prev = sd->last_selected_item;
+
+   while (eo_prev)
+     {
+        for (i = 0; i < sd->nmax; i++)
+          {
+             eo_prev = elm_gengrid_item_prev_get(eo_prev);
+             if (!eo_prev) return EINA_FALSE;
+          }
+
+        if (!elm_object_item_disabled_get(eo_prev)) break;
+     }
+
+   if (!eo_prev) return EINA_FALSE;
+
+   _all_items_deselect(sd);
+   elm_gengrid_item_selected_set(eo_prev, EINA_TRUE);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_item_single_select_down(Elm_Gengrid_Data *sd)
+{
+   unsigned int i;
+   unsigned int idx;
+   Elm_Object_Item *eo_next, *eo_orig;
+
+   if (!sd->selected)
+     eo_next = EO_OBJ(ELM_GEN_ITEM_FROM_INLIST(sd->items));
+   else
+     eo_next = sd->last_selected_item;
+   eo_orig = eo_next;
+
+   while (eo_next)
+     {
+        for (i = 0; i < sd->nmax; i++)
+          {
+             eo_next = elm_gengrid_item_next_get(eo_next);
+             if (!eo_next) break;
+          }
+
+        if (eo_next && !elm_object_item_disabled_get(eo_next)) break;
+     }
+
+   if (!eo_next)
+     {
+        idx = elm_gengrid_item_index_get(eo_orig);
+        if (idx > sd->item_count -
+            ((sd->item_count % sd->nmax) == 0 ?
+             sd->nmax : (sd->item_count % sd->nmax)))
+           return EINA_FALSE;
+        else
+           eo_next = elm_gengrid_last_item_get(sd->obj);
+     }
+
+   _all_items_deselect(sd);
+   elm_gengrid_item_selected_set(eo_next, EINA_TRUE);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_item_single_select_left(Elm_Gengrid_Data *sd)
+{
    Elm_Gen_Item *prev;
 
    if (!sd->selected)
      {
         prev = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
-        while ((prev) && (prev->generation < sd->generation))
-          prev = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(prev)->prev);
-        elm_gengrid_item_selected_set((Elm_Object_Item *)prev, EINA_TRUE);
-        elm_gengrid_item_show
-          ((Elm_Object_Item *)prev, ELM_GENGRID_ITEM_SCROLLTO_IN);
-        return EINA_TRUE;
-     }
-   else
-     prev = (Elm_Gen_Item *)elm_gengrid_item_prev_get(sd->last_selected_item);
-
-   if (!prev) return EINA_FALSE;
-
-   for (i = 1; i < sd->nmax; i++)
-     {
-        Elm_Object_Item *tmp =
-          elm_gengrid_item_prev_get((Elm_Object_Item *)prev);
-        if (!tmp) return EINA_FALSE;
-        prev = (Elm_Gen_Item *)tmp;
-     }
-
-   _all_items_deselect(sd);
-
-   elm_gengrid_item_selected_set((Elm_Object_Item *)prev, EINA_TRUE);
-   elm_gengrid_item_show
-     ((Elm_Object_Item *)prev, ELM_GENGRID_ITEM_SCROLLTO_IN);
-   return EINA_TRUE;
-}
-
-static Eina_Bool
-_item_single_select_down(Elm_Gengrid_Smart_Data *sd)
-{
-   unsigned int i;
-   Elm_Gen_Item *next;
-
-   if (!sd->selected)
-     {
-        next = ELM_GEN_ITEM_FROM_INLIST(sd->items);
-        while ((next) && (next->generation < sd->generation))
-          next = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(next)->next);
-        elm_gengrid_item_selected_set((Elm_Object_Item *)next, EINA_TRUE);
-        elm_gengrid_item_show
-          ((Elm_Object_Item *)next, ELM_GENGRID_ITEM_SCROLLTO_IN);
-        return EINA_TRUE;
-     }
-   else
-     next = (Elm_Gen_Item *)elm_gengrid_item_next_get(sd->last_selected_item);
-
-   if (!next) return EINA_FALSE;
-
-   for (i = 1; i < sd->nmax; i++)
-     {
-        Elm_Object_Item *tmp =
-          elm_gengrid_item_next_get((Elm_Object_Item *)next);
-        if (!tmp) return EINA_FALSE;
-        next = (Elm_Gen_Item *)tmp;
-     }
-
-   _all_items_deselect(sd);
-
-   elm_gengrid_item_selected_set((Elm_Object_Item *)next, EINA_TRUE);
-   elm_gengrid_item_show
-     ((Elm_Object_Item *)next, ELM_GENGRID_ITEM_SCROLLTO_IN);
-
-   return EINA_TRUE;
-}
-
-static Eina_Bool
-_item_single_select_left(Elm_Gengrid_Smart_Data *sd)
-{
-   Elm_Gen_Item *prev;
-
-   if (!sd->selected)
-     {
-        prev = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
-        while ((prev) && (prev->generation < sd->generation))
+        while ((prev) && (prev->generation < sd->generation)
+               && elm_object_item_disabled_get(EO_OBJ(prev)))
           prev = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(prev)->prev);
      }
    else
-     prev = (Elm_Gen_Item *)elm_gengrid_item_prev_get(sd->last_selected_item);
+     {
+        Elm_Object_Item *eo_prev =
+           elm_gengrid_item_prev_get(sd->last_selected_item);
+        while (eo_prev)
+          {
+             if (!elm_object_item_disabled_get(eo_prev))
+               break;
+             eo_prev = elm_gengrid_item_prev_get(eo_prev);
+          }
+        prev = eo_data_scope_get(eo_prev, ELM_GENGRID_ITEM_CLASS);
+     }
 
    if (!prev) return EINA_FALSE;
 
    _all_items_deselect(sd);
 
-   elm_gengrid_item_selected_set((Elm_Object_Item *)prev, EINA_TRUE);
-   elm_gengrid_item_show
-     ((Elm_Object_Item *)prev, ELM_GENGRID_ITEM_SCROLLTO_IN);
+   elm_gengrid_item_selected_set(EO_OBJ(prev), EINA_TRUE);
 
    return EINA_TRUE;
 }
 
 static Eina_Bool
-_item_single_select_right(Elm_Gengrid_Smart_Data *sd)
+_item_single_select_right(Elm_Gengrid_Data *sd)
 {
    Elm_Gen_Item *next;
 
    if (!sd->selected)
      {
         next = ELM_GEN_ITEM_FROM_INLIST(sd->items);
-        while ((next) && (next->generation < sd->generation))
+        while ((next) && (next->generation < sd->generation)
+               && elm_object_item_disabled_get(EO_OBJ(next)))
           next = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(next)->next);
      }
    else
-     next = (Elm_Gen_Item *)elm_gengrid_item_next_get(sd->last_selected_item);
+     {
+        Elm_Object_Item *eo_next =
+           elm_gengrid_item_next_get(sd->last_selected_item);
+        while (eo_next)
+          {
+             if (!elm_object_item_disabled_get(eo_next))
+               break;
+             eo_next = elm_gengrid_item_next_get(eo_next);
+          }
+        next = eo_data_scope_get(eo_next, ELM_GENGRID_ITEM_CLASS);
+     }
 
    if (!next) return EINA_FALSE;
 
    _all_items_deselect(sd);
 
-   elm_gengrid_item_selected_set((Elm_Object_Item *)next, EINA_TRUE);
-   elm_gengrid_item_show
-     ((Elm_Object_Item *)next, ELM_GENGRID_ITEM_SCROLLTO_IN);
+   elm_gengrid_item_selected_set(EO_OBJ(next), EINA_TRUE);
 
    return EINA_TRUE;
 }
 
-static void _gengrid_item_unfocused(Elm_Gen_Item *it)
+static Eina_Bool
+_elm_gengrid_item_edge_check(Elm_Object_Item *eo_it,
+                             Elm_Focus_Direction dir)
 {
-   if (!it) return;
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
-   if (!sd->focused) return;
-
-   if (sd->focused_content)
-     {
-        elm_object_focus_set(ELM_WIDGET_DATA(sd)->obj, EINA_FALSE);
-        elm_object_focus_set(ELM_WIDGET_DATA(sd)->obj, EINA_TRUE);
-        sd->focused_content = NULL;
-     }
-   edje_object_signal_emit
-      (VIEW(sd->focused), "elm,action,focus_highlight,hide", "elm");
-
-   if (it == sd->focused) sd->focused = NULL;
-   evas_object_smart_callback_call(WIDGET(it), SIG_ITEM_UNFOCUSED, it);
-}
-
-static void _gengrid_item_focused(Elm_Gen_Item *it, Elm_Gengrid_Item_Scrollto_Type type)
-{
-   if (!it) return;
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
-   Evas_Coord x, y, w, h, sx, sy, sw, sh;
-
-   if (sd->focused && (it != sd->focused)) _gengrid_item_unfocused(sd->focused);
-   evas_object_geometry_get(VIEW(it), &x, &y, &w, &h);
-   evas_object_geometry_get(ELM_WIDGET_DATA(sd)->obj, &sx, &sy, &sw, &sh);
-   if ((x < sx) || (y < sy) || ((x + w) > (sx + sw)) || ((y + h) > (sy + sh)))
-     {
-        elm_gengrid_item_bring_in((Elm_Object_Item *)it, type);
-     }
-
-   if (_focus_enabled(ELM_WIDGET_DATA(sd)->obj))
-     edje_object_signal_emit
-       (VIEW(it), "elm,action,focus_highlight,show", "elm");
-
-   sd->focused = it;
-   evas_object_smart_callback_call(WIDGET(it), SIG_ITEM_FOCUSED, it);
-}
-
-static Elm_Gen_Item *_gengrid_item_focusable_search(Elm_Gen_Item *it, int dir)
-{
-   if (!it) return NULL;
+   ELM_GENGRID_ITEM_DATA_GET(eo_it, it);
+   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, EINA_FALSE);
+   ELM_GENGRID_DATA_GET(WIDGET(it), sd);
+   Evas_Coord ix = 0, iy = 0; //item's geometry
+   Evas_Coord cx = 0, cy = 0; //prev or next item's geometry
+   Elm_Object_Item *eo_item = NULL;
    Elm_Gen_Item *tmp = it;
-   Elm_Gengrid_Smart_Data *sd;
-   sd = GG_IT(it)->wsd;
+   Eina_Bool mirrored = elm_widget_mirrored_get(WIDGET(it));
 
-   if (dir == 1)
-     while (tmp && (tmp->generation <= sd->generation))
-       {
-          if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp) &&
-              ((tmp->select_mode == ELM_OBJECT_SELECT_MODE_DEFAULT) ||
-               (tmp->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS)))
-            break;
-          tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->next);
-       }
-   else
-     while (tmp && (tmp->generation <= sd->generation))
-       {
-          if (!elm_object_item_disabled_get((Elm_Object_Item *)tmp) &&
-              ((tmp->select_mode == ELM_OBJECT_SELECT_MODE_DEFAULT) ||
-               (tmp->select_mode == ELM_OBJECT_SELECT_MODE_ALWAYS)))
-            break;
-          tmp = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(tmp)->prev);
-       }
+   evas_object_geometry_get(VIEW(it), &ix, &iy, NULL, NULL);
 
-   return tmp;
+   if (((sd->horizontal) && (dir == ELM_FOCUS_UP)) ||
+       ((!sd->horizontal) && (dir == ELM_FOCUS_LEFT)))
+     {
+        eo_item = elm_gengrid_item_prev_get(EO_OBJ(it));
+        while (eo_item)
+          {
+             if (sd->reorder_mode || !elm_object_item_disabled_get(eo_item)) break;
+             eo_item = elm_gengrid_item_prev_get(eo_item);
+          }
+        if (eo_item)
+          {
+             ELM_GENGRID_ITEM_DATA_GET(eo_item, item);
+             evas_object_geometry_get(VIEW(item), &cx, &cy, NULL, NULL);
+             if ((sd->horizontal) && (ix == cx) && (iy > cy))
+               return EINA_FALSE;
+             else if ((!sd->horizontal) && (iy == cy))
+               {
+                  if ((!mirrored && (ix > cx)) || (mirrored && (ix < cx)))
+                    return EINA_FALSE;
+                  else
+                    return EINA_TRUE;
+               }
+             else
+               return EINA_TRUE;
+          }
+        if ((dir == ELM_FOCUS_UP) || (!eo_item && sd->reorder_mode))
+          return EINA_TRUE;
+     }
+   else if (((sd->horizontal) && (dir == ELM_FOCUS_DOWN)) ||
+            ((!sd->horizontal) && (dir == ELM_FOCUS_RIGHT)))
+     {
+        eo_item = elm_gengrid_item_next_get(EO_OBJ(it));
+        while (eo_item)
+          {
+             if (sd->reorder_mode || !elm_object_item_disabled_get(eo_item)) break;
+             eo_item = elm_gengrid_item_next_get(eo_item);
+          }
+        if (eo_item)
+          {
+             ELM_GENGRID_ITEM_DATA_GET(eo_item, item);
+             evas_object_geometry_get(VIEW(item), &cx, &cy, NULL, NULL);
+             if ((sd->horizontal) && (ix == cx) && (iy < cy))
+               return EINA_FALSE;
+             else if ((!sd->horizontal) && (iy == cy))
+               {
+                  if ((!mirrored && (ix < cx)) || (mirrored && (ix > cx)))
+                    return EINA_FALSE;
+                  else
+                    return EINA_TRUE;
+               }
+             else
+               return EINA_TRUE;
+          }
+        if ((dir == ELM_FOCUS_DOWN) || (!eo_item && sd->reorder_mode))
+          return EINA_TRUE;
+     }
+   else if (((!sd->horizontal) && (dir == ELM_FOCUS_UP)) ||
+            ((sd->horizontal) && (dir == ELM_FOCUS_LEFT)))
+     {
+        Evas_Coord col, row, cvw, cvh;
+
+        evas_object_geometry_get(sd->pan_obj, NULL, NULL, &cvw, &cvh);
+        if (sd->horizontal && sd->item_height > 0)
+          {
+             row = cvh / sd->item_height;
+             if (row <= 0) row = 1;
+             col = (tmp->position - 1) / row;
+             if (col == 0)
+               return EINA_TRUE;
+          }
+        else if (sd->item_width > 0)
+          {
+             col = cvw / sd->item_width;
+             if (col <= 0) col = 1;
+             row = (tmp->position - 1) / col;
+             if (row == 0)
+               return EINA_TRUE;
+          }
+     }
+   else if (((!sd->horizontal) && (dir == ELM_FOCUS_DOWN)) ||
+            ((sd->horizontal) && (dir == ELM_FOCUS_RIGHT)))
+     {
+        Evas_Coord col = 0, row = 0, cvw, cvh;
+        int x = 0;
+
+        evas_object_geometry_get(sd->pan_obj, NULL, NULL, &cvw, &cvh);
+        if (sd->horizontal && sd->item_height > 0)
+          {
+             row = cvh / sd->item_height;
+             if (row <= 0) row = 1;
+             col = sd->item_count / row;
+             x = sd->item_count % row;
+             if (x == 0)
+               {
+                  if ((tmp->position <= (row * col)) &&
+                      (tmp->position > (row * (col - 1))))
+                    return EINA_TRUE;
+               }
+             else
+               {
+                  if ((tmp->position <= ((col * row) + x)) &&
+                      (tmp->position > ((col - 1) * row) + x))
+                    return EINA_TRUE;
+               }
+          }
+        else if (sd->item_width > 0)
+          {
+             col = cvw / sd->item_width;
+             if (col <= 0) col = 1;
+             row = sd->item_count / col;
+             x = sd->item_count % col;
+             if (x == 0)
+               {
+                  if ((tmp->position <= (col * row)) &&
+                      (tmp->position > (col * (row - 1))))
+                       return EINA_TRUE;
+               }
+             else
+               {
+                  if ((tmp->position <= ((col * row) + x)) &&
+                      (tmp->position > (((col * (row - 1)) + x))))
+                    return EINA_TRUE;
+               }
+          }
+     }
+
+   return EINA_FALSE;
 }
 
-static Eina_Bool _gengrid_item_focused_next(Elm_Gengrid_Smart_Data *sd, Focus_Dir dir)
+static Elm_Object_Item *
+get_up_item(Elm_Gengrid_Data *sd, Elm_Object_Item *eo_it)
 {
-   Elm_Gen_Item *it = NULL;
-   Evas_Coord cvw, cvh, dist = 0;
-   Elm_Gen_Item *old_focused = sd->focused;
+   Elm_Object_Item *eo_prev = NULL;
+   unsigned int i;
+
+   eo_prev = elm_gengrid_item_prev_get(eo_it);
+   if (!eo_prev)
+     return NULL;
+
+   for (i = 1; i < sd->nmax; i++)
+     {
+        Elm_Object_Item *eo_tmp = elm_gengrid_item_prev_get(eo_prev);
+        if (!eo_tmp) return eo_prev;
+        eo_prev = eo_tmp;
+     }
+
+   return eo_prev;
+}
+
+static Elm_Object_Item *
+get_down_item(Elm_Gengrid_Data *sd, Elm_Object_Item *eo_it)
+{
+   Elm_Object_Item *eo_next = NULL;
+   unsigned int i;
+
+   eo_next = elm_gengrid_item_next_get(eo_it);
+   if (!eo_next)
+     return NULL;
+
+   for (i = 1; i < sd->nmax; i++)
+     {
+        Elm_Object_Item *eo_tmp = elm_gengrid_item_next_get(eo_next);
+        if (!eo_tmp) return eo_next;
+        eo_next = eo_tmp;
+     }
+
+   return eo_next;
+}
+
+typedef struct _Item_Info
+{
+   Elm_Gen_Item *it;
+   Evas_Coord x, y;
+} Item_Info;
+
+typedef struct _Reorder_Normal_Data
+{
+   Item_Info *items;
+   Elm_Gen_Item *corner_item;
+   int no;
+} Reorder_Normal_Data;
+
+static void
+_free_reorder_normal_data(Reorder_Normal_Data *rnd)
+{
+   free(rnd->items);
+   free(rnd);
+}
+
+static void
+_anim_end(Elm_Gengrid_Data *sd)
+{
+   Eina_Inlist *tmp = NULL;
+   Elm_Gen_Item *it1_prev = NULL, *it2_prev = NULL;
+   it1_prev = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(sd->reorder.it1)->prev);
+   it2_prev = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(sd->reorder.it2)->prev);
+
+   if ((sd->reorder.type == ELM_GENGRID_REORDER_TYPE_NORMAL) &&
+       ((!sd->horizontal && ((sd->reorder.dir == ELM_FOCUS_UP) || (sd->reorder.dir == ELM_FOCUS_DOWN))) ||
+       (sd->horizontal && ((sd->reorder.dir == ELM_FOCUS_LEFT) || (sd->reorder.dir == ELM_FOCUS_RIGHT)))))
+     {
+        sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(sd->reorder.it1));
+        if ((sd->reorder.dir == ELM_FOCUS_UP) ||
+            (sd->reorder.dir == ELM_FOCUS_LEFT))
+          {
+             if (it2_prev)
+               {
+                  tmp = eina_inlist_find(sd->items, EINA_INLIST_GET(it2_prev));
+                  sd->items = eina_inlist_append_relative(sd->items, EINA_INLIST_GET(sd->reorder.it1),
+                                                          tmp);
+               }
+             else
+               sd->items = eina_inlist_prepend(sd->items, EINA_INLIST_GET(sd->reorder.it1));
+          }
+        else if ((sd->reorder.dir == ELM_FOCUS_DOWN) ||
+                 (sd->reorder.dir == ELM_FOCUS_RIGHT))
+          {
+             tmp = eina_inlist_find(sd->items, EINA_INLIST_GET(sd->reorder.it2));
+             sd->items = eina_inlist_append_relative(sd->items, EINA_INLIST_GET(sd->reorder.it1),
+                                                          tmp);
+          }
+     }
+   else if ((sd->reorder.type == ELM_GENGRID_REORDER_TYPE_SWAP) &&
+            ((!sd->horizontal && ((sd->reorder.dir == ELM_FOCUS_UP) || (sd->reorder.dir == ELM_FOCUS_DOWN))) ||
+       (sd->horizontal && ((sd->reorder.dir == ELM_FOCUS_LEFT) || (sd->reorder.dir == ELM_FOCUS_RIGHT)))))
+     {
+        sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(sd->reorder.it1));
+        sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(sd->reorder.it2));
+
+        if (it1_prev)
+          {
+             tmp = eina_inlist_find(sd->items, EINA_INLIST_GET(it1_prev));
+             sd->items = eina_inlist_append_relative(sd->items, EINA_INLIST_GET(sd->reorder.it2),
+                                                     tmp);
+          }
+        else
+          sd->items = eina_inlist_prepend(sd->items, EINA_INLIST_GET(sd->reorder.it2));
+        if (it2_prev)
+          {
+             tmp = eina_inlist_find(sd->items, EINA_INLIST_GET(it2_prev));
+             sd->items = eina_inlist_append_relative(sd->items, EINA_INLIST_GET(sd->reorder.it1),
+                                                     tmp);
+          }
+        else
+          sd->items = eina_inlist_prepend(sd->items, EINA_INLIST_GET(sd->reorder.it1));
+     }
+   else if ((!sd->horizontal && (sd->reorder.dir == ELM_FOCUS_LEFT)) ||
+            (sd->horizontal && (sd->reorder.dir == ELM_FOCUS_UP)))
+     {
+         if (!(sd->reorder.it2 == it1_prev))
+           {
+              sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(sd->reorder.it1));
+              sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(sd->reorder.it2));
+
+              if (it1_prev)
+                {
+                   tmp = eina_inlist_find(sd->items, EINA_INLIST_GET(it1_prev));
+                   sd->items = eina_inlist_append_relative(sd->items, EINA_INLIST_GET(sd->reorder.it2),
+                                                           tmp);
+                }
+              else
+                sd->items = eina_inlist_prepend(sd->items, EINA_INLIST_GET(sd->reorder.it2));
+
+              if (it2_prev)
+                {
+                   tmp = eina_inlist_find(sd->items, EINA_INLIST_GET(it2_prev));
+                   sd->items = eina_inlist_append_relative(sd->items, EINA_INLIST_GET(sd->reorder.it1),
+                                                           tmp);
+                }
+              else
+                sd->items = eina_inlist_prepend(sd->items, EINA_INLIST_GET(sd->reorder.it1));
+           }
+         else
+           {
+              sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(sd->reorder.it1));
+              sd->items = eina_inlist_prepend_relative(sd->items, EINA_INLIST_GET(sd->reorder.it1),
+                                                       EINA_INLIST_GET(sd->reorder.it2));
+           }
+     }
+   else if ((!sd->horizontal && (sd->reorder.dir == ELM_FOCUS_RIGHT)) ||
+            (sd->horizontal && (sd->reorder.dir == ELM_FOCUS_DOWN)))
+     {
+        if (!(sd->reorder.it1 == it2_prev))
+          {
+             sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(sd->reorder.it1));
+             sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(sd->reorder.it2));
+
+             if (it1_prev)
+               {  
+                  tmp = eina_inlist_find(sd->items, EINA_INLIST_GET(it1_prev));
+                  sd->items = eina_inlist_append_relative(sd->items, EINA_INLIST_GET(sd->reorder.it2),
+                                                          tmp);
+               }
+             else
+               sd->items = eina_inlist_prepend(sd->items, EINA_INLIST_GET(sd->reorder.it2));
+
+             if (it2_prev)
+               {
+                  tmp = eina_inlist_find(sd->items, EINA_INLIST_GET(it2_prev));
+                  sd->items = eina_inlist_append_relative(sd->items, EINA_INLIST_GET(sd->reorder.it1),
+                                                          tmp);
+               }
+             else
+               sd->items = eina_inlist_prepend(sd->items, EINA_INLIST_GET(sd->reorder.it1));
+          }
+        else
+          {
+             sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(sd->reorder.it1));
+             sd->items = eina_inlist_append_relative(sd->items, EINA_INLIST_GET(sd->reorder.it1),
+                                                     EINA_INLIST_GET(sd->reorder.it2));
+          }
+     }
+   _item_position_update(sd->items, 0);
+
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+   sd->calc_done = EINA_FALSE;
+   evas_object_smart_changed(sd->pan_obj);
+   //ecore_job_del(sd->calc_job);
+   //sd->calc_job = ecore_job_add(_calc_job, sd->obj);
+   //
+}
+
+static Eina_Bool
+_item_move_cb(void *data, double pos)
+{
+   Elm_Gengrid_Data *sd = data;
+   double frame = pos;
+   Evas_Coord xx1, yy1, xx2, yy2;
+   double dx, dy;
+
+   switch (sd->reorder.tween_mode)
+     {
+      case ECORE_POS_MAP_LINEAR:
+         frame = ecore_animator_pos_map(frame, sd->reorder.tween_mode, 0, 0);
+         break;
+      case ECORE_POS_MAP_ACCELERATE:
+      case ECORE_POS_MAP_DECELERATE:
+      case ECORE_POS_MAP_SINUSOIDAL:
+         frame = ecore_animator_pos_map(frame, sd->reorder.tween_mode, 1.0, 0);
+         break;
+      case ECORE_POS_MAP_DIVISOR_INTERP:
+      case ECORE_POS_MAP_BOUNCE:
+      case ECORE_POS_MAP_SPRING:
+         frame = ecore_animator_pos_map(frame, sd->reorder.tween_mode, 1.0, 1.0);
+         break;
+      default:
+         frame = ecore_animator_pos_map(frame, sd->reorder.tween_mode, 0, 0);
+         break;
+     }
+
+   dx = sd->reorder.x2 - sd->reorder.x1;
+   dy = sd->reorder.y2 - sd->reorder.y1;
+   xx1 = sd->reorder.x1 + (dx * frame);
+   yy1 = sd->reorder.y1 + (dy * frame);
+
+   if (sd->reorder.type == ELM_GENGRID_REORDER_TYPE_NORMAL)
+     {
+        int i = 0;
+        Reorder_Normal_Data *rnd = sd->reorder.data;
+
+        for (;i < rnd->no; i++)
+          {
+             dx = rnd->items[i + 1].x - rnd->items[i].x;
+             dy = rnd->items[i + 1].y - rnd->items[i].y;
+             xx2 = rnd->items[i].x + (frame * dx);
+             yy2 = rnd->items[i].y + (frame * dy);
+             evas_object_move(VIEW(rnd->items[i].it), xx2, yy2);
+          }
+     }
+   else if (sd->reorder.type == ELM_GENGRID_REORDER_TYPE_SWAP)
+     {
+        xx2 = sd->reorder.x2 - (dx * frame);
+        yy2 = sd->reorder.y2 - (dy * frame);
+        evas_object_move(VIEW(sd->reorder.it2), xx2, yy2);
+     }
+
+   evas_object_move(VIEW(sd->reorder.it1), xx1, yy1);
+
+   if (pos == 1.0)
+     {
+        _anim_end(sd);
+        if (sd->reorder.type == ELM_GENGRID_REORDER_TYPE_NORMAL)
+          _free_reorder_normal_data(sd->reorder.data);
+        elm_gengrid_item_show(EO_OBJ(sd->reorder.it1),
+                              ELM_GENGRID_ITEM_SCROLLTO_IN);
+        evas_object_smart_callback_call(sd->obj, SIG_ITEM_REORDER_STOP,
+                                        EO_OBJ(sd->reorder.it1));
+        evas_object_smart_callback_call(sd->obj, SIG_MOVED,
+                                        EO_OBJ(sd->reorder.it1));
+        sd->reorder.running = EINA_FALSE;
+     }
+   _elm_widget_focus_highlight_start(sd->obj);
+
+   return EINA_TRUE;
+}
+
+static void
+_store_nearby_items(Elm_Gengrid_Data *sd)
+{
+   Reorder_Normal_Data *rnd = sd->reorder.data;
+   Eina_Inlist *itr;
+   Evas_Coord x, y, cvw, cvh, col = 0, row = 0;
    int i = 0;
+   int corner_item_pos = 0;
+   Eina_Inlist *it1_list, *it2_list;
 
    evas_object_geometry_get(sd->pan_obj, NULL, NULL, &cvw, &cvh);
 
-   if (dir == FOCUS_DIR_DOWN || dir == FOCUS_DIR_UP)
+   rnd->no = abs(sd->reorder.it2->position - sd->reorder.it1->position);
+   rnd->items = malloc(sizeof(Item_Info) * (rnd->no + 1));
+   rnd->corner_item = NULL;
+
+  if (sd->horizontal && sd->item_height > 0)
+    {
+       row = cvh / sd->item_height;
+       if (row <= 0) row = 1;
+       if (sd->reorder.dir == ELM_FOCUS_RIGHT)
+         {
+            corner_item_pos = (sd->reorder.it2->position + 1) / row;
+            corner_item_pos = corner_item_pos * row;
+            corner_item_pos = sd->reorder.it2->position - corner_item_pos;
+         }
+       else if (sd->reorder.dir == ELM_FOCUS_LEFT)
+         {
+            corner_item_pos = (sd->reorder.it2->position + 1) / row;
+            corner_item_pos = (corner_item_pos + 1) * row;
+            corner_item_pos = corner_item_pos - sd->reorder.it2->position;
+         }
+    }
+  else if (sd->item_width > 0)
+    {
+       col = cvw / sd->item_width;
+       if (col <= 0) col = 1;
+       if (sd->reorder.dir == ELM_FOCUS_DOWN)
+         {
+            corner_item_pos = (sd->reorder.it2->position + 1) / col;
+            corner_item_pos = corner_item_pos * col;
+            corner_item_pos = sd->reorder.it2->position - corner_item_pos;
+         }
+       else if (sd->reorder.dir == ELM_FOCUS_UP)
+         {
+            corner_item_pos = (sd->reorder.it2->position + 1) / col;
+            corner_item_pos = (corner_item_pos + 1) * col;
+            corner_item_pos = corner_item_pos - sd->reorder.it2->position;
+         }
+    }
+
+  it1_list = eina_inlist_find(sd->items, EINA_INLIST_GET(sd->reorder.it1));
+  it2_list = eina_inlist_find(sd->items, EINA_INLIST_GET(sd->reorder.it2));
+
+  if ((sd->reorder.it1->position) < (sd->reorder.it2)->position)
+    {
+       for (itr = it2_list; itr != it1_list; itr = itr->prev)
+         {
+            Elm_Gen_Item *cur = EINA_INLIST_CONTAINER_GET(itr, Elm_Gen_Item);
+            evas_object_geometry_get(VIEW(cur), &x, &y, NULL, NULL);
+            rnd->items[i].it = cur;
+            rnd->items[i].x = x;
+            rnd->items[i].y = y;
+            if (i == (corner_item_pos - 1))
+              rnd->corner_item = cur;
+            i++;
+         }
+       rnd->items[i].it = sd->reorder.it1;
+       rnd->items[i].x = sd->reorder.x1;
+       rnd->items[i].y = sd->reorder.y1;
+    }
+  else if (sd->reorder.it1->position > sd->reorder.it2->position)
+    {
+       for (itr = it2_list; itr != it1_list; itr = itr->next)
+         {
+            Elm_Gen_Item *cur = EINA_INLIST_CONTAINER_GET(itr, Elm_Gen_Item);
+            evas_object_geometry_get(VIEW(cur), &x, &y, NULL, NULL);
+            rnd->items[i].it = cur;
+            rnd->items[i].x = x;
+            rnd->items[i].y = y;
+            if (i == (corner_item_pos - 1))
+              rnd->corner_item = cur;
+            i++;
+         }
+       rnd->items[i].it = sd->reorder.it1;
+       rnd->items[i].x = sd->reorder.x1;
+       rnd->items[i].y = sd->reorder.y1;
+    }
+}
+
+static void
+_swap_items(Elm_Object_Item *eo_it1, Elm_Object_Item *eo_it2, Elm_Focus_Direction dir)
+{
+   ELM_GENGRID_ITEM_DATA_GET(eo_it1, it1);
+   ELM_GENGRID_ITEM_DATA_GET(eo_it2, it2);
+   ELM_GENGRID_DATA_GET(WIDGET(it1), sd);
+   Evas_Coord xx1, yy1, xx2, yy2;
+
+   sd->reorder.running = EINA_TRUE;
+   sd->reorder.dir = dir;
+   sd->reorder.it1 = it1;
+   sd->reorder.it2 = it2;
+
+   evas_object_geometry_get(VIEW(it1), &xx1, &yy1, NULL, NULL);
+   evas_object_geometry_get(VIEW(it2), &xx2, &yy2, NULL, NULL);
+   sd->reorder.x1 = xx1;
+   sd->reorder.y1 = yy1;
+   sd->reorder.x2 = xx2;
+   sd->reorder.y2 = yy2;
+
+   if (sd->reorder.type == ELM_GENGRID_REORDER_TYPE_NORMAL)
      {
-        if ((!sd->horizontal) && (sd->item_width > 0))
-           dist = cvw / sd->item_width;
-        else dist = 1;
-        if (dist <= 0) dist = 1;
-
-        if (dir == FOCUS_DIR_DOWN)
-          {
-             if (sd->focused)
-               {
-                  it = sd->focused;
-                  if (it->group) dist = 1;
-                  for (i = 0; i < dist; i++)
-                     {
-                        it = ELM_GEN_ITEM_FROM_INLIST
-                           (EINA_INLIST_GET(it)->next);
-                        if (!it) break;
-                        else if (it->group) break;
-                     }
-                  _gengrid_item_unfocused(sd->focused);
-               }
-             else it = ELM_GEN_ITEM_FROM_INLIST(sd->items);
-             it = _gengrid_item_focusable_search(it, 1);
-          }
-        else if (dir == FOCUS_DIR_UP)
-          {
-             if (sd->focused)
-               {
-                  it = sd->focused;
-                  if (it->group) dist = 1;
-                  for (i = 0; i < dist; i++)
-                     {
-                        it = ELM_GEN_ITEM_FROM_INLIST
-                           (EINA_INLIST_GET(it)->prev);
-                        if (!it) break;
-                        else if (it->group) break;
-                     }
-                  _gengrid_item_unfocused(sd->focused);
-               }
-             else it = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
-             it = _gengrid_item_focusable_search(it, -1);
-          }
-        if (!it)
-          {
-             if (old_focused) _gengrid_item_focused(old_focused, ELM_GENGRID_ITEM_SCROLLTO_IN);
-             return EINA_FALSE;
-          }
-        _gengrid_item_focused(it, ELM_GENGRID_ITEM_SCROLLTO_IN);
+        Reorder_Normal_Data *rnd = malloc(sizeof(Reorder_Normal_Data));
+        sd->reorder.data = rnd;
+        _store_nearby_items(sd);
+        if (rnd->corner_item)
+          evas_object_raise(VIEW(rnd->corner_item));
      }
-   else if (dir == FOCUS_DIR_LEFT || dir == FOCUS_DIR_RIGHT)
-     {
-        if (sd->horizontal && (sd->item_height > 0))
-           dist = cvh / sd->item_height;
-        else dist = 1;
-        if (dist <= 0) dist = 1;
-
-        if (dir == FOCUS_DIR_LEFT)
-          {
-             if (sd->focused)
-               {
-                  it = sd->focused;
-                  for (i = 0; i < dist; i++)
-                     {
-                        it = ELM_GEN_ITEM_FROM_INLIST
-                           (EINA_INLIST_GET(it)->prev);
-                        if (!it) break;
-                        else if (it->group) break;
-                     }
-                  _gengrid_item_unfocused(sd->focused);
-               }
-             else it = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
-             it = _gengrid_item_focusable_search(it, -1);
-          }
-        else if (dir == FOCUS_DIR_RIGHT)
-          {
-             if (sd->focused)
-               {
-                  it = sd->focused;
-                  for (i = 0; i < dist; i++)
-                     {
-                        it = ELM_GEN_ITEM_FROM_INLIST
-                           (EINA_INLIST_GET(it)->next);
-                        if (!it) break;
-                        else if (it->group) break;
-                     }
-                  _gengrid_item_unfocused(sd->focused);
-               }
-             else it = ELM_GEN_ITEM_FROM_INLIST(sd->items);
-             it = _gengrid_item_focusable_search(it, 1);
-          }
-        if (!it)
-          {
-             if (old_focused) _gengrid_item_focused(old_focused, ELM_GENGRID_ITEM_SCROLLTO_IN);
-             return EINA_FALSE;
-          }
-        _gengrid_item_focused(it, ELM_GENGRID_ITEM_SCROLLTO_IN);
-     }
-   else return EINA_FALSE;
-
-   return EINA_TRUE;
+   evas_object_raise(VIEW(it1));
+   evas_object_smart_callback_call(sd->obj, SIG_ITEM_REORDER_START,
+                                   EO_OBJ(sd->reorder.it1));
+   //TODO: Add elm config for time
+   ecore_animator_timeline_add(0.3, _item_move_cb, sd);
 }
 
 static Eina_Bool
-_elm_gengrid_smart_event(Evas_Object *obj,
-                         Evas_Object *src __UNUSED__,
-                         Evas_Callback_Type type,
-                         void *event_info)
+_item_horizontal_loop(Evas_Object *obj, Elm_Focus_Direction dir)
 {
+   ELM_GENGRID_DATA_GET(obj, sd);
+   Elm_Object_Item *eo_item = sd->focused_item;
+   unsigned int counter, i;
+
+   ELM_GENGRID_ITEM_DATA_GET(eo_item, item);
+   if (sd->horizontal)
+     {
+        if (dir == ELM_FOCUS_UP)
+          {
+             counter = 0;
+             while (!_elm_gengrid_item_edge_check(EO_OBJ(item), dir))
+               {
+                  eo_item = elm_gengrid_item_prev_get(eo_item);
+                  item = eo_data_scope_get(eo_item, ELM_GENGRID_ITEM_CLASS);
+                  counter++;
+               }
+             eo_item = elm_gengrid_first_item_get(obj);
+             for (i = 0; i < counter; i++)
+               eo_item = elm_gengrid_item_next_get(eo_item);
+          }
+        else
+          {
+             while (1)
+               {
+                  if (_elm_gengrid_item_edge_check(EO_OBJ(item), dir))
+                    break;
+                  else
+                    {
+                       for (i = 0; i < sd->nmax; i++)
+                         eo_item = elm_gengrid_item_next_get(eo_item);
+                       item = eo_data_scope_get(eo_item, ELM_GENGRID_ITEM_CLASS);
+                    }
+               }
+          }
+     }
+   else
+     {
+        if (dir == ELM_FOCUS_RIGHT)
+          {
+             while (!_elm_gengrid_item_edge_check(EO_OBJ(item), dir))
+               {
+                  if (!elm_gengrid_item_next_get(eo_item))
+                    break;
+                  eo_item = elm_gengrid_item_next_get(eo_item);
+                  item = eo_data_scope_get(eo_item, ELM_GENGRID_ITEM_CLASS);
+               }
+          }
+        else if (dir == ELM_FOCUS_LEFT)
+          {
+             while (!_elm_gengrid_item_edge_check(EO_OBJ(item), dir))
+               {
+                  if (!elm_gengrid_item_prev_get(EO_OBJ(item)))
+                    break;
+                  eo_item = elm_gengrid_item_prev_get(eo_item);
+                  item = eo_data_scope_get(eo_item, ELM_GENGRID_ITEM_CLASS);
+               }
+          }
+        else
+          return EINA_FALSE;
+     }
+   if (!eo_item) return EINA_FALSE;
+   if (sd->reorder_mode && !(sd->focused_item == eo_item))
+     {
+        _swap_items(sd->focused_item, eo_item, ELM_FOCUS_RIGHT);
+        return EINA_TRUE;
+     }
+   else
+     {
+        if (_elm_config->item_select_on_focus_disable)
+          elm_object_item_focus_set(eo_item, EINA_TRUE);
+        else
+          elm_gengrid_item_selected_set(eo_item, EINA_TRUE);
+        return EINA_TRUE;
+     }
+   return EINA_FALSE;
+}
+
+static Eina_Bool
+_key_action_move(Evas_Object *obj, const char *params)
+{
+   ELM_GENGRID_DATA_GET(obj, sd);
+   const char *dir = params;
+
    Evas_Coord x = 0;
    Evas_Coord y = 0;
    Evas_Coord v_w = 0;
@@ -2299,443 +3094,567 @@ _elm_gengrid_smart_event(Evas_Object *obj,
    Evas_Coord step_y = 0;
    Evas_Coord page_x = 0;
    Evas_Coord page_y = 0;
-   Evas_Event_Key_Down *ev = event_info;
+   Elm_Object_Item *it = NULL;
+   Eina_Bool mirrored = elm_widget_mirrored_get(obj);
 
-   ELM_GENGRID_DATA_GET(obj, sd);
+   eo_do(obj,
+         elm_interface_scrollable_content_pos_get(&x, &y),
+         elm_interface_scrollable_step_size_get(&step_x, &step_y),
+         elm_interface_scrollable_page_size_get(&page_x, &page_y),
+         elm_interface_scrollable_content_viewport_geometry_get
+         (NULL, NULL, &v_w, &v_h));
 
-   // TIZEN ONLY(20131221) : When access mode, focused ui is disabled.
-   if (_elm_config->access_mode) return EINA_FALSE;
+   if (sd->reorder_mode && sd->reorder.running) return EINA_TRUE;
 
-   if (type != EVAS_CALLBACK_KEY_DOWN && type != EVAS_CALLBACK_KEY_UP)
-     return EINA_FALSE;
-   if (!sd->items) return EINA_FALSE;
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
-   if (elm_widget_disabled_get(obj)) return EINA_FALSE;
-   if (!_focus_enabled(obj)) return EINA_FALSE;
-
-   sd->s_iface->content_pos_get(obj, &x, &y);
-   sd->s_iface->step_size_get(obj, &step_x, &step_y);
-   sd->s_iface->page_size_get(obj, &page_x, &page_y);
-   sd->s_iface->content_viewport_size_get(obj, &v_w, &v_h);
-
-#ifdef ELM_FOCUSED_UI
-   if ((!strcmp(ev->keyname, "Left")) ||
-       ((!strcmp(ev->keyname, "KP_Left")) && (!ev->string)))
+   if ((!strcmp(dir, "left") && !mirrored) ||
+       (!strcmp(dir, "right") && mirrored))
      {
-        if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-        if (sd->select_on_focus_enabled)
+        if (sd->reorder_mode)
           {
-             if ((sd->horizontal) &&
-                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
-                      && (_item_multi_select_up(sd)))
-                      || (_item_single_select_up(sd))))
+             Elm_Object_Item *eo_left;
+
+             if (_elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_LEFT))
                {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  return EINA_TRUE;
-               }
-             else if ((!sd->horizontal) &&
-                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
-                      && (_item_multi_select_left(sd)))
-                      || (_item_single_select_left(sd))))
-               {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  return EINA_TRUE;
-               }
-             else
-               {
-                  x -= step_x;
-               }
-          }
-        else
-          {
-             if (_gengrid_item_focused_next(sd, FOCUS_DIR_LEFT))
-               {
-                   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                   return EINA_TRUE;
-               }
-             else
-               {
+                  if (sd->item_loop_enable)
+                    return EINA_TRUE;
                   return EINA_FALSE;
                }
-          }
-        }
-   else if ((!strcmp(ev->keyname, "Right")) ||
-            ((!strcmp(ev->keyname, "KP_Right")) && (!ev->string)))
-     {
-        if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-        if (sd->select_on_focus_enabled)
-          {
-             if ((sd->horizontal) &&
-                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
-                      && (_item_multi_select_down(sd)))
-                      || (_item_single_select_down(sd))))
-               {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  return EINA_TRUE;
-               }
-             else if ((!sd->horizontal) &&
-                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
-                      && (_item_multi_select_right(sd)))
-                      || (_item_single_select_right(sd))))
-               {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  return EINA_TRUE;
-               }
+             if (!sd->horizontal)
+               eo_left = elm_gengrid_item_prev_get(sd->focused_item);
              else
-               {
-                  x += step_x;
-               }
-          }
-        else
-          {
-             if (_gengrid_item_focused_next(sd, FOCUS_DIR_RIGHT))
-               {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  return EINA_TRUE;
-               }
-             else
-               {
-                  return EINA_FALSE;
-               }
-          }
-     }
-   else if ((!strcmp(ev->keyname, "Up")) ||
-            ((!strcmp(ev->keyname, "KP_Up")) && (!ev->string)))
-     {
-        if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-        if (sd->select_on_focus_enabled)
-          {
-             if ((sd->horizontal) &&
-                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
-                      && (_item_multi_select_left(sd)))
-                      || (_item_single_select_left(sd))))
-               {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  return EINA_TRUE;
-               }
-             else if ((!sd->horizontal) &&
-                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
-                      && (_item_multi_select_up(sd)))
-                      || (_item_single_select_up(sd))))
-               {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  return EINA_TRUE;
-               }
-             else
-               {
-                  y -= step_y;
-               }
-          }
-        else
-          {
-             if (_gengrid_item_focused_next(sd, FOCUS_DIR_UP))
-               {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  return EINA_TRUE;
-               }
-             else
-               {
-                  return EINA_FALSE;
-               }
-          }
-     }
-   else if ((!strcmp(ev->keyname, "Down")) ||
-            ((!strcmp(ev->keyname, "KP_Down")) && (!ev->string)))
-     {
-        if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-        if (sd->select_on_focus_enabled)
-          {
-             if ((sd->horizontal) &&
-                   (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
-                   && (_item_multi_select_right(sd)))
-                   || (_item_single_select_right(sd))))
-               {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  return EINA_TRUE;
-               }
-             else if ((!sd->horizontal) &&
-                      (((evas_key_modifier_is_set(ev->modifiers, "Shift"))
-                      && (_item_multi_select_down(sd)))
-                      || (_item_single_select_down(sd))))
-               {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  return EINA_TRUE;
-               }
-             else
-               {
-                  y += step_y;
-               }
-          }
-        else
-          {
-             if (_gengrid_item_focused_next(sd, FOCUS_DIR_DOWN))
-               {
-                  ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-                  return EINA_TRUE;
-               }
-             else
-               {
-                  return EINA_FALSE;
-               }
-          }
-     }
-   else if ((!strcmp(ev->keyname, "Home")) ||
-            ((!strcmp(ev->keyname, "KP_Home")) && (!ev->string)))
-     {
-        if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-        Elm_Object_Item *it = NULL;
-        if (sd->select_on_focus_enabled)
-          {
-             it = elm_gengrid_first_item_get(obj);
-             elm_gengrid_item_bring_in(it, ELM_GENGRID_ITEM_SCROLLTO_IN);
-             elm_gengrid_item_selected_set(it, EINA_TRUE);
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-          }
-        else
-          {
-             _gengrid_item_unfocused(sd->focused);
-             _gengrid_item_focused_next(sd, FOCUS_DIR_DOWN);
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-          }
-        return EINA_TRUE;
-     }
-   else if ((!strcmp(ev->keyname, "End")) ||
-         ((!strcmp(ev->keyname, "KP_End")) && (!ev->string)))
-     {
-        if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-        Elm_Object_Item *it = NULL;
-        if (sd->select_on_focus_enabled)
-          {
-             it = elm_gengrid_last_item_get(obj);
-             elm_gengrid_item_bring_in(it, ELM_GENGRID_ITEM_SCROLLTO_IN);
-             elm_gengrid_item_selected_set(it, EINA_TRUE);
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-          }
-        else
-          {
-             _gengrid_item_unfocused(sd->focused);
-             sd->focused = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
-             _gengrid_item_focused_next(sd, FOCUS_DIR_UP);
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-          }
-        return EINA_TRUE;
-     }
-   else if ((!strcmp(ev->keyname, "Prior")) ||
-         ((!strcmp(ev->keyname, "KP_Prior")) && (!ev->string)))
-     {
-        if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-        Elm_Gen_Item *it = sd->focused;
-        int before_pos = it->position;
-        int after_pos = it->position;
+               eo_left = get_up_item(sd, sd->focused_item);
+             if (!eo_left)
+               return EINA_TRUE;
+             _swap_items(sd->focused_item, eo_left, ELM_FOCUS_LEFT);
 
-        if (sd->item_height > 0) page_y = v_h / sd->item_height;
-        if (sd->item_width > 0) page_x = v_w / sd->item_width;
-
-        while ((before_pos - after_pos) < (page_x * page_y))
-          {
-             if (elm_gengrid_item_prev_get((Elm_Object_Item *) it))
-               it = (Elm_Gen_Item *)
-                       elm_gengrid_item_prev_get((Elm_Object_Item *) it);
-             else break;
-             after_pos = it->position;
-          }
-        if (_gengrid_item_focusable_search(it, 1))
-          it = _gengrid_item_focusable_search(it, 1);
-        else if (_gengrid_item_focusable_search(it, -1))
-          it = _gengrid_item_focusable_search(it, -1);
-
-        _gengrid_item_focused(it, ELM_GENGRID_ITEM_SCROLLTO_TOP);
-
-        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-        return EINA_TRUE;
-     }
-   else if ((!strcmp(ev->keyname, "Next")) ||
-         ((!strcmp(ev->keyname, "KP_Next")) && (!ev->string)))
-     {
-        if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-        Elm_Gen_Item *it = sd->focused;
-        int before_pos = it->position;
-        int after_pos = it->position;
-
-        _gengrid_item_unfocused(sd->focused);
-        if (sd->item_height > 0) page_y = v_h / sd->item_height;
-        if (sd->item_width > 0) page_x = v_w / sd->item_width;
-
-         while ((after_pos - before_pos) < (page_x * page_y))
-          {
-             if (elm_gengrid_item_next_get((Elm_Object_Item *) it))
-               it = (Elm_Gen_Item *)
-                       elm_gengrid_item_next_get((Elm_Object_Item *) it);
-             else break;
-             after_pos = it->position;
-          }
-        if (_gengrid_item_focusable_search(it, -1))
-          it = _gengrid_item_focusable_search(it, -1);
-        else if (_gengrid_item_focusable_search(it, 1))
-          it = _gengrid_item_focusable_search(it, 1);
-
-        _gengrid_item_focused(it, ELM_GENGRID_ITEM_SCROLLTO_TOP);
-
-        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-        return EINA_TRUE;
-     }
-   else if (!strcmp(ev->keyname, "Escape"))
-     {
-        if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-        if (!_all_items_deselect(sd)) return EINA_FALSE;
-        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-        return EINA_TRUE;
-     }
-   else if (((!strcmp(ev->keyname, "Return")) ||
-          (!strcmp(ev->keyname, "KP_Enter"))) &&
-          sd->focused)
-     {
-        if (type == EVAS_CALLBACK_KEY_DOWN && !sd->key_down)
-          {
-             sd->key_down = sd->focused;
-
-             edje_object_signal_emit
-                (VIEW(sd->key_down), "elm,action,focus_highlight,hide", "elm");
-
-             _item_highlight(sd->key_down);
-             if (sd->key_down->long_timer)
-               ecore_timer_del(sd->key_down->long_timer);
-             sd->key_down->long_timer = ecore_timer_add(sd->longpress_timeout,
-                                                _long_press_cb, sd->key_down);
-             evas_object_smart_callback_call(obj, SIG_ACTIVATED, sd->key_down);
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
              return EINA_TRUE;
           }
-        else if (type == EVAS_CALLBACK_KEY_UP && sd->key_down)
+        if (sd->horizontal)
           {
-             edje_object_signal_emit
-                (VIEW(sd->key_down), "elm,action,focus_highlight,show", "elm");
+             if (_elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_LEFT))
+               {
+                  if (sd->item_loop_enable)
+                    {
+                       if (_item_horizontal_loop(obj, ELM_FOCUS_RIGHT))
+                         return EINA_TRUE;
+                    }
+                  return EINA_FALSE;
+               }
+             if (!_elm_config->item_select_on_focus_disable)
+               {
+                  return _item_single_select_up(sd);
+               }
+             else
+               return _item_focus_up(sd);
+          }
+        else
+          {
+             if (sd->focused_item && (_elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_LEFT) ||
+                 !elm_gengrid_item_prev_get(sd->focused_item)))
+               {
+                  if (sd->item_loop_enable)
+                    {
+                       if (_item_horizontal_loop(obj, ELM_FOCUS_RIGHT))
+                         return EINA_TRUE;
+                    }
+                  return EINA_FALSE;
+               }
+             if (!_elm_config->item_select_on_focus_disable)
+               {
+                  return _item_single_select_left(sd);
+               }
+             else
+               return _item_focus_left(sd);
+          }
+     }
+   else if ((!strcmp(dir, "left_multi") && !mirrored) ||
+            (!strcmp(dir, "right_multi") && mirrored))
+     {
+        if (sd->horizontal)
+          {
+             if (_item_multi_select_up(sd)) return EINA_TRUE;
+             else if (_item_single_select_up(sd)) return EINA_TRUE;
+             else return EINA_FALSE;
+          }
+        else
+          {
+             if (_elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_LEFT))
+               return EINA_FALSE;
+             if (_item_multi_select_left(sd)) return EINA_TRUE;
+             else if (_item_single_select_left(sd)) return EINA_TRUE;
+             else return EINA_FALSE;
+          }
+     }
+   else if ((!strcmp(dir, "right") && !mirrored) ||
+            (!strcmp(dir, "left") && mirrored))
+     {
+        if (sd->reorder_mode)
+          {
+             Elm_Object_Item *eo_right;
 
-             if (sd->key_down->long_timer)
-               ecore_timer_del(sd->key_down->long_timer);
-             sd->key_down->long_timer = NULL;
-             if (GG_IT(sd->key_down)->highlight_timer)
-               ecore_timer_del(GG_IT(sd->key_down)->highlight_timer);
-             GG_IT(sd->key_down)->highlight_timer = ecore_timer_add
-                  (ITEM_SELECT_TIMER, _select_timer, sd->key_down);
-             sd->key_down = NULL;
-             ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+             if (_elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_RIGHT))
+               {
+                  if (sd->item_loop_enable)
+                    return EINA_TRUE;
+                  return EINA_FALSE;
+               }
+             if (!sd->horizontal)
+               eo_right = elm_gengrid_item_next_get(sd->focused_item);
+             else
+               eo_right = get_down_item(sd, sd->focused_item);
+             if (!eo_right)
+               return EINA_TRUE;
+             _swap_items(sd->focused_item, eo_right, ELM_FOCUS_RIGHT);
+
              return EINA_TRUE;
           }
-        else return EINA_FALSE;
+        if (sd->horizontal)
+          {
+             if (sd->focused_item && _elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_RIGHT))
+               {
+                  if (sd->item_loop_enable)
+                    {
+                       if (_item_horizontal_loop(obj, ELM_FOCUS_UP))
+                         return EINA_TRUE;
+                    }
+               }
+             if (!_elm_config->item_select_on_focus_disable)
+               {
+                  return _item_single_select_down(sd);
+               }
+             else
+               return _item_focus_down(sd);
+          }
+        else
+          {
+             if (sd->focused_item && (_elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_RIGHT) ||
+                 !elm_gengrid_item_next_get(sd->focused_item)))
+               {
+                  if (sd->item_loop_enable)
+                    {
+                       if (_item_horizontal_loop(obj, ELM_FOCUS_LEFT))
+                         return EINA_TRUE;
+                    }
+                  return EINA_FALSE;
+               }
+             if (!_elm_config->item_select_on_focus_disable)
+               {
+                  return _item_single_select_right(sd);
+               }
+             else
+               return _item_focus_right(sd);
+          }
      }
+   else if ((!strcmp(dir, "right_multi") && !mirrored) ||
+            (!strcmp(dir, "left_multi") && mirrored))
+     {
+        if (sd->horizontal)
+          {
+             if (_item_multi_select_down(sd)) return EINA_TRUE;
+             else if (_item_single_select_down(sd)) return EINA_TRUE;
+             else return EINA_FALSE;
+          }
+        else
+          {
+             if (_elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_RIGHT))
+               return EINA_FALSE;
+             if (_item_multi_select_right(sd)) return EINA_TRUE;
+             else if (_item_single_select_right(sd)) return EINA_TRUE;
+             else return EINA_FALSE;
+          }
+     }
+   else if (!strcmp(dir, "up"))
+     {
+        if (sd->reorder_mode)
+          {
+             Elm_Object_Item *eo_up;
 
+             if (_elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_UP))
+               return EINA_FALSE;
+             if (!sd->horizontal)
+               eo_up = get_up_item(sd, sd->focused_item);
+             else
+               eo_up = elm_gengrid_item_prev_get(sd->focused_item);
+             if (!eo_up)
+               return EINA_TRUE;
+             _swap_items(sd->focused_item, eo_up, ELM_FOCUS_UP);
+
+             return EINA_TRUE;
+          }
+        if (sd->horizontal)
+          {
+             if (sd->focused_item && _elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_UP))
+               return EINA_FALSE;
+             if (!_elm_config->item_select_on_focus_disable)
+               {
+                  if (_item_single_select_left(sd)) return EINA_TRUE;
+                  else return EINA_FALSE;
+               }
+             else
+               return _item_focus_left(sd);
+          }
+        else
+          {
+             if (!_elm_config->item_select_on_focus_disable)
+               {
+                  return _item_single_select_up(sd);
+               }
+             else
+               return _item_focus_up(sd);
+          }
+     }
+   else if (!strcmp(dir, "up_multi"))
+     {
+        if (sd->horizontal)
+          {
+             if (_elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_UP))
+               return EINA_FALSE;
+             if (_item_multi_select_left(sd)) return EINA_TRUE;
+             else if (_item_single_select_left(sd)) return EINA_TRUE;
+             else return EINA_FALSE;
+          }
+        else
+          {
+             if (_item_multi_select_up(sd)) return EINA_TRUE;
+             else if (_item_single_select_up(sd)) return EINA_TRUE;
+             else return EINA_FALSE;
+          }
+     }
+   else if (!strcmp(dir, "down"))
+     {
+        if (sd->reorder_mode)
+          {
+             Elm_Object_Item *eo_down;
+
+             if (_elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_DOWN))
+               return EINA_FALSE;
+             if (!sd->horizontal)
+               eo_down = get_down_item(sd, sd->focused_item);
+             else
+               eo_down = elm_gengrid_item_next_get(sd->focused_item);
+             if (!eo_down)
+               return EINA_TRUE;
+             _swap_items(sd->focused_item, eo_down, ELM_FOCUS_DOWN);
+
+             return EINA_TRUE;
+          }
+        if (sd->horizontal)
+          {
+             if (sd->focused_item && _elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_DOWN))
+               return EINA_FALSE;
+             if (!_elm_config->item_select_on_focus_disable)
+               {
+                  return _item_single_select_right(sd);
+               }
+             else
+               return _item_focus_right(sd);
+          }
+        else
+          {
+             if (!_elm_config->item_select_on_focus_disable)
+               {
+                  return _item_single_select_down(sd);
+               }
+             else
+               return _item_focus_down(sd);
+          }
+     }
+   else if (!strcmp(dir, "down_multi"))
+     {
+        if (sd->horizontal)
+          {
+             if (_elm_gengrid_item_edge_check(sd->focused_item, ELM_FOCUS_DOWN))
+               return EINA_FALSE;
+             if (_item_multi_select_right(sd)) return EINA_TRUE;
+             else if (_item_single_select_right(sd)) return EINA_TRUE;
+             else return EINA_FALSE;
+          }
+        else
+          {
+             if (_item_multi_select_down(sd)) return EINA_TRUE;
+             else if (_item_single_select_down(sd)) return EINA_TRUE;
+             else return EINA_FALSE;
+          }
+     }
+   else if (!strcmp(dir, "first"))
+     {
+        it = elm_gengrid_first_item_get(obj);
+        if (!_elm_config->item_select_on_focus_disable)
+          elm_gengrid_item_selected_set(it, EINA_TRUE);
+        else
+          elm_object_item_focus_set(it, EINA_TRUE);
+        return EINA_TRUE;
+     }
+   else if (!strcmp(dir, "last"))
+     {
+        it = elm_gengrid_last_item_get(obj);
+        if (!_elm_config->item_select_on_focus_disable)
+          elm_gengrid_item_selected_set(it, EINA_TRUE);
+        else
+          elm_object_item_focus_set(it, EINA_TRUE);
+        return EINA_TRUE;
+     }
+   else if (!strcmp(dir, "prior"))
+     {
+        if (sd->horizontal)
+          {
+             if (page_x < 0)
+               x -= -(page_x * v_w) / 100;
+             else
+               x -= page_x;
+          }
+        else
+          {
+             if (page_y < 0)
+               y -= -(page_y * v_h) / 100;
+             else
+               y -= page_y;
+          }
+     }
+   else if (!strcmp(dir, "next"))
+     {
+        if (sd->horizontal)
+          {
+             if (page_x < 0)
+               x += -(page_x * v_w) / 100;
+             else
+               x += page_x;
+          }
+        else
+          {
+             if (page_y < 0)
+               y += -(page_y * v_h) / 100;
+             else
+               y += page_y;
+          }
+     }
    else return EINA_FALSE;
 
-   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-   sd->s_iface->content_pos_set(obj, x, y, EINA_TRUE);
+   eo_do(obj, elm_interface_scrollable_content_pos_set(x, y, EINA_TRUE));
    return EINA_TRUE;
-#else
-   return EINA_FALSE;
-#endif
-}
-
-static void
-_elm_gengrid_focus_highlight_show(void *data __UNUSED__,
-                                  Evas_Object *obj,
-                                  const char *emission __UNUSED__,
-                                  const char *src __UNUSED__)
-{
-   ELM_GENGRID_DATA_GET(obj, sd);
-   if (sd->focused) _gengrid_item_focused(sd->focused, ELM_GENGRID_ITEM_SCROLLTO_IN);
-}
-
-static void
-_elm_gengrid_focus_highlight_hide(void *data __UNUSED__,
-                                  Evas_Object *obj,
-                                  const char *emission __UNUSED__,
-                                  const char *src __UNUSED__)
-{
-   ELM_GENGRID_DATA_GET(obj, sd);
-   if (sd->focused)
-     {
-        // Do not use _gengrid_item_unfocused because focus should be remained
-        edje_object_signal_emit
-           (VIEW(sd->focused), "elm,action,focus_highlight,hide", "elm");
-     }
 }
 
 static Eina_Bool
-_elm_gengrid_smart_on_focus(Evas_Object *obj, Elm_Focus_Info *info)
+_key_action_select(Evas_Object *obj, const char *params EINA_UNUSED)
+{
+   ELM_GENGRID_DATA_GET(obj, sd);
+   Elm_Object_Item *eo_it = elm_object_focused_item_get(obj);
+   if (!eo_it) return EINA_TRUE;
+   ELM_GENGRID_ITEM_DATA_GET(eo_it, it);
+
+   if (sd->multi &&
+       ((sd->multi_select_mode != ELM_OBJECT_MULTI_SELECT_MODE_WITH_CONTROL) ||
+        (!strcmp(params, "multi"))))
+     {
+        if (!it->selected)
+          {
+             it->highlight_cb(it);
+             it->sel_cb(it);
+          }
+        else it->unsel_cb(it);
+     }
+   else
+     {
+        if (!it->selected)
+          {
+             while (sd->selected)
+               {
+                  Elm_Object_Item *eo_sel = sd->selected->data;
+                  Elm_Gen_Item *sel = eo_data_scope_get(eo_sel, ELM_GENGRID_ITEM_CLASS);
+                  it->unsel_cb(sel);
+               }
+          }
+        else
+          {
+             const Eina_List *l, *l_next;
+             Elm_Object_Item *eo_item2;
+
+             EINA_LIST_FOREACH_SAFE(sd->selected, l, l_next, eo_item2)
+               {
+                  ELM_GENGRID_ITEM_DATA_GET(eo_item2, item2);
+                  if (item2 != it) it->unsel_cb(item2);
+               }
+          }
+        it->highlight_cb(it);
+        it->sel_cb(it);
+     }
+
+   if (!sd->multi)
+     evas_object_smart_callback_call(WIDGET(it), SIG_ACTIVATED, eo_it);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_key_action_escape(Evas_Object *obj, const char *params EINA_UNUSED)
 {
    ELM_GENGRID_DATA_GET(obj, sd);
 
-   if (!ELM_WIDGET_CLASS(_elm_gengrid_parent_sc)->on_focus(obj, info))
+   if (!_all_items_deselect(sd)) return EINA_FALSE;
+   return EINA_TRUE;
+}
+
+EOLIAN static Eina_Bool
+_elm_gengrid_elm_widget_event(Eo *obj, Elm_Gengrid_Data *sd, Evas_Object *src, Evas_Callback_Type type, void *event_info)
+{
+   Evas_Event_Key_Down *ev = event_info;
+   (void) src;
+
+   if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
+   if (!sd->items) return EINA_FALSE;
+
+   if (!_elm_config_key_binding_call(obj, ev, key_actions))
      return EINA_FALSE;
 
-   if (elm_widget_focus_get(obj) && (sd->selected) &&
-       (!sd->last_selected_item))
-     sd->last_selected_item = eina_list_data_get(sd->selected);
+   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+   return EINA_TRUE;
+}
 
-   if (sd->select_on_focus_enabled) return EINA_TRUE;
+/*
+ * This function searches the nearest visible item based on the given item.
+ * If the given item is in the gengrid viewport, this returns the given item.
+ * Or this searches the realized items and checks the nearest fully visible item
+ * according to the given item's position.
+ */
+static Elm_Object_Item *
+_elm_gengrid_nearest_visible_item_get(Evas_Object *obj, Elm_Object_Item *eo_it)
+{
+   Evas_Coord vx = 0, vy = 0, vw = 0, vh = 0; // gengrid viewport geometry
+   Evas_Coord ix = 0, iy = 0, iw = 0, ih = 0; // given item geometry
+   Evas_Coord cx = 0, cy = 0, cw = 0, ch = 0; // candidate item geometry
+   Eina_List *item_list = NULL, *l = NULL;
+   Elm_Object_Item *eo_item = NULL;
+   ELM_GENGRID_DATA_GET(obj, sd);
+   Eina_Bool search_next = EINA_FALSE;
 
-   if (elm_widget_focus_get(obj))
+   if (!eo_it) return NULL;
+   ELM_GENGRID_ITEM_DATA_GET(eo_it, it);
+
+   evas_object_geometry_get(sd->pan_obj, &vx, &vy, &vw, &vh);
+   evas_object_geometry_get(VIEW(it), &ix, &iy, &iw, &ih); // FIXME: check if the item is realized or not
+
+   if (ELM_RECTS_INCLUDE(vx, vy, vw, vh, ix, iy, iw, ih))
      {
-        if (_focus_enabled(obj))
+        if (!elm_object_item_disabled_get(eo_it))
+          return eo_it;
+        else
+          search_next = EINA_TRUE;
+     }
+
+   item_list = elm_gengrid_realized_items_get(obj);
+
+   if ((iy < vy) || search_next)
+     {
+        EINA_LIST_FOREACH(item_list, l, eo_item)
           {
-             if (sd->focused)
-                _gengrid_item_focused(sd->focused, ELM_GENGRID_ITEM_SCROLLTO_IN);
-             else
-               _gengrid_item_focused_next(sd, FOCUS_DIR_DOWN);
+             ELM_GENGRID_ITEM_DATA_GET(eo_item, item);
+             evas_object_geometry_get(VIEW(item), &cx, &cy, &cw, &ch);
+             if (ELM_RECTS_INCLUDE(vx, vy, vw, vh, cx, cy, cw, ch) &&
+                 !elm_object_item_disabled_get(eo_item))
+               {
+                  eina_list_free(item_list);
+                  return eo_item;
+               }
           }
      }
    else
      {
-        // when key down and not called key up
-        // and focus is not on genlist, call select_timer forcely
-        if (sd->key_down)
+        EINA_LIST_REVERSE_FOREACH(item_list, l, eo_item)
           {
-             _select_timer(sd->key_down);
-             sd->key_down = NULL;
-          }
-
-        if (sd->focused)
-          {
-             edje_object_signal_emit
-                (VIEW(sd->focused), "elm,action,focus_highlight,hide", "elm");
+             ELM_GENGRID_ITEM_DATA_GET(eo_item, item);
+             evas_object_geometry_get(VIEW(item), &cx, &cy, &cw, &ch);
+             if (ELM_RECTS_INCLUDE(vx, vy, vw, vh, cx, cy, cw, ch) &&
+                 !elm_object_item_disabled_get(eo_item))
+               {
+                  eina_list_free(item_list);
+                  return eo_item;
+               }
           }
      }
-   return EINA_TRUE;
+   eina_list_free(item_list);
+
+   return eo_it;
 }
 
-static Eina_Bool
-_elm_gengrid_smart_on_focus_region(const Evas_Object *obj __UNUSED__,
-                                 Evas_Coord *x,
-                                 Evas_Coord *y,
-                                 Evas_Coord *w,
-                                 Evas_Coord *h)
+EOLIAN static Eina_Bool
+_elm_gengrid_elm_widget_on_focus(Eo *obj, Elm_Gengrid_Data *sd)
 {
-   //FIXME: Gengrid should not move region when first focus in,
-   //But when focus by Keyboard or enforced focus set by
-   //applications, region move should be possible.
-   *x = 0;
-   *y = 0;
-   *w = 0;
-   *h = 0;
+   Eina_Bool int_ret = EINA_FALSE;
+   Elm_Object_Item *eo_it = NULL;
+   Eina_Bool is_sel = EINA_FALSE;
+
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_on_focus());
+   if (!int_ret) return EINA_FALSE;
+
+   if (elm_widget_focus_get(obj) && (sd->selected) &&
+       (!sd->last_selected_item))
+     {
+        Elm_Object_Item *sel = eina_list_data_get(sd->selected);
+        sd->last_selected_item = eo_data_scope_get(sel, ELM_GENGRID_ITEM_CLASS);
+     }
+
+   if (elm_widget_focus_get(obj) && !sd->mouse_down)
+     {
+        if (sd->last_focused_item)
+          eo_it = sd->last_focused_item;
+        else if (sd->last_selected_item)
+          eo_it = sd->last_selected_item;
+        else if (_elm_config->first_item_focus_on_first_focus_in)
+          {
+             eo_it = elm_gengrid_first_item_get(obj);
+             is_sel = EINA_TRUE;
+          }
+
+        if (eo_it)
+          {
+             eo_it = _elm_gengrid_nearest_visible_item_get(obj, eo_it);
+             if (eo_it)
+               {
+                  if (!_elm_config->item_select_on_focus_disable && is_sel)
+                    elm_gengrid_item_selected_set(eo_it, EINA_TRUE);
+                  else
+                    elm_object_item_focus_set(eo_it, EINA_TRUE);
+                  _elm_widget_focus_highlight_start(obj);
+               }
+          }
+     }
+   else
+     {
+        if (sd->focused_item)
+          {
+             sd->last_focused_item = sd->focused_item;
+             _elm_gengrid_item_unfocused(sd->focused_item);
+          }
+     }
 
    return EINA_TRUE;
 }
 
-static Eina_Bool
-_elm_gengrid_smart_focus_next(const Evas_Object *obj,
-                           Elm_Focus_Direction dir,
-                           Evas_Object **next)
+static Eina_Bool _elm_gengrid_smart_focus_next_enable = EINA_FALSE;
+
+EOLIAN static Eina_Bool
+_elm_gengrid_elm_widget_focus_next_manager_is(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *_pd EINA_UNUSED)
+{
+   return _elm_gengrid_smart_focus_next_enable;
+}
+
+EOLIAN static Eina_Bool
+_elm_gengrid_elm_widget_focus_direction_manager_is(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *_pd EINA_UNUSED)
+{
+   return EINA_FALSE;
+}
+
+EOLIAN static Eina_Bool
+_elm_gengrid_elm_widget_focus_next(Eo *obj, Elm_Gengrid_Data *sd, Elm_Focus_Direction dir, Evas_Object **next)
 {
    Eina_List *items = NULL;
    Elm_Gen_Item *it;
 
-   ELM_GENGRID_CHECK(obj) EINA_FALSE;
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    EINA_INLIST_FOREACH(sd->items, it)
      {
         if (it->realized)
-          items = eina_list_append(items, it->base.access_obj);
+          items = eina_list_append(items, it->base->access_obj);
      }
 
    return elm_widget_focus_list_next_get
@@ -2750,7 +3669,8 @@ _mirrored_set(Evas_Object *obj,
 
    ELM_GENGRID_DATA_GET(obj, sd);
 
-   sd->s_iface->mirrored_set(obj, rtl);
+   _item_cache_zero(sd);
+   eo_do_super(obj, MY_CLASS, elm_interface_scrollable_mirrored_set(rtl));
 
    if (!sd->items) return;
    it = ELM_GEN_ITEM_FROM_INLIST(sd->items);
@@ -2758,24 +3678,19 @@ _mirrored_set(Evas_Object *obj,
    while (it)
      {
         edje_object_mirrored_set(VIEW(it), rtl);
-        elm_gengrid_item_update((Elm_Object_Item *)it);
+        elm_gengrid_item_update(EO_OBJ(it));
         it = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(it)->next);
      }
 }
 
-static Eina_Bool
-_elm_gengrid_smart_theme(Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_gengrid_elm_widget_theme_apply(Eo *obj, Elm_Gengrid_Data *sd EINA_UNUSED)
 {
-   ELM_GENGRID_DATA_GET(obj, sd);
+   Eina_Bool int_ret = EINA_FALSE;
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_theme_apply());
+   if (!int_ret) return EINA_FALSE;
 
-   if (!ELM_WIDGET_CLASS(_elm_gengrid_parent_sc)->theme(obj))
-     return EINA_FALSE;
-
-   _item_cache_all_free(sd);
    _mirrored_set(obj, elm_widget_mirrored_get(obj));
-
-   elm_layout_sizing_eval(obj);
-   evas_object_smart_changed(sd->pan_obj);
 
    return EINA_TRUE;
 }
@@ -2796,95 +3711,77 @@ _item_position_update(Eina_Inlist *list,
 static void
 _elm_gengrid_item_del_not_serious(Elm_Gen_Item *it)
 {
-   elm_widget_item_pre_notify_del(it);
-   it->generation = GG_IT(it)->wsd->generation - 1; /* This means that the
-                                                     * item is deleted */
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+   Elm_Object_Item *eo_it = EO_OBJ(it);
+
+   eo_do(eo_it, elm_wdg_item_pre_notify_del());
+   it->generation = sd->generation - 1; /* This means that the item is deleted */
 
    if (it->walking > 0) return;
 
    if (it->selected)
-     GG_IT(it)->wsd->selected =
-       eina_list_remove(GG_IT(it)->wsd->selected, it);
+     sd->selected = eina_list_remove(sd->selected, eo_it);
+   if (sd->last_selected_item == eo_it)
+     sd->last_selected_item = NULL;
+   if (sd->focused_item == eo_it)
+     sd->focused_item = NULL;
+   if (sd->last_focused_item == eo_it)
+     sd->last_focused_item = NULL;
 
    if (it->itc->func.del)
-     it->itc->func.del((void *)it->base.data, WIDGET(it));
+     it->itc->func.del((void *)WIDGET_ITEM_DATA_GET(EO_OBJ(it)), WIDGET(it));
 }
-
+//TIZEN_ONLY(20150825) : Added job for fixing index updation on item deletion.
 static void
-_elm_gengrid_item_del_common(Elm_Gen_Item *it)
+_pos_update_job(void *data)
 {
-#if GENGRID_FX_SUPPORT
-   if (!eina_list_data_find(GG_IT(it)->wsd->pending_del_items, it))
-#endif
-      GG_IT(it)->wsd->items = eina_inlist_remove
-         (GG_IT(it)->wsd->items, EINA_INLIST_GET(it));
+   ELM_GENGRID_DATA_GET(data, sd);
+   sd->pos_update_job = NULL;
 
-   if (it->tooltip.del_cb)
-     it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
-   GG_IT(it)->wsd->walking -= it->walking;
-
-   if (GG_IT(it)->wsd->focused == it) _gengrid_item_unfocused(it); //GG_IT(it)->wsd->focused = NULL;
-   if (GG_IT(it)->wsd->key_down == it) GG_IT(it)->wsd->key_down = NULL;
-
-   if (it->item->highlight_timer)
-     {
-        ecore_timer_del(it->item->highlight_timer);
-        it->item->highlight_timer = NULL;
-     }
-   if (it->long_timer)
-     {
-        ecore_timer_del(it->long_timer);
-        it->long_timer = NULL;
-     }
-   if (it->group)
-     GG_IT(it)->wsd->group_items =
-        eina_list_remove(GG_IT(it)->wsd->group_items, it);
-
-   if (GG_IT(it)->wsd->state)
-     {
-        eina_inlist_sorted_state_free(GG_IT(it)->wsd->state);
-        GG_IT(it)->wsd->state = NULL;
-     }
-   GG_IT(it)->wsd->calc_done = EINA_FALSE;
-   if (GG_IT(it)->wsd->last_selected_item == (Elm_Object_Item *)it)
-     GG_IT(it)->wsd->last_selected_item = NULL;
-
-   GG_IT(it)->wsd->item_count--;
-   evas_object_smart_changed(GG_IT(it)->wsd->pan_obj);
+   _item_position_update(sd->items, 1);
 }
+//
 
 static void
 _elm_gengrid_item_del_serious(Elm_Gen_Item *it)
 {
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+
+   sd->item_count--;
    _elm_gengrid_item_del_not_serious(it);
-   _elm_gengrid_item_del_common(it);
+   sd->items = eina_inlist_remove(sd->items, EINA_INLIST_GET(it));
 
-   if ((it == GG_IT(it)->wsd->bring_in_it) && (GG_IT(it)->wsd->bring_in == EINA_TRUE))
-     {
-        GG_IT(it)->wsd->bring_in_it = NULL;
-        GG_IT(it)->wsd->bring_in = EINA_FALSE;
-     }
+//TIZEN_ONLY(20150825) : Added job for fixing index updation on item deletion.
+   if (sd->pos_update_job) ecore_job_del(sd->pos_update_job);
+   sd->pos_update_job = NULL;
+   if (sd->items)
+     sd->pos_update_job = ecore_job_add(_pos_update_job, sd->obj);
+//
+   if (it->tooltip.del_cb)
+     it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
+   sd->walking -= it->walking;
+   ELM_SAFE_FREE(it->long_timer, ecore_timer_del);
+   if (it->group)
+     sd->group_items = eina_list_remove(sd->group_items, it);
 
-   if ((it == GG_IT(it)->wsd->show_it) && (GG_IT(it)->wsd->show_region == EINA_TRUE))
-     {
-        GG_IT(it)->wsd->show_it = NULL;
-        GG_IT(it)->wsd->show_region = EINA_FALSE;
-     }
-
-   free(it->item);
-   it->item = NULL;
+   ELM_SAFE_FREE(sd->state, eina_inlist_sorted_state_free);
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+   sd->calc_done = EINA_FALSE;
+   evas_object_smart_changed(sd->pan_obj);
+   //ecore_job_del(sd->calc_job);
+   //sd->calc_job = ecore_job_add(sd->calc_cb, sd->obj);
+   //
+   ELM_SAFE_FREE(it->item, free);
 }
 
 static void
 _item_del(Elm_Gen_Item *it)
 {
    Evas_Object *obj = WIDGET(it);
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
 
    evas_event_freeze(evas_object_evas_get(obj));
-#if GENGRID_FX_SUPPORT
-   GG_IT(it)->has_proxy_it = EINA_FALSE;
-#endif
-   GG_IT(it)->wsd->selected = eina_list_remove(GG_IT(it)->wsd->selected, it);
+   sd->selected = eina_list_remove(sd->selected, it);
    if (it->realized) _elm_gengrid_item_unrealize(it, EINA_FALSE);
    _elm_gengrid_item_del_serious(it);
    elm_gengrid_item_class_unref((Elm_Gengrid_Item_Class *)it->itc);
@@ -2894,63 +3791,70 @@ _item_del(Elm_Gen_Item *it)
 
 static void
 _scroll_animate_start_cb(Evas_Object *obj,
-                         void *data __UNUSED__)
+                         void *data EINA_UNUSED)
 {
    evas_object_smart_callback_call(obj, SIG_SCROLL_ANIM_START, NULL);
 }
 
 static void
 _scroll_animate_stop_cb(Evas_Object *obj,
-                        void *data __UNUSED__)
+                        void *data EINA_UNUSED)
 {
    evas_object_smart_callback_call(obj, SIG_SCROLL_ANIM_STOP, NULL);
 }
 
 static void
 _scroll_drag_start_cb(Evas_Object *obj,
-                      void *data __UNUSED__)
+                      void *data EINA_UNUSED)
 {
    evas_object_smart_callback_call(obj, SIG_SCROLL_DRAG_START, NULL);
 }
 
 static void
 _scroll_drag_stop_cb(Evas_Object *obj,
-                     void *data __UNUSED__)
+                     void *data EINA_UNUSED)
 {
    evas_object_smart_callback_call(obj, SIG_SCROLL_DRAG_STOP, NULL);
 }
 
 static void
 _edge_left_cb(Evas_Object *obj,
-              void *data __UNUSED__)
+              void *data EINA_UNUSED)
 {
    evas_object_smart_callback_call(obj, SIG_EDGE_LEFT, NULL);
 }
 
 static void
 _edge_right_cb(Evas_Object *obj,
-               void *data __UNUSED__)
+               void *data EINA_UNUSED)
 {
    evas_object_smart_callback_call(obj, SIG_EDGE_RIGHT, NULL);
 }
 
 static void
 _edge_top_cb(Evas_Object *obj,
-             void *data __UNUSED__)
+             void *data EINA_UNUSED)
 {
    evas_object_smart_callback_call(obj, SIG_EDGE_TOP, NULL);
 }
 
 static void
 _edge_bottom_cb(Evas_Object *obj,
-                void *data __UNUSED__)
+                void *data EINA_UNUSED)
 {
    evas_object_smart_callback_call(obj, SIG_EDGE_BOTTOM, NULL);
 }
 
 static void
+_scroll_page_change_cb(Evas_Object *obj,
+                     void *data EINA_UNUSED)
+{
+   evas_object_smart_callback_call(obj, SIG_SCROLL_PAGE_CHANGE, NULL);
+}
+
+static void
 _scroll_cb(Evas_Object *obj,
-           void *data __UNUSED__)
+           void *data EINA_UNUSED)
 {
    evas_object_smart_callback_call(obj, SIG_SCROLL, NULL);
 }
@@ -2969,217 +3873,127 @@ _elm_gengrid_item_compare(const void *data,
      cb = GG_IT(it)->wsd->item_compare_cb;
    else if (item1 && GG_IT(item1)->wsd->item_compare_cb)
      cb = GG_IT(item1)->wsd->item_compare_cb;
-   if (cb && it && item1) return cb(it, item1);
+   if (cb && it && item1) return cb(EO_OBJ(it), EO_OBJ(item1));
    d = (char *)data - (char *)data1;
    if (d < 0) return -1;
    if (!d) return 0;
    return 1;
 }
 
-static void
-_item_disable_hook(Elm_Object_Item *item)
+EOLIAN static void
+_elm_gengrid_item_elm_widget_item_disable(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-
    if (it->generation < GG_IT(it)->wsd->generation) return;
-
-   _highlight_timer_disable(it);
-   if (it == GG_IT(it)->wsd->focused) _gengrid_item_unfocused(it);
 
    if (it->realized)
      {
-        if (elm_widget_item_disabled_get(it))
+        if (eo_do(EO_OBJ(it), elm_wdg_item_disabled_get()))
           edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
         else
           edje_object_signal_emit(VIEW(it), "elm,state,enabled", "elm");
      }
 }
 
-#if GENGRID_FX_SUPPORT
-static void
-_item_del_post_fx_process(Elm_Gen_Item *it)
+EOLIAN static Eina_Bool
+_elm_gengrid_item_elm_widget_item_del_pre(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
 {
-   Evas_Object *obj = WIDGET(it);
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
-
-   evas_event_freeze(evas_object_evas_get(obj));
-
-   GG_IT(it)->has_proxy_it = EINA_FALSE;
-
-   if (it->itc->func.del)
-     it->itc->func.del((void *)it->base.data, WIDGET(it));
-   if ((it == GG_IT(it)->wsd->bring_in_it) && (GG_IT(it)->wsd->bring_in == EINA_TRUE))
-     {
-        GG_IT(it)->wsd->bring_in_it = NULL;
-        GG_IT(it)->wsd->bring_in = EINA_FALSE;
-     }
-
-   if ((it == GG_IT(it)->wsd->show_it) && (GG_IT(it)->wsd->show_region == EINA_TRUE))
-     {
-        GG_IT(it)->wsd->show_it = NULL;
-        GG_IT(it)->wsd->show_region = EINA_FALSE;
-     }
-
-   free(it->item);
-   it->item = NULL;
-   elm_gengrid_item_class_unref((Elm_Gengrid_Item_Class *)it->itc);
-   evas_event_thaw(evas_object_evas_get(obj));
-   evas_event_thaw_eval(evas_object_evas_get(obj));
-
-   sd->calc_done = EINA_FALSE;
-   evas_object_smart_changed(sd->pan_obj);
-}
-
-static void
-_item_del_pre_fx_process(Elm_Gen_Item *it)
-{
-   _elm_gengrid_fx_capture(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj, 0);
-   if (!eina_list_data_find(GG_IT(it)->wsd->pending_del_items, it))
-     {
-        GG_IT(it)->wsd->pending_del_items = eina_list_append(GG_IT(it)->wsd->pending_del_items, it);
-     }
-
-   evas_object_event_callback_del_full
-      (VIEW(it), EVAS_CALLBACK_MOUSE_DOWN, _item_mouse_down_cb, it);
-   evas_object_event_callback_del_full
-      (VIEW(it), EVAS_CALLBACK_MOUSE_UP, _item_mouse_up_cb, it);
-
-   evas_object_event_callback_del_full
-      (VIEW(it), EVAS_CALLBACK_MOUSE_MOVE, _item_mouse_move_cb, it);
-
-   _highlight_timer_disable(it);
-
-   GG_IT(it)->wsd->items = eina_inlist_remove
-      (GG_IT(it)->wsd->items, EINA_INLIST_GET(it));
-
-   if (it->realized) _elm_gengrid_item_unrealize(it, EINA_FALSE);
-
-   elm_widget_item_pre_notify_del(it);
-   it->generation = GG_IT(it)->wsd->generation - 1; /* This means that the
-                                                     * item is deleted */
-   if (it->walking > 0) return;
-
-   if (it->selected)
-     GG_IT(it)->wsd->selected =
-       eina_list_remove(GG_IT(it)->wsd->selected, it);
-
-    _elm_gengrid_item_del_common(it);
-}
-#endif
-
-//static void
-static Eina_Bool
-_item_del_pre_hook(Elm_Object_Item *item)
-{
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-
-#if GENGRID_FX_SUPPORT
-   if ((GG_IT(it)->wsd->fx_mode) && (!GG_IT(it)->wsd->gengrid_clearing))
-     {
-        _item_del_pre_fx_process(it);
-        return EINA_FALSE;
-     }
-#endif
    if (it->walking > 0)
      {
         _elm_gengrid_item_del_not_serious(it);
-        return EINA_TRUE;
+        return EINA_FALSE;
      }
 
    _item_del(it);
    return EINA_TRUE;
 }
 
-static Evas_Object *
-_item_content_get_hook(Elm_Gen_Item *it,
-                       const char *part)
+EOLIAN static Evas_Object *
+_elm_gengrid_item_elm_widget_item_part_content_get(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it, const char * part)
 {
    return edje_object_part_swallow_get(VIEW(it), part);
 }
 
-static const char *
-_item_text_get_hook(Elm_Gen_Item *it,
-                    const char *part)
+EOLIAN static const char *
+_elm_gengrid_item_elm_widget_item_part_text_get(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it, const char * part)
 {
    if (!it->itc->func.text_get) return NULL;
    return edje_object_part_text_get(VIEW(it), part);
 }
 
-static void
-_item_signal_emit_hook(Elm_Object_Item *it,
-                       const char *emission,
-                       const char *source)
+EOLIAN static void
+_elm_gengrid_item_elm_widget_item_signal_emit(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it, const char *emission, const char *source)
 {
    edje_object_signal_emit(VIEW(it), emission, source);
 }
 
+EOLIAN static void
+_elm_gengrid_item_elm_widget_item_focus_set(Eo *eo_it, Elm_Gen_Item *it, Eina_Bool focused)
+{
+   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
+   Evas_Object *obj = WIDGET(it);
+   ELM_GENGRID_DATA_GET(obj, sd);
+
+   if (focused)
+     {
+        sd->last_focused_item = eo_it;
+        if (!elm_object_focus_get(obj))
+          elm_object_focus_set(obj, EINA_TRUE);
+
+        if (!elm_widget_focus_get(obj))
+          return;
+
+        if (eo_it != sd->focused_item)
+          {
+             if (sd->focused_item)
+               _elm_gengrid_item_unfocused(sd->focused_item);
+             _elm_gengrid_item_focused(eo_it);
+          }
+     }
+   else
+     {
+        if (!elm_widget_focus_get(obj))
+          return;
+        _elm_gengrid_item_unfocused(eo_it);
+     }
+}
+
+EOLIAN static Eina_Bool
+_elm_gengrid_item_elm_widget_item_focus_get(Eo *eo_it, Elm_Gen_Item *it)
+{
+   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, EINA_FALSE);
+   Evas_Object *obj = WIDGET(it);
+   ELM_GENGRID_DATA_GET(obj, sd);
+
+   if (eo_it == sd->focused_item)
+     return EINA_TRUE;
+
+   return EINA_FALSE;
+}
+
 static void
-_elm_gengrid_clear(Evas_Object *obj,
+_internal_elm_gengrid_clear(Evas_Object *obj,
                    Eina_Bool standby)
 {
    Eina_Inlist *next, *l;
-   Elm_Gen_Item *it;
 
    ELM_GENGRID_DATA_GET(obj, sd);
+   if (!sd->items) return;
 
    if (!standby) sd->generation++;
 
-   if (sd->state)
-     {
-        eina_inlist_sorted_state_free(sd->state);
-        sd->state = NULL;
-     }
+   ELM_SAFE_FREE(sd->state, eina_inlist_sorted_state_free);
 
    if (sd->walking > 0)
      {
         sd->clear_me = EINA_TRUE;
         return;
      }
-   _item_cache_all_free(sd);
-   evas_event_freeze(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
-
-#if GENGRID_FX_SUPPORT
-   Elm_Gen_FX_Item *fi;
-   Proxy_Item *pi;
-
-   EINA_LIST_FREE(sd->capture_before_items, pi)
-     {
-        if (pi->proxy) evas_object_smart_member_del(pi->proxy);
-        if (pi->proxy) evas_object_del(pi->proxy);
-        free(pi);
-     }
-   EINA_LIST_FREE(sd->capture_after_items, pi)
-     {
-        if (pi->proxy) evas_object_smart_member_del(pi->proxy);
-        if (pi->proxy) evas_object_del(pi->proxy);
-        free(pi);
-     }
-   EINA_LIST_FREE(sd->fx_items, fi)
-     {
-        if (fi->trans) elm_transit_del(fi->trans);
-        free(fi);
-     }
-   EINA_LIST_FREE (sd->pending_unrealized_items, it)
-     {
-        if ((it) && (GG_IT(it))) GG_IT(it)->has_proxy_it = EINA_FALSE;
-        _elm_gengrid_item_unrealize(it, EINA_FALSE);
-     }
-   EINA_LIST_FREE (sd->pending_del_items, it)
-     {
-        _item_del_post_fx_process(it);
-        elm_widget_item_free(it);
-     }
-   sd->gengrid_clearing = EINA_TRUE;
-   sd->fx_playing = EINA_FALSE;
-   sd->fx_first_captured = EINA_FALSE;
-   sd->rendered = EINA_FALSE;
-#endif
-
+   evas_event_freeze(evas_object_evas_get(obj));
    for (l = sd->items, next = l ? l->next : NULL;
         l;
         l = next, next = next ? next->next : NULL)
      {
-        it = ELM_GEN_ITEM_FROM_INLIST(l);
+        Elm_Gen_Item *it = ELM_GEN_ITEM_FROM_INLIST(l);
 
         if (it->generation < sd->generation)
           {
@@ -3188,17 +4002,16 @@ _elm_gengrid_clear(Evas_Object *obj,
              if (next) itn = ELM_GEN_ITEM_FROM_INLIST(next);
              if (itn) itn->walking++;  /* prevent early death of subitem */
              it->del_cb(it);
-             elm_widget_item_free(it);
+             eo_del(EO_OBJ(it));
              if (itn) itn->walking--;
           }
      }
    sd->clear_me = EINA_FALSE;
    sd->pan_changed = EINA_TRUE;
-   evas_object_smart_changed(sd->pan_obj);
-
-   if (sd->focused) sd->focused = NULL;
-   if (sd->key_down) sd->key_down = NULL;
-   if (sd->selected) sd->selected = eina_list_free(sd->selected);
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+   //ELM_SAFE_FREE(sd->calc_job, ecore_job_del);
+   //
+   sd->selected = eina_list_free(sd->selected);
    if (sd->clear_cb) sd->clear_cb(sd);
    sd->pan_x = 0;
    sd->pan_y = 0;
@@ -3210,243 +4023,237 @@ _elm_gengrid_clear(Evas_Object *obj,
         evas_object_size_hint_min_set(sd->pan_obj, sd->minw, sd->minh);
         evas_object_smart_callback_call(sd->pan_obj, "changed", NULL);
      }
-   elm_layout_sizing_eval(ELM_WIDGET_DATA(sd)->obj);
-   sd->s_iface->content_region_show(obj, 0, 0, 0, 0);
-
-#if GENGRID_FX_SUPPORT
-   sd->gengrid_clearing = EINA_FALSE;
-#endif
-   evas_event_thaw(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
-   evas_event_thaw_eval(evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
+   eo_do(obj, elm_interface_scrollable_content_region_show(0, 0, 0, 0));
+   evas_event_thaw(evas_object_evas_get(obj));
+   evas_event_thaw_eval(evas_object_evas_get(obj));
 }
 
 static void
 _item_select(Elm_Gen_Item *it)
 {
    Evas_Object *obj = WIDGET(it);
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
-   if (elm_widget_item_disabled_get(it)) return;
-   if ((sd->select_mode == ELM_OBJECT_SELECT_MODE_NONE) ||
-       (sd->select_mode == ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY) ||
-       (it->select_mode == ELM_OBJECT_SELECT_MODE_NONE) ||
-       (it->select_mode == ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY))
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+   Elm_Object_Item *eo_it = EO_OBJ(it);
+
+   if (_is_no_select(it) ||
+       (it->generation < sd->generation) ||
+       (it->decorate_it_set))
      return;
-   if (sd->select_mode != ELM_OBJECT_SELECT_MODE_ALWAYS &&
-       it->select_mode != ELM_OBJECT_SELECT_MODE_ALWAYS &&
-       it->selected)
-      return;
-   if (!sd->multi)
-     {
-        const Eina_List *l, *ll;
-        Elm_Gen_Item *it2;
-        EINA_LIST_FOREACH_SAFE(sd->selected, l, ll, it2)
-          if (it2 != it) _item_unselect(it2);
-     }
 
    if (!it->selected)
      {
-        sd->selected = eina_list_append(sd->selected, it);
         it->selected = EINA_TRUE;
+        sd->selected = eina_list_append(sd->selected, eo_it);
      }
-   sd->last_selected_item = (Elm_Object_Item *)it;
-   _item_highlight(it);
-   _gengrid_item_focused(it, ELM_GENGRID_ITEM_SCROLLTO_IN);
-
-   // FIXME: after evas_object_raise, mouse event callbacks(ex, UP, DOWN)
-   // can be called again eventhough already received it.
-   const char *selectraise = edje_object_data_get(VIEW(it), "selectraise");
-   if ((selectraise) && (!strcmp(selectraise, "on")))
+   else if ((sd->select_mode != ELM_OBJECT_SELECT_MODE_ALWAYS) &&
+            (it->select_mode != ELM_OBJECT_SELECT_MODE_ALWAYS))
      {
-        evas_object_raise(VIEW(it));
+        // TIZEN Only(20150708) : unselect when selected item is selected again
+        // There need to be implemented 'SELECT_UNSELECT' mode in elm_config
+        // select mode for support upsteam and TIZEN both.
+        it->unhighlight_cb(it);
+        it->unsel_cb(it);
+        //
+        return;
      }
 
    evas_object_ref(obj);
-   if (it->func.func) it->func.func((void *)it->func.data, WIDGET(it), it);
-   if (EINA_MAGIC_CHECK((Elm_Widget_Item *)it, ELM_WIDGET_ITEM_MAGIC))
+   it->walking++;
+   sd->walking++;
+   if (it->func.func) it->func.func((void *)it->func.data, WIDGET(it), eo_it);
+   if (it->generation == sd->generation)
      {
-        if (it->generation == sd->generation)
-           evas_object_smart_callback_call(WIDGET(it), SIG_SELECTED, it);
+        evas_object_smart_callback_call(WIDGET(it), SIG_SELECTED, eo_it);
+        elm_object_item_focus_set(eo_it, EINA_TRUE);
+     }
+
+   it->walking--;
+   sd->walking--;
+   if ((sd->clear_me) && (!sd->walking))
+     _internal_elm_gengrid_clear(WIDGET(it), EINA_TRUE);
+   else
+     {
+        if ((!it->walking) && (it->generation < sd->generation))
+          {
+             it->del_cb(it);
+             eo_del(eo_it);
+          }
+        else
+          sd->last_selected_item = eo_it;
      }
    evas_object_unref(obj);
 }
 
+EOLIAN static void
+_elm_gengrid_item_eo_base_constructor(Eo *eo_it, Elm_Gen_Item *it)
+{
+   eo_do_super(eo_it, ELM_GENGRID_ITEM_CLASS, eo_constructor());
+   it->base = eo_data_scope_get(eo_it, ELM_WIDGET_ITEM_CLASS);
+   eo_do(eo_it, elm_interface_atspi_accessible_role_set(ELM_ATSPI_ROLE_LIST_ITEM));
+}
+
 static Elm_Gen_Item *
-_elm_gengrid_item_new(Elm_Gengrid_Smart_Data *sd,
+_elm_gengrid_item_new(Elm_Gengrid_Data *sd,
                       const Elm_Gen_Item_Class *itc,
                       const void *data,
                       Evas_Smart_Cb func,
                       const void *func_data)
 {
-   Elm_Gen_Item *it;
-
    if (!itc) return NULL;
 
-   it = elm_widget_item_new(ELM_WIDGET_DATA(sd)->obj, Elm_Gen_Item);
-   if (!it) return NULL;
+   Eo *eo_it = eo_add(ELM_GENGRID_ITEM_CLASS, sd->obj);
+   if (!eo_it) return NULL;
+   ELM_GENGRID_ITEM_DATA_GET(eo_it, it);
 
    it->generation = sd->generation;
    it->itc = itc;
    elm_gengrid_item_class_ref((Elm_Gengrid_Item_Class *)itc);
 
-   it->base.data = data;
+   WIDGET_ITEM_DATA_SET(EO_OBJ(it), data);
    it->parent = NULL;
    it->func.func = func;
    it->func.data = func_data;
 
-   elm_widget_item_content_get_hook_set(it, _item_content_get_hook);
-   elm_widget_item_text_get_hook_set(it, _item_text_get_hook);
-   elm_widget_item_disable_hook_set(it, _item_disable_hook);
-   elm_widget_item_del_pre_hook_set(it, _item_del_pre_hook);
-   elm_widget_item_signal_emit_hook_set(it, _item_signal_emit_hook);
-
-   /* TEMPORARY */
-   it->sel_cb = (Ecore_Cb)_item_select;
-
-   it->item = ELM_NEW(Elm_Gen_Item_Type);
-
-   GG_IT(it)->wsd = sd;
-
-   sd->item_count++;
-   it->group = it->itc->item_style &&
-     (!strncmp(it->itc->item_style, "group_index", 11));
-
    it->del_cb = (Ecore_Cb)_item_del;
    it->highlight_cb = (Ecore_Cb)_item_highlight;
+   it->unhighlight_cb = (Ecore_Cb)_item_unhighlight;
+   it->sel_cb = (Ecore_Cb)_item_select;
    it->unsel_cb = (Ecore_Cb)_item_unselect;
    it->unrealize_cb = (Ecore_Cb)_item_unrealize_cb;
 
-#if GENGRID_FX_SUPPORT
-   it->item->num = sd->item_count;
-   if (sd->fx_mode)
-     _elm_gengrid_fx_capture(ELM_WIDGET_DATA(sd)->obj, 0);
-#endif
+   GG_IT(it) = ELM_NEW(Elm_Gen_Item_Type);
+   GG_IT(it)->wsd = sd;
 
-   return it;
+   it->group = it->itc->item_style &&
+     (!strcmp(it->itc->item_style, "group_index"));
+   sd->item_count++;
+
+  return it;
 }
 
-static void
-_elm_gengrid_smart_sizing_eval(Evas_Object *obj __UNUSED__)
+/* common layout sizing won't apply here */
+EOLIAN static void
+_elm_gengrid_elm_layout_sizing_eval(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *_pd EINA_UNUSED)
 {
-   Evas_Coord minw = 0, minh = 0, maxw = -1, maxh = -1, vw = 0, vh = 0;
-
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   /* parent class' early call */
-   if (!sd->s_iface) return;
-
-   evas_object_size_hint_min_get(obj, &minw, &minh);
-   evas_object_size_hint_max_get(obj, &maxw, &maxh);
-   edje_object_size_min_calc(ELM_WIDGET_DATA(sd)->resize_obj, &vw, &vh);
-
-   if (sd->scr_minw)
-     {
-        maxw = -1;
-        minw = vw + sd->minw;
-     }
-   if (sd->scr_minh)
-     {
-        maxh = -1;
-        minh = vh + sd->minh;
-     }
-
-   if ((maxw > 0) && (minw > maxw))
-     minw = maxw;
-   if ((maxh > 0) && (minh > maxh))
-     minh = maxh;
-
-   evas_object_size_hint_min_set(obj, minw, minh);
-   evas_object_size_hint_max_set(obj, maxw, maxh);
+   return;  /* no-op */
 }
 
-static void
-_elm_gengrid_content_min_limit_cb(Evas_Object *obj,
-                               Eina_Bool w,
-                               Eina_Bool h)
+EOLIAN static void
+_elm_gengrid_evas_object_smart_add(Eo *obj, Elm_Gengrid_Data *priv)
 {
-   ELM_GENGRID_DATA_GET(obj, sd);
+   Eina_Bool bounce = _elm_config->thumbscroll_bounce_enable;
+   Elm_Gengrid_Pan_Data *pan_data;
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-   sd->scr_minw = !!w;
-   sd->scr_minh = !!h;
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   elm_widget_sub_object_parent_add(obj);
 
-   elm_layout_sizing_eval(obj);
+   priv->hit_rect = evas_object_rectangle_add(evas_object_evas_get(obj));
+   evas_object_smart_member_add(priv->hit_rect, obj);
+   elm_widget_sub_object_add(obj, priv->hit_rect);
+
+   /* common scroller hit rectangle setup */
+   evas_object_color_set(priv->hit_rect, 0, 0, 0, 0);
+   evas_object_show(priv->hit_rect);
+   evas_object_repeat_events_set(priv->hit_rect, EINA_TRUE);
+
+   elm_widget_can_focus_set(obj, EINA_TRUE);
+
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+   //priv->calc_cb = (Ecore_Cb)_calc_job;
+   //
+
+   priv->generation = 1;
+
+   if (!elm_layout_theme_set(obj, "gengrid", "base",
+                             elm_widget_style_get(obj)))
+     ERR("Failed to set layout!");
+
+   eo_do(obj, elm_interface_scrollable_objects_set(wd->resize_obj, priv->hit_rect));
+
+   priv->old_h_bounce = bounce;
+   priv->old_v_bounce = bounce;
+
+   eo_do(obj, elm_interface_scrollable_bounce_allow_set(bounce, bounce));
+
+   eo_do(obj,
+         elm_interface_scrollable_animate_start_cb_set
+         (_scroll_animate_start_cb),
+         elm_interface_scrollable_animate_stop_cb_set(_scroll_animate_stop_cb),
+         elm_interface_scrollable_drag_start_cb_set(_scroll_drag_start_cb),
+         elm_interface_scrollable_drag_stop_cb_set(_scroll_drag_stop_cb),
+         elm_interface_scrollable_edge_left_cb_set(_edge_left_cb),
+         elm_interface_scrollable_edge_right_cb_set(_edge_right_cb),
+         elm_interface_scrollable_edge_top_cb_set(_edge_top_cb),
+         elm_interface_scrollable_edge_bottom_cb_set(_edge_bottom_cb),
+         elm_interface_scrollable_scroll_cb_set(_scroll_cb),
+         elm_interface_scrollable_page_change_cb_set(_scroll_page_change_cb));
+
+   priv->align_x = 0.5;
+   priv->align_y = 0.5;
+   priv->highlight = EINA_TRUE;
+   priv->item_cache_max = CACHE_MAX;
+
+   priv->pan_obj = eo_add(MY_PAN_CLASS, evas_object_evas_get(obj));
+   pan_data = eo_data_scope_get(priv->pan_obj, MY_PAN_CLASS);
+   eo_data_ref(obj, NULL);
+   pan_data->wobj = obj;
+   pan_data->wsd = priv;
+
+   priv->stack = evas_object_rectangle_add(evas_object_evas_get(obj));
+   evas_object_smart_member_add(priv->stack, priv->pan_obj);
+   evas_object_raise(priv->stack);
+
+   eo_do(obj, elm_interface_scrollable_extern_pan_set(priv->pan_obj));
 }
 
-static void
-_elm_gengrid_smart_add(Evas_Object *obj)
+EOLIAN static void
+_elm_gengrid_evas_object_smart_del(Eo *obj, Elm_Gengrid_Data *sd)
 {
-   EVAS_SMART_DATA_ALLOC(obj, Elm_Gengrid_Smart_Data);
-
-   ELM_WIDGET_CLASS(_elm_gengrid_parent_sc)->base.add(obj);
-}
-
-static void
-_elm_gengrid_smart_del(Evas_Object *obj)
-{
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->no_cache = EINA_TRUE;
    elm_gengrid_clear(obj);
-   evas_object_del(sd->pan_obj);
-   sd->pan_obj = NULL;
+   ELM_SAFE_FREE(sd->pan_obj, evas_object_del);
+   ELM_SAFE_FREE(sd->stack, evas_object_del);
 
-   ELM_WIDGET_CLASS(_elm_gengrid_parent_sc)->base.del(obj);
+//TIZEN_ONLY(20150825)
+   if (sd->pos_update_job) ecore_job_del(sd->pos_update_job);
+   sd->pos_update_job = NULL;
+//
+   _item_cache_zero(sd);
+
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
+   //ecore_job_del(sd->calc_job);
+   //
+
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_del());
 }
 
-static void
-_elm_gengrid_smart_move(Evas_Object *obj,
-                        Evas_Coord x,
-                        Evas_Coord y)
+EOLIAN static void
+_elm_gengrid_evas_object_smart_move(Eo *obj, Elm_Gengrid_Data *sd, Evas_Coord x, Evas_Coord y)
 {
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   ELM_WIDGET_CLASS(_elm_gengrid_parent_sc)->base.move(obj, x, y);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_move(x, y));
 
    evas_object_move(sd->hit_rect, x, y);
 }
 
-static void
-_elm_gengrid_smart_resize(Evas_Object *obj,
-                          Evas_Coord w,
-                          Evas_Coord h)
+EOLIAN static void
+_elm_gengrid_evas_object_smart_resize(Eo *obj, Elm_Gengrid_Data *sd, Evas_Coord w, Evas_Coord h)
 {
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   ELM_WIDGET_CLASS(_elm_gengrid_parent_sc)->base.resize(obj, w, h);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_resize(w, h));
 
    evas_object_resize(sd->hit_rect, w, h);
 }
 
-static void
-_elm_gengrid_smart_hide(Evas_Object *obj)
+EOLIAN static void
+_elm_gengrid_evas_object_smart_member_add(Eo *obj, Elm_Gengrid_Data *sd, Evas_Object *member)
 {
-   ELM_GENGRID_DATA_GET(obj, sd);
-   Elm_Gen_Item *it;
-
-   ELM_WIDGET_CLASS(_elm_gengrid_parent_sc)->base.hide(obj);
-
-   evas_object_hide(sd->hit_rect);
-
-   EINA_INLIST_FOREACH(sd->items, it)
-     {
-        if (it->long_timer) ecore_timer_del(it->long_timer);
-        it->long_timer = NULL;
-     }
-}
-
-static void
-_elm_gengrid_smart_member_add(Evas_Object *obj,
-                              Evas_Object *member)
-{
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   ELM_WIDGET_CLASS(_elm_gengrid_parent_sc)->base.member_add(obj, member);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_member_add(member));
 
    if (sd->hit_rect)
      evas_object_raise(sd->hit_rect);
 }
 
 static void
-_access_obj_process(Elm_Gengrid_Smart_Data * sd, Eina_Bool is_access)
+_access_obj_process(Elm_Gengrid_Data * sd, Eina_Bool is_access)
 {
    Elm_Gen_Item *it;
 
@@ -3455,239 +4262,84 @@ _access_obj_process(Elm_Gengrid_Smart_Data * sd, Eina_Bool is_access)
         if (!it->realized) continue;
         if (is_access) _access_widget_item_register(it);
         else
-          _elm_access_widget_item_unregister((Elm_Widget_Item *)it);
+          _elm_access_widget_item_unregister(it->base);
 
      }
 }
 
-static void
-_access_hook(Evas_Object *obj, Eina_Bool is_access)
+EOLIAN static void
+_elm_gengrid_elm_widget_access(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Eina_Bool acs)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   if (is_access)
-     ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next =
-     _elm_gengrid_smart_focus_next;
-   else
-     ELM_WIDGET_CLASS(ELM_WIDGET_DATA(sd)->api)->focus_next = NULL;
-
-   _access_obj_process(sd, is_access);
-}
-
-static void
-_elm_gengrid_smart_set_user(Elm_Gengrid_Smart_Class *sc)
-{
-   ELM_WIDGET_CLASS(sc)->base.add = _elm_gengrid_smart_add;
-   ELM_WIDGET_CLASS(sc)->base.del = _elm_gengrid_smart_del;
-   ELM_WIDGET_CLASS(sc)->base.move = _elm_gengrid_smart_move;
-   ELM_WIDGET_CLASS(sc)->base.resize = _elm_gengrid_smart_resize;
-   ELM_WIDGET_CLASS(sc)->base.hide = _elm_gengrid_smart_hide;
-   ELM_WIDGET_CLASS(sc)->base.member_add = _elm_gengrid_smart_member_add;
-
-   ELM_WIDGET_CLASS(sc)->on_focus = _elm_gengrid_smart_on_focus;
-   ELM_WIDGET_CLASS(sc)->on_focus_region = _elm_gengrid_smart_on_focus_region;
-   ELM_WIDGET_CLASS(sc)->theme = _elm_gengrid_smart_theme;
-   ELM_WIDGET_CLASS(sc)->event = _elm_gengrid_smart_event;
-
-   /* not a 'focus chain manager' */
-   ELM_WIDGET_CLASS(sc)->focus_next = NULL;
-   ELM_WIDGET_CLASS(sc)->focus_direction_manager_is = NULL;
-   ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
-   ELM_WIDGET_CLASS(sc)->translate = _elm_gengrid_smart_translate;
-
-   ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_gengrid_smart_sizing_eval;
-
-   // ACCESS
-   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
-     ELM_WIDGET_CLASS(sc)->focus_next = _elm_gengrid_smart_focus_next;
-   else
-     ELM_WIDGET_CLASS(sc)->focus_next = NULL;
-
-   ELM_WIDGET_CLASS(sc)->access = _access_hook;
-}
-
-EAPI const Elm_Gengrid_Smart_Class *
-elm_gengrid_smart_class_get(void)
-{
-   static Elm_Gengrid_Smart_Class _sc =
-     ELM_GENGRID_SMART_CLASS_INIT_NAME_VERSION(ELM_GENGRID_SMART_NAME);
-   static const Elm_Gengrid_Smart_Class *class = NULL;
-   Evas_Smart_Class *esc = (Evas_Smart_Class *)&_sc;
-
-   if (class)
-     return class;
-
-   _elm_gengrid_smart_set(&_sc);
-   esc->callbacks = _smart_callbacks;
-   class = &_sc;
-
-   return class;
+   _elm_gengrid_smart_focus_next_enable = acs;
+   _access_obj_process(sd, _elm_gengrid_smart_focus_next_enable);
 }
 
 EAPI Evas_Object *
 elm_gengrid_add(Evas_Object *parent)
 {
-   Evas_Object *obj;
-   Eina_Bool bounce = _elm_config->thumbscroll_bounce_enable;
-   Elm_Gengrid_Pan_Smart_Data *pan_data;
-
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-
-   obj = elm_widget_add(_elm_gengrid_smart_class_new(), parent);
-   if (!obj) return NULL;
-
-   if (!elm_widget_sub_object_add(parent, obj))
-     ERR("could not add %p as sub object of %p", obj, parent);
-
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->hit_rect = evas_object_rectangle_add(evas_object_evas_get(obj));
-   evas_object_smart_member_add(sd->hit_rect, obj);
-   elm_widget_sub_object_add(obj, sd->hit_rect);
-
-   /* common scroller hit rectangle setup */
-   evas_object_color_set(sd->hit_rect, 0, 0, 0, 0);
-   evas_object_show(sd->hit_rect);
-   evas_object_repeat_events_set(sd->hit_rect, EINA_TRUE);
-
-   elm_widget_can_focus_set(obj, EINA_TRUE);
-
-   sd->generation = 1;
-
-   elm_layout_theme_set(obj, "gengrid", "base", elm_widget_style_get(obj));
-
-   /* interface's add() routine issued AFTER the object's smart_add() */
-   sd->s_iface = evas_object_smart_interface_get
-       (obj, ELM_SCROLLABLE_IFACE_NAME);
-
-   sd->s_iface->objects_set
-     (obj, ELM_WIDGET_DATA(sd)->resize_obj, sd->hit_rect);
-
-   sd->old_h_bounce = bounce;
-   sd->old_v_bounce = bounce;
-   sd->s_iface->bounce_allow_set(obj, bounce, bounce);
-
-   sd->s_iface->animate_start_cb_set(obj, _scroll_animate_start_cb);
-   sd->s_iface->animate_stop_cb_set(obj, _scroll_animate_stop_cb);
-   sd->s_iface->drag_start_cb_set(obj, _scroll_drag_start_cb);
-   sd->s_iface->drag_stop_cb_set(obj, _scroll_drag_stop_cb);
-   sd->s_iface->edge_left_cb_set(obj, _edge_left_cb);
-   sd->s_iface->edge_right_cb_set(obj, _edge_right_cb);
-   sd->s_iface->edge_top_cb_set(obj, _edge_top_cb);
-   sd->s_iface->edge_bottom_cb_set(obj, _edge_bottom_cb);
-   sd->s_iface->scroll_cb_set(obj, _scroll_cb);
-
-   sd->s_iface->content_min_limit_cb_set
-     (obj, _elm_gengrid_content_min_limit_cb);
-
-   sd->align_x = 0.5;
-   sd->align_y = 0.5;
-   sd->highlight = EINA_TRUE;
-   sd->longpress_timeout = _elm_config->longpress_timeout;
-
-#if GENGRID_FX_SUPPORT
-   sd->fx_mode = EINA_TRUE;
-   sd->rendered = EINA_FALSE;
-   sd->fx_first_captured = EINA_FALSE;
-   sd->fx_playing = EINA_FALSE;
-   sd->gengrid_clearing = EINA_FALSE;
-#endif
-
-   sd->pan_obj = evas_object_smart_add
-       (evas_object_evas_get(obj), _elm_gengrid_pan_smart_class_new());
-   pan_data = evas_object_smart_data_get(sd->pan_obj);
-   pan_data->wsd = sd;
-
-   sd->s_iface->extern_pan_set(obj, sd->pan_obj);
-
-   sd->item_cache_max = ITEM_CACHE_MAX;
-   _item_cache_all_free(sd);
-
-   const char *str = edje_object_data_get(ELM_WIDGET_DATA(sd)->resize_obj,
-                                          "focus_highlight");
-   if ((str) && (!strcmp(str, "on")))
-      elm_widget_highlight_in_theme_set(obj, EINA_TRUE);
-   else
-      elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
-   sd->select_on_focus_enabled = EINA_FALSE;
-   elm_widget_signal_callback_add(obj, "elm,action,focus_highlight,hide", "elm", _elm_gengrid_focus_highlight_hide, obj);
-   elm_widget_signal_callback_add(obj, "elm,action,focus_highlight,show", "elm", _elm_gengrid_focus_highlight_show, obj);
-
-   elm_layout_sizing_eval(obj);
-
-   //Tizen Only: This should be removed when eo is applied.
-   ELM_WIDGET_DATA_GET(obj, wsd);
-   wsd->on_create = EINA_FALSE;
-
+   Evas_Object *obj = eo_add(MY_CLASS, parent);
    return obj;
 }
 
-EAPI void
-elm_gengrid_item_size_set(Evas_Object *obj,
-                          Evas_Coord w,
-                          Evas_Coord h)
+EOLIAN static void
+_elm_gengrid_eo_base_constructor(Eo *obj, Elm_Gengrid_Data *sd)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
+   sd->obj = obj;
 
+   eo_do_super(obj, MY_CLASS, eo_constructor());
+   eo_do(obj,
+         evas_obj_type_set(MY_CLASS_NAME_LEGACY),
+         evas_obj_smart_callbacks_descriptions_set(_smart_callbacks),
+         elm_interface_atspi_accessible_role_set(ELM_ATSPI_ROLE_TREE_TABLE));
+}
+
+EOLIAN static void
+_elm_gengrid_item_size_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Evas_Coord w, Evas_Coord h)
+{
    if ((sd->item_width == w) && (sd->item_height == h)) return;
    sd->item_width = w;
    sd->item_height = h;
-
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
    sd->calc_done = EINA_FALSE;
    evas_object_smart_changed(sd->pan_obj);
+   //ecore_job_del(sd->calc_job);
+   //sd->calc_job = ecore_job_add(_calc_job, obj);
+   //
 }
 
-EAPI void
-elm_gengrid_item_size_get(const Evas_Object *obj,
-                          Evas_Coord *w,
-                          Evas_Coord *h)
+EOLIAN static void
+_elm_gengrid_item_size_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Evas_Coord *w, Evas_Coord *h)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    if (w) *w = sd->item_width;
    if (h) *h = sd->item_height;
 }
 
-EAPI void
-elm_gengrid_group_item_size_set(Evas_Object *obj,
-                                Evas_Coord w,
-                                Evas_Coord h)
+EOLIAN static void
+_elm_gengrid_group_item_size_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Evas_Coord w, Evas_Coord h)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    if ((sd->group_item_width == w) && (sd->group_item_height == h)) return;
    sd->group_item_width = w;
    sd->group_item_height = h;
-
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
    sd->calc_done = EINA_FALSE;
    evas_object_smart_changed(sd->pan_obj);
+   //ecore_job_del(sd->calc_job);
+   //sd->calc_job = ecore_job_add(_calc_job, obj);
+   //
 }
 
-EAPI void
-elm_gengrid_group_item_size_get(const Evas_Object *obj,
-                                Evas_Coord *w,
-                                Evas_Coord *h)
+EOLIAN static void
+_elm_gengrid_group_item_size_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Evas_Coord *w, Evas_Coord *h)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    if (w) *w = sd->group_item_width;
    if (h) *h = sd->group_item_height;
 }
 
-EAPI void
-elm_gengrid_align_set(Evas_Object *obj,
-                      double align_x,
-                      double align_y)
+EOLIAN static void
+_elm_gengrid_align_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, double align_x, double align_y)
 {
    double old_h, old_y;
-
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
 
    old_h = sd->align_x;
    old_y = sd->align_y;
@@ -3705,61 +4357,49 @@ elm_gengrid_align_set(Evas_Object *obj,
    sd->align_y = align_y;
 
    if ((old_h != sd->align_x) || (old_y != sd->align_y))
-     evas_object_smart_changed(sd->pan_obj);
-     //evas_object_smart_calculate(sd->pan_obj);
+     evas_object_smart_calculate(sd->pan_obj);
 }
 
-EAPI void
-elm_gengrid_align_get(const Evas_Object *obj,
-                      double *align_x,
-                      double *align_y)
+EOLIAN static void
+_elm_gengrid_align_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, double *align_x, double *align_y)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    if (align_x) *align_x = sd->align_x;
    if (align_y) *align_y = sd->align_y;
 }
 
-EAPI Elm_Object_Item *
-elm_gengrid_item_append(Evas_Object *obj,
-                        const Elm_Gengrid_Item_Class *itc,
-                        const void *data,
-                        Evas_Smart_Cb func,
-                        const void *func_data)
+EOLIAN static Elm_Object_Item*
+_elm_gengrid_item_append(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, const Elm_Gengrid_Item_Class *itc, const void *data, Evas_Smart_Cb func, const void *func_data)
 {
    Elm_Gen_Item *it;
-
-   ELM_GENGRID_CHECK(obj) NULL;
-   ELM_GENGRID_DATA_GET(obj, sd);
 
    it = _elm_gengrid_item_new(sd, itc, data, func, func_data);
    if (!it) return NULL;
 
    sd->items = eina_inlist_append(sd->items, EINA_INLIST_GET(it));
-   it->position = eina_inlist_count(sd->items);
+   it->position = sd->item_count;
    it->position_update = EINA_TRUE;
 
    if (it->group)
      sd->group_items = eina_list_prepend(sd->group_items, it);
 
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
    sd->calc_done = EINA_FALSE;
    evas_object_smart_changed(sd->pan_obj);
+   //ecore_job_del(sd->calc_job);
+   //sd->calc_job = ecore_job_add(_calc_job, obj);
 
-   return (Elm_Object_Item *)it;
+   //TIZEN_ONLY(20150825) : Use the specific wanted_region_set func only for gengrid.
+   sd->is_append = EINA_TRUE;
+   eo_do(sd->pan_obj, elm_obj_pan_pos_get(&sd->wanted_pan_x, &sd->wanted_pan_y));
+   //
+
+   return EO_OBJ(it);
 }
 
-EAPI Elm_Object_Item *
-elm_gengrid_item_prepend(Evas_Object *obj,
-                         const Elm_Gengrid_Item_Class *itc,
-                         const void *data,
-                         Evas_Smart_Cb func,
-                         const void *func_data)
+EOLIAN static Elm_Object_Item*
+_elm_gengrid_item_prepend(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, const Elm_Gengrid_Item_Class *itc, const void *data, Evas_Smart_Cb func, const void *func_data)
 {
    Elm_Gen_Item *it;
-
-   ELM_GENGRID_CHECK(obj) NULL;
-   ELM_GENGRID_DATA_GET(obj, sd);
 
    it = _elm_gengrid_item_new(sd, itc, data, func, func_data);
    if (!it) return NULL;
@@ -3770,87 +4410,89 @@ elm_gengrid_item_prepend(Evas_Object *obj,
    if (it->group)
      sd->group_items = eina_list_append(sd->group_items, it);
 
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
    sd->calc_done = EINA_FALSE;
    evas_object_smart_changed(sd->pan_obj);
-   return (Elm_Object_Item *)it;
+   //ecore_job_del(sd->calc_job);
+   //sd->calc_job = ecore_job_add(_calc_job, obj);
+   //
+
+   return EO_OBJ(it);
 }
 
-EAPI Elm_Object_Item *
-elm_gengrid_item_insert_before(Evas_Object *obj,
-                               const Elm_Gengrid_Item_Class *itc,
-                               const void *data,
-                               Elm_Object_Item *relative,
-                               Evas_Smart_Cb func,
-                               const void *func_data)
+EOLIAN static Elm_Object_Item*
+_elm_gengrid_item_insert_before(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, const Elm_Gengrid_Item_Class *itc, const void *data, Elm_Object_Item *eo_relative, Evas_Smart_Cb func, const void *func_data)
 {
    Elm_Gen_Item *it;
    Eina_Inlist *tmp;
+   EINA_SAFETY_ON_NULL_RETURN_VAL(eo_relative, NULL);
+   ELM_GENGRID_ITEM_DATA_GET(eo_relative, relative);
 
-   ELM_GENGRID_CHECK(obj) NULL;
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(relative, NULL);
-   ELM_GENGRID_DATA_GET(obj, sd);
 
    it = _elm_gengrid_item_new(sd, itc, data, func, func_data);
    if (!it) return NULL;
    sd->items = eina_inlist_prepend_relative
        (sd->items, EINA_INLIST_GET(it),
-       EINA_INLIST_GET((Elm_Gen_Item *)relative));
+       EINA_INLIST_GET(relative));
    tmp = eina_inlist_find(sd->items, EINA_INLIST_GET(it));
-   _item_position_update(tmp, ((Elm_Gen_Item *)relative)->position);
+   _item_position_update(tmp, relative->position);
 
    if (it->group)
      sd->group_items = eina_list_append_relative
-         (sd->group_items, it, ((Elm_Gen_Item *)relative)->parent);
+         (sd->group_items, it, relative->parent);
 
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
    sd->calc_done = EINA_FALSE;
    evas_object_smart_changed(sd->pan_obj);
-   return (Elm_Object_Item *)it;
+   //ecore_job_del(sd->calc_job);
+   //sd->calc_job = ecore_job_add(_calc_job, obj);
+   //
+
+   return EO_OBJ(it);
 }
 
-EAPI Elm_Object_Item *
-elm_gengrid_item_insert_after(Evas_Object *obj,
-                              const Elm_Gengrid_Item_Class *itc,
-                              const void *data,
-                              Elm_Object_Item *relative,
-                              Evas_Smart_Cb func,
-                              const void *func_data)
+EOLIAN static Elm_Object_Item*
+_elm_gengrid_item_insert_after(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, const Elm_Gengrid_Item_Class *itc, const void *data, Elm_Object_Item *eo_relative, Evas_Smart_Cb func, const void *func_data)
 {
    Elm_Gen_Item *it;
    Eina_Inlist *tmp;
+   EINA_SAFETY_ON_NULL_RETURN_VAL(eo_relative, NULL);
+   ELM_GENGRID_ITEM_DATA_GET(eo_relative, relative);
 
-   ELM_GENGRID_CHECK(obj) NULL;
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(relative, NULL);
-   ELM_GENGRID_DATA_GET(obj, sd);
 
    it = _elm_gengrid_item_new(sd, itc, data, func, func_data);
    if (!it) return NULL;
    sd->items = eina_inlist_append_relative
        (sd->items, EINA_INLIST_GET(it),
-       EINA_INLIST_GET((Elm_Gen_Item *)relative));
+       EINA_INLIST_GET(relative));
    tmp = eina_inlist_find(sd->items, EINA_INLIST_GET(it));
-   _item_position_update(tmp, ((Elm_Gen_Item *)relative)->position + 1);
+   _item_position_update(tmp, relative->position + 1);
 
    if (it->group)
      sd->group_items = eina_list_prepend_relative
-         (sd->group_items, it, ((Elm_Gen_Item *)relative)->parent);
+         (sd->group_items, it, relative->parent);
 
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
    sd->calc_done = EINA_FALSE;
    evas_object_smart_changed(sd->pan_obj);
-   return (Elm_Object_Item *)it;
+   //ecore_job_del(sd->calc_job);
+   //sd->calc_job = ecore_job_add(_calc_job, obj);
+   //
+
+   //TIZEN_ONLY(20150825) : Use the specific wanted_region_set func only for gengrid.
+   sd->is_append = EINA_TRUE;
+   eo_do(sd->pan_obj, elm_obj_pan_pos_get(&sd->wanted_pan_x, &sd->wanted_pan_y));
+   //
+
+   return EO_OBJ(it);
 }
 
-EAPI Elm_Object_Item *
-elm_gengrid_item_sorted_insert(Evas_Object *obj,
-                               const Elm_Gengrid_Item_Class *itc,
-                               const void *data,
-                               Eina_Compare_Cb comp,
-                               Evas_Smart_Cb func,
-                               const void *func_data)
+EOLIAN static Elm_Object_Item*
+_elm_gengrid_item_sorted_insert(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, const Elm_Gengrid_Item_Class *itc, const void *data, Eina_Compare_Cb comp, Evas_Smart_Cb func, const void *func_data)
 {
    Elm_Gen_Item *it;
-
-   ELM_GENGRID_CHECK(obj) NULL;
-   ELM_GENGRID_DATA_GET(obj, sd);
 
    it = _elm_gengrid_item_new(sd, itc, data, func, func_data);
    if (!it) return NULL;
@@ -3864,269 +4506,237 @@ elm_gengrid_item_sorted_insert(Evas_Object *obj,
    sd->item_compare_cb = comp;
    sd->items = eina_inlist_sorted_state_insert
        (sd->items, EINA_INLIST_GET(it), _elm_gengrid_item_compare, sd->state);
-   _item_position_update(sd->items, 1);
+   _item_position_update(sd->items, 0);
 
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
    sd->calc_done = EINA_FALSE;
    evas_object_smart_changed(sd->pan_obj);
-   return (Elm_Object_Item *)it;
+   //ecore_job_del(sd->calc_job);
+   //sd->calc_job = ecore_job_add(_calc_job, obj);
+   //
+   return EO_OBJ(it);
 }
 
-EAPI void
-elm_gengrid_horizontal_set(Evas_Object *obj,
-                           Eina_Bool horizontal)
+EOLIAN static void
+_elm_gengrid_horizontal_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Eina_Bool horizontal)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    horizontal = !!horizontal;
    if (horizontal == sd->horizontal) return;
    sd->horizontal = horizontal;
 
    /* Update the items to conform to the new layout */
+   //TIZEN_ONLY(20150820) : Remove job for fixing calculate timing issue.
    sd->calc_done = EINA_FALSE;
    evas_object_smart_changed(sd->pan_obj);
+   //ecore_job_del(sd->calc_job);
+   //sd->calc_job = ecore_job_add(_calc_job, obj);
+   //
 }
 
-EAPI Eina_Bool
-elm_gengrid_horizontal_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_gengrid_horizontal_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
 {
-   ELM_GENGRID_CHECK(obj) EINA_FALSE;
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    return sd->horizontal;
 }
 
-EAPI void
-elm_gengrid_clear(Evas_Object *obj)
+EOLIAN static void
+_elm_gengrid_clear(Eo *obj, Elm_Gengrid_Data *_pd EINA_UNUSED)
 {
-   ELM_GENGRID_CHECK(obj);
-
-   _elm_gengrid_clear(obj, EINA_FALSE);
+   _internal_elm_gengrid_clear(obj, EINA_FALSE);
 }
 
 EINA_DEPRECATED EAPI const Evas_Object *
-elm_gengrid_item_object_get(const Elm_Object_Item *it)
+elm_gengrid_item_object_get(const Elm_Object_Item *eo_it)
 {
+   ELM_GENGRID_ITEM_DATA_GET(eo_it, it);
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, NULL);
 
    return VIEW(it);
 }
 
-EAPI void
-elm_gengrid_item_update(Elm_Object_Item *item)
+EOLIAN static void
+_elm_gengrid_item_update(Eo *eo_item EINA_UNUSED, Elm_Gen_Item *it)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
 
    if (!it->realized) return;
    if (it->want_unrealize) return;
-   if (!VIEW(it)) return;
 
-   const char *part;
-   Evas_Object *c;
-   Eina_List *texts = elm_widget_stringlist_get
-     (edje_object_data_get(VIEW(it), "texts"));
-   EINA_LIST_FREE(texts, part)
-     edje_object_part_text_set(VIEW(it), part, NULL);
-   EINA_LIST_FREE(it->content_objs, c)
-      {
-         // FIXME: For animation, befor del, processing edc.
-         if (evas_object_smart_type_check(c, "elm_layout"))
-           edje_object_message_signal_process(elm_layout_edje_get(c));
-         // FIXME: If parent-child relationship was broken before 'ic'
-         // is deleted, freeze_pop will not be called. ex) elm_slider
-         // If layout is used instead of edje, this problme can be
-         // solved.
-         if (0 != elm_widget_scroll_freeze_get(c))
-            elm_widget_scroll_freeze_pop(c);
-         evas_object_del(c);
-      }
+   _elm_gengrid_item_unrealize(it, EINA_TRUE);
+   _item_realize(it);
+   _item_place(it, it->x, it->y);
 
-   _item_text_realize(it, VIEW(it), NULL);
-   _item_state_realize(it, VIEW(it), NULL);
-   it->content_objs = _item_content_realize(it, VIEW(it), it->content_objs, "contents", NULL);
-   _item_state_realize(it, VIEW(it), NULL);
-
-   if (it->selected)
-      edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
-
-   if (_focus_enabled(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj))
-     {
-        if (GG_IT(it)->wsd->focused)
-           edje_object_signal_emit (VIEW(GG_IT(it)->wsd->focused), "elm,action,focus_highlight,show", "elm");
-     }
-   if (elm_widget_item_disabled_get(it))
-      edje_object_signal_emit(VIEW(it), "elm,state,disabled", "elm");
+   _elm_gengrid_item_index_update(it);
 }
 
-EAPI const Elm_Gengrid_Item_Class *
-elm_gengrid_item_item_class_get(const Elm_Object_Item *it)
+EOLIAN static void
+_elm_gengrid_item_fields_update(Eo *eo_item EINA_UNUSED, Elm_Gen_Item *it,
+                                const char *parts,
+                                Elm_Gengrid_Item_Field_Type itf)
 {
-   Elm_Gen_Item *item = (Elm_Gen_Item *)it;
+   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
 
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, NULL);
+   if (!it->realized) return;
+   if (it->want_unrealize) return;
 
+   if ((!itf) || (itf & ELM_GENGRID_ITEM_FIELD_TEXT))
+     _item_text_realize(it, VIEW(it), &it->texts, parts);
+
+   if ((!itf) || (itf & ELM_GENGRID_ITEM_FIELD_CONTENT))
+     _item_content_realize(it, VIEW(it), &it->contents, "contents", parts);
+
+   if ((!itf) || (itf & ELM_GENGRID_ITEM_FIELD_STATE))
+     _item_state_realize(it, VIEW(it), parts);
+
+   _item_place(it, it->x, it->y);
+}
+
+EOLIAN static const Elm_Gengrid_Item_Class *
+_elm_gengrid_item_item_class_get(Eo *eo_item EINA_UNUSED, Elm_Gen_Item *item)
+{
    if (item->generation < GG_IT(item)->wsd->generation) return NULL;
    return item->itc;
 }
 
-EAPI void
-elm_gengrid_item_fields_update(Elm_Object_Item *item,
-                               const char *parts,
-                               Elm_Gengrid_Item_Field_Type itf)
-{
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(item);
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-
-   if ((!itf) || (itf & ELM_GENGRID_ITEM_FIELD_TEXT))
-     {
-        _item_text_realize(it, VIEW(it), parts);
-     }
-   if ((!itf) || (itf & ELM_GENGRID_ITEM_FIELD_CONTENT))
-     {
-        it->content_objs = _item_content_realize
-           (it, VIEW(it), it->content_objs, "contents", parts);
-     }
-   if ((!itf) || (itf & ELM_GENGRID_ITEM_FIELD_STATE))
-     {
-     _item_state_realize(it, VIEW(it), parts);
-     }
-}
-
-EAPI void
-elm_gengrid_item_item_class_update(Elm_Object_Item *item,
+EOLIAN static void
+_elm_gengrid_item_item_class_update(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it,
                                    const Elm_Gengrid_Item_Class *itc)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
    EINA_SAFETY_ON_NULL_RETURN(itc);
 
    if (it->generation < GG_IT(it)->wsd->generation) return;
    it->itc = itc;
-   _view_theme_update(it);
-   elm_gengrid_item_update(item);
+   it->item->nocache_once = EINA_TRUE;
+
+   elm_gengrid_item_update(EO_OBJ(it));
 }
 
-EAPI void
-elm_gengrid_item_pos_get(const Elm_Object_Item *it,
+EOLIAN static void
+_elm_gengrid_item_pos_get(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it,
                          unsigned int *x,
                          unsigned int *y)
 {
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
-
-   if (x) *x = ((Elm_Gen_Item *)it)->x;
-   if (y) *y = ((Elm_Gen_Item *)it)->y;
+   if (x) *x = it->x;
+   if (y) *y = it->y;
 }
 
-EAPI void
-elm_gengrid_multi_select_set(Evas_Object *obj,
-                             Eina_Bool multi)
+EOLIAN static void
+_elm_gengrid_multi_select_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Eina_Bool multi)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    sd->multi = !!multi;
-   if (!sd->multi && sd->selected)
-     {
-        Eina_List *l, *ll;
-        Elm_Gen_Item *it;
-        Elm_Gen_Item *last = sd->selected->data;
-        EINA_LIST_FOREACH_SAFE(sd->selected, l, ll, it)
-           if (last != it) _item_unselect(it);
-     }
 }
 
-EAPI Eina_Bool
-elm_gengrid_multi_select_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_gengrid_multi_select_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
 {
-   ELM_GENGRID_CHECK(obj) EINA_FALSE;
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    return sd->multi;
 }
 
-EAPI Elm_Object_Item *
-elm_gengrid_selected_item_get(const Evas_Object *obj)
+EOLIAN static void
+_elm_gengrid_multi_select_mode_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Elm_Object_Multi_Select_Mode mode)
 {
-   ELM_GENGRID_CHECK(obj) NULL;
-   ELM_GENGRID_DATA_GET(obj, sd);
+   if (mode >= ELM_OBJECT_MULTI_SELECT_MODE_MAX)
+     return;
 
+   if (sd->multi_select_mode != mode)
+     sd->multi_select_mode = mode;
+}
+
+EOLIAN static Elm_Object_Multi_Select_Mode
+_elm_gengrid_multi_select_mode_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
+{
+   return sd->multi_select_mode;
+}
+
+EOLIAN static Elm_Object_Item*
+_elm_gengrid_selected_item_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
+{
    if (sd->selected) return sd->selected->data;
    return NULL;
 }
 
-EAPI const Eina_List *
-elm_gengrid_selected_items_get(const Evas_Object *obj)
+EOLIAN static const Eina_List*
+_elm_gengrid_selected_items_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
 {
-   ELM_GENGRID_CHECK(obj) NULL;
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    return sd->selected;
 }
 
-EAPI void
-elm_gengrid_item_selected_set(Elm_Object_Item *item,
-                              Eina_Bool selected)
+EOLIAN static void
+_elm_gengrid_item_selected_set(Eo *eo_item EINA_UNUSED, Elm_Gen_Item *it,
+      Eina_Bool selected)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
-
-   if ((it->generation < GG_IT(it)->wsd->generation) ||
-       elm_widget_item_disabled_get(it))
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
+   if ((it->generation < sd->generation) || eo_do(EO_OBJ(it), elm_wdg_item_disabled_get()))
      return;
-   if (selected) _item_highlight(it);
-   else _item_unhighlight(it);
-
+   selected = !!selected;
    if (it->selected == selected) return;
 
-   if (selected) _item_select(it);
-   else _item_unselect(it);
+   if (selected)
+     {
+        if (!sd->multi)
+          {
+             while (sd->selected)
+               {
+                  Elm_Object_Item *eo_sel = sd->selected->data;
+                  ELM_GENGRID_ITEM_DATA_GET(eo_sel, sel);
+                  it->unhighlight_cb(sel);
+                  it->unsel_cb(sel);
+               }
+          }
+        it->highlight_cb(it);
+        it->sel_cb(it);
+        return;
+     }
+   it->unhighlight_cb(it);
+   it->unsel_cb(it);
 }
 
-EAPI Eina_Bool
-elm_gengrid_item_selected_get(const Elm_Object_Item *it)
+EOLIAN static Eina_Bool
+_elm_gengrid_item_selected_get(Eo *eo_item EINA_UNUSED, Elm_Gen_Item *it)
 {
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, EINA_FALSE);
-
-   return ((Elm_Gen_Item *)it)->selected;
+   return it->selected;
 }
 
-EAPI Eina_List *
-elm_gengrid_realized_items_get(const Evas_Object *obj)
+EOLIAN static Eina_List*
+_elm_gengrid_realized_items_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
 {
-   Eina_List *list = NULL;
    Elm_Gen_Item *it;
+   Eina_Bool done = EINA_FALSE;
 
-   ELM_GENGRID_CHECK(obj) NULL;
-   ELM_GENGRID_DATA_GET(obj, sd);
+   Eina_List *ret = NULL;
 
    EINA_INLIST_FOREACH(sd->items, it)
      {
-        if (it->realized) list = eina_list_append(list, (Elm_Object_Item *)it);
+        if (it->realized)
+          {
+             done = EINA_TRUE;
+             ret = eina_list_append(ret, EO_OBJ(it));
+          }
+        else
+          {
+             if (done) break;
+          }
      }
-   return list;
+
+   return ret;
 }
 
-EAPI void
-elm_gengrid_realized_items_update(Evas_Object *obj)
+EOLIAN static void
+_elm_gengrid_realized_items_update(Eo *obj, Elm_Gengrid_Data *_pd EINA_UNUSED)
 {
-   Eina_List *list, *l;
+   Eina_List *list;
    Elm_Object_Item *it;
 
-   ELM_GENGRID_CHECK(obj);
-
    list = elm_gengrid_realized_items_get(obj);
-   EINA_LIST_FOREACH(list, l, it)
+   EINA_LIST_FREE(list, it)
      elm_gengrid_item_update(it);
 }
 
 static Evas_Object *
 _elm_gengrid_item_label_create(void *data,
-                               Evas_Object *obj __UNUSED__,
+                               Evas_Object *obj EINA_UNUSED,
                                Evas_Object *tooltip,
-                               void *it   __UNUSED__)
+                               void *it   EINA_UNUSED)
 {
    Evas_Object *label = elm_label_add(tooltip);
    if (!label)
@@ -4138,8 +4748,8 @@ _elm_gengrid_item_label_create(void *data,
 
 static void
 _elm_gengrid_item_label_del_cb(void *data,
-                               Evas_Object *obj __UNUSED__,
-                               void *event_info __UNUSED__)
+                               Evas_Object *obj EINA_UNUSED,
+                               void *event_info EINA_UNUSED)
 {
    eina_stringshare_del(data);
 }
@@ -4148,11 +4758,15 @@ EAPI void
 elm_gengrid_item_tooltip_text_set(Elm_Object_Item *it,
                                   const char *text)
 {
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
+   eo_do(it, elm_wdg_item_tooltip_text_set(text));
+}
 
+EOLIAN static void
+_elm_gengrid_item_elm_widget_item_tooltip_text_set(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it, const char *text)
+{
    text = eina_stringshare_add(text);
    elm_gengrid_item_tooltip_content_cb_set
-     (it, _elm_gengrid_item_label_create, text,
+     (EO_OBJ(it), _elm_gengrid_item_label_create, text,
      _elm_gengrid_item_label_del_cb);
 }
 
@@ -4162,24 +4776,33 @@ elm_gengrid_item_tooltip_content_cb_set(Elm_Object_Item *item,
                                         const void *data,
                                         Evas_Smart_Cb del_cb)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
+   eo_do(item, elm_wdg_item_tooltip_content_cb_set(func, data, del_cb));
+}
 
+EOLIAN static void
+_elm_gengrid_item_elm_widget_item_tooltip_content_cb_set(Eo *eo_it, Elm_Gen_Item *it,
+                                        Elm_Tooltip_Item_Content_Cb func,
+                                        const void *data,
+                                        Evas_Smart_Cb del_cb)
+{
    ELM_GENGRID_ITEM_CHECK_OR_GOTO(it, error);
 
-   if ((it->tooltip.content_cb == func) && (it->tooltip.data == data))
-     return;
-
-   if (it->tooltip.del_cb)
-     it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
-   it->tooltip.content_cb = func;
-   it->tooltip.data = data;
-   it->tooltip.del_cb = del_cb;
+   if ((it->tooltip.content_cb != func) || (it->tooltip.data != data))
+     {
+        if (it->tooltip.del_cb)
+           it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
+        it->tooltip.content_cb = func;
+        it->tooltip.data = data;
+        it->tooltip.del_cb = del_cb;
+     }
    if (VIEW(it))
      {
-        elm_widget_item_tooltip_content_cb_set
-          (it, it->tooltip.content_cb, it->tooltip.data, NULL);
-        elm_widget_item_tooltip_style_set(it, it->tooltip.style);
-        elm_widget_item_tooltip_window_mode_set(it, it->tooltip.free_size);
+        eo_do_super(eo_it, ELM_GENGRID_ITEM_CLASS,
+              elm_wdg_item_tooltip_content_cb_set
+              (it->tooltip.content_cb, it->tooltip.data, NULL));
+        eo_do(eo_it,
+              elm_wdg_item_tooltip_style_set(it->tooltip.style),
+              elm_wdg_item_tooltip_window_mode_set(it->tooltip.free_size));
      }
 
    return;
@@ -4191,12 +4814,17 @@ error:
 EAPI void
 elm_gengrid_item_tooltip_unset(Elm_Object_Item *item)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
+   eo_do(item, elm_wdg_item_tooltip_unset());
+}
 
+EOLIAN static void
+_elm_gengrid_item_elm_widget_item_tooltip_unset(Eo *eo_it, Elm_Gen_Item *it)
+{
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
 
    if ((VIEW(it)) && (it->tooltip.content_cb))
-     elm_widget_item_tooltip_unset(it);
+     eo_do_super(eo_it, ELM_GENGRID_ITEM_CLASS,
+           elm_wdg_item_tooltip_unset());
 
    if (it->tooltip.del_cb)
      it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
@@ -4205,35 +4833,52 @@ elm_gengrid_item_tooltip_unset(Elm_Object_Item *item)
    it->tooltip.data = NULL;
    it->tooltip.free_size = EINA_FALSE;
    if (it->tooltip.style)
-     elm_gengrid_item_tooltip_style_set(item, NULL);
+     eo_do(eo_it, elm_wdg_item_tooltip_style_set(NULL));
 }
 
 EAPI void
 elm_gengrid_item_tooltip_style_set(Elm_Object_Item *it,
                                    const char *style)
 {
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
+   eo_do(it, elm_wdg_item_tooltip_style_set(style));
+}
 
-   eina_stringshare_replace(&((Elm_Gen_Item *)it)->tooltip.style, style);
-   if (VIEW(it)) elm_widget_item_tooltip_style_set(it, style);
+EOLIAN static void
+_elm_gengrid_item_elm_widget_item_tooltip_style_set(Eo *eo_it, Elm_Gen_Item *it,
+                                   const char *style)
+{
+   eina_stringshare_replace(&it->tooltip.style, style);
+   if (VIEW(it)) eo_do_super(eo_it, ELM_GENGRID_ITEM_CLASS,
+         elm_wdg_item_tooltip_style_set(style));
 }
 
 EAPI const char *
 elm_gengrid_item_tooltip_style_get(const Elm_Object_Item *it)
 {
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, NULL);
+   return eo_do(it, elm_wdg_item_tooltip_style_get());
+}
 
-   return ((Elm_Gen_Item *)it)->tooltip.style;
+EOLIAN static const char *
+_elm_gengrid_item_elm_widget_item_tooltip_style_get(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
+{
+   return it->tooltip.style;
 }
 
 EAPI Eina_Bool
 elm_gengrid_item_tooltip_window_mode_set(Elm_Object_Item *it,
                                          Eina_Bool disable)
 {
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, EINA_FALSE);
+   return eo_do(it, elm_wdg_item_tooltip_window_mode_set(disable));
+}
 
-   ((Elm_Gen_Item *)it)->tooltip.free_size = disable;
-   if (VIEW(it)) return elm_widget_item_tooltip_window_mode_set(it, disable);
+EOLIAN static Eina_Bool
+_elm_gengrid_item_elm_widget_item_tooltip_window_mode_set(Eo *eo_it, Elm_Gen_Item *it,
+                                   Eina_Bool disable)
+{
+   it->tooltip.free_size = disable;
+   if (VIEW(it))
+      return eo_do_super(eo_it, ELM_GENGRID_ITEM_CLASS,
+            elm_wdg_item_tooltip_window_mode_set(disable));
 
    return EINA_TRUE;
 }
@@ -4241,85 +4886,135 @@ elm_gengrid_item_tooltip_window_mode_set(Elm_Object_Item *it,
 EAPI Eina_Bool
 elm_gengrid_item_tooltip_window_mode_get(const Elm_Object_Item *it)
 {
+   return eo_do(it, elm_wdg_item_tooltip_window_mode_get());
+}
+
+EOLIAN static Eina_Bool
+_elm_gengrid_item_elm_widget_item_tooltip_window_mode_get(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
+{
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, EINA_FALSE);
 
-   return ((Elm_Gen_Item *)it)->tooltip.free_size;
+   return it->tooltip.free_size;
 }
 
 EAPI void
 elm_gengrid_item_cursor_set(Elm_Object_Item *it,
                             const char *cursor)
 {
+   eo_do(it, elm_wdg_item_cursor_set(cursor));
+}
+
+EOLIAN static void
+_elm_gengrid_item_elm_widget_item_cursor_set(Eo *eo_it, Elm_Gen_Item *it,
+                            const char *cursor)
+{
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
 
-   eina_stringshare_replace(&((Elm_Gen_Item *)it)->mouse_cursor, cursor);
-   if (VIEW(it)) elm_widget_item_cursor_set(it, cursor);
+   eina_stringshare_replace(&it->mouse_cursor, cursor);
+   if (VIEW(it)) eo_do_super(eo_it, ELM_GENGRID_ITEM_CLASS,
+         elm_wdg_item_cursor_set(cursor));
 }
 
 EAPI const char *
 elm_gengrid_item_cursor_get(const Elm_Object_Item *it)
 {
-   return elm_widget_item_cursor_get(it);
+   return eo_do(it, elm_wdg_item_cursor_get());
 }
 
 EAPI void
 elm_gengrid_item_cursor_unset(Elm_Object_Item *item)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
+   eo_do(item, elm_wdg_item_cursor_unset());
+}
 
+EOLIAN static void
+_elm_gengrid_item_elm_widget_item_cursor_unset(Eo *eo_it, Elm_Gen_Item *it)
+{
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
    if (!it->mouse_cursor)
      return;
 
-   if (VIEW(it))
-     elm_widget_item_cursor_unset(it);
+   if (VIEW(it)) eo_do_super(eo_it, ELM_GENGRID_ITEM_CLASS,
+         elm_wdg_item_cursor_unset());
 
-   eina_stringshare_del(it->mouse_cursor);
-   it->mouse_cursor = NULL;
+   ELM_SAFE_FREE(it->mouse_cursor, eina_stringshare_del);
 }
 
 EAPI void
 elm_gengrid_item_cursor_style_set(Elm_Object_Item *it,
                                   const char *style)
 {
-   elm_widget_item_cursor_style_set(it, style);
+   eo_do(it, elm_wdg_item_cursor_style_set(style));
 }
 
 EAPI const char *
 elm_gengrid_item_cursor_style_get(const Elm_Object_Item *it)
 {
-   return elm_widget_item_cursor_style_get(it);
+   return eo_do(it, elm_wdg_item_cursor_style_get());
 }
 
 EAPI void
-elm_gengrid_item_cursor_engine_only_set(Elm_Object_Item *it,
+elm_gengrid_item_cursor_engine_only_set(Elm_Object_Item *eo_it,
                                         Eina_Bool engine_only)
 {
-   elm_widget_item_cursor_engine_only_set(it, engine_only);
+   ELM_GENGRID_ITEM_DATA_GET(eo_it, it);
+   it->cursor_engine_only = engine_only;
+   if (it->realized)
+     eo_do(eo_it, elm_wdg_item_cursor_engine_only_set(engine_only));
 }
 
 EAPI Eina_Bool
-elm_gengrid_item_cursor_engine_only_get(const Elm_Object_Item *it)
+elm_gengrid_item_cursor_engine_only_get(const Elm_Object_Item *eo_it)
 {
-   return elm_widget_item_cursor_engine_only_get(it);
+   ELM_GENGRID_ITEM_DATA_GET(eo_it, it);
+   Eina_Bool ret;
+   if (it->realized)
+     {
+        eo_do(eo_it, ret = elm_wdg_item_cursor_engine_only_get());
+        return ret;
+     }
+   else return it->cursor_engine_only;
 }
 
 EAPI void
-elm_gengrid_reorder_mode_set(Evas_Object *obj,
-                             Eina_Bool reorder_mode)
+elm_gengrid_reorder_mode_start(Evas_Object *obj, Ecore_Pos_Map tween_mode)
 {
    ELM_GENGRID_CHECK(obj);
    ELM_GENGRID_DATA_GET(obj, sd);
 
+   sd->reorder_mode = EINA_TRUE;
+   sd->reorder.tween_mode = tween_mode;
+   sd->reorder.type = ELM_GENGRID_REORDER_TYPE_NORMAL;
+}
+
+EAPI void
+elm_gengrid_reorder_mode_stop(Evas_Object *obj)
+{
+   ELM_GENGRID_CHECK(obj);
+   ELM_GENGRID_DATA_GET(obj, sd);
+
+   sd->reorder_mode = EINA_FALSE;
+   sd->reorder.tween_mode = -1;
+}
+
+EAPI void
+elm_gengrid_reorder_type_set(Evas_Object *obj, Elm_Gengrid_Reorder_Type type)
+{
+   ELM_GENGRID_CHECK(obj);
+   ELM_GENGRID_DATA_GET(obj, sd);
+
+   sd->reorder.type = type;
+}
+
+EOLIAN static void
+_elm_gengrid_reorder_mode_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Eina_Bool reorder_mode)
+{
    sd->reorder_mode = !!reorder_mode;
 }
 
-EAPI Eina_Bool
-elm_gengrid_reorder_mode_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_gengrid_reorder_mode_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
 {
-   ELM_GENGRID_CHECK(obj) EINA_FALSE;
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    return sd->reorder_mode;
 }
 
@@ -4329,9 +5024,13 @@ elm_gengrid_bounce_set(Evas_Object *obj,
                        Eina_Bool v_bounce)
 {
    ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
+   eo_do(obj, elm_interface_scrollable_bounce_allow_set(h_bounce, v_bounce));
+}
 
-   sd->s_iface->bounce_allow_set(obj, !!h_bounce, !!v_bounce);
+EOLIAN static void
+_elm_gengrid_elm_interface_scrollable_bounce_allow_set(Eo *obj, Elm_Gengrid_Data *sd EINA_UNUSED, Eina_Bool h_bounce, Eina_Bool v_bounce)
+{
+   eo_do_super(obj, MY_CLASS, elm_interface_scrollable_bounce_allow_set(!!h_bounce, !!v_bounce));
 }
 
 EAPI void
@@ -4340,52 +5039,35 @@ elm_gengrid_bounce_get(const Evas_Object *obj,
                        Eina_Bool *v_bounce)
 {
    ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->s_iface->bounce_allow_get(obj, h_bounce, v_bounce);
+   eo_do( obj, elm_interface_scrollable_bounce_allow_get(h_bounce, v_bounce));
 }
 
-EAPI void
-elm_gengrid_page_relative_set(Evas_Object *obj,
-                              double h_pagerel,
-                              double v_pagerel)
+EOLIAN static void
+_elm_gengrid_page_relative_set(Eo *obj, Elm_Gengrid_Data *_pd EINA_UNUSED, double h_pagerel, double v_pagerel)
 {
    Evas_Coord pagesize_h;
    Evas_Coord pagesize_v;
 
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->s_iface->paging_get(obj, NULL, NULL, &pagesize_h, &pagesize_v);
-   sd->s_iface->paging_set
-     (obj, h_pagerel, v_pagerel, pagesize_h, pagesize_v);
+   eo_do( obj, elm_interface_scrollable_paging_get(NULL, NULL, &pagesize_h, &pagesize_v));
+   eo_do( obj, elm_interface_scrollable_paging_set
+     (h_pagerel, v_pagerel, pagesize_h, pagesize_v));
 }
 
-EAPI void
-elm_gengrid_page_relative_get(const Evas_Object *obj,
-                              double *h_pagerel,
-                              double *v_pagerel)
+EOLIAN static void
+_elm_gengrid_page_relative_get(Eo *obj, Elm_Gengrid_Data *_pd EINA_UNUSED, double *h_pagerel, double *v_pagerel)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->s_iface->paging_get(obj, h_pagerel, v_pagerel, NULL, NULL);
+   eo_do( obj, elm_interface_scrollable_paging_get(h_pagerel, v_pagerel, NULL, NULL));
 }
 
-EAPI void
-elm_gengrid_page_size_set(Evas_Object *obj,
-                          Evas_Coord h_pagesize,
-                          Evas_Coord v_pagesize)
+EOLIAN static void
+_elm_gengrid_page_size_set(Eo *obj, Elm_Gengrid_Data *_pd EINA_UNUSED, Evas_Coord h_pagesize, Evas_Coord v_pagesize)
 {
    double pagerel_h;
    double pagerel_v;
 
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->s_iface->paging_get(obj, &pagerel_h, &pagerel_v, NULL, NULL);
-   sd->s_iface->paging_set
-     (obj, pagerel_h, pagerel_v, h_pagesize, v_pagesize);
+   eo_do( obj, elm_interface_scrollable_paging_get(&pagerel_h, &pagerel_v, NULL, NULL));
+   eo_do( obj, elm_interface_scrollable_paging_set
+     (pagerel_h, pagerel_v, h_pagesize, v_pagesize));
 }
 
 EAPI void
@@ -4394,9 +5076,7 @@ elm_gengrid_current_page_get(const Evas_Object *obj,
                              int *v_pagenumber)
 {
    ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->s_iface->current_page_get(obj, h_pagenumber, v_pagenumber);
+   eo_do( obj, elm_interface_scrollable_current_page_get(h_pagenumber, v_pagenumber));
 }
 
 EAPI void
@@ -4405,50 +5085,25 @@ elm_gengrid_last_page_get(const Evas_Object *obj,
                           int *v_pagenumber)
 {
    ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->s_iface->last_page_get(obj, h_pagenumber, v_pagenumber);
+   eo_do( obj, elm_interface_scrollable_last_page_get(h_pagenumber, v_pagenumber));
 }
 
-EAPI void
+EINA_DEPRECATED EAPI void
 elm_gengrid_page_show(const Evas_Object *obj,
                       int h_pagenumber,
                       int v_pagenumber)
 {
    ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->s_iface->page_show((Evas_Object *)obj, h_pagenumber, v_pagenumber);
+   eo_do( obj, elm_interface_scrollable_page_show(h_pagenumber, v_pagenumber));
 }
 
-EAPI void
+EINA_DEPRECATED EAPI void
 elm_gengrid_page_bring_in(const Evas_Object *obj,
                           int h_pagenumber,
                           int v_pagenumber)
 {
    ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->s_iface->page_bring_in((Evas_Object *)obj, h_pagenumber, v_pagenumber);
-}
-
-EAPI void
-elm_gengrid_longpress_timeout_set(Evas_Object *obj,
-                                  double timeout)
-{
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->longpress_timeout = timeout;
-}
-
-EAPI double
-elm_gengrid_longpress_timeout_get(const Evas_Object *obj)
-{
-   ELM_GENGRID_CHECK(obj) 0.0;
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   return sd->longpress_timeout;
+   eo_do( obj, elm_interface_scrollable_page_bring_in(h_pagenumber, v_pagenumber));
 }
 
 EAPI void
@@ -4457,13 +5112,17 @@ elm_gengrid_scroller_policy_set(Evas_Object *obj,
                                 Elm_Scroller_Policy policy_v)
 {
    ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
+   eo_do(obj, elm_interface_scrollable_policy_set(policy_h, policy_v));
+}
 
+EOLIAN static void
+_elm_gengrid_elm_interface_scrollable_policy_set(Eo *obj, Elm_Gengrid_Data *sd EINA_UNUSED, Elm_Scroller_Policy policy_h, Elm_Scroller_Policy policy_v)
+{
    if ((policy_h >= ELM_SCROLLER_POLICY_LAST) ||
        (policy_v >= ELM_SCROLLER_POLICY_LAST))
      return;
 
-   sd->s_iface->policy_set(obj, policy_h, policy_v);
+   eo_do_super(obj, MY_CLASS, elm_interface_scrollable_policy_set(policy_h, policy_v));
 }
 
 EAPI void
@@ -4471,22 +5130,23 @@ elm_gengrid_scroller_policy_get(const Evas_Object *obj,
                                 Elm_Scroller_Policy *policy_h,
                                 Elm_Scroller_Policy *policy_v)
 {
+   ELM_GENGRID_CHECK(obj);
+   eo_do( obj, elm_interface_scrollable_policy_get(policy_h, policy_v));
+}
+
+EOLIAN static void
+_elm_gengrid_elm_interface_scrollable_policy_get(Eo *obj, Elm_Gengrid_Data *sd EINA_UNUSED, Elm_Scroller_Policy *policy_h, Elm_Scroller_Policy *policy_v)
+{
    Elm_Scroller_Policy s_policy_h, s_policy_v;
 
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   sd->s_iface->policy_get(obj, &s_policy_h, &s_policy_v);
+   eo_do_super(obj, MY_CLASS, elm_interface_scrollable_policy_get(&s_policy_h, &s_policy_v));
    if (policy_h) *policy_h = (Elm_Scroller_Policy)s_policy_h;
    if (policy_v) *policy_v = (Elm_Scroller_Policy)s_policy_v;
 }
 
-EAPI Elm_Object_Item *
-elm_gengrid_first_item_get(const Evas_Object *obj)
+EOLIAN static Elm_Object_Item*
+_elm_gengrid_first_item_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
 {
-   ELM_GENGRID_CHECK(obj) NULL;
-   ELM_GENGRID_DATA_GET_OR_RETURN_VAL(obj, sd, NULL);
-
    if (!sd->items) return NULL;
 
    Elm_Gen_Item *it = ELM_GEN_ITEM_FROM_INLIST(sd->items);
@@ -4494,19 +5154,12 @@ elm_gengrid_first_item_get(const Evas_Object *obj)
    while ((it) && (it->generation < sd->generation))
      it = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(it)->next);
 
-   return (Elm_Object_Item *)it;
+   return EO_OBJ(it);
 }
 
-EAPI Elm_Object_Item *
-elm_gengrid_at_xy_item_get(const Evas_Object *obj,
-                           Evas_Coord x,
-                           Evas_Coord y,
-                           int *xposret,
-                           int *yposret)
+EOLIAN static Elm_Object_Item*
+_elm_gengrid_at_xy_item_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Evas_Coord x, Evas_Coord y, int *xposret, int *yposret)
 {
-   ELM_GENGRID_CHECK(obj) NULL;
-   ELM_GENGRID_DATA_GET_OR_RETURN_VAL(obj, sd, NULL);
-
    Elm_Gen_Item *it = ELM_GEN_ITEM_FROM_INLIST(sd->items);
 
    Evas_Coord l = 0, r = 0, t = 0, b = 0; /* left, right, top, bottom */
@@ -4518,11 +5171,9 @@ elm_gengrid_at_xy_item_get(const Evas_Object *obj,
    if (it)
      do
        {
-          Evas_Coord itx, ity, itw, ith;
-          itx = GG_IT(it)->scrl_x;
-          ity = GG_IT(it)->scrl_y;
-          itw = GG_IT(it)->w;
-          ith = GG_IT(it)->h;
+          Evas_Coord itx, ity;
+          Evas_Coord itw, ith;
+          evas_object_geometry_get(VIEW(it), &itx, &ity, &itw, &ith);
 
           /* Record leftmost, rightmost, top, bottom cords to set posret */
           if ((itw > 0) && (ith > 0) && (itx >= 0) && (ity >= 0))
@@ -4567,7 +5218,7 @@ elm_gengrid_at_xy_item_get(const Evas_Object *obj,
                     else *xposret = 0;
                  }
 
-               return (Elm_Object_Item *) it;
+               return EO_OBJ(it);
             }
 
        } while ((it = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(it)->next)));
@@ -4594,26 +5245,21 @@ elm_gengrid_at_xy_item_get(const Evas_Object *obj,
    return NULL;
 }
 
-EAPI Elm_Object_Item *
-elm_gengrid_last_item_get(const Evas_Object *obj)
+EOLIAN static Elm_Object_Item*
+_elm_gengrid_last_item_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
 {
-   ELM_GENGRID_CHECK(obj) NULL;
-   ELM_GENGRID_DATA_GET_OR_RETURN_VAL(obj, sd, NULL);
-
    if (!sd->items) return NULL;
 
    Elm_Gen_Item *it = ELM_GEN_ITEM_FROM_INLIST(sd->items->last);
    while ((it) && (it->generation < sd->generation))
      it = ELM_GEN_ITEM_FROM_INLIST(EINA_INLIST_GET(it)->prev);
 
-   return (Elm_Object_Item *)it;
+   return EO_OBJ(it);
 }
 
-EAPI Elm_Object_Item *
-elm_gengrid_item_next_get(const Elm_Object_Item *item)
+EOLIAN static Elm_Object_Item *
+_elm_gengrid_item_next_get(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, NULL);
 
    while (it)
@@ -4622,14 +5268,12 @@ elm_gengrid_item_next_get(const Elm_Object_Item *item)
         if ((it) && (it->generation == GG_IT(it)->wsd->generation)) break;
      }
 
-   return (Elm_Object_Item *)it;
+   return EO_OBJ(it);
 }
 
-EAPI Elm_Object_Item *
-elm_gengrid_item_prev_get(const Elm_Object_Item *item)
+EOLIAN static Elm_Object_Item *
+_elm_gengrid_item_prev_get(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, NULL);
 
    while (it)
@@ -4638,76 +5282,54 @@ elm_gengrid_item_prev_get(const Elm_Object_Item *item)
         if ((it) && (it->generation == GG_IT(it)->wsd->generation)) break;
      }
 
-   return (Elm_Object_Item *)it;
+   return EO_OBJ(it);
 }
 
-EAPI void
-elm_gengrid_item_show(Elm_Object_Item *item,
-                      Elm_Gengrid_Item_Scrollto_Type type)
+EOLIAN static void
+_elm_gengrid_item_show(Eo *eo_it, Elm_Gen_Item *it, Elm_Gengrid_Item_Scrollto_Type type)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-   Elm_Gengrid_Smart_Data *sd;
-
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
-   sd = GG_IT(it)->wsd;
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
 
    if ((it->generation < sd->generation)) return;
 
    sd->show_region = EINA_TRUE;
-   sd->show_it = it;
+   sd->show_it = eo_it;
    sd->scroll_to_type = type;
 
-   sd->calc_done = EINA_FALSE;
-   evas_object_smart_changed(sd->pan_obj);
+   _item_show_region(sd);
 }
 
-EAPI void
-elm_gengrid_item_bring_in(Elm_Object_Item *item,
-                          Elm_Gengrid_Item_Scrollto_Type type)
+EOLIAN static void
+_elm_gengrid_item_bring_in(Eo *eo_it, Elm_Gen_Item *it, Elm_Gengrid_Item_Scrollto_Type type)
 {
-   Elm_Gengrid_Smart_Data *sd;
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
-   sd = GG_IT(it)->wsd;
+   ELM_GENGRID_DATA_GET_FROM_ITEM(it, sd);
 
    if (it->generation < sd->generation) return;
 
    sd->bring_in = EINA_TRUE;
-   sd->bring_in_it = it;
+   sd->bring_in_it = eo_it;
    sd->scroll_to_type = type;
 
-   sd->calc_done = EINA_FALSE;
-   evas_object_smart_changed(sd->pan_obj);
+   _item_show_region(sd);
 }
 
-EAPI void
-elm_gengrid_filled_set(Evas_Object *obj,
-                       Eina_Bool fill)
+EOLIAN static void
+_elm_gengrid_filled_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Eina_Bool fill)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    fill = !!fill;
    if (sd->filled != fill)
      sd->filled = fill;
 }
 
-EAPI Eina_Bool
-elm_gengrid_filled_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_gengrid_filled_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
 {
-   ELM_GENGRID_CHECK(obj) EINA_FALSE;
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    return sd->filled;
 }
 
-EAPI unsigned int
-elm_gengrid_items_count(const Evas_Object *obj)
+EOLIAN static unsigned int
+_elm_gengrid_items_count(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
 {
-   ELM_GENGRID_CHECK(obj) 0;
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    return sd->item_count;
 }
 
@@ -4761,454 +5383,574 @@ elm_gengrid_item_class_unref(Elm_Gengrid_Item_Class *itc)
      }
 }
 
-EAPI void
-elm_gengrid_select_mode_set(Evas_Object *obj,
-                            Elm_Object_Select_Mode mode)
+EOLIAN static void
+_elm_gengrid_select_mode_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Elm_Object_Select_Mode mode)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   if ((mode >= ELM_OBJECT_SELECT_MODE_MAX) || (sd->select_mode == mode))
+   if (mode >= ELM_OBJECT_SELECT_MODE_MAX)
      return;
 
-   sd->select_mode = mode;
-
-   if ((sd->select_mode == ELM_OBJECT_SELECT_MODE_NONE) ||
-       (sd->select_mode == ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY ))
-     {
-        Eina_List *l, *ll;
-        Elm_Gen_Item *it;
-        EINA_LIST_FOREACH_SAFE(sd->selected, l, ll, it)
-          _item_unselect(it);
-     }
+   if (sd->select_mode != mode)
+     sd->select_mode = mode;
 }
 
-EAPI Elm_Object_Select_Mode
-elm_gengrid_select_mode_get(const Evas_Object *obj)
+EOLIAN static Elm_Object_Select_Mode
+_elm_gengrid_select_mode_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
 {
-   ELM_GENGRID_CHECK(obj) ELM_OBJECT_SELECT_MODE_MAX;
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    return sd->select_mode;
 }
 
-EAPI void
-elm_gengrid_highlight_mode_set(Evas_Object *obj,
-                               Eina_Bool highlight)
+EOLIAN static void
+_elm_gengrid_highlight_mode_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Eina_Bool highlight)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    sd->highlight = !!highlight;
 }
 
-EAPI Eina_Bool
-elm_gengrid_highlight_mode_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_gengrid_highlight_mode_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
 {
-   ELM_GENGRID_CHECK(obj) EINA_FALSE;
-   ELM_GENGRID_DATA_GET(obj, sd);
-
    return sd->highlight;
 }
 
-EAPI int
-elm_gengrid_item_index_get(const Elm_Object_Item *item)
+EOLIAN static int
+_elm_gengrid_item_index_get(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-
+//TIZEN_ONLY(20150825) : Index calculation using sd->count
+   int cnt = 1;
+   Elm_Gen_Item *tmp;
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, -1);
 
+   EINA_INLIST_FOREACH(GG_IT(it)->wsd->items, tmp)
+    {
+       if (tmp == it) break;
+       cnt++;
+    }
+   it->position = cnt;
+//
    return it->position;
 }
 
-EAPI void
-elm_gengrid_item_select_mode_set(Elm_Object_Item *item,
+EOLIAN static void
+_elm_gengrid_item_select_mode_set(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it,
                                  Elm_Object_Select_Mode mode)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-
-   ELM_GENGRID_ITEM_CHECK_OR_RETURN(it);
-
    if (it->generation < GG_IT(it)->wsd->generation) return;
-
-   if ((mode >= ELM_OBJECT_SELECT_MODE_MAX) || (it->select_mode == mode))
+   if (mode >= ELM_OBJECT_SELECT_MODE_MAX)
      return;
 
-   it->select_mode = mode;
-
-   if ((it->select_mode == ELM_OBJECT_SELECT_MODE_NONE) ||
-       (it->select_mode == ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY ))
-      _item_unselect(it);
+   if (it->select_mode != mode)
+     it->select_mode = mode;
 
    if (it->select_mode == ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY)
-     elm_gengrid_item_update(item);
+     elm_gengrid_item_update(EO_OBJ(it));
 }
 
-EAPI Elm_Object_Select_Mode
-elm_gengrid_item_select_mode_get(const Elm_Object_Item *item)
+EOLIAN static Elm_Object_Select_Mode
+_elm_gengrid_item_select_mode_get(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
 {
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-
    ELM_GENGRID_ITEM_CHECK_OR_RETURN(it, ELM_OBJECT_SELECT_MODE_MAX);
 
    return it->select_mode;
 }
 
-#if GENGRID_FX_SUPPORT
-EAPI void
-elm_gengrid_fx_mode_set(Evas_Object *obj, Eina_Bool mode)
+EOLIAN Elm_Atspi_State_Set
+_elm_gengrid_item_elm_interface_atspi_accessible_state_set_get(Eo *eo_it, Elm_Gen_Item *it EINA_UNUSED)
 {
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
+   Elm_Atspi_State_Set ret;
+   Eina_Bool sel;
 
-   sd->fx_mode = mode;
+   eo_do_super(eo_it, ELM_GENGRID_ITEM_CLASS, ret = elm_interface_atspi_accessible_state_set_get());
+
+   eo_do(eo_it, sel = elm_obj_gengrid_item_selected_get());
+
+   STATE_TYPE_SET(ret, ELM_ATSPI_STATE_SELECTABLE);
+
+   if (sel)
+      STATE_TYPE_SET(ret, ELM_ATSPI_STATE_SELECTED);
+
+   return ret;
 }
 
-EAPI Eina_Bool
-elm_gengrid_fx_mode_get(const Evas_Object *obj)
+EOLIAN char*
+_elm_gengrid_item_elm_interface_atspi_accessible_name_get(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
 {
-   ELM_GENGRID_CHECK(obj) EINA_FALSE;
-   ELM_GENGRID_DATA_GET(obj, sd);
+   char *ret;
+   Eina_Strbuf *buf;
 
-   return sd->fx_mode;
-}
+   buf = eina_strbuf_new();
 
-static Proxy_Item *
-_elm_gengrid_proxy_item_new(const Elm_Object_Item *item)
-{
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-   if ((!it) || (!it->item)) return EINA_FALSE;
-   int w, h;
-
-   Proxy_Item *pi = NULL;
-   pi = calloc(1, sizeof(Proxy_Item));
-   if (!pi) return NULL;
-
-   pi->proxy = evas_object_image_filled_add
-      (evas_object_evas_get(ELM_WIDGET_DATA(GG_IT(it)->wsd)->obj));
-   if (!pi->proxy)
+   if (it->itc->func.text_get)
      {
-        free(pi);
-        return NULL;
-     }
-   evas_object_clip_set(pi->proxy, evas_object_clip_get(GG_IT(it)->wsd->pan_obj));
-   evas_object_smart_member_add(pi->proxy, GG_IT(it)->wsd->pan_obj);
-   evas_object_hide(pi->proxy);
-   evas_object_image_source_set(pi->proxy, VIEW(it));
+        Eina_List *texts;
+        const char *key;
 
-   GG_IT(it)->has_proxy_it = EINA_TRUE;
-   pi->it = it;
-   pi->num = it->item->num;
-   pi->x = it->item->scrl_x;
-   pi->y = it->item->scrl_y;
-   pi->w = it->item->w;
-   pi->h = it->item->h;
+        texts =
+           elm_widget_stringlist_get(edje_object_data_get(VIEW(it), "texts"));
 
-   evas_object_geometry_get(VIEW(it), NULL, NULL, &w, &h);
-
-   if (w <= 0 || h <= 0)
-     {
-        evas_object_size_hint_min_get(VIEW(it), &w, &h);
-        evas_object_size_hint_min_set(pi->proxy, w, h);
-     }
-   else evas_object_resize(pi->proxy, w, h);
-
-   return pi;
-}
-
-static Eina_Bool
-_elm_gengrid_fx_capture(Evas_Object *obj, int level)
-{
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   Elm_Gen_Item *it;
-   Proxy_Item *pi;
-   Evas_Coord ox, oy, ow, oh;
-
-   if ((!sd->rendered) || (sd->fx_playing)) return EINA_FALSE;
-   if ((!level) && (sd->fx_first_captured)) return EINA_FALSE;
-   if ((level) && (!sd->fx_first_captured)) return EINA_FALSE;
-
-   evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
-
-   if (!level)
-     {
-        sd->fx_first_captured = EINA_TRUE;
-        EINA_LIST_FREE(sd->capture_before_items, pi)
+        EINA_LIST_FREE(texts, key)
           {
-             if (pi->proxy) evas_object_smart_member_del(pi->proxy);
-             if (pi->proxy) evas_object_del(pi->proxy);
-             free(pi);
-          }
-     }
-   else
-     {
-        EINA_LIST_FREE(sd->capture_after_items, pi)
-          {
-             if (pi->proxy) evas_object_smart_member_del(pi->proxy);
-             if (pi->proxy) evas_object_del(pi->proxy);
-             free(pi);
-          }
-     }
-   EINA_INLIST_FOREACH(sd->items, it)
-     {
-        if (it->realized)
-          {
-             pi = _elm_gengrid_proxy_item_new((Elm_Object_Item *)it);
-             if (!pi) continue;
-             if (!level)
-               sd->capture_before_items = eina_list_append(sd->capture_before_items, pi);
-             else
-               sd->capture_after_items = eina_list_append(sd->capture_after_items, pi);
-          }
-     }
-   return EINA_TRUE;
-}
+             char *str_markup = it->itc->func.text_get
+                ((void *)WIDGET_ITEM_DATA_GET(EO_OBJ(it)), WIDGET(it), key);
+             char *str_utf8 = _elm_util_mkup_to_text(str_markup);
 
-static Elm_Gen_FX_Item *
-_elm_gengrid_fx_item_find(const Elm_Object_Item *item)
-{
-   Elm_Gen_Item *it = (Elm_Gen_Item *)item;
-   if (!it) return EINA_FALSE;
+             free(str_markup);
 
-   Elm_Gengrid_Smart_Data *sd = GG_IT(it)->wsd;
-   if (!sd) return NULL;
-
-   Elm_Gen_FX_Item *fi = NULL;
-   Eina_List *l;
-
-   EINA_LIST_FOREACH(sd->fx_items, l, fi)
-     {
-        if (fi->it == it) return fi;
-     }
-   return NULL;
-}
-
-static Elm_Gen_FX_Item *
-_elm_gengrid_fx_item_new(const Proxy_Item *pi)
-{
-   if ((!pi) || (!pi->it)) return NULL;
-
-   Elm_Gen_FX_Item *fi = NULL;
-   fi = calloc(1, sizeof(Elm_Gen_FX_Item));
-   if (!fi) return NULL;
-
-   fi->it = pi->it;
-   GG_IT(fi->it)->fi = fi;
-   fi->proxy = pi->proxy;
-   fi->num = pi->num;
-   fi->from.x = fi->to.x = pi->x;
-   fi->from.y = fi->to.y = pi->y;
-   fi->from.w = fi->to.w = pi->w;
-   fi->from.h = fi->to.h = pi->h;
-   fi->update = EINA_FALSE;
-
-   return fi;
-}
-
-EAPI void
-_elm_gengrid_fx_items_make(Evas_Object *obj)
-{
-   ELM_GENGRID_CHECK(obj);
-   ELM_GENGRID_DATA_GET(obj, sd);
-
-   Elm_Gen_FX_Item *fi;
-   Proxy_Item *pi;
-   Eina_List *l;
-   Evas_Coord ox, oy, ow, oh;
-
-   evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
-
-   EINA_LIST_FOREACH(sd->capture_before_items, l, pi)
-     {
-        fi = _elm_gengrid_fx_item_new(pi);
-        if (fi) sd->fx_items = eina_list_append(sd->fx_items, fi);
-     }
-
-   EINA_LIST_FOREACH(sd->capture_after_items, l, pi)
-     {
-        fi = _elm_gengrid_fx_item_find((Elm_Object_Item *)pi->it);
-
-        if (fi)
-          {
-             fi->type = ELM_GEN_ITEM_FX_TYPE_SAME;
-             fi->update = EINA_TRUE;
-             fi->to.x = pi->x;
-             fi->to.y = pi->y;
-             fi->to.w = pi->w;
-             fi->to.h = pi->h;
-          }
-        else
-          {
-             fi = _elm_gengrid_fx_item_new(pi);
-             if (fi)
+             if (str_utf8)
                {
-                  fi->type = ELM_GEN_ITEM_FX_TYPE_ADD;
-                  fi->update = EINA_TRUE;
-                  sd->fx_items = eina_list_append(sd->fx_items, fi);
+                  if (eina_strbuf_length_get(buf) > 0)
+                    eina_strbuf_append(buf, ", ");
+                  eina_strbuf_append(buf, str_utf8);
+                  free(str_utf8);
                }
           }
      }
 
-   EINA_LIST_FOREACH(sd->fx_items, l, fi)
+   ret = eina_strbuf_string_steal(buf);
+   eina_strbuf_free(buf);
+   return ret;
+}
+
+EOLIAN Eina_List*
+_elm_gengrid_item_elm_interface_atspi_accessible_children_get(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
+{
+   Eina_List *ret = NULL;
+   if (VIEW(it))
      {
-        if (!fi->update)
+        Eina_List *parts;
+        const char *key;
+        parts = elm_widget_stringlist_get(edje_object_data_get(VIEW(it), "contents"));
+
+        EINA_LIST_FREE(parts, key)
           {
-             fi->type = ELM_GEN_ITEM_FX_TYPE_DEL;
-             fi->update = EINA_TRUE;
+             Evas_Object *part;
+             part = edje_object_part_swallow_get(VIEW(it), key);
+             if (part && eo_isa(part, ELM_INTERFACE_ATSPI_ACCESSIBLE_MIXIN))
+               {
+                  ret = eina_list_append(ret, part);
+                  eo_do(part, elm_interface_atspi_accessible_parent_set(eo_it));
+               }
+          }
+     }
+   return ret;
+}
+
+//TIZEN_ONLY(20150825) : Use the specific wanted_region_set func only for gengrid.
+EOLIAN static void
+_elm_gengrid_elm_interface_scrollable_wanted_region_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Evas_Coord x EINA_UNUSED, Evas_Coord y EINA_UNUSED)
+{
+   if (sd->is_append)
+     {
+        Evas_Coord pan_x, pan_y, pan_w, pan_h;
+        Evas_Coord mx, my, minx, miny;
+        Evas_Coord set_x, set_y;
+        long items_count;
+
+        evas_object_geometry_get(sd->pan_obj, NULL, NULL, &pan_w, &pan_h);
+        eo_do(sd->pan_obj, elm_obj_pan_pos_get(&pan_x, &pan_y));
+        eo_do(sd->pan_obj, elm_obj_pan_pos_min_get(&minx, &miny));
+        eo_do(sd->pan_obj, elm_obj_pan_pos_max_get(&mx, &my));
+        items_count = sd->item_count -
+           eina_list_count(sd->group_items) + sd->items_lost;
+
+        if (sd->horizontal)
+          {
+             int columns, items_visible = 0;
+             Evas_Coord content_ow, content_w;
+             Evas_Coord adjust_pos_x;
+
+             if (sd->item_height > 0)
+               items_visible = pan_h / sd->item_height;
+             if (items_visible < 1)
+               items_visible = 1;
+
+             columns = items_count / items_visible;
+             if (items_count % items_visible == 1)
+               {
+                  content_ow = (sd->item_width * columns);
+                  columns++;
+                  content_w = (sd->item_width * columns);
+                  adjust_pos_x = (content_w - content_ow) / 2;
+
+                  if ((sd->wanted_pan_x - adjust_pos_x) < minx)
+                    set_x = minx;
+                  else if ((sd->wanted_pan_x - adjust_pos_x) > mx)
+                    set_x = mx;
+                  else
+                    set_x = sd->wanted_pan_x - adjust_pos_x;
+
+                  eo_do(sd->obj, elm_interface_scrollable_content_pos_set(set_x, pan_y, EINA_TRUE));
+               }
+          }
+        else
+          {
+             unsigned int rows, items_visible = 0;
+             Evas_Coord content_h, content_oh;
+             Evas_Coord adjust_pos_y;
+
+             if (sd->item_width > 0)
+               items_visible = pan_w / sd->item_width;
+             if (items_visible < 1)
+               items_visible = 1;
+
+             rows = items_count / items_visible;
+
+             if (items_count % items_visible == 1)
+               {
+                  content_oh = (sd->item_height * rows);
+                  rows++;
+                  content_h = (sd->item_height * rows);
+                  adjust_pos_y = (content_h - content_oh) / 2;
+
+                  if ((sd->wanted_pan_y - adjust_pos_y) < miny)
+                    set_y = miny;
+                  else if ((sd->wanted_pan_y - adjust_pos_y) > my)
+                    set_y = my;
+                  else
+                    set_y = sd->wanted_pan_y - adjust_pos_y;
+
+                  eo_do(sd->obj, elm_interface_scrollable_content_pos_set(pan_x, set_y, EINA_TRUE));
+               }
           }
      }
 }
+//
 
-static void
-_item_fx_op(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__, double progress __UNUSED__)
+//TIZEN_ONLY(20150909) : Use the specific bar_chagnged_bar_pos_adjust func only for gengrid.
+static double
+_round(double value, int pos)
 {
-   Elm_Gen_FX_Item *fi = data;
+   double temp;
 
-   if (GG_IT(fi->it)->wsd->group_items)
-     evas_object_lower(fi->proxy);
-   else if (fi->from.y == fi->to.y)
-     evas_object_raise(fi->proxy);
-   return;
+   temp = value * pow( 10, pos );
+   temp = floor( temp + 0.5 );
+   temp *= pow( 10, -pos );
+
+   return temp;
 }
 
-static void
-_item_fx_done(Elm_Transit_Effect *data, Elm_Transit *transit __UNUSED__)
+EOLIAN static void
+_elm_gengrid_elm_interface_scrollable_bar_changed_bar_pos_adjust(Eo *obj, Elm_Gengrid_Data *sd, Evas_Coord *x, Evas_Coord *y)
 {
-   Elm_Gen_FX_Item *fx_done_it = data;
-   Elm_Gengrid_Smart_Data *sd;
+   Evas_Coord mx, my, minx, miny;
+   double vx, vy;
 
-   if ((!fx_done_it) || (!fx_done_it->it)) return;
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-   sd = GG_IT(fx_done_it->it)->wsd;
-   if (!sd) return;
+   eo_do(sd->pan_obj, elm_obj_pan_pos_max_get(&mx, &my));
+   eo_do(sd->pan_obj, elm_obj_pan_pos_min_get(&minx, &miny));
+   eo_do(sd->pan_obj, elm_obj_pan_pos_get(x, y));
 
-   evas_object_image_source_visible_set(fx_done_it->proxy, EINA_TRUE);
-   evas_object_lower(fx_done_it->proxy);
+   if (edje_object_part_exists(wd->resize_obj, "elm.dragable.hbar"))
+     {
+        edje_object_part_drag_value_get
+           (wd->resize_obj, "elm.dragable.hbar", &vx, NULL);
+        *x = _round(vx * (double)mx + minx, 1);
+     }
+   else
+     {
+        if (*x > mx) *x = mx;
+        else if (*x < minx) *x = minx;
+     }
+   if (edje_object_part_exists(wd->resize_obj, "elm.dragable.vbar"))
+     {
+        edje_object_part_drag_value_get
+           (wd->resize_obj, "elm.dragable.vbar", NULL, &vy);
+        *y = _round(vy * (double)my + miny, 1);
+     }
+   else
+     {
+        if (*y > my) *y = my;
+        else if (*y < miny) *y = miny;
+     }
+}
+//
 
-   evas_object_move(VIEW(fx_done_it->it), fx_done_it->to.x, fx_done_it->to.y);
-   GG_IT(fx_done_it->it)->has_proxy_it = EINA_FALSE;
+//////////////////////////////////////////////////////
+// TIZEN_ONLY(20150623): Region show on item elements fixed
+// Grab and clear highlight on gengrid items
+//////////////////////////////////////////////////////
+EOLIAN static Eina_Bool
+_elm_gengrid_item_elm_interface_atspi_component_highlight_grab(Eo *eo_it, Elm_Gen_Item *it)
+{
+   elm_gengrid_item_show(eo_it, ELM_GENGRID_ITEM_SCROLLTO_IN);
 
-   evas_object_clip_unset(fx_done_it->proxy);
+   elm_object_accessibility_highlight_set(VIEW(it), EINA_TRUE);
+///TIZEN_ONLY(20170717) : expose highlight information on atspi
+   eo_do(WIDGET(it), eo_event_callback_call(ELM_INTERFACE_ATSPI_ACCESSIBLE_EVENT_ACTIVE_DESCENDANT_CHANGED, eo_it));
+///
+
+   return EINA_TRUE;
 }
 
-static void
-_item_fx_del_cb(void *data, Elm_Transit *transit __UNUSED__)
+EOLIAN static Eina_Bool
+_elm_gengrid_item_elm_interface_atspi_component_highlight_clear(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
 {
-   Elm_Gen_FX_Item *fx_done_it = data;
+   elm_object_accessibility_highlight_set(VIEW(it), EINA_FALSE);
+///TIZEN_ONLY(20170717) : expose highlight information on atspi
+   eo_do(WIDGET(it), eo_event_callback_call(ELM_INTERFACE_ATSPI_ACCESSIBLE_EVENT_ACTIVE_DESCENDANT_CHANGED, eo_it));
+///
+
+   return EINA_TRUE;
+}
+
+//////////////////////////////////////////////////////
+
+EAPI Elm_Object_Item *
+elm_gengrid_nth_item_get(const Evas_Object *obj, unsigned int nth)
+{
    Elm_Gen_Item *it = NULL;
-   Proxy_Item *pi = NULL;
-   Eina_List *l;
-   Elm_Gengrid_Smart_Data *sd;
-   Eina_Bool has_del_it = EINA_FALSE;
+   Eina_Accessor *a;
+   void *data;
 
-   if ((!fx_done_it) || (!fx_done_it->it)) return;
-
-   sd = GG_IT(fx_done_it->it)->wsd;
-   if (!sd) return;
-
-   sd->fx_items = eina_list_remove(sd->fx_items, fx_done_it);
-   free(fx_done_it);
-
-   if (!eina_list_count(sd->fx_items))
-     {
-        EINA_LIST_FREE (sd->pending_unrealized_items, it)
-          {
-             GG_IT(it)->has_proxy_it = EINA_FALSE;
-             _elm_gengrid_item_unrealize(it, EINA_FALSE);
-          }
-
-        EINA_LIST_FREE (sd->pending_del_items, it)
-          {
-             _item_del_post_fx_process(it);
-             elm_widget_item_free(it);
-             has_del_it = EINA_TRUE;
-          }
-        EINA_LIST_FOREACH(sd->capture_before_items, l, pi)
-           evas_object_hide(pi->proxy);
-        EINA_LIST_FOREACH(sd->capture_after_items, l, pi)
-           evas_object_hide(pi->proxy);
-
-        sd->fx_playing = EINA_FALSE;
-        sd->fx_first_captured = EINA_FALSE;
-
-        sd->pan_changed = EINA_TRUE;
-        if (!has_del_it) evas_object_smart_changed(sd->pan_obj);
-     }
-}
-
-static void
-_elm_gengrid_fx_play(Evas_Object *obj)
-{
-   ELM_GENGRID_CHECK(obj);
+   ELM_GENGRID_CHECK(obj) NULL;
    ELM_GENGRID_DATA_GET(obj, sd);
 
-   Evas_Coord ox, oy, ow, oh, cvx, cvy, cvw, cvh;
-   Elm_Gen_FX_Item *fi;
-   Eina_List *l;
+   if (!sd->items) return NULL;
 
-   if (!sd->fx_mode) return;
+   a = eina_inlist_accessor_new(sd->items);
+   if (!a) return NULL;
+   if (eina_accessor_data_get(a, nth, &data))
+     it = ELM_GEN_ITEM_FROM_INLIST(data);
+   eina_accessor_free(a);
+   return EO_OBJ(it);
+}
 
-   EINA_LIST_FREE(sd->fx_items, fi)
-     {
-        if (fi->trans) elm_transit_del(fi->trans);
-        free(fi);
-     }
-
-   _elm_gengrid_fx_items_make(obj);
-   if (!eina_list_count(sd->fx_items)) return;
-   sd->fx_playing = EINA_TRUE;
+EOLIAN static void
+_elm_gengrid_elm_widget_focus_highlight_geometry_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h)
+{
+   Evas_Coord ox, oy, oh, ow, item_x = 0, item_y = 0, item_w = 0, item_h = 0;
 
    evas_object_geometry_get(sd->pan_obj, &ox, &oy, &ow, &oh);
-   evas_output_viewport_get(evas_object_evas_get(obj), &cvx, &cvy, &cvw, &cvh);
 
-   EINA_LIST_FOREACH(sd->fx_items, l, fi)
+   if (sd->focused_item)
      {
-        if (!fi->proxy) continue;
+        ELM_GENGRID_ITEM_DATA_GET(sd->focused_item, focus_it);
+        evas_object_geometry_get(VIEW(focus_it), &item_x, &item_y, &item_w, &item_h);
+        elm_widget_focus_highlight_focus_part_geometry_get(VIEW(focus_it), &item_x, &item_y, &item_w, &item_h);
+     }
 
-        if ((fi->from.y <= oy) || (fi->from.y + fi->from.h >= oy + oh))
+   *x = item_x;
+   *y = item_y;
+   *w = item_w;
+   *h = item_h;
+
+   if (sd->horizontal)
+     {
+        if (item_x < ox)
           {
-             evas_object_move(VIEW(fi->it), fi->to.x, fi->to.y);
+             *x = ox;
           }
-        else if ((fi->to.y <= oy) || (fi->to.y + fi->to.h >= oy + oh))
+        else if (item_x > (ox + ow - item_w))
           {
-             evas_object_move(VIEW(fi->it), fi->from.x, fi->from.y);
+             *x = ox + ow - item_w;
           }
-
-        evas_object_resize(fi->proxy, fi->to.w, fi->to.h);
-        evas_object_show(fi->proxy);
-
-        fi->trans = elm_transit_add();
-        elm_transit_object_add(fi->trans, fi->proxy);
-        elm_transit_event_enabled_set(fi->trans, EINA_FALSE);
-
-        evas_object_image_source_visible_set(fi->proxy, EINA_FALSE);
-        elm_transit_tween_mode_set(fi->trans, ELM_TRANSIT_TWEEN_MODE_DECELERATE);
-
-        if (fi->type == ELM_GEN_ITEM_FX_TYPE_SAME)
+     }
+   else
+     {
+        if (item_y < oy)
           {
-             evas_object_raise(fi->proxy);
-             elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
+             *y = oy;
           }
-
-        else if (fi->type == ELM_GEN_ITEM_FX_TYPE_ADD)
+        else if (item_y > (oy + oh - item_h))
           {
-             elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
-             elm_transit_effect_color_add(fi->trans, 0, 0, 0, 0, 255, 255, 255, 255);
-             elm_transit_effect_zoom_add(fi->trans, 0.5, 1.0);
+             *y = oy + oh - item_h;
           }
-        else if (fi->type == ELM_GEN_ITEM_FX_TYPE_DEL)
-          {
-             elm_transit_effect_translation_add(fi->trans, fi->from.x, fi->from.y, fi->to.x, fi->to.y);
-             elm_transit_effect_color_add(fi->trans, 255, 255, 255, 255, 0, 0, 0, 0);
-             elm_transit_effect_zoom_add(fi->trans, 1.0, 0.5);
-          }
-        elm_transit_effect_add(fi->trans, _item_fx_op, fi, _item_fx_done);
-        elm_transit_del_cb_set(fi->trans, _item_fx_del_cb, fi);
-
-        elm_transit_duration_set(fi->trans, FX_MOVE_TIME);
-        elm_transit_objects_final_state_keep_set(fi->trans, EINA_FALSE);
-        elm_transit_go(fi->trans);
      }
 }
-#endif
+
+EOLIAN static Elm_Object_Item *
+_elm_gengrid_elm_widget_focused_item_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
+{
+   return sd->focused_item;
+}
+
+EOLIAN static void
+_elm_gengrid_elm_widget_item_loop_enabled_set(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd, Eina_Bool enable)
+{
+   sd->item_loop_enable = !!enable;
+}
+
+EOLIAN static Eina_Bool
+_elm_gengrid_elm_widget_item_loop_enabled_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
+{
+   return sd->item_loop_enable;
+}
+
+EOLIAN static void
+_elm_gengrid_wheel_disabled_set(Eo *obj, Elm_Gengrid_Data *sd, Eina_Bool disabled)
+{
+   disabled = !!disabled;
+   if (sd->wheel_disabled != disabled)
+     eo_do(obj,
+           elm_interface_scrollable_wheel_disabled_set(disabled));
+
+   sd->wheel_disabled = disabled;
+}
+
+EOLIAN static Eina_Bool
+_elm_gengrid_wheel_disabled_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
+{
+   return sd->wheel_disabled;
+}
+
+EOLIAN static void
+_elm_gengrid_class_constructor(Eo_Class *klass)
+{
+   if (_elm_config->access_mode)
+      _elm_gengrid_smart_focus_next_enable = EINA_TRUE;
+
+   evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
+}
+
+EOLIAN const Elm_Atspi_Action *
+_elm_gengrid_elm_interface_atspi_widget_action_elm_actions_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *pd EINA_UNUSED)
+{
+   static Elm_Atspi_Action atspi_actions[] = {
+          { "move,prior", "move", "prior", _key_action_move},
+          { "move,next", "move", "next", _key_action_move},
+          { "move,left", "move", "left", _key_action_move},
+          { "move,left,multi", "move", "left_multi", _key_action_move},
+          { "move,right", "move", "right", _key_action_move},
+          { "move,right,multi", "move", "right_multi", _key_action_move},
+          { "move,up", "move", "up", _key_action_move},
+          { "move,up,multi", "move", "up_multi", _key_action_move},
+          { "move,down", "move", "down", _key_action_move},
+          { "move,down,multi", "move", "down_multi", _key_action_move},
+          { "move,first", "move", "first", _key_action_move},
+          { "move,last", "move", "last", _key_action_move},
+          { "select", "select", NULL, _key_action_select},
+          { "select,multi", "select", "multi", _key_action_select},
+          { "escape", "escape", NULL, _key_action_escape},
+          { NULL, NULL, NULL, NULL }
+   };
+   return &atspi_actions[0];
+}
+
+EOLIAN Eina_List*
+_elm_gengrid_elm_interface_atspi_accessible_children_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *sd)
+{
+   Eina_List *ret = NULL;
+   Elm_Gen_Item *it;
+
+   EINA_INLIST_FOREACH(sd->items, it)
+      ret = eina_list_append(ret, EO_OBJ(it));
+
+   return ret;
+}
+
+EOLIAN Elm_Atspi_State_Set
+_elm_gengrid_elm_interface_atspi_accessible_state_set_get(Eo *obj, Elm_Gengrid_Data *sd EINA_UNUSED)
+{
+   Elm_Atspi_State_Set ret;
+
+   eo_do_super(obj, ELM_GENGRID_CLASS, ret = elm_interface_atspi_accessible_state_set_get());
+
+   STATE_TYPE_SET(ret, ELM_ATSPI_STATE_MANAGES_DESCENDANTS);
+
+   if (elm_gengrid_multi_select_get(obj))
+     STATE_TYPE_SET(ret, ELM_ATSPI_STATE_MULTISELECTABLE);
+
+   return ret;
+}
+
+EOLIAN int
+_elm_gengrid_elm_interface_atspi_selection_selected_children_count_get(Eo *objm EINA_UNUSED, Elm_Gengrid_Data *pd)
+{
+   return eina_list_count(pd->selected);
+}
+
+EOLIAN Eo*
+_elm_gengrid_elm_interface_atspi_selection_selected_child_get(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *pd, int child_idx)
+{
+   return eina_list_nth(pd->selected, child_idx);
+}
+
+EOLIAN Eina_Bool
+_elm_gengrid_elm_interface_atspi_selection_child_select(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *pd, int child_index)
+{
+   Elm_Gen_Item *item;
+   if (pd->select_mode != ELM_OBJECT_SELECT_MODE_NONE)
+     {
+        EINA_INLIST_FOREACH(pd->items, item)
+          {
+             if (child_index-- == 0)
+               {
+                  elm_gengrid_item_selected_set(EO_OBJ(item), EINA_TRUE);
+                  return EINA_TRUE;
+               }
+          }
+     }
+   return EINA_FALSE;
+}
+
+EOLIAN Eina_Bool
+_elm_gengrid_elm_interface_atspi_selection_selected_child_deselect(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *pd, int child_index)
+{
+   Eo *item;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(pd->selected, l, item)
+     {
+        if (child_index-- == 0)
+          {
+             elm_gengrid_item_selected_set(item, EINA_FALSE);
+             return EINA_TRUE;
+          }
+     }
+   return EINA_FALSE;
+}
+
+EOLIAN Eina_Bool
+_elm_gengrid_elm_interface_atspi_selection_is_child_selected(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *pd, int child_index)
+{
+   Elm_Gen_Item *item;
+
+   EINA_INLIST_FOREACH(pd->items, item)
+     {
+        if (child_index-- == 0)
+          {
+             return elm_gengrid_item_selected_get(EO_OBJ(item));
+          }
+     }
+   return EINA_FALSE;
+}
+
+EOLIAN Eina_Bool
+_elm_gengrid_elm_interface_atspi_selection_all_children_select(Eo *obj, Elm_Gengrid_Data *pd)
+{
+   Elm_Gen_Item *item;
+
+   if (!elm_gengrid_multi_select_get(obj))
+     return EINA_FALSE;
+
+   EINA_INLIST_FOREACH(pd->items, item)
+      elm_gengrid_item_selected_set(EO_OBJ(item), EINA_TRUE);
+
+   return EINA_TRUE;
+}
+
+EOLIAN Eina_Bool
+_elm_gengrid_elm_interface_atspi_selection_clear(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *pd)
+{
+   return _all_items_deselect(pd);
+}
+
+EOLIAN Eina_Bool
+_elm_gengrid_elm_interface_atspi_selection_child_deselect(Eo *obj EINA_UNUSED, Elm_Gengrid_Data *pd, int child_index)
+{
+   Elm_Gen_Item *item;
+   if (pd->select_mode != ELM_OBJECT_SELECT_MODE_NONE)
+     {
+        EINA_INLIST_FOREACH(pd->items, item)
+          {
+             if (child_index-- == 0)
+               {
+                  elm_gengrid_item_selected_set(EO_OBJ(item), EINA_FALSE);
+                  return EINA_TRUE;
+               }
+          }
+     }
+   return EINA_FALSE;
+}
+
+#include "elm_gengrid.eo.c"
+#include "elm_gengrid_item.eo.c"

@@ -10,6 +10,7 @@
 #include <Elementary.h>
 #include <Evas_GL_GLES1_Helpers.h>
 #include <Evas_GL_GLES2_Helpers.h>
+#include <Evas_GL_GLES3_Helpers.h>
 
 /**
  * @defgroup Elementary_GL_Helpers Elementary GL Helper functions
@@ -87,23 +88,6 @@ static void _draw_gl(Evas_Object *obj)
    Evas_GL_API *__evas_gl_glapi = elm_glview_gl_api_get(glview); \
    if (!__evas_gl_glapi) return retval;
 
-/**
- * @brief Convenience function returning the GL view's rotation when using direct rendering
- *
- * @param[in]  glview   The Elementary @ref GLView object in use
- *
- * @return A screen rotation in degrees (0, 90, 180, 270).
- *
- * @note This rotation can be different from the device orientation. This
- *       rotation value must be used in case of direct rendering and should be
- *       taken into account by the application when setting the internal rotation
- *       matrix for the view.
- *
- * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
- */
-#define elm_glview_rotation_get(glview) \
-   evas_gl_rotation_get(elm_glview_evas_gl_get(glview))
-
 // End of the convenience functions
 
 
@@ -121,13 +105,14 @@ static void _draw_gl(Evas_Object *obj)
  *     The GL API will be different if you are using different rendering engines
  *     (software and GL for instance), and this can happen as soon as you have
  *     multiple canvases.
- * @li If you are using both OpenGL-ES 1.1 and OpenGL-ES 2.0 APIs.
+ * @li If you are using multiple GLES APIs i.e OpenGL-ES 1.1, OpenGL-ES 2.0 and
+ *     OpenGL-ES 3.0 APIs.
  * @li If you are writing or porting a library that may be used by other
  *     applications.
  *
  * This set of macros should be used only in the following situation:
  * @li Only one surface is used for GL rendering,
- * @li Only one API set (GLES 1.1 or GLES 2.0) is used
+ * @li Only one API set (GLES 1.1 or GLES 2.0 or GLES 3.0) is used
  */
 
 /**
@@ -227,6 +212,12 @@ glview_create(Evas_Object *parent)
  */
 #define ELEMENTARY_GLVIEW_GLES2_API_CHECK() EVAS_GL_GLES2_API_CHECK()
 
+/**
+ * @brief Macro to check that the GL APIs are properly set (GLES 3.0)
+ * @since_tizen 2.4
+ */
+#define ELEMENTARY_GLVIEW_GLES3_API_CHECK() EVAS_GL_GLES3_API_CHECK()
+
 
 // End of the convenience functions
 
@@ -234,7 +225,6 @@ glview_create(Evas_Object *parent)
  * @ingroup GLView
  * @{
  */
-
 /**
  * @page elm_opengl_page OpenGL with Elementary
  *
@@ -335,8 +325,8 @@ EAPI int elm_main(int argc EINA_UNUSED, char **argv EINA_UNUSED)
 {
    Evas_Object *win;
 
-   // Make sure that the engine supports OpenGL
-   elm_config_engine_set("opengl_x11");
+   // Set the acceleration preference to 3d
+   elm_config_accel_preference_set("3d");
 
    // Create a window
    win = elm_win_util_standard_add("glview", "GLView");
@@ -396,17 +386,27 @@ Evas_Object *glview;
 glview = elm_glview_version_add(win, EVAS_GL_GLES_1_X);
  * @endcode
  *
+ * @subsection elm_opengl_gles3 OpenGL-ES 3.0 support in EFL
+ *
+ * Since Tizen 2.4, Evas GL supports the OpenGL-ES 3.0 set of rendering APIs on
+ * top of the normal OpenGL-ES 2.0 APIs, if the drivers supports it.
+ *
+ * With @ref GLView, it is easy to create a 3.0 capable surface:
+ * @code
+Evas_Object *glview;
+glview = elm_glview_version_add(win, EVAS_GL_GLES_3_X);
+ * @endcode
+ *
  * As usual, the GL API is available using @ref elm_glview_gl_api_get, which
- * can be abstracted with #ELEMENTARY_GLVIEW_USE.
+ * can be abstracted with @ref ELEMENTARY_GLVIEW_USE.
  *
  * When using Evas GL directly, developers must be careful to use
  * @ref evas_gl_context_api_get with the current context in order to get
- * the proper API (1.1 or 2.0). Indeed, @ref evas_gl_api_get will always return
- * a GLES 2.0 API, and the two APIs are not compatible. Also, the application
+ * the proper API (1.1 or 2.0 or 3.0). Indeed, @ref evas_gl_api_get will always return
+ * a GLES 2.0 API, and the 1.1 and 2.0 APIs are not compatible. Also, the application
  * will then be responsible for calling @c evas_gl_make_current.
  *
  * @remarks Always use @ref GLView unless there is a very good reason not to.
- *
  *
  * @subsection elm_opengl_otheregl Other uses of EGL and their Evas GL equivalents
  *
@@ -536,6 +536,7 @@ evas_gl_make_current(evasgl, sfc, ctx);
 // using an EvasGLImage.
  * @endcode
  *
+ * Multithread OpenGL rendering with Evas GL is the topic of another guide.
  *
  */
 

@@ -3,10 +3,9 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 static void
-_print_clicked(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_print_clicked(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    printf("bubble clicked\n");
 }
@@ -62,7 +61,7 @@ set_api_state(api_data *api)
 
               snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
               elm_image_file_set(ic, buf, NULL);
-              elm_image_resizable_set(ic, 0, 0);
+              elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
               elm_object_content_set(eina_list_nth(items, 0), ic);
               ct = elm_label_add(api->win);
               elm_object_text_set(ct, "Using icon as top-bubble content");
@@ -81,7 +80,7 @@ set_api_state(api_data *api)
 }
 
 static void
-_api_bt_clicked(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+_api_bt_clicked(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {  /* Will add here a SWITCH command containing code to modify test-object */
    /* in accordance a->state value. */
    api_data *a = data;
@@ -96,14 +95,13 @@ _api_bt_clicked(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 }
 
 static void
-_cleanup_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_cleanup_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    free(data);
 }
 
-
 void
-test_bubble(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_bubble(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bx, *ic, *bb, *ct, *bxx, *bt;
    char buf[PATH_MAX];
@@ -115,8 +113,8 @@ test_bubble(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    evas_object_event_callback_add(win, EVAS_CALLBACK_FREE, _cleanup_cb, api);
 
    bxx = elm_box_add(win);
-   elm_win_resize_object_add(win, bxx);
    evas_object_size_hint_weight_set(bxx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bxx);
    evas_object_show(bxx);
 
    bx = elm_box_add(win);
@@ -136,7 +134,7 @@ test_bubble(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_HORIZONTAL, 1, 1);
 
    bb = elm_bubble_add(win);
@@ -173,4 +171,3 @@ test_bubble(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
 
    evas_object_show(win);
 }
-#endif

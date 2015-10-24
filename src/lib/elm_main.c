@@ -2,9 +2,7 @@
 # include "elementary_config.h"
 #endif
 
-#ifdef HAVE_FORK
 #include <dlfcn.h> /* dlopen,dlclose,etc */
-#endif
 
 #ifdef HAVE_CRT_EXTERNS_H
 # include <crt_externs.h>
@@ -14,16 +12,23 @@
 # include <Evil.h>
 #endif
 
-#ifdef HAVE_EMOTION
-# include <Emotion.h>
-#endif
+// TIZEN_ONLY(20150709): Don't build unused widget
+//#include <Emotion.h>
+//
 
 #include <Elementary.h>
 #include "elm_priv.h"
 
 #define SEMI_BROKEN_QUICKLAUNCH 1
 
+#ifdef __CYGWIN__
+# define LIBEXT ".dll"
+#else
+# define LIBEXT ".so"
+#endif
+
 static Elm_Version _version = { VMAJ, VMIN, VMIC, VREV };
+static void * _accessibility_currently_highlighted_obj = NULL;
 EAPI Elm_Version *elm_version = &_version;
 
 Eina_Bool
@@ -36,19 +41,19 @@ _elm_dangerous_call_check(const char *call)
    eval = getenv("ELM_NO_FINGER_WAGGLING");
    if ((eval) && (!strcmp(eval, buf)))
      return 0;
-   printf("ELEMENTARY FINGER WAGGLE!!!!!!!!!!\n"
-          "\n"
-          "  %s() used.\n"
-          "PLEASE see the API documentation for this function. This call\n"
-          "should almost never be used. Only in very special cases.\n"
-          "\n"
-          "To remove this warning please set the environment variable:\n"
-          "  ELM_NO_FINGER_WAGGLING\n"
-          "To the value of the Elementary version + revision number. e.g.:\n"
-          "  1.2.5.40295\n"
-          "\n"
-          ,
-          call);
+   ERR("ELEMENTARY FINGER WAGGLE!!!!!!!!!!\n"
+       "\n"
+       "  %s() used.\n"
+       "PLEASE see the API documentation for this function. This call\n"
+       "should almost never be used. Only in very special cases.\n"
+       "\n"
+       "To remove this warning please set the environment variable:\n"
+       "  ELM_NO_FINGER_WAGGLING\n"
+       "To the value of the Elementary version + revision number. e.g.:\n"
+       "  1.2.5.40295\n"
+       "\n"
+       ,
+       call);
    return 1;
 }
 
@@ -63,6 +68,8 @@ const char *_elm_lib_dir = NULL;
 int _elm_log_dom = -1;
 
 EAPI int ELM_EVENT_POLICY_CHANGED = 0;
+EAPI int ELM_EVENT_PROCESS_BACKGROUND = 0;
+EAPI int ELM_EVENT_PROCESS_FOREGROUND = 0;
 
 static int _elm_init_count = 0;
 static int _elm_sub_init_count = 0;
@@ -72,9 +79,9 @@ static Ecore_Event_Handler *_elm_exit_handler = NULL;
 static Eina_Bool quicklaunch_on = 0;
 
 static Eina_Bool
-_elm_signal_exit(void *data  __UNUSED__,
-                 int ev_type __UNUSED__,
-                 void *ev    __UNUSED__)
+_elm_signal_exit(void *data  EINA_UNUSED,
+                 int ev_type EINA_UNUSED,
+                 void *ev    EINA_UNUSED)
 {
    elm_exit();
    return ECORE_CALLBACK_PASS_ON;
@@ -88,6 +95,8 @@ _elm_rescale(void)
    _elm_ews_wm_rescale(NULL, EINA_FALSE);
 }
 
+// TIZEN_ONLY(20150709): Don't build unused widget
+/*
 static Eina_Bool _emotion_inited = EINA_FALSE;
 
 void
@@ -95,10 +104,8 @@ _elm_emotion_init(void)
 {
    if (_emotion_inited) return ;
 
-#if HAVE_EMOTION
    emotion_init();
    _emotion_inited = EINA_TRUE;
-#endif
 }
 
 void
@@ -106,14 +113,14 @@ _elm_emotion_shutdown(void)
 {
    if (!_emotion_inited) return ;
 
-#if HAVE_EMOTION
    emotion_shutdown();
    _emotion_inited = EINA_FALSE;
-#endif
 }
+*/
 
 static void *app_mainfunc = NULL;
 static const char *app_name = NULL;
+static const char *app_desktop_entry = NULL;
 static const char *app_domain = NULL;
 static const char *app_checkfile = NULL;
 
@@ -129,6 +136,8 @@ static const char *app_locale_dir = NULL;
 static double app_base_scale = 1.0;
 
 static Eina_Prefix *app_pfx = NULL;
+
+static Ecore_Event_Handler *system_handlers[2] = { NULL, NULL };
 
 static void
 _prefix_check(void)
@@ -161,7 +170,7 @@ _prefix_check(void)
 
    if (app_domain)
      {
-        caps = alloca(strlen(app_domain) + 1);
+        caps = alloca(eina_stringshare_strlen(app_domain) + 1);
         for (p1 = (char *)app_domain, p2 = caps; *p1; p1++, p2++)
            *p2 = toupper(*p1);
         *p2 = 0;
@@ -174,30 +183,127 @@ static void
 _prefix_shutdown(void)
 {
    if (app_pfx) eina_prefix_free(app_pfx);
-   if (app_domain) eina_stringshare_del(app_domain);
-   if (app_checkfile) eina_stringshare_del(app_checkfile);
-   if (app_compile_bin_dir) eina_stringshare_del(app_compile_bin_dir);
-   if (app_compile_lib_dir) eina_stringshare_del(app_compile_lib_dir);
-   if (app_compile_data_dir) eina_stringshare_del(app_compile_data_dir);
-   if (app_compile_locale_dir) eina_stringshare_del(app_compile_locale_dir);
-   if (app_prefix_dir) eina_stringshare_del(app_prefix_dir);
-   if (app_bin_dir) eina_stringshare_del(app_bin_dir);
-   if (app_lib_dir) eina_stringshare_del(app_lib_dir);
-   if (app_data_dir) eina_stringshare_del(app_data_dir);
-   if (app_locale_dir) eina_stringshare_del(app_locale_dir);
+   ELM_SAFE_FREE(app_domain, eina_stringshare_del);
+   ELM_SAFE_FREE(app_checkfile, eina_stringshare_del);
+   ELM_SAFE_FREE(app_compile_bin_dir, eina_stringshare_del);
+   ELM_SAFE_FREE(app_compile_lib_dir, eina_stringshare_del);
+   ELM_SAFE_FREE(app_compile_data_dir, eina_stringshare_del);
+   ELM_SAFE_FREE(app_compile_locale_dir, eina_stringshare_del);
    app_mainfunc = NULL;
-   app_domain = NULL;
-   app_checkfile = NULL;
-   app_compile_bin_dir = NULL;
-   app_compile_lib_dir = NULL;
-   app_compile_data_dir = NULL;
-   app_compile_locale_dir = NULL;
    app_prefix_dir = NULL;
    app_bin_dir = NULL;
    app_lib_dir = NULL;
    app_data_dir = NULL;
    app_locale_dir = NULL;
    app_pfx = NULL;
+}
+
+static struct {
+     Eina_Module *handle;
+     void (*init)(void);
+     void (*shutdown)(void);
+     Eina_Bool (*app_connect)(const char *appname);
+     Eina_Bool is_init;
+} _clouseau_info;
+
+#define _CLOUSEAU_LOAD_SYMBOL(cls_struct, sym) \
+   do \
+     { \
+        (cls_struct).sym = eina_module_symbol_get((cls_struct).handle, "clouseau_" #sym); \
+        if (!(cls_struct).sym) \
+          { \
+             WRN("Failed loading symbol '%s' from the clouseau library.", "clouseau_" #sym); \
+             eina_module_free((cls_struct).handle); \
+             (cls_struct).handle = NULL; \
+             return EINA_FALSE; \
+          } \
+     } \
+   while (0)
+
+static void
+_elm_clouseau_unload()
+{
+   if (!_clouseau_info.is_init)
+      return;
+
+   if (_clouseau_info.shutdown)
+     {
+        _clouseau_info.shutdown();
+     }
+
+   if (_clouseau_info.handle)
+     {
+        eina_module_free(_clouseau_info.handle);
+        _clouseau_info.handle = NULL;
+     }
+
+   _clouseau_info.is_init = EINA_FALSE;
+}
+
+Eina_Bool
+_elm_clouseau_reload()
+{
+   if (!_elm_config->clouseau_enable)
+     {
+        _elm_clouseau_unload();
+        return EINA_TRUE;
+     }
+
+   if (_clouseau_info.is_init)
+      return EINA_TRUE;
+
+   _clouseau_info.handle = eina_module_new(
+         PACKAGE_LIB_DIR "/libclouseau" LIBEXT);
+   if (!eina_module_load(_clouseau_info.handle))
+     {
+        WRN("Failed loading the clouseau library.");
+        eina_module_free(_clouseau_info.handle);
+        _clouseau_info.handle = NULL;
+        return EINA_FALSE;
+     }
+
+   _CLOUSEAU_LOAD_SYMBOL(_clouseau_info, init);
+   _CLOUSEAU_LOAD_SYMBOL(_clouseau_info, shutdown);
+   _CLOUSEAU_LOAD_SYMBOL(_clouseau_info, app_connect);
+
+   _clouseau_info.init();
+   if (!_clouseau_info.app_connect(elm_app_name_get()))
+     {
+        ERR("Failed connecting to the clouseau server.");
+     }
+
+   _clouseau_info.is_init = EINA_TRUE;
+
+   return EINA_TRUE;
+}
+
+Eina_Bool _sys_memory_changed(void *data EINA_UNUSED, int type EINA_UNUSED, void *event EINA_UNUSED)
+{
+   Ecore_Memory_State state = ecore_memory_state_get();
+
+   if (state != ECORE_MEMORY_STATE_LOW)
+     return ECORE_CALLBACK_PASS_ON;
+
+   elm_cache_all_flush();
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+Eina_Bool _sys_lang_changed(void *data EINA_UNUSED, int type EINA_UNUSED, void *event EINA_UNUSED)
+{
+   char *lang;
+
+   lang = getenv("LANG");
+   if (!lang)
+     lang = getenv("LC_MESSAGES");
+   if (!lang)
+     lang = getenv("LC_ALL");
+
+   if (lang)
+     elm_language_set(lang);
+   else
+     ERR("Language not set in environment");
+
+   return ECORE_CALLBACK_PASS_ON;
 }
 
 EAPI int
@@ -209,6 +315,11 @@ elm_init(int    argc,
    elm_quicklaunch_init(argc, argv);
    elm_quicklaunch_sub_init(argc, argv);
    _prefix_shutdown();
+
+   system_handlers[0] = ecore_event_handler_add(ECORE_EVENT_MEMORY_STATE, _sys_memory_changed, NULL);
+   system_handlers[1] = ecore_event_handler_add(ECORE_EVENT_LOCALE_CHANGED, _sys_lang_changed, NULL);
+   _accessibility_currently_highlighted_obj = NULL;
+
    return _elm_init_count;
 }
 
@@ -217,16 +328,23 @@ elm_shutdown(void)
 {
    if (_elm_init_count <= 0)
      {
-        ERR("Init count not greater than 0 in shutdown.");
         return 0;
      }
    _elm_init_count--;
    if (_elm_init_count > 0) return _elm_init_count;
+
+   ecore_event_handler_del(system_handlers[0]);
+   ecore_event_handler_del(system_handlers[1]);
+
    _elm_win_shutdown();
+
    while (_elm_win_deferred_free) ecore_main_loop_iterate();
+
+   _elm_clouseau_unload();
 // wrningz :(
 //   _prefix_shutdown();
-   if (app_name) eina_stringshare_del(app_name);
+   ELM_SAFE_FREE(app_name, eina_stringshare_del);
+   ELM_SAFE_FREE(app_desktop_entry, eina_stringshare_del);
 
    elm_quicklaunch_sub_shutdown();
    elm_quicklaunch_shutdown();
@@ -245,6 +363,12 @@ EAPI void
 elm_app_name_set(const char *name)
 {
    eina_stringshare_replace(&app_name, name);
+}
+
+EAPI void
+elm_app_desktop_entry_set(const char *path)
+{
+   eina_stringshare_replace(&app_desktop_entry, path);
 }
 
 EAPI void
@@ -275,6 +399,14 @@ EAPI const char *
 elm_app_name_get(void)
 {
    if (app_name) return app_name;
+
+   return "";
+}
+
+EAPI const char *
+elm_app_desktop_entry_get(void)
+{
+   if (app_desktop_entry) return app_desktop_entry;
 
    return "";
 }
@@ -332,26 +464,84 @@ elm_app_locale_dir_get(void)
 EAPI void
 elm_app_base_scale_set(double base_scale)
 {
-   if (base_scale <= 0.0) return;
+   if (base_scale < 0.0) return;
+   if (fabs(base_scale) < DBL_EPSILON) return;	
    app_base_scale = base_scale;
 }
 
 EAPI double
 elm_app_base_scale_get(void)
 {
-   if (app_base_scale) return app_base_scale;
+   if (app_base_scale > 0.0) return app_base_scale;
    return 1.0;
 }
 
-#ifdef ELM_EDBUS
-static int _elm_need_e_dbus = 0;
-#endif
+static Eina_Bool _elm_need_e_dbus = EINA_FALSE;
+static void *e_dbus_handle = NULL;
+
 EAPI Eina_Bool
 elm_need_e_dbus(void)
 {
-#ifdef ELM_EDBUS
-   if (_elm_need_e_dbus++) return EINA_TRUE;
-   e_dbus_init();
+   int (*init_func)(void) = NULL;
+
+   if (_elm_need_e_dbus) return EINA_TRUE;
+   /* We use RTLD_NOLOAD when available, so we are sure to use the 'libeldbus' that was linked to the binary */
+#ifndef RTLD_NOLOAD
+# define RTLD_NOLOAD RTLD_GLOBAL
+#endif
+   if (!e_dbus_handle) e_dbus_handle = dlopen("libedbus.so", RTLD_LAZY | RTLD_NOLOAD);
+   if (!e_dbus_handle) e_dbus_handle = dlopen("libedbus.so.1", RTLD_LAZY | RTLD_NOLOAD);
+   if (!e_dbus_handle) return EINA_FALSE;
+   init_func = dlsym(e_dbus_handle, "e_dbus_init");
+   if (!init_func) return EINA_FALSE;
+   _elm_need_e_dbus = EINA_TRUE;
+   init_func();
+   return EINA_TRUE;
+}
+
+static void
+_elm_unneed_e_dbus(void)
+{
+   int (*shutdown_func)(void) = NULL;
+
+   if (!_elm_need_e_dbus) return;
+   shutdown_func = dlsym(e_dbus_handle, "e_dbus_shutdown");
+   if (!shutdown_func) return;
+   _elm_need_e_dbus = EINA_FALSE;
+   shutdown_func();
+
+   dlclose(e_dbus_handle);
+   e_dbus_handle = NULL;
+}
+
+static Eina_Bool _elm_need_eldbus = EINA_FALSE;
+EAPI Eina_Bool
+elm_need_eldbus(void)
+{
+   if (_elm_need_eldbus) return EINA_TRUE;
+   _elm_need_eldbus = EINA_TRUE;
+   eldbus_init();
+   return EINA_TRUE;
+}
+
+static void
+_elm_unneed_eldbus(void)
+{
+   if (!_elm_need_eldbus) return;
+   _elm_need_eldbus = EINA_FALSE;
+   eldbus_shutdown();
+}
+
+#ifdef ELM_ELOCATION
+static Eina_Bool _elm_need_elocation = EINA_FALSE;
+#endif
+EAPI Eina_Bool
+elm_need_elocation(void)
+{
+#ifdef ELM_ELOCATION
+   if (_elm_need_elocation) return EINA_TRUE;
+   _elm_need_elocation = EINA_TRUE;
+   elocation_init();
    return EINA_TRUE;
 #else
    return EINA_FALSE;
@@ -359,26 +549,25 @@ elm_need_e_dbus(void)
 }
 
 static void
-_elm_unneed_e_dbus(void)
+_elm_unneed_elocation(void)
 {
-#ifdef ELM_EDBUS
-   if (--_elm_need_e_dbus) return;
-
-   _elm_need_e_dbus = 0;
-   e_dbus_shutdown();
+#ifdef ELM_ELOCATION
+   if (!_elm_need_elocation) return;
+   _elm_need_elocation = EINA_FALSE;
+   eldbus_shutdown();
 #endif
 }
 
-#ifdef ELM_EFREET
-static int _elm_need_efreet = 0;
-#endif
+static Eina_Bool _elm_need_efreet = EINA_FALSE;
+
 EAPI Eina_Bool
 elm_need_efreet(void)
 {
-#ifdef ELM_EFREET
-   if (_elm_need_efreet++) return EINA_TRUE;
+   if (_elm_need_efreet) return EINA_TRUE;
+   _elm_need_efreet = EINA_TRUE;
    efreet_init();
    efreet_mime_init();
+   efreet_trash_init();
     /*
      {
         Eina_List **list;
@@ -394,21 +583,16 @@ elm_need_efreet(void)
      }
    */
    return EINA_TRUE;
-#else
-   return EINA_FALSE;
-#endif
 }
 
 static void
 _elm_unneed_efreet(void)
 {
-#ifdef ELM_EFREET
-   if (--_elm_need_efreet) return;
-
-   _elm_need_efreet = 0;
+   if (!_elm_need_efreet) return;
+   _elm_need_efreet = EINA_FALSE;
+   efreet_trash_shutdown();
    efreet_mime_shutdown();
    efreet_shutdown();
-#endif
 }
 
 EAPI void
@@ -439,6 +623,7 @@ elm_quicklaunch_init(int    argc,
 
    eet_init();
    ecore_init();
+   edje_init();
 
 #ifdef HAVE_ELEMENTARY_EMAP
    emap_init();
@@ -448,8 +633,13 @@ elm_quicklaunch_init(int    argc,
    memset(_elm_policies, 0, sizeof(_elm_policies));
    if (!ELM_EVENT_POLICY_CHANGED)
      ELM_EVENT_POLICY_CHANGED = ecore_event_type_new();
+   if (!ELM_EVENT_PROCESS_BACKGROUND)
+     ELM_EVENT_PROCESS_BACKGROUND = ecore_event_type_new();
+   if (!ELM_EVENT_PROCESS_FOREGROUND)
+     ELM_EVENT_PROCESS_FOREGROUND = ecore_event_type_new();
 
    ecore_file_init();
+   eio_init();
 
    _elm_exit_handler = ecore_event_handler_add(ECORE_EVENT_SIGNAL_EXIT, _elm_signal_exit, NULL);
 
@@ -473,6 +663,12 @@ elm_quicklaunch_init(int    argc,
    if (!_elm_data_dir) _elm_data_dir = eina_stringshare_add("/");
    if (!_elm_lib_dir) _elm_lib_dir = eina_stringshare_add("/");
 
+   eina_log_timing(_elm_log_dom,
+                   EINA_LOG_STATE_STOP,
+                   EINA_LOG_STATE_INIT);
+
+   if (quicklaunch_on)
+     _elm_init_count++;
    return _elm_ql_init_count;
 }
 
@@ -494,18 +690,14 @@ elm_quicklaunch_sub_init(int    argc,
      {
         ecore_app_args_set(argc, (const char **)argv);
         evas_init();
-        edje_init();
         _elm_module_init();
         _elm_config_init();
         _elm_config_sub_init();
         ecore_evas_init(); // FIXME: check errors
-#ifdef HAVE_ELEMENTARY_ECORE_IMF
         ecore_imf_init();
-#endif
-#ifdef HAVE_ELEMENTARY_ECORE_CON
         ecore_con_init();
         ecore_con_url_init();
-#endif
+        _elm_prefs_init();
         _elm_ews_wm_init();
      }
    return _elm_sub_init_count;
@@ -526,31 +718,13 @@ elm_quicklaunch_sub_shutdown(void)
      {
         _elm_win_shutdown();
         _elm_module_shutdown();
+        _elm_prefs_shutdown();
         _elm_ews_wm_shutdown();
-#ifdef HAVE_ELEMENTARY_ECORE_CON
         ecore_con_url_shutdown();
         ecore_con_shutdown();
-#endif
-#ifdef HAVE_ELEMENTARY_ECORE_IMF
         ecore_imf_shutdown();
-#endif
         ecore_evas_shutdown();
         _elm_config_sub_shutdown();
-#define ENGINE_COMPARE(name) (!strcmp(_elm_config->engine, name))
-        if (ENGINE_COMPARE(ELM_SOFTWARE_X11) ||
-            ENGINE_COMPARE(ELM_SOFTWARE_16_X11) ||
-            ENGINE_COMPARE(ELM_XRENDER_X11) ||
-            ENGINE_COMPARE(ELM_OPENGL_X11) ||
-            ENGINE_COMPARE(ELM_SOFTWARE_SDL) ||
-            ENGINE_COMPARE(ELM_SOFTWARE_16_SDL) ||
-            ENGINE_COMPARE(ELM_OPENGL_SDL) ||
-            ENGINE_COMPARE(ELM_OPENGL_COCOA) ||
-            ENGINE_COMPARE(ELM_SOFTWARE_WIN32) ||
-            ENGINE_COMPARE(ELM_SOFTWARE_16_WINCE) ||
-            ENGINE_COMPARE(ELM_EWS))
-#undef ENGINE_COMPARE
-          evas_cserve_disconnect();
-        edje_shutdown();
         evas_shutdown();
      }
    return _elm_sub_init_count;
@@ -561,35 +735,42 @@ elm_quicklaunch_shutdown(void)
 {
    _elm_ql_init_count--;
    if (_elm_ql_init_count > 0) return _elm_ql_init_count;
+
+   eina_log_timing(_elm_log_dom,
+                   EINA_LOG_STATE_STOP,
+                   EINA_LOG_STATE_SHUTDOWN);
+
    if (pfx) eina_prefix_free(pfx);
    pfx = NULL;
-   eina_stringshare_del(_elm_data_dir);
-   _elm_data_dir = NULL;
-   eina_stringshare_del(_elm_lib_dir);
-   _elm_lib_dir = NULL;
-
-   free(_elm_appname);
-   _elm_appname = NULL;
+   ELM_SAFE_FREE(_elm_data_dir, eina_stringshare_del);
+   ELM_SAFE_FREE(_elm_lib_dir, eina_stringshare_del);
+   ELM_SAFE_FREE(_elm_appname, free);
 
    _elm_config_shutdown();
 
-   ecore_event_handler_del(_elm_exit_handler);
-   _elm_exit_handler = NULL;
+   ELM_SAFE_FREE(_elm_exit_handler, ecore_event_handler_del);
 
    _elm_theme_shutdown();
+   _elm_unneed_systray();
+   _elm_unneed_sys_notify();
    _elm_unneed_efreet();
    _elm_unneed_e_dbus();
+   _elm_unneed_eldbus();
+   _elm_unneed_elocation();
    _elm_unneed_ethumb();
-   _elm_unneed_web();
+   // Tizen Only (20150619): elm_web is not used in Tizen 2.4
+   //_elm_unneed_web();
+   eio_shutdown();
    ecore_file_shutdown();
 
 #ifdef HAVE_ELEMENTARY_EMAP
    emap_shutdown();
 #endif
-#ifdef HAVE_EMOTION
-   _elm_emotion_shutdown();
-#endif
+   // TIZEN_ONLY(20150709): Don't build unused widget
+   //_elm_emotion_shutdown();
+   //
 
+   edje_shutdown();
    ecore_shutdown();
    eet_shutdown();
 
@@ -621,17 +802,9 @@ elm_quicklaunch_seed(void)
         ecore_main_loop_iterate();
         evas_object_del(win);
         ecore_main_loop_iterate();
-#define ENGINE_COMPARE(name) (!strcmp(_elm_config->engine, name))
-        if (ENGINE_COMPARE(ELM_SOFTWARE_X11) ||
-            ENGINE_COMPARE(ELM_SOFTWARE_16_X11) ||
-            ENGINE_COMPARE(ELM_XRENDER_X11) ||
-            ENGINE_COMPARE(ELM_OPENGL_X11))
-#undef ENGINE_COMPARE
-          {
 # ifdef HAVE_ELEMENTARY_X
-             ecore_x_sync();
+        if (ecore_x_display_get()) ecore_x_sync();
 # endif
-          }
         ecore_main_loop_iterate();
      }
 #endif
@@ -645,67 +818,90 @@ static int (*qr_main)(int    argc,
 
 EAPI Eina_Bool
 elm_quicklaunch_prepare(int    argc,
-                        char **argv)
+                        char **argv,
+                        const char *cwd)
 {
 #ifdef HAVE_FORK
-   char *exe;
+   char *exe, *exe2, *p;
+   char *exename;
 
    if (argc <= 0 || argv == NULL) return EINA_FALSE;
 
-   exe = elm_quicklaunch_exe_path_get(argv[0]);
+   exe = elm_quicklaunch_exe_path_get(argv[0], cwd);
    if (!exe)
      {
         ERR("requested quicklaunch binary '%s' does not exist\n", argv[0]);
         return EINA_FALSE;
      }
-   else
-     {
-        char *exe2, *p;
-        char *exename;
 
-        exe2 = malloc(strlen(exe) + 1 + 10);
-        strcpy(exe2, exe);
-        p = strrchr(exe2, '/');
-        if (p) p++;
-        else p = exe2;
-        exename = alloca(strlen(p) + 1);
-        strcpy(exename, p);
-        *p = 0;
-        strcat(p, "../lib/");
-        strcat(p, exename);
-        strcat(p, ".so");
-        if (!access(exe2, R_OK | X_OK))
-          {
-             free(exe);
-             exe = exe2;
-          }
-        else
-          free(exe2);
-     }
+   exe2 = malloc(strlen(exe) + 1 + 7 + strlen(LIBEXT));
+   strcpy(exe2, exe);
+   p = strrchr(exe2, '/');
+   if (p) p++;
+   else p = exe2;
+   exename = alloca(strlen(p) + 1);
+   strcpy(exename, p);
+   *p = 0;
+   strcat(p, "../lib/");
+   strcat(p, exename);
+   strcat(p, LIBEXT);
+   if (access(exe2, R_OK | X_OK) != 0)
+     ELM_SAFE_FREE(exe2, free);
+
+   /* Try linking to executable first. Works with PIE files. */
    qr_handle = dlopen(exe, RTLD_NOW | RTLD_GLOBAL);
-   if (!qr_handle)
+   if (qr_handle)
      {
-        fprintf(stderr, "dlerr: %s\n", dlerror());
-        WRN("dlopen('%s') failed: %s", exe, dlerror());
-        free(exe);
-        return EINA_FALSE;
-     }
-   INF("dlopen('%s') = %p", exe, qr_handle);
-   qr_main = dlsym(qr_handle, "elm_main");
-   INF("dlsym(%p, 'elm_main') = %p", qr_handle, qr_main);
-   if (!qr_main)
-     {
-        WRN("not quicklauncher capable: no elm_main in '%s'", exe);
+        INF("dlopen('%s') = %p", exe, qr_handle);
+        qr_main = dlsym(qr_handle, "elm_main");
+        if (qr_main)
+          {
+             INF("dlsym(%p, 'elm_main') = %p", qr_handle, qr_main);
+             free(exe2);
+             free(exe);
+             return EINA_TRUE;
+          }
         dlclose(qr_handle);
         qr_handle = NULL;
+     }
+
+   if (!exe2)
+     {
+        WRN("not quicklauncher capable: '%s'", exe);
         free(exe);
         return EINA_FALSE;
      }
    free(exe);
+
+   /* Open companion .so file.
+    * Support for legacy quicklaunch apps with separate library.
+    */
+   qr_handle = dlopen(exe2, RTLD_NOW | RTLD_GLOBAL);
+   if (!qr_handle)
+     {
+        fprintf(stderr, "dlerr: %s\n", dlerror());
+        WRN("dlopen('%s') failed: %s", exe2, dlerror());
+        free(exe2);
+        return EINA_FALSE;
+     }
+   INF("dlopen('%s') = %p", exe2, qr_handle);
+   qr_main = dlsym(qr_handle, "elm_main");
+   INF("dlsym(%p, 'elm_main') = %p", qr_handle, qr_main);
+   if (!qr_main)
+     {
+        WRN("not quicklauncher capable: no elm_main in '%s'", exe2);
+        dlclose(qr_handle);
+        qr_handle = NULL;
+        free(exe2);
+        return EINA_FALSE;
+     }
+   free(exe2);
    return EINA_TRUE;
 #else
-   return EINA_FALSE;
+   (void)argc;
    (void)argv;
+   (void)cwd;
+   return EINA_FALSE;
 #endif
 }
 
@@ -713,7 +909,7 @@ EAPI Eina_Bool
 elm_quicklaunch_fork(int    argc,
                      char **argv,
                      char  *cwd,
-                     void (postfork_func) (void *data),
+                     void (*postfork_func) (void *data),
                      void  *postfork_data)
 {
 #ifdef HAVE_FORK
@@ -752,42 +948,60 @@ elm_quicklaunch_fork(int    argc,
    if (postfork_func) postfork_func(postfork_data);
 
    ecore_fork_reset();
+   eina_main_loop_define();
 
    if (quicklaunch_on)
      {
-        if (_elm_appname) free(_elm_appname);
-        _elm_appname = NULL;
+        ELM_SAFE_FREE(_elm_appname, free);
         if ((argv) && (argv[0]))
           _elm_appname = strdup(ecore_file_file_get(argv[0]));
 
 #ifdef SEMI_BROKEN_QUICKLAUNCH
-        if (argv)
-          ecore_app_args_set(argc, (const char **)argv);
+        ecore_app_args_set(argc, (const char **)argv);
         evas_init();
-        edje_init();
         _elm_module_init();
         _elm_config_sub_init();
-#define ENGINE_COMPARE(name) (!strcmp(_elm_config->engine, name))
-        if (ENGINE_COMPARE(ELM_SOFTWARE_X11) ||
-            ENGINE_COMPARE(ELM_SOFTWARE_16_X11) ||
-            ENGINE_COMPARE(ELM_XRENDER_X11) ||
-            ENGINE_COMPARE(ELM_OPENGL_X11))
-#undef ENGINE_COMPARE
-          {
 # ifdef HAVE_ELEMENTARY_X
-             ecore_x_init(NULL);
-# endif
+          {
+             Eina_Bool init_x;
+             const char *ev = getenv("ELM_DISPLAY");
+             Eina_Bool have_display = !!getenv("DISPLAY");
+
+             if (ev) /* If ELM_DISPLAY is specified */
+               {
+                  if (!strcmp(ev, "x11")) /* and it is X11 */
+                    {
+                       if (!have_display) /* if there is no $DISPLAY */
+                         {
+                            ERR("$ELM_DISPLAY is set to x11 but $DISPLAY"
+                                " is not set");
+                            init_x = EINA_FALSE;
+                         }
+                       else /* if there is */
+                         init_x = EINA_TRUE;
+                    }
+                  else /* not X11 */
+                    init_x = EINA_FALSE;
+               }
+             else /* ELM_DISPLAY not specified */
+               {
+                  if (have_display) /* If there is a $DISPLAY */
+                    init_x = EINA_TRUE;
+                  else /* No $DISPLAY */
+                    init_x = EINA_FALSE;
+               }
+             if (init_x)
+               ecore_x_init(NULL);
           }
-        ecore_evas_init(); // FIXME: check errors
-# ifdef HAVE_ELEMENTARY_ECORE_IMF
-        ecore_imf_init();
 # endif
+        ecore_evas_init(); // FIXME: check errors
+        ecore_imf_init();
 #endif
      }
 
    setsid();
    if (chdir(cwd) != 0) perror("could not chdir");
-   if (argv) ecore_app_args_set(argc, (const char **)argv);
+   ecore_app_args_set(argc, (const char **)argv);
    ret = qr_main(argc, argv);
    exit(ret);
    return EINA_TRUE;
@@ -819,16 +1033,17 @@ elm_quicklaunch_fallback(int    argc,
                          char **argv)
 {
    int ret;
+   char cwd[PATH_MAX];
    elm_quicklaunch_init(argc, argv);
    elm_quicklaunch_sub_init(argc, argv);
-   elm_quicklaunch_prepare(argc, argv);
+   elm_quicklaunch_prepare(argc, argv, getcwd(cwd, sizeof(cwd)));
    ret = qr_main(argc, argv);
    exit(ret);
    return ret;
 }
 
 EAPI char *
-elm_quicklaunch_exe_path_get(const char *exe)
+elm_quicklaunch_exe_path_get(const char *exe, const char *cwd)
 {
    static char *path = NULL;
    static Eina_List *pathlist = NULL;
@@ -836,8 +1051,13 @@ elm_quicklaunch_exe_path_get(const char *exe)
    const Eina_List *l;
    char buf[PATH_MAX];
    if (exe[0] == '/') return strdup(exe);
-   if ((exe[0] == '.') && (exe[1] == '/')) return strdup(exe);
-   if ((exe[0] == '.') && (exe[1] == '.') && (exe[2] == '/')) return strdup(exe);
+   if (cwd)
+     pathlist = eina_list_append(pathlist, eina_stringshare_add(cwd));
+   else
+     {
+        if ((exe[0] == '.') && (exe[1] == '/')) return strdup(exe);
+        if ((exe[0] == '.') && (exe[1] == '.') && (exe[2] == '/')) return strdup(exe);
+     }
    if (!path)
      {
         const char *p, *pp;
@@ -878,12 +1098,15 @@ elm_quicklaunch_exe_path_get(const char *exe)
 EAPI void
 elm_run(void)
 {
+   if (_elm_config->atspi_mode != ELM_ATSPI_MODE_OFF)
+     _elm_atspi_bridge_init();
    ecore_main_loop_begin();
 }
 
 EAPI void
 elm_exit(void)
 {
+   _elm_atspi_bridge_shutdown();
    ecore_main_loop_quit();
 
    if (elm_policy_get(ELM_POLICY_EXIT) == ELM_POLICY_EXIT_WINDOWS_DEL)
@@ -892,7 +1115,7 @@ elm_exit(void)
         Evas_Object *win;
 
         EINA_LIST_FOREACH_SAFE(_elm_win_list, l, l_next, win)
-           evas_object_del(win);
+          evas_object_del(win);
      }
 }
 
@@ -937,7 +1160,7 @@ elm_language_set(const char *lang)
 {
    setlocale(LC_ALL, lang);
    _elm_win_translate();
-   // TIZEN_ONLY(20140822): Apply evas_bidi_direction_hint_set according to locale.
+   // TIZEN_ONLY(20150813): Apply evas_paragraph_direction_set according to locale.
    _elm_win_rescale(NULL, EINA_FALSE);
    //
 }
@@ -993,14 +1216,14 @@ EAPI void
 elm_object_part_text_set(Evas_Object *obj, const char *part, const char *label)
 {
    EINA_SAFETY_ON_NULL_RETURN(obj);
-   elm_widget_text_part_set(obj, part, label);
+   elm_widget_part_text_set(obj, part, label);
 }
 
 EAPI const char *
 elm_object_part_text_get(const Evas_Object *obj, const char *part)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(obj, NULL);
-   return elm_widget_text_part_get(obj, part);
+   return elm_widget_part_text_get(obj, part);
 }
 
 EAPI void
@@ -1057,34 +1280,27 @@ elm_object_part_content_unset(Evas_Object *obj, const char *part)
    return elm_widget_content_part_unset(obj, part);
 }
 
-EAPI Evas_Object *
-elm_object_part_access_register(Evas_Object *obj, const char *part)
-{
-   EINA_SAFETY_ON_NULL_RETURN_VAL(obj, NULL);
-   EINA_SAFETY_ON_NULL_RETURN_VAL(part, NULL);
-   if (!evas_object_smart_type_check(obj, "elm_layout"))
-     {
-        ERR("Only for parts of a layout, access object can be registered");
-        return NULL;
-     }
-
-   Evas_Object *edj = elm_layout_edje_get(obj);
-   return _elm_access_edje_object_part_object_register(obj, edj, part);
-}
-
-EAPI Evas_Object *
-elm_object_part_access_object_get(const Evas_Object *obj, const char *part)
-{
-   EINA_SAFETY_ON_NULL_RETURN_VAL(obj, NULL);
-   return elm_widget_part_access_object_get(obj, part);
-}
-
 EAPI Eina_Bool
 elm_object_style_set(Evas_Object *obj,
                      const char  *style)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(obj, EINA_FALSE);
    return elm_widget_style_set(obj, style);
+}
+
+EAPI Eina_Bool
+elm_object_focus_highlight_style_set(Evas_Object *obj,
+                                     const char  *style)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(obj, EINA_FALSE);
+   return elm_widget_focus_highlight_style_set(obj, style);
+}
+
+EAPI const char *
+elm_object_focus_highlight_style_get(const Evas_Object *obj)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(obj, NULL);
+   return elm_widget_focus_highlight_style_get(obj);
 }
 
 EAPI const char *
@@ -1144,8 +1360,6 @@ elm_object_focus_set(Evas_Object *obj,
      {
         const char *type;
 
-        //if the focus_next api of each widget does not use elm_object_focus_set();
-        //you don't need to check the highlight with elm_widget_highlight_get();
         if (focus == elm_widget_focus_get(obj)) return;
 
         // ugly, but, special case for inlined windows
@@ -1283,6 +1497,21 @@ elm_object_tree_focus_allow_get(const Evas_Object *obj)
 }
 
 EAPI void
+elm_object_focus_move_policy_set(Evas_Object *obj,
+                                 Elm_Focus_Move_Policy policy)
+{
+   EINA_SAFETY_ON_NULL_RETURN(obj);
+   elm_widget_focus_move_policy_set(obj, policy);
+}
+
+EAPI Elm_Focus_Move_Policy
+elm_object_focus_move_policy_get(Evas_Object *obj)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(obj, EINA_FALSE);
+   return elm_widget_focus_move_policy_get(obj);
+}
+
+EAPI void
 elm_object_scroll_hold_push(Evas_Object *obj)
 {
    EINA_SAFETY_ON_NULL_RETURN(obj);
@@ -1354,8 +1583,22 @@ elm_object_scroll_lock_y_get(const Evas_Object *obj)
    return elm_widget_drag_lock_y_get(obj);
 }
 
-// TIZEN_ONLY(20150323)
-// In now implementation of this feature is only genlist.
+EAPI void
+elm_object_scroll_item_loop_enabled_set(Evas_Object *obj,
+                                        Eina_Bool   enable)
+{
+   EINA_SAFETY_ON_NULL_RETURN(obj);
+   elm_widget_item_loop_enabled_set(obj, enable);
+}
+
+EAPI Eina_Bool
+elm_object_scroll_item_loop_enabled_get(const Evas_Object *obj)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(obj, EINA_FALSE);
+   return elm_widget_item_loop_enabled_get(obj);
+}
+
+// TIZEN_ONLY(20150705): Genlist item align feature
 EAPI void
 elm_object_scroll_item_align_enabled_set(Evas_Object *obj,
                                          Eina_Bool scroll_item_align_enable)
@@ -1385,7 +1628,7 @@ elm_object_scroll_item_valign_get(const Evas_Object *obj)
    EINA_SAFETY_ON_NULL_RETURN_VAL(obj, NULL);
    return  elm_widget_scroll_item_valign_get(obj);
 }
-////////////////////
+//
 
 EAPI Eina_Bool
 elm_object_widget_check(const Evas_Object *obj)
@@ -1494,64 +1737,22 @@ elm_coords_finger_size_adjust(int times_w,
      *h = elm_config_finger_size_get() * times_h;
 }
 
-EAPI Evas_Object *
-elm_object_item_widget_get(const Elm_Object_Item *it)
-{
-   return elm_widget_item_widget_get(it);
-}
 
-EAPI void
-elm_object_item_part_content_set(Elm_Object_Item *it,
-                                 const char *part,
-                                 Evas_Object *content)
-{
-   _elm_widget_item_part_content_set((Elm_Widget_Item *)it, part, content);
-}
+// Object item Eo migration defines, will be removed later
+#define IF_EO_DO(obj, func)                            \
+       if (eo_isa(obj, ELM_WIDGET_ITEM_CLASS))   \
+         {                                             \
+            eo_do (obj, func);                   \
+            return;                                    \
+         }
 
-EAPI Evas_Object *
-elm_object_item_part_content_get(const Elm_Object_Item *it,
-                                 const char *part)
-{
-   return _elm_widget_item_part_content_get((Elm_Widget_Item *)it, part);
-}
-
-EAPI Evas_Object *
-elm_object_item_part_content_unset(Elm_Object_Item *it, const char *part)
-{
-   return _elm_widget_item_part_content_unset((Elm_Widget_Item *)it, part);
-}
-
-EAPI void
-elm_object_item_part_text_set(Elm_Object_Item *it,
-                              const char *part,
-                              const char *label)
-{
-   _elm_widget_item_part_text_set((Elm_Widget_Item *)it, part, label);
-}
-
-EAPI const char *
-elm_object_item_part_text_get(const Elm_Object_Item *it, const char *part)
-{
-   return _elm_widget_item_part_text_get((Elm_Widget_Item *)it, part);
-}
-
-EAPI void
-elm_object_item_domain_translatable_part_text_set(Elm_Object_Item *it, const char *part, const char *domain, const char *text)
-{
-   _elm_widget_item_domain_translatable_part_text_set((Elm_Widget_Item *)it, part, domain, text);
-}
-
-EAPI const char *
-elm_object_item_translatable_part_text_get(const Elm_Object_Item *it, const char *part)
-{
-   return _elm_widget_item_translatable_part_text_get((Elm_Widget_Item *)it, part);
-}
-
-EAPI void
-elm_object_item_domain_part_text_translatable_set(Elm_Object_Item *it, const char *part, const char *domain, Eina_Bool translatable)
-{
-   _elm_widget_item_domain_part_text_translatable_set((Elm_Widget_Item *)it, part, domain, translatable);
-}
+#define IF_EO_RETURN(obj, type, func)                  \
+       if (eo_isa(obj, ELM_WIDGET_ITEM_CLASS))   \
+         {                                             \
+            type ret;                                  \
+            eo_do (obj, ret = func);             \
+            return ret;                                \
+         }
 
 EAPI void
 elm_object_access_info_set(Evas_Object *obj, const char *txt)
@@ -1577,268 +1778,75 @@ elm_object_orientation_mode_disabled_get(const Evas_Object *obj)
    return elm_widget_orientation_mode_disabled_get(obj);
 }
 
-EAPI void
-elm_object_item_access_info_set(Elm_Object_Item *it, const char *txt)
+EAPI Elm_Object_Item *
+elm_object_focused_item_get(const Evas_Object *obj)
 {
-   _elm_widget_item_access_info_set((Elm_Widget_Item *)it, txt);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(obj, NULL);
+   return elm_widget_focused_item_get(obj);
 }
 
-EAPI Evas_Object *
-elm_object_item_part_access_register(Elm_Object_Item *item, const char *part)
+void *
+_elm_object_accessibility_currently_highlighted_get()
 {
-   EINA_SAFETY_ON_NULL_RETURN_VAL(item, NULL);
-   EINA_SAFETY_ON_NULL_RETURN_VAL(part, NULL);
+   return _accessibility_currently_highlighted_obj;
+}
 
-   Elm_Widget_Item *it = (Elm_Widget_Item *)item;
-   Evas_Object *edj;
-   Evas_Object *parent;
+EAPI void
+elm_object_accessibility_highlight_set(Evas_Object *obj, Eina_Bool visible)
+{
+   EINA_SAFETY_ON_NULL_RETURN(obj);
+   Evas_Object *win = NULL;
+   if (elm_object_widget_check(obj))
+      win = elm_object_top_widget_get(obj);
+   else
+      win = elm_object_top_widget_get(elm_object_parent_widget_get(obj));
 
-   const char *type = elm_widget_type_get(VIEW(item));
+   EINA_SAFETY_ON_NULL_RETURN(win);
 
-   if (type && !strcmp(type, "elm_layout"))
+   if (_accessibility_currently_highlighted_obj == (void*)obj)
      {
-        edj = elm_layout_edje_get(VIEW(item));
-        parent = VIEW(item);
+        if (!visible)
+          _accessibility_currently_highlighted_obj = NULL;
      }
    else
      {
-        edj = VIEW(item);
-        parent = WIDGET(item);
+        if (visible)
+          _accessibility_currently_highlighted_obj = obj;
      }
 
-   elm_object_item_access_unregister(item);
-   it->access_obj =
-      _elm_access_edje_object_part_object_register(parent, edj, part);
-   return it->access_obj;
+   if (visible)
+     {
+       if (elm_widget_access_highlight_in_theme_get(obj))
+          elm_widget_signal_emit(obj, "elm,action,access_highlight,show", "elm");
+       else
+          _elm_win_object_set_accessibility_highlight(win, obj);
+     }
+   else
+     {
+       if (elm_widget_access_highlight_in_theme_get(obj))
+          elm_widget_signal_emit(obj, "elm,action,access_highlight,hide", "elm");
+       else
+          _elm_win_object_set_accessibility_highlight(win, NULL);
+     }
 }
 
+/////////////////////////////////////////////////////////////////
+// TIZEN_ONLY(20150112): Add dummy APIs to fix build failure.
+/////////////////////////////////////////////////////////////////
 EAPI Evas_Object *
-elm_object_item_access_register(Elm_Object_Item *item)
+elm_object_item_edje_get(Elm_Object_Item *item)
 {
-   Elm_Widget_Item *it;
-
-   it = (Elm_Widget_Item *)item;
-
-   _elm_access_widget_item_register(it);
-
-   if (it) return it->access_obj;
+   (void) item;
+   TIZEN_DUMMY_API_LOG;
    return NULL;
 }
 
-EAPI void
-elm_object_item_access_unregister(Elm_Object_Item *item)
-{
-   _elm_access_widget_item_unregister((Elm_Widget_Item *)item);
-}
-
 EAPI Evas_Object *
-elm_object_item_access_object_get(const Elm_Object_Item *item)
+elm_object_part_access_object_get(const Evas_Object *obj, const char *part)
 {
-   if (!item) return NULL;
-   return ((Elm_Widget_Item *)item)->access_obj;
+   (void) obj;
+   (void) part;
+   TIZEN_DUMMY_API_LOG;
+   return NULL;
 }
-
-EAPI void
-elm_object_item_access_order_set(Elm_Object_Item *item, Eina_List *objs)
-{
-   _elm_access_widget_item_access_order_set((Elm_Widget_Item *)item, objs);
-}
-
-EAPI const Eina_List *
-elm_object_item_access_order_get(const Elm_Object_Item *item)
-{
-   return _elm_access_widget_item_access_order_get((Elm_Widget_Item *)item);
-}
-
-EAPI void
-elm_object_item_access_order_unset(Elm_Object_Item *item)
-{
-   _elm_access_widget_item_access_order_unset((Elm_Widget_Item *)item);
-}
-
-EAPI void *
-elm_object_item_data_get(const Elm_Object_Item *it)
-{
-   return elm_widget_item_data_get(it);
-}
-
-EAPI void
-elm_object_item_data_set(Elm_Object_Item *it, void *data)
-{
-   elm_widget_item_data_set(it, data);
-}
-
-///////////////////// TIZEN only for changeable GUI ///////////////////
-EAPI Evas_Object *
-elm_object_item_edje_get(Elm_Object_Item *it)
-{
-   return _elm_widget_item_edje_get((Elm_Widget_Item *)it);
-}
-/////////////////////////////////////////////////////////////////////
-
-EAPI void
-elm_object_item_signal_emit(Elm_Object_Item *it, const char *emission, const char *source)
-{
-   _elm_widget_item_signal_emit((Elm_Widget_Item *)it, emission, source);
-}
-
-EAPI void
-elm_object_item_signal_callback_add(Elm_Object_Item *it, const char *emission, const char *source, Elm_Object_Item_Signal_Cb func, void *data)
-{
-   _elm_widget_item_signal_callback_add((Elm_Widget_Item *)it, emission, source, (Elm_Widget_Item_Signal_Cb) func, data);
-}
-
-EAPI void *
-elm_object_item_signal_callback_del(Elm_Object_Item *it, const char *emission, const char *source, Elm_Object_Item_Signal_Cb func)
-{
-   return _elm_widget_item_signal_callback_del((Elm_Widget_Item *)it, emission, source, (Elm_Widget_Item_Signal_Cb) func);
-}
-
-EAPI void
-elm_object_item_style_set(Elm_Object_Item *it, const char *style)
-{
-   elm_widget_item_style_set(it, style);
-}
-
-EAPI const char *
-elm_object_item_style_get(Elm_Object_Item *it)
-{
-   return elm_widget_item_style_get(it);
-}
-
-EAPI void elm_object_item_disabled_set(Elm_Object_Item *it, Eina_Bool disabled)
-{
-   _elm_widget_item_disabled_set((Elm_Widget_Item *)it, disabled);
-}
-
-EAPI Eina_Bool elm_object_item_disabled_get(const Elm_Object_Item *it)
-{
-   return _elm_widget_item_disabled_get((Elm_Widget_Item *)it);
-}
-
-EAPI void elm_object_item_del_cb_set(Elm_Object_Item *it, Evas_Smart_Cb del_cb)
-{
-   _elm_widget_item_del_cb_set((Elm_Widget_Item *)it, del_cb);
-}
-
-EAPI void elm_object_item_del(Elm_Object_Item *it)
-{
-   _elm_widget_item_del((Elm_Widget_Item *)it);
-}
-
-EAPI void
-elm_object_item_tooltip_text_set(Elm_Object_Item *it, const char *text)
-{
-   elm_widget_item_tooltip_text_set(it, text);
-}
-
-EAPI void
-elm_object_item_tooltip_content_cb_set(Elm_Object_Item *it, Elm_Tooltip_Item_Content_Cb func, const void *data, Evas_Smart_Cb del_cb)
-{
-   elm_widget_item_tooltip_content_cb_set(it, func, data, del_cb);
-}
-
-EAPI void
-elm_object_item_tooltip_unset(Elm_Object_Item *it)
-{
-   elm_widget_item_tooltip_unset(it);
-}
-
-EAPI Eina_Bool
-elm_object_item_tooltip_window_mode_set(Elm_Object_Item *it, Eina_Bool disable)
-{
-   return elm_widget_item_tooltip_window_mode_set(it, disable);
-}
-
-EAPI Eina_Bool
-elm_object_item_tooltip_window_mode_get(const Elm_Object_Item *it)
-{
-   return elm_widget_item_tooltip_window_mode_get(it);
-}
-
-EAPI void
-elm_object_item_tooltip_style_set(Elm_Object_Item *it, const char *style)
-{
-   elm_widget_item_tooltip_style_set(it, style);
-}
-
-EAPI const char *
-elm_object_item_tooltip_style_get(const Elm_Object_Item *it)
-{
-   return elm_widget_item_tooltip_style_get(it);
-}
-
-EAPI void
-elm_object_item_cursor_set(Elm_Object_Item *it, const char *cursor)
-{
-   elm_widget_item_cursor_set(it, cursor);
-}
-
-EAPI const char *
-elm_object_item_cursor_get(const Elm_Object_Item *it)
-{
-   return elm_widget_item_cursor_get(it);
-}
-
-EAPI void
-elm_object_item_cursor_unset(Elm_Object_Item *it)
-{
-   elm_widget_item_cursor_unset(it);
-}
-
-EAPI void
-elm_object_item_cursor_style_set(Elm_Object_Item *it, const char *style)
-{
-   elm_widget_item_cursor_style_set(it, style);
-}
-
-EAPI const char *
-elm_object_item_cursor_style_get(const Elm_Object_Item *it)
-{
-   return elm_widget_item_cursor_style_get(it);
-}
-
-EAPI void
-elm_object_item_cursor_engine_only_set(Elm_Object_Item *it, Eina_Bool engine_only)
-{
-   elm_widget_item_cursor_engine_only_set(it, engine_only);
-}
-
-EAPI Eina_Bool
-elm_object_item_cursor_engine_only_get(const Elm_Object_Item *it)
-{
-   return elm_widget_item_cursor_engine_only_get(it);
-}
-
-EAPI Evas_Object *
-elm_object_item_track(Elm_Object_Item *it)
-{
-   return elm_widget_item_track((Elm_Widget_Item *)it);
-}
-
-void
-elm_object_item_untrack(Elm_Object_Item *it)
-{
-   elm_widget_item_untrack((Elm_Widget_Item *)it);
-}
-
-int
-elm_object_item_track_get(const Elm_Object_Item *it)
-{
-   return elm_widget_item_track_get((Elm_Widget_Item *)it);
-}
-
-// TIZEN_ONLY(20131208)
-// If show_region_repeat_disabled is set, do not call on_show_region of parent object.
-EAPI void
-elm_object_show_region_repeat_disabled_set(Evas_Object *obj, Eina_Bool disabled)
-{
-   elm_widget_show_region_repeat_disabled_set(obj, disabled);
-}
-
-EAPI Eina_Bool
-elm_object_show_region_repeat_disabled_get(Evas_Object *obj)
-{
-   return elm_widget_show_region_repeat_disabled_get(obj);
-}
-/////////////////////////
+//////////////////////////////////////////////////////////////////

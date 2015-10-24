@@ -1,7 +1,13 @@
 #ifndef ELM_WIDGET_INDEX_H
 #define ELM_WIDGET_INDEX_H
 
-#include "elm_widget_layout.h"
+#include "Elementary.h"
+
+/* DO NOT USE THIS HEADER UNLESS YOU ARE PREPARED FOR BREAKING OF YOUR
+ * CODE. THIS IS ELEMENTARY'S INTERNAL WIDGET API (for now) AND IS NOT
+ * FINAL. CALL elm_widget_api_check(ELM_INTERNAL_API_VERSION) TO CHECK
+ * IT AT RUNTIME.
+ */
 
 /**
  * @internal
@@ -16,115 +22,12 @@
  */
 
 /**
- * @def ELM_INDEX_CLASS
- *
- * Use this macro to cast whichever subclass of
- * #Elm_Index_Smart_Class into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_INDEX_CLASS(x) ((Elm_Index_Smart_Class *)x)
-
-/**
- * @def ELM_INDEX_DATA
- *
- * Use this macro to cast whichever subdata of
- * #Elm_Index_Smart_Data into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_INDEX_DATA(x)  ((Elm_Index_Smart_Data *)x)
-
-/**
- * @def ELM_INDEX_SMART_CLASS_VERSION
- *
- * Current version for Elementary index @b base smart class, a value
- * which goes to _Elm_Index_Smart_Class::version.
- *
- * @ingroup Widget
- */
-#define ELM_INDEX_SMART_CLASS_VERSION 1
-
-/**
- * @def ELM_INDEX_SMART_CLASS_INIT
- *
- * Initializer for a whole #Elm_Index_Smart_Class structure, with
- * @c NULL values on its specific fields.
- *
- * @param smart_class_init initializer to use for the "base" field
- * (#Evas_Smart_Class).
- *
- * @see EVAS_SMART_CLASS_INIT_NULL
- * @see EVAS_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_INDEX_SMART_CLASS_INIT_NULL
- * @see ELM_INDEX_SMART_CLASS_INIT_NAME_VERSION
- *
- * @ingroup Widget
- */
-#define ELM_INDEX_SMART_CLASS_INIT(smart_class_init) \
-  {smart_class_init, ELM_INDEX_SMART_CLASS_VERSION}
-
-/**
- * @def ELM_INDEX_SMART_CLASS_INIT_NULL
- *
- * Initializer to zero out a whole #Elm_Index_Smart_Class structure.
- *
- * @see ELM_INDEX_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_INDEX_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_INDEX_SMART_CLASS_INIT_NULL \
-  ELM_INDEX_SMART_CLASS_INIT(EVAS_SMART_CLASS_INIT_NULL)
-
-/**
- * @def ELM_INDEX_SMART_CLASS_INIT_NAME_VERSION
- *
- * Initializer to zero out a whole #Elm_Index_Smart_Class structure and
- * set its name and version.
- *
- * This is similar to #ELM_INDEX_SMART_CLASS_INIT_NULL, but it will
- * also set the version field of #Elm_Index_Smart_Class (base field)
- * to the latest #ELM_INDEX_SMART_CLASS_VERSION and name it to the
- * specific value.
- *
- * It will keep a reference to the name field as a <c>"const char *"</c>,
- * i.e., the name must be available while the structure is
- * used (hint: static or global variable!) and must not be modified.
- *
- * @see ELM_INDEX_SMART_CLASS_INIT_NULL
- * @see ELM_INDEX_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_INDEX_SMART_CLASS_INIT_NAME_VERSION(name) \
-  ELM_INDEX_SMART_CLASS_INIT                          \
-    (ELM_LAYOUT_SMART_CLASS_INIT_NAME_VERSION(name))
-
-/**
- * Elementary index base smart class. This inherits directly from
- * #Elm_Layout_Smart_Class and is meant to build widgets extending the
- * behavior of a index.
- *
- * All of the functions listed on @ref Index namespace will work for
- * objects deriving from #Elm_Index_Smart_Class.
- */
-typedef struct _Elm_Index_Smart_Class
-{
-   Elm_Layout_Smart_Class base;
-
-   int                    version;    /**< Version of this smart class definition */
-} Elm_Index_Smart_Class;
-
-/**
  * Base layout smart data extended with index instance data.
  */
-typedef struct _Elm_Index_Smart_Data Elm_Index_Smart_Data;
-struct _Elm_Index_Smart_Data
+typedef struct _Elm_Index_Data Elm_Index_Data;
+struct _Elm_Index_Data
 {
-   Elm_Layout_Smart_Data base;
-
-   Evas_Object          *event[2];
+   Evas_Object          *event_rect[2]; /**< rectangle objects for event handling */
    Evas_Object          *bx[2]; // 2 - for now all that's supported
    Eina_List            *items;  /* 1 list. N levels, but only 2
                                   * for now and # of items will be
@@ -132,40 +35,39 @@ struct _Elm_Index_Smart_Data
    Eina_List            *omit;
 
    int                   level;
+   // TIZEN ONLY(20150526) : For supporting second-depth index
+   int                   index_level;
+   //
    Evas_Coord            dx, dy;
    Ecore_Timer          *delay;
    double                delay_change_time;
-   Eina_Bool             level_active[2];
-
+   Eina_Bool             level_active[2]; /**< a flag for the activeness of a
+                                            level. activeness means the box is
+                                            filled with contents. */
    int                   group_num, default_num;
    int                   show_group, next_group;
 
-   int                   index_level;
-   Eina_Bool             down : 1;
+   Eina_Bool             mouse_down : 1;
    Eina_Bool             horizontal : 1;
    Eina_Bool             autohide_disabled : 1;
    Eina_Bool             indicator_disabled : 1;
    Eina_Bool             omit_enabled : 1;
-   Eina_Bool             index_focus : 1;
 };
 
-typedef struct _Elm_Index_Item       Elm_Index_Item;
-struct _Elm_Index_Item
+typedef struct _Elm_Index_Item_Data       Elm_Index_Item_Data;
+struct _Elm_Index_Item_Data
 {
-   ELM_WIDGET_ITEM;
+   Elm_Widget_Item_Data *base;
 
-   const char   *letter;
-   int           level;
-   Evas_Smart_Cb func;
+   const char      *letter;
+   int              level;
+   Evas_Smart_Cb    func;
 
-   Eina_List    *omitted;
-   Elm_Index_Item       *head;
+   Eina_List       *omitted;
+   Elm_Index_Item_Data  *head;
 
-   int           priority;
-
-   Eina_Bool     selected : 1;
-
-   const char  *style;
+   int              priority;
+   Eina_Bool        selected : 1; /**< a flag that remembers an item is selected. this is set true when mouse down/move occur above an item and when elm_index_item_selected_set() API is called. */
 };
 
 typedef struct _Elm_Index_Omit Elm_Index_Omit;
@@ -178,41 +80,40 @@ struct _Elm_Index_Omit
 /**
  * @}
  */
-
-EAPI extern const char ELM_INDEX_SMART_NAME[];
-EAPI const Elm_Index_Smart_Class *elm_index_smart_class_get(void);
-
 #define ELM_INDEX_DATA_GET(o, sd) \
-  Elm_Index_Smart_Data * sd = evas_object_smart_data_get(o)
+  Elm_Index_Data * sd = eo_data_scope_get(o, ELM_INDEX_CLASS)
 
 #define ELM_INDEX_DATA_GET_OR_RETURN(o, ptr)         \
   ELM_INDEX_DATA_GET(o, ptr);                        \
-  if (!ptr)                                          \
+  if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
-       CRITICAL("No widget data for object %p (%s)", \
-                o, evas_object_type_get(o));         \
+       CRI("No widget data for object %p (%s)",      \
+           o, evas_object_type_get(o));              \
        return;                                       \
     }
 
 #define ELM_INDEX_DATA_GET_OR_RETURN_VAL(o, ptr, val) \
   ELM_INDEX_DATA_GET(o, ptr);                         \
-  if (!ptr)                                           \
+  if (EINA_UNLIKELY(!ptr))                            \
     {                                                 \
-       CRITICAL("No widget data for object %p (%s)",  \
-                o, evas_object_type_get(o));          \
+       CRI("No widget data for object %p (%s)",       \
+           o, evas_object_type_get(o));               \
        return val;                                    \
     }
 
-#define ELM_INDEX_CHECK(obj)                                                 \
-  if (!obj || !elm_widget_type_check((obj), ELM_INDEX_SMART_NAME, __func__)) \
+#define ELM_INDEX_CHECK(obj)                              \
+  if (EINA_UNLIKELY(!eo_isa((obj), ELM_INDEX_CLASS))) \
     return
 
 #define ELM_INDEX_ITEM_CHECK(it)                            \
-  ELM_WIDGET_ITEM_CHECK_OR_RETURN((Elm_Widget_Item *)it, ); \
-  ELM_INDEX_CHECK(it->base.widget);
+  if (EINA_UNLIKELY(!eo_isa((it->base->eo_obj), ELM_INDEX_ITEM_CLASS))) \
+    return
 
 #define ELM_INDEX_ITEM_CHECK_OR_RETURN(it, ...)                        \
-  ELM_WIDGET_ITEM_CHECK_OR_RETURN((Elm_Widget_Item *)it, __VA_ARGS__); \
-  ELM_INDEX_CHECK(it->base.widget) __VA_ARGS__;
+  if (EINA_UNLIKELY(!eo_isa((it->base->eo_obj), ELM_INDEX_ITEM_CLASS))) \
+    return __VA_ARGS__;
+
+#define ELM_INDEX_ITEM_DATA_GET(o, sd) \
+  Elm_Index_Item_Data *sd = eo_data_scope_get(o, ELM_INDEX_ITEM_CLASS)
 
 #endif

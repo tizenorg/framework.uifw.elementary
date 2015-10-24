@@ -2,90 +2,89 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 static void
-_colorselector_clicked_cb(void *data, Evas_Object *obj,
-                          void *event_info __UNUSED__)
+_colorselector_changed_cb(void *data, Evas_Object *obj,
+                          void *event_info EINA_UNUSED)
 {
    Evas_Object *re = data;
    int r, g, b, a;
 
    elm_colorselector_color_get(obj, &r, &g, &b, &a);
-   printf("Current Color [r=%d g=%d b=%d a=%d]\n",r, g, b, a);
-
-   /* Fix Alpha pre multiplication by edje */
-   r = (r * a) / 255;
-   g = (g * a) / 255;
-   b = (b * a) / 255;
-
+   printf("Changed Color [r=%d g=%d b=%d a=%d]\n", r, g, b, a);
+   evas_color_argb_premul(a, &r, &g, &b);
    evas_object_color_set(re, r, g, b, a);
 }
 
 static void
-_colorpalette_clicked_cb(void *data, Evas_Object *obj __UNUSED__,
-                         void *event_info)
+_color_item_selected_cb(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
+                        void *event_info)
 {
    int r = 0, g = 0, b = 0 ,a = 0;
-   Elm_Object_Item *color_it = (Elm_Object_Item *) event_info;
+   Elm_Object_Item *color_it = event_info;
+
    elm_colorselector_palette_item_color_get(color_it, &r, &g, &b, &a);
-   evas_object_color_set((Evas_Object *) data, r, g, b , a);
+   printf("Selected Color Palette [r=%d g=%d b=%d a=%d]\n", r, g, b, a);
 }
 
 static void
-_colorpalette_longpressed_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
-                             void *event_info)
+_color_item_longpressed_cb(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
+                           void *event_info)
 {
    int r = 0,g = 0,b = 0 ,a = 0;
-   Elm_Object_Item *color_it = (Elm_Object_Item *) event_info;
+   Elm_Object_Item *color_it = event_info;
+
    elm_colorselector_palette_item_color_get(color_it, &r, &g, &b, &a);
-   printf("\ncolor = %d-%d-%d-%d\n", r, g, b, a);
+   printf("Longpressed color item : %p, color = %d-%d-%d-%d\n",
+          color_it, r, g, b, a);
 }
 
 static void
-_palette_cb(void *data, Evas_Object *obj __UNUSED__,
-            void *event_info __UNUSED__)
+_palette_cb(void *data, Evas_Object *obj EINA_UNUSED,
+            void *event_info EINA_UNUSED)
 {
    Evas_Object *cs = data;
-   Evas_Object *win = evas_object_data_get(cs, "win");
    elm_colorselector_mode_set(cs, ELM_COLORSELECTOR_PALETTE);
-   evas_object_resize(win, 320, 300);
 }
 
 static void
-_components_cb(void *data, Evas_Object *obj __UNUSED__,
-               void *event_info __UNUSED__)
+_components_cb(void *data, Evas_Object *obj EINA_UNUSED,
+               void *event_info EINA_UNUSED)
 {
    Evas_Object *cs = data;
-   Evas_Object *win = evas_object_data_get(cs, "win");
    elm_colorselector_mode_set(cs, ELM_COLORSELECTOR_COMPONENTS);
-   evas_object_resize(win, 320, 455);
 }
 
 static void
-_both_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_both_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *cs = data;
-   Evas_Object *win = evas_object_data_get(cs, "win");
    elm_colorselector_mode_set(cs, ELM_COLORSELECTOR_BOTH);
-   evas_object_resize(win, 320, 550);
 }
 
 static void
-_picker_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_picker_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *cs = data;
-   Evas_Object *win = evas_object_data_get(cs, "win");
    elm_colorselector_mode_set(cs, ELM_COLORSELECTOR_PICKER);
-   evas_object_resize(win, 320, 430);
+}
+
+static void
+_all_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   Evas_Object *cs = data;
+   elm_colorselector_mode_set(cs, ELM_COLORSELECTOR_ALL);
 }
 
 void
-test_colorselector(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
-                   void *event_info __UNUSED__)
+test_colorselector(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
+                   void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bx, *bx2, *cs, *fr, *re, *bt;
+   const Eina_List *item_list, *last_item_list;
+   Elm_Object_Item *color_item;
    int r, g, b, a;
+   Elm_Object_Item *item;
 
    win = elm_win_util_standard_add("colorselector", "ColorSelector");
    elm_win_autodel_set(win, EINA_TRUE);
@@ -103,7 +102,7 @@ test_colorselector(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
    evas_object_show(fr);
 
    re = evas_object_rectangle_add(evas_object_evas_get(win));
-   evas_object_size_hint_min_set(re, 1, 100);
+   evas_object_size_hint_min_set(re, 1, ELM_SCALE_SIZE(100));
    evas_object_show(re);
    elm_object_content_set(fr, re);
 
@@ -115,7 +114,9 @@ test_colorselector(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
    evas_object_show(fr);
 
    cs = elm_colorselector_add(fr);
-   elm_colorselector_palette_color_add(cs, 255, 90, 18, 255);
+   item = elm_colorselector_palette_color_add(cs, 255, 90, 18, 128);
+   elm_colorselector_palette_item_selected_set(item, EINA_TRUE);
+
    elm_colorselector_palette_color_add(cs, 255, 213, 0, 255);
    elm_colorselector_palette_color_add(cs, 146, 255, 11, 255);
    elm_colorselector_palette_color_add(cs, 9, 186, 10, 255);
@@ -128,6 +129,11 @@ test_colorselector(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
    elm_colorselector_palette_color_add(cs, 255, 255, 119, 255);
    elm_colorselector_palette_color_add(cs, 133, 100, 255, 255);
 
+   item_list = elm_colorselector_palette_items_get(cs);
+   last_item_list = eina_list_last(item_list);
+   color_item = eina_list_data_get(last_item_list);
+   elm_colorselector_palette_item_color_set(color_item, 255, 0, 0, 255);
+
    a = 180;
    r = 255;
    g = 160;
@@ -138,12 +144,11 @@ test_colorselector(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
    evas_object_size_hint_align_set(cs, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_object_content_set(fr, cs);
    evas_object_show(cs);
-   evas_object_smart_callback_add(cs, "changed", _colorselector_clicked_cb, re);
+   evas_object_smart_callback_add(cs, "changed", _colorselector_changed_cb, re);
    evas_object_smart_callback_add(cs, "color,item,selected",
-                                  _colorpalette_clicked_cb, re);
+                                  _color_item_selected_cb, re);
    evas_object_smart_callback_add(cs, "color,item,longpressed",
-                                  _colorpalette_longpressed_cb, re);
-   evas_object_data_set(cs, "win", win);
+                                  _color_item_longpressed_cb, re);
 
    elm_colorselector_color_get(cs, &r, &g, &b, &a);
    /* Fix Alpha pre multiplication by edje */
@@ -191,7 +196,13 @@ test_colorselector(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
    evas_object_show(bt);
    elm_box_pack_end(bx2, bt);
 
-   evas_object_resize(win, 320, 550);
+   bt = elm_button_add(bx2);
+   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   evas_object_smart_callback_add(bt, "clicked", _all_cb, cs);
+   elm_object_text_set(bt, "All");
+   evas_object_show(bt);
+   elm_box_pack_end(bx2, bt);
+
    evas_object_show(win);
 }
-#endif

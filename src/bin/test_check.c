@@ -2,12 +2,11 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 static Eina_Bool eb;
 
 static void
-changed_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
+changed_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *ck2 = data;
    printf("ck %p to %i\n", obj, elm_check_state_get(obj));
@@ -16,13 +15,13 @@ changed_cb(void *data, Evas_Object *obj, void *event_info __UNUSED__)
 }
 
 static void
-state_changed_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+state_changed_cb(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    printf("State Pointer Value: %d\n", eb);
 }
 
 void
-test_check(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_check(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bx, *ic, *ck, *ck0;
    char buf[PATH_MAX];
@@ -40,8 +39,6 @@ test_check(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info 
    elm_image_file_set(ic, buf, NULL);
    evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
    ck = elm_check_add(win);
-   evas_object_size_hint_weight_set(ck, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(ck, EVAS_HINT_FILL, 0.5);
    elm_object_text_set(ck, "Icon sized to check");
    elm_object_part_content_set(ck, "icon", ic);
    elm_check_state_set(ck, EINA_TRUE);
@@ -86,8 +83,6 @@ test_check(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info 
    elm_image_file_set(ic, buf, NULL);
    evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
    ck = elm_check_add(win);
-   evas_object_size_hint_weight_set(ck, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(ck, EVAS_HINT_FILL, 0.5);
    elm_object_text_set(ck, "Disabled check");
    elm_object_part_content_set(ck, "icon", ic);
    elm_check_state_set(ck, EINA_TRUE);
@@ -95,6 +90,11 @@ test_check(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info 
    elm_object_disabled_set(ck, EINA_TRUE);
    evas_object_show(ck);
    evas_object_show(ic);
+
+   ck = elm_check_add(win);
+   elm_box_pack_end(bx, ck);
+   elm_object_disabled_set(ck, EINA_TRUE);
+   evas_object_show(ck);
 
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
@@ -110,7 +110,7 @@ test_check(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info 
 }
 
 void
-test_check_toggle(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_check_toggle(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bx, *ic, *tg;
    char buf[PATH_MAX];
@@ -130,8 +130,6 @@ test_check_toggle(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *even
 
    tg = elm_check_add(win);
    elm_object_style_set(tg, "toggle");
-   evas_object_size_hint_weight_set(tg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(tg, EVAS_HINT_FILL, 0.5);
    elm_object_text_set(tg, "Icon sized to toggle");
    elm_object_part_content_set(tg, "icon", ic);
    elm_check_state_set(tg, EINA_TRUE);
@@ -190,4 +188,3 @@ test_check_toggle(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *even
 
    evas_object_show(win);
 }
-#endif

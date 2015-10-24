@@ -3,7 +3,6 @@
 
 #include <Elementary.h>
 #include <Elementary_Cursor.h>
-#include "elm_priv.h"
 
 #define ELM_GEN_ITEM_FROM_INLIST(it) \
   ((it) ? EINA_INLIST_CONTAINER_GET(it, Elm_Gen_Item) : NULL)
@@ -26,7 +25,7 @@ struct Elm_Gen_Item_Tooltip
 
 struct Elm_Gen_Item
 {
-   ELM_WIDGET_ITEM;
+   Elm_Widget_Item_Data     *base;
    EINA_INLIST;
 
    Elm_Gen_Item_Type        *item;
@@ -39,6 +38,7 @@ struct Elm_Gen_Item
    int                       walking;
    int                       generation; /**< a generation of an item. when the item is created, this value is set to the value of genlist generation. this value will be decreased when the item is going to be deleted */
    const char               *mouse_cursor;
+   Eina_List                *item_focus_chain;
 
    struct
    {
@@ -66,52 +66,8 @@ struct Elm_Gen_Item
    Eina_Bool                 decorate_it_set : 1; /**< item uses style mode for highlight/select */
    Eina_Bool                 flipped : 1; /**< a flag that shows the flip status of the item. */
    Eina_Bool                 hide : 1;
+   Eina_Bool                 has_contents : 1; /**< content objs have or previously did exist (size calcs) */
+   Eina_Bool                 cursor_engine_only : 1;
 };
-
-typedef enum
-{
-   ELM_GEN_ITEM_FX_TYPE_SAME,
-   ELM_GEN_ITEM_FX_TYPE_ADD,
-   ELM_GEN_ITEM_FX_TYPE_DEL,
-} Elm_Gen_Item_Fx_Type;
-
-typedef struct _Proxy_Item Proxy_Item;
-struct _Proxy_Item
-{
-   int                      num;
-   Elm_Gen_Item             *it;
-   Evas_Object              *proxy;
-   Evas_Coord                x, y, w, h;
-};
-
-typedef struct _Elm_Gen_FX_Item Elm_Gen_FX_Item;
-struct _Elm_Gen_FX_Item
-{
-   int                       num;
-   Elm_Gen_Item             *it;
-   Evas_Object              *proxy;
-   Elm_Gen_Item_Fx_Type      type;
-   Elm_Transit              *trans;
-
-   struct
-   {
-      Evas_Coord x, y, w, h;
-   } from;
-
-   struct
-   {
-      Evas_Coord x, y, w, h;
-   } to;
-
-   Eina_Bool update : 1;
-   Eina_Bool changed : 1;
-};
-
-typedef enum
-{
-   ELM_GEN_PINCH_ZOOM_NONE = 0,
-   ELM_GEN_PINCH_ZOOM_CONTRACT = 1,
-   ELM_GEN_PINCH_ZOOM_EXPAND = 2
-} Elm_Gen_Pinch_Zoom_Mode;
 
 #endif

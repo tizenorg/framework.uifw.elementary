@@ -47,13 +47,12 @@ icon_23.png \
 icon_right_arrow.png \
 bubble.png \
 bubble_sh.png \
-copy&paste_icon_clipboard.png \
-copy&paste_icon_search.png \
-copy&paste_icon_share.png \
 mystrale.jpg \
 mystrale_2.jpg \
 twofish.jpg \
-pt.png
+pt.png \
+earth_normal.png \
+space.png
 
 files_glayerdir = $(datadir)/elementary/images/g_layer
 files_glayer_DATA = \

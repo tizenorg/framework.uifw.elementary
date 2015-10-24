@@ -9,29 +9,15 @@ AM_CPPFLAGS = \
 -I$(top_builddir)/src/lib \
 -DPACKAGE_DATA_DIR=\"$(datadir)/$(PACKAGE)\" \
 -DPACKAGE_LIB_DIR=\"$(libdir)\" \
-@ELEMENTARY_CFLAGS@ \
-@ELEMENTARY_X_CFLAGS@ \
-@ELEMENTARY_FB_CFLAGS@ \
-@ELEMENTARY_WIN32_CFLAGS@ \
-@ELEMENTARY_WINCE_CFLAGS@ \
-@ELEMENTARY_EDBUS_CFLAGS@ \
-@ELEMENTARY_EFREET_CFLAGS@ \
-@ELEMENTARY_ETHUMB_CFLAGS@ \
-@ELEMENTARY_EMAP_CFLAGS@ \
-@ELEMENTARY_ECORE_CON_CFLAGS@ \
-@ELEMENTARY_ECORE_IMF_CFLAGS@ \
-@ELEMENTARY_WAYLAND_CFLAGS@ \
-@EVIL_CFLAGS@ \
-@EIO_CFLAGS@ \
-@EMOTION_CFLAGS@
-
-if ELEMENTARY_WINDOWS_BUILD
-AM_CPPFLAGS += -DELEMENTARY_BUILD
-endif
+-DELEMENTARY_BUILD \
+@ELEMENTARY_CFLAGS@
 
 pkgdir = $(libdir)/edje/modules/elm/$(MODULE_EDJE)
 pkg_LTLIBRARIES = module.la
 
+### TIZEN_ONLY(20150709): Don't build unused widgets.
+### elm_video.c
+###
 module_la_SOURCES = private.h \
 modules.inc \
 elm.c \
@@ -68,9 +54,7 @@ elm_slider.c \
 elm_slideshow.c \
 elm_spinner.c \
 elm_thumb.c \
-elm_toolbar.c \
-elm_video.c \
-elm_web.c
+elm_toolbar.c
 
 module_la_LIBADD = @ELEMENTARY_LIBS@ $(top_builddir)/src/lib/libelementary.la
 module_la_LDFLAGS = -no-undefined -module -avoid-version -shared -fPIC

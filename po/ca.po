@@ -1,390 +1,295 @@
-#: src/lib/elm_config.c:2101
+# Catalan translation for Elementary.
+# This file is put in the public domain.
+# Marc Furtià  i Puig <marc.furtia@gmail.com>, 2013.
+# Joan Coll <jcoll2@gmail.com>, 2013.
+#: src/lib/elm_config.c:3174
 msgid ""
 msgstr ""
-"Project-Id-Version: elementary\n"
+"Project-Id-Version: Elementary\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2012-09-20 13:50+0900\n"
-"PO-Revision-Date: 2013-09-26 09:09-0800\n"
-"Last-Translator: Jaeun Choi <jaeun12.choi@samsung.com>\n"
-"Language-Team: General\n"
-"Language: \n"
+"POT-Creation-Date: 2015-02-04 18:11+0900\n"
+"PO-Revision-Date: 2014-05-26 21:31+0000\n"
+"Last-Translator: Thiep Ha <thiep.ha@samsung.com>\n"
+"Language-Team: Catalan\n"
+"Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Launchpad-Export-Date: 2014-05-27 05:40+0000\n"
+"X-Generator: Launchpad (build 17017)\n"
 
-#: src/lib/elc_ctxpopup.c:222
-msgid "icon"
-msgstr "Icona"
-
-#: src/lib/elc_ctxpopup.c:233 src/lib/elm_button.c:285 src/lib/elm_check.c:194
-#: src/lib/elm_gengrid.c:799 src/lib/elm_genlist.c:1564
-#: src/lib/elm_list.c:1670 src/lib/elm_radio.c:237 src/lib/elm_spinner.c:509
-#: src/lib/elm_toolbar.c:2029
-msgid "Disabled"
-msgstr "Deshabilitat."
-
-#: src/lib/elc_ctxpopup.c:241
-msgid "Contextual Popup"
-msgstr "Finestra emergent contextual"
-
-#: src/lib/elc_ctxpopup.c:1023
-msgid "A contextual popup is open, double tap to close it"
-msgstr "S'obre una finestra emergent contextual. Toqui-la dos cops per tancar-la."
-
-#: TIZEN_ONLY: src/lib/elc_ctxpopup.c:1129
-msgid "IDS_SCR_OPT_MENU_POP_UP_TTS"
-msgstr "Menú emergent"
-
-#: TIZEN_ONLY: src/lib/elc_ctxpopup.c:1130
-msgid "IDS_ST_BODY_DOUBLE_TAP_TO_CLOSE_THE_MENU_T_TTS"
-msgstr "Toqui dos cops per tancar el menú."
-
-#: src/lib/elc_fileselector.c:749
+#: src/lib/elc_fileselector.c:1449
 msgid "Up"
-msgstr ""
+msgstr "Amunt"
 
-#: src/lib/elc_fileselector.c:764
+#: src/lib/elc_fileselector.c:1464
 msgid "Home"
+msgstr "Carpeta personal"
+
+#: src/lib/elc_fileselector.c:1527
+msgid "Search"
 msgstr ""
 
-#: src/lib/elc_fileselector.c:992 src/lib/elm_entry.c:1982
-#: src/lib/elm_entry.c:2007
-#: src/modules/datetime_input_popup/datetime_input_popup.c:792
+#: src/lib/elc_fileselector.c:1693 src/lib/elm_entry.c:1487
+#: src/lib/elm_entry.c:1512
 msgid "Cancel"
-msgstr "Cancel·lar"
+msgstr "Cancel·la"
 
-#: src/lib/elc_fileselector.c:1001
+#: src/lib/elc_fileselector.c:1702
 msgid "OK"
-msgstr ""
+msgstr "Accepta"
 
-#: src/lib/elc_multibuttonentry.c
-msgid "And %d more"
-msgstr "i %d més"
+#: src/lib/elc_multibuttonentry.c:611
+msgid "multi button entry label"
+msgstr "etiqueta d'entrada múltiple"
 
-#: src/lib/elc_multibuttonentry.c
-msgid "Double tap to edit the recipients"
-msgstr "Toqui dues vegades per editar els destinataris."
+#: src/lib/elc_multibuttonentry.c:633
+msgid "multi button entry item"
+msgstr "element entrada múltiple"
 
-#: src/lib/elc_multibuttonentry.c:1281
-msgid "double tap to edit"
-msgstr "Toqui dos cops per editar."
+#: src/lib/elc_multibuttonentry.c:1497
+msgid "multi button entry"
+msgstr "entrada múltiple"
 
-#: src/lib/elc_naviframe.c:418
-msgid "title"
+#: src/lib/elc_naviframe.c:431
+msgid "Title"
 msgstr "Títol"
 
-#: src/lib/elc_popup.c:343
+#: src/lib/elc_naviframe.c:957 src/lib/elc_naviframe.c:1156
+msgid "Back"
+msgstr "Enrere"
+
+#: src/lib/elc_naviframe.c:1249
+msgid "Next"
+msgstr "Següent"
+
+#: src/lib/elc_popup.c:261 src/lib/elc_popup.c:868
 msgid "Popup Title"
-msgstr "Capçalera emergent"
+msgstr "Títol finestra emergent"
 
-#: src/lib/elc_popup.c:353
+#: src/lib/elc_popup.c:271 src/lib/elc_popup.c:934
 msgid "Popup Body Text"
-msgstr "Text al cos del missatge emergent"
+msgstr "Text de la finestra emergent"
 
-#: src/lib/elc_popup.c:986
-msgid "Popup_list"
-msgstr " "
-
-#: src/lib/elc_popup.c:365
-msgid "A central popup is open, double tap to close it"
-msgstr "S'obre una finestra emergent central. Toqui-la dos cops per tancar-la."
-
-#: src/lib/elm_bubble.c:196
+#: src/lib/elm_bubble.c:194
 msgid "Bubble"
-msgstr ""
+msgstr "Bombolla"
 
-#: src/lib/elm_button.c:55
+#: src/lib/elm_button.c:66
 msgid "Clicked"
-msgstr " "
+msgstr "Clicat"
 
-#: src/lib/elm_button.c:290
+#: src/lib/elm_button.c:271 src/lib/elm_check.c:235 src/lib/elm_gengrid.c:814
+#: src/lib/elm_genlist.c:1572 src/lib/elm_list.c:2178 src/lib/elm_radio.c:256
+#: src/lib/elm_segment_control.c:525 src/lib/elm_spinner.c:578
+#: src/lib/elm_toolbar.c:2226
+msgid "State: Disabled"
+msgstr "Estat: desactivat"
+
+#: src/lib/elm_button.c:296
 msgid "Button"
 msgstr "Botó"
 
-#: src/lib/elm_calendar.c:132
+#: src/lib/elm_calendar.c:153
 msgid "%B %Y"
-msgstr ""
+msgstr "%B %Y"
 
-#: src/lib/elm_calendar.c:234
+#: src/lib/elm_calendar.c:162
+msgid "%B"
+msgstr "%B"
+
+#: src/lib/elm_calendar.c:171
+msgid "%Y"
+msgstr "%Y"
+
+#: src/lib/elm_calendar.c:286
 msgid "calendar item"
-msgstr ""
+msgstr "element de calendari"
 
-#: src/lib/elm_calendar.c:261
-msgid "calendar decrement button"
-msgstr ""
+#: src/lib/elm_calendar.c:312
+msgid "calendar decrement month button"
+msgstr "botó decrement de mes"
 
-#: src/lib/elm_calendar.c:267
-msgid "calendar increment button"
-msgstr ""
+#: src/lib/elm_calendar.c:317
+msgid "calendar decrement year button"
+msgstr "botó decrement d'any"
 
-#: src/lib/elm_calendar.c:273
+#: src/lib/elm_calendar.c:322
+msgid "calendar increment month button"
+msgstr "botó increment de mes"
+
+#: src/lib/elm_calendar.c:327
+msgid "calendar increment year button"
+msgstr "botó increment d'any"
+
+#: src/lib/elm_calendar.c:332
 msgid "calendar month"
-msgstr ""
+msgstr "mes del calendari"
 
-#: src/lib/elm_check.c:47 src/lib/elm_check.c:50 src/lib/elm_check.c:213
-#: src/lib/elm_radio.c:83 src/lib/elm_radio.c:242
+#: src/lib/elm_calendar.c:337
+msgid "calendar year"
+msgstr "any del calendari"
+
+#: src/lib/elm_check.c:62 src/lib/elm_check.c:248 src/lib/elm_radio.c:102
+#: src/lib/elm_radio.c:257
 msgid "State: On"
-msgstr "Seleccionat"
+msgstr "Estat: activat"
 
-#: src/lib/elm_check.c:60 src/lib/elm_check.c:63 src/lib/elm_check.c:225
-#: src/lib/elm_radio.c:244
+#: src/lib/elm_check.c:68 src/lib/elm_check.c:260 src/lib/elm_radio.c:259
 msgid "State: Off"
-msgstr "No seleccionat"
+msgstr "Estat: desactivat"
 
-#: src/lib/elm_check.c:209 src/lib/elm_check.c:222
+#: src/lib/elm_check.c:244 src/lib/elm_check.c:257
 msgid "State"
-msgstr " "
+msgstr "Estat"
 
-#: src/lib/elm_check.c:289
+#: src/lib/elm_check.c:335
 msgid "Check"
-msgstr "Quadre de verificació"
+msgstr "Comprova"
 
-#: src/lib/elm_check.c:46
-msgid "Tick"
-msgstr "Marcar"
-
-#: src/lib/elm_check.c:52
-msgid "Untick"
-msgstr "Desmarcar"
-
-#: src/lib/elm_check.c:169
-msgid "On/Off button"
-msgstr "Botó activat/desactivat"
-
-#: src/lib/elm_check.c:47
-msgid "On"
-msgstr "Activat"
-
-#: src/lib/elm_check.c:56
-msgid "Off"
-msgstr "Desactivat"
-
-msgid "IDS_ST_BODY_P1SD_OF_P2SD_TTS"
-msgstr "%1$d de %2$d."
-#: src/lib/elm_clock.c:298
+#: src/lib/elm_clock.c:303
 msgid "clock increment button for am,pm"
-msgstr ""
+msgstr "botó increment de rellotge per am,pm"
 
-#: src/lib/elm_clock.c:306
+#: src/lib/elm_clock.c:311
 msgid "clock decrement button for am,pm"
-msgstr ""
+msgstr "botó decrement de rellotge per am,pm"
 
-#: src/lib/elm_clock.c:641
+#: src/lib/elm_clock.c:649
 msgid "State: Editable"
-msgstr " "
+msgstr "Estat: Editable"
 
-#: src/lib/elm_clock.c:676
+#: src/lib/elm_clock.c:684
 msgid "Clock"
-msgstr ""
+msgstr "Rellotge"
 
-#: src/lib/elm_colorselector.c:895
+#: src/lib/elm_colorselector.c:1391
 msgid "color selector palette item"
-msgstr ""
+msgstr "paleta de selecció de color"
 
-#: src/lib/elm_colorselector.c
-msgid "%d percent"
-msgstr "%d per cent"
-
-#: src/lib/elm_colorselector.c
-msgid " Tap to apply"
-msgstr "Toqui per aplicar"
-
-#: src/lib/elm_colorselector.c
-msgid "Colour control slider"
-msgstr "Controlador lliscant de color"
-
-#: src/lib/elm_colorselector.c
-msgid "Saturation control slider"
-msgstr "Controlador lliscant de saturació"
-
-#: src/lib/elm_colorselector.c
-msgid "Brightness control slider"
-msgstr "Controlador lliscant de brillantor"
-
-#: src/lib/elm_colorselector.c
-msgid "Alpha control slider"
-msgstr " "
-
-#: src/lib/elm_colorselector.c
-msgid "Color Picker"
-msgstr "Selector de colors"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "White"
-msgstr "Blanc"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Yellow"
-msgstr "Groc"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Coral"
-msgstr "Corall"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Tomato"
-msgstr "Tomàquet"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Red"
-msgstr "Vermell"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Hot Pink"
-msgstr "Rosa càlid"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Plum"
-msgstr "Pruna"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Blue Violet"
-msgstr "Violeta blavós"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Lime Green"
-msgstr "Verd llima"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Forest Green"
-msgstr "Verd bosc"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Sky Blue"
-msgstr "Blau cel"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Royal Blue"
-msgstr "Blau reial"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Dark Blue"
-msgstr "Blau fosc"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Dark Grey"
-msgstr "Gris fosc"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Black"
-msgstr "Negre"
-
-#: src/lib/elm_colorselector.c config/mobile/base.src
-msgid "Custom Color palette"
-msgstr "Paleta de color personalitzada"
-
-#: src/lib/elm_config.c:2117
+#: src/lib/elm_config.c:3190
 msgid "default:LTR"
-msgstr ""
+msgstr "Per defecte: LTR"
 
-#: src/lib/elm_diskselector.c:630
+#: src/lib/elm_dayselector.c:404
+msgid "day selector item"
+msgstr "selector de dia"
+
+#: src/lib/elm_diskselector.c:693
 msgid "diskselector item"
-msgstr ""
+msgstr "selector de disc"
 
-#: src/lib/elm_entry.c:1246
+#: src/lib/elm_entry.c:1474
 msgid "Copy"
-msgstr "Copiar"
+msgstr "Copia"
 
-#: src/lib/elm_entry.c:1250
+#: src/lib/elm_entry.c:1479
 msgid "Cut"
-msgstr "Tallar"
+msgstr "Retalla"
 
-#: src/lib/elm_entry.c:1266
-msgid "Select"
-msgstr "Seleccionar"
-
-#: src/lib/elm_entry.c:1273
+#: src/lib/elm_entry.c:1483 src/lib/elm_entry.c:1506
 msgid "Paste"
-msgstr "Enganxar"
+msgstr "Enganxa"
 
-#: src/lib/elm_entry.c:3887
-msgid "Edit Field"
-msgstr "Editar camp"
+#: src/lib/elm_entry.c:1499
+msgid "Select"
+msgstr "Selecciona"
 
-#: src/lib/elm_entry.c
-msgid "State: Not Editable"
-msgstr " "
+#: src/lib/elm_entry.c:3488
+msgid "Entry"
+msgstr "Entrada"
 
-#: src/lib/elm_entry.c
-msgid ", Not Editable"
-msgstr " "
+#: src/lib/elm_gengrid.c:844
+msgid "Gengrid Item"
+msgstr "Quadrícula genèrica"
 
-#: src/lib/elm_index.c:672
+#: src/lib/elm_index.c:93
 msgid "Index"
-msgstr "Barra de desplaçament ràpid"
+msgstr "Índex"
 
-#: src/lib/elm_label.c:348
+#: src/lib/elm_index.c:121
+msgid "Index Item"
+msgstr "Element d'índex"
+
+#: src/lib/elm_label.c:389
 msgid "Label"
-msgstr " "
+msgstr "Etiqueta"
 
-#: src/lib/elm_toolbar.c:2157
-msgid "Double tap to move to content"
-msgstr "Toqui dos cops per moure's al contingut."
+#: src/lib/elm_panel.c:69
+msgid "state: opened"
+msgstr "estat: obert"
 
-#: src/lib/elm_panel.c:226
-msgid "A drawer is open, double tap to close it"
-msgstr "Hi ha un calaix obert. Toqui'l dos cops per tancar-lo."
+#: src/lib/elm_panel.c:70
+msgid "state: closed"
+msgstr "estat: tancat"
 
-#: src/lib/elm_progressbar.c:260
+#: src/lib/elm_panel.c:110
+msgid "A panel is open"
+msgstr ""
+
+#: src/lib/elm_panel.c:112
+msgid "Double tap to close panel menu"
+msgstr ""
+
+#: src/lib/elm_panel.c:182
+msgid "panel button"
+msgstr "botó del tauler"
+
+#: src/lib/elm_progressbar.c:286
 msgid "progressbar"
-msgstr " "
+msgstr "barra de progrés"
 
-#: src/lib/elm_radio.c:271
+#: src/lib/elm_radio.c:285
 msgid "Radio"
-msgstr "Botó de ràdio"
+msgstr "Opció"
 
-#: src/lib/elm_slider.c:60 src/lib/elm_slider.c:69 src/lib/elm_slider.c:77
-msgid " of "
-msgstr "de"
+#: src/lib/elm_segment_control.c:528 src/lib/elm_toolbar.c:2228
+msgid "State: Selected"
+msgstr "Estat: Seleccionat"
 
-#: src/lib/elm_slider.c:767
-msgid " flick up and down to adjust the position"
-msgstr "Sacsegi amunt i avall per ajustar la posició."
+#: src/lib/elm_segment_control.c:530
+msgid "State: Unselected"
+msgstr "Estat: No seleccionat"
 
-#: src/lib/elm_slider.c:802
+#: src/lib/elm_segment_control.c:544
+msgid "Segment Control Item"
+msgstr "Element de control del segment"
+
+#: src/lib/elm_slider.c:887
 msgid "slider"
-msgstr "Control lliscant"
+msgstr "control lliscant"
 
-#: src/lib/elm_spinner.c:534
+#: src/lib/elm_spinner.c:667
 msgid "spinner increment button"
-msgstr ""
+msgstr "botó d'increment del spinner"
 
-#: src/lib/elm_spinner.c:542
+#: src/lib/elm_spinner.c:676
 msgid "spinner decrement button"
-msgstr ""
+msgstr "botó de decrement del spinner"
 
-#: src/lib/elm_spinner.c
-msgid "incremented"
-msgstr " "
-
-#: src/lib/elm_spinner.c
-msgid "decremented"
-msgstr " "
-
-#: src/lib/elm_spinner.c:549
+#: src/lib/elm_spinner.c:684
 msgid "spinner"
-msgstr "Seleccionar"
+msgstr "spinner"
 
-#: src/lib/elm_toolbar.c:1149
+#: src/lib/elm_toolbar.c:1688 src/lib/elm_toolbar.c:2284
 msgid "Selected"
 msgstr "Seleccionat"
 
-#: src/lib/elm_toolbar.c:1511
+#: src/lib/elm_toolbar.c:2224
 msgid "Separator"
-msgstr ""
+msgstr "Separador"
 
-#: src/lib/elm_toolbar.c:1515
-msgid "State: Selected"
-msgstr "Seleccionat"
-
-#: src/lib/elm_toolbar.c:1517
+#: src/lib/elm_toolbar.c:2230
 msgid "Has menu"
-msgstr ""
+msgstr "Té menú"
 
-#: src/lib/elm_toolbar.c:1596
+#: src/lib/elm_toolbar.c:2279
+msgid "Unselected"
+msgstr "No seleccionat"
+
+#: src/lib/elm_toolbar.c:2296
 msgid "Toolbar Item"
-msgstr "Pestanya"
+msgstr "Element de barra d'eines"
 
 #: src/modules/datetime_input_popup/datetime_input_popup.c:749
 #: src/modules/datetime_input_popup/datetime_input_popup.c:992
@@ -565,17 +470,3 @@ msgstr "Enganxar"
 msgid "IDS_COM_BODY_CLIPBOARD"
 msgstr "Porta-retalls"
 
-msgid "WDS_ST_OPT_DAY_ABB"
-msgstr "Dia"
-
-msgid "WDS_ST_OPT_HRS_ABB"
-msgstr "H"
-
-msgid "WDS_ST_OPT_MINS_ABB"
-msgstr "Min"
-
-msgid "WDS_ST_OPT_MONTH_ABB"
-msgstr "Mes"
-
-msgid "WDS_ST_OPT_YEAR_ABB"
-msgstr "Any"

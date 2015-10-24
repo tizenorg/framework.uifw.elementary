@@ -1,7 +1,9 @@
 #ifdef HAVE_CONFIG_H
 # include "elementary_config.h"
 #endif
+
 #include <Elementary.h>
+
 #include "elm_priv.h"
 
 char *
@@ -49,7 +51,7 @@ double
 _elm_atof(const char *s)
 {
    char *cradix, *buf, *p;
-   
+
    if ((!s) || (!s[0])) return 0.0;
    cradix = nl_langinfo(RADIXCHAR);
    if (!cradix) return atof(s);
@@ -62,6 +64,7 @@ _elm_atof(const char *s)
    return atof(buf);
 }
 
+// TIZEN_ONLY: Apply elm_genlist widget from Tizen 2.3
 Eina_Bool
 _elm_util_freeze_events_get(const Evas_Object *obj)
 {
@@ -73,3 +76,4 @@ _elm_util_freeze_events_get(const Evas_Object *obj)
      }
    return EINA_FALSE;
 }
+//

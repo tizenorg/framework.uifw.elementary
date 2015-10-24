@@ -2,7 +2,6 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 #define TAP_NAME "tap"
 #define DOUBLE_TAP_NAME "double_tap"
@@ -60,6 +59,7 @@ struct _infra_data
    icon_properties *icons;
    Ecore_Timer *colortimer;
    char buf[1024];
+   int long_tap_count;
 };
 typedef struct _infra_data infra_data;
 
@@ -89,7 +89,7 @@ _infra_data_alloc(void)
 }
 
 static void
-my_win_del(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+my_win_del(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {  /* called when my_win_main is requested to be deleted */
    _infra_data_free(data);
 }
@@ -115,7 +115,6 @@ _icon_color_set(icon_properties *i, int r, int g, int b, int a)
    i->a =  a;
    evas_object_color_set(i->icon, i->r,  i->g,  i->b,  i->a);
 }
-
 
 static Eina_Bool
 _icon_color_set_cb(void *data)
@@ -147,7 +146,6 @@ _icon_color_set_cb(void *data)
 
    return ECORE_CALLBACK_RENEW;
 }
-
 
 void
 _color_and_icon_set(infra_data *infra, char *name, int n, int max,
@@ -206,10 +204,12 @@ static Evas_Event_Flags
 n_long_tap_start(void *data , void *event_info)
 {
    Elm_Gesture_Taps_Info *p = (Elm_Gesture_Taps_Info *) event_info;
+   infra_data *infra = data;
 
    printf("N long tap started <%p> x,y=<%d,%d> count=<%d>\n",
          event_info, p->x, p->y, p->n);
    _color_and_icon_set(data, LONG_TAP_NAME, p->n, MAX_LONG_TAP, START_COLOR);
+   infra->long_tap_count = 0;
    return EVAS_EVENT_FLAG_ON_HOLD;
 }
 
@@ -217,10 +217,16 @@ static Evas_Event_Flags
 n_long_tap_move(void *data , void *event_info)
 {
    Elm_Gesture_Taps_Info *p = (Elm_Gesture_Taps_Info *) event_info;
+   infra_data *infra = data;
+
+   infra->long_tap_count++;
    _color_and_icon_set(data, LONG_TAP_NAME, p->n, MAX_LONG_TAP, MOVE_COLOR);
 
    printf("N long tap moved <%p> x,y=<%d,%d> count=<%d>\n",
          event_info, p->x, p->y, p->n);
+   if (infra->long_tap_count == 1)
+     printf("This is a first long tap.\n");
+
    return EVAS_EVENT_FLAG_ON_HOLD;
 }
 
@@ -251,6 +257,17 @@ dbl_click_start(void *data , void *event_info)
 
    _color_and_icon_set(data,DOUBLE_TAP_NAME, p->n, MAX_DOUBLE_TAP, START_COLOR);
    printf("Double click started <%p> x,y=<%d,%d> count=<%d>\n",
+         event_info, p->x, p->y, p->n);
+   return EVAS_EVENT_FLAG_ON_HOLD;
+}
+
+static Evas_Event_Flags
+dbl_click_move(void *data , void *event_info)
+{
+   Elm_Gesture_Taps_Info *p = (Elm_Gesture_Taps_Info *) event_info;
+   _color_and_icon_set(data, DOUBLE_TAP_NAME, p->n, MAX_DOUBLE_TAP, MOVE_COLOR);
+
+   printf("Double click move <%p> x,y=<%d,%d> count=<%d>\n",
          event_info, p->x, p->y, p->n);
    return EVAS_EVENT_FLAG_ON_HOLD;
 }
@@ -288,6 +305,17 @@ triple_click_start(void *data , void *event_info)
 }
 
 static Evas_Event_Flags
+triple_click_move(void *data , void *event_info)
+{
+   Elm_Gesture_Taps_Info *p = (Elm_Gesture_Taps_Info *) event_info;
+
+   _color_and_icon_set(data, TRIPLE_TAP_NAME, p->n, MAX_TRIPLE_TAP, MOVE_COLOR);
+   printf("Triple click move <%p> x,y=<%d,%d> count=<%d>\n",
+         event_info, p->x, p->y, p->n);
+   return EVAS_EVENT_FLAG_ON_HOLD;
+}
+
+static Evas_Event_Flags
 triple_click_end(void *data , void *event_info)
 {
    Elm_Gesture_Taps_Info *p = (Elm_Gesture_Taps_Info *) event_info;
@@ -307,7 +335,6 @@ triple_click_abort(void *data , void *event_info)
    printf("Triple click abort\n");
    return EVAS_EVENT_FLAG_ON_HOLD;
 }
-
 
 static Evas_Event_Flags
 momentum_start(void *data , void *event_info)
@@ -447,7 +474,7 @@ zoom_end(void *data , void *event_info)
 }
 
 static Evas_Event_Flags
-zoom_abort(void *data , void *event_info __UNUSED__)
+zoom_abort(void *data , void *event_info EINA_UNUSED)
 {
    printf("zoom abort\n");
    _color_and_icon_set(data, ZOOM_NAME, MAX_ZOOM, MAX_ZOOM, ABORT_COLOR);
@@ -482,7 +509,7 @@ rotate_end(void *data , void *event_info)
 }
 
 static Evas_Event_Flags
-rotate_abort(void *data , void *event_info __UNUSED__)
+rotate_abort(void *data , void *event_info EINA_UNUSED)
 {
    _color_and_icon_set(data, ROTATE_NAME, MAX_ROTATE, MAX_ROTATE, ABORT_COLOR);
    printf("rotate abort\n");
@@ -502,7 +529,7 @@ Evas_Object *create_gesture_box(Evas_Object *win, icon_properties *icons,
    snprintf(buf, sizeof(buf), "%s/images/g_layer/%s_1.png",
          elm_app_data_dir_get(), icons[idx].name);
    elm_image_file_set(icons[idx].icon, buf, NULL);
-   elm_image_resizable_set(icons[idx].icon, 0, 0);
+   elm_image_resizable_set(icons[idx].icon, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_align_set(icons[idx].icon, 0.5, 0.5);
    _icon_color_set(&icons[idx], INI_R, INI_G, INI_B, INI_A);
    elm_box_pack_end(bx, icons[idx].icon);
@@ -520,8 +547,8 @@ Evas_Object *create_gesture_box(Evas_Object *win, icon_properties *icons,
 }
 
 void
-test_gesture_layer2(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
-      void *event_info __UNUSED__)
+test_gesture_layer2(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
+      void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *tb, *lb, *bx;
    Evas_Object *r; /* Gesture layer transparent object */
@@ -537,9 +564,9 @@ test_gesture_layer2(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
    bx = elm_box_add(win);
    tb = elm_table_add(win);
    elm_box_pack_end(bx, tb);
-   elm_win_resize_object_add(win, bx);
    evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(tb, 0.5, 0.5);
+   elm_win_resize_object_add(win, bx);
    evas_object_show(tb);
    evas_object_show(bx);
 
@@ -578,7 +605,6 @@ test_gesture_layer2(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
    /* Box of Rotate icon and label */
    bx = create_gesture_box(win, infra->icons, 8, ROTATE_NAME, "Rotate");
    elm_table_pack(tb, bx, 1, 3, 1, 1);
-
 
    /* Legend of gestures - states */
    lb = elm_label_add(win);
@@ -662,7 +688,6 @@ test_gesture_layer2(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
    evas_object_size_hint_align_set(lb, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_table_pack(tb, lb, 1, 11, 3, 1);
 
-
    elm_table_padding_set(tb, TB_PADDING_X, TB_PADDING_Y);
    evas_object_show(lb);
    /* END   - Building icons table */
@@ -682,6 +707,8 @@ test_gesture_layer2(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
    elm_gesture_layer_cb_set(g, ELM_GESTURE_N_TRIPLE_TAPS,
          ELM_GESTURE_STATE_START, triple_click_start, infra);
    elm_gesture_layer_cb_set(g, ELM_GESTURE_N_TRIPLE_TAPS,
+         ELM_GESTURE_STATE_MOVE, triple_click_move, infra);
+   elm_gesture_layer_cb_set(g, ELM_GESTURE_N_TRIPLE_TAPS,
          ELM_GESTURE_STATE_END, triple_click_end, infra);
    elm_gesture_layer_cb_set(g, ELM_GESTURE_N_TRIPLE_TAPS,
          ELM_GESTURE_STATE_ABORT, triple_click_abort, infra);
@@ -690,6 +717,8 @@ test_gesture_layer2(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
 #if 1
    elm_gesture_layer_cb_set(g, ELM_GESTURE_N_DOUBLE_TAPS,
          ELM_GESTURE_STATE_START, dbl_click_start, infra);
+   elm_gesture_layer_cb_set(g, ELM_GESTURE_N_DOUBLE_TAPS,
+         ELM_GESTURE_STATE_MOVE, dbl_click_move, infra);
    elm_gesture_layer_cb_set(g, ELM_GESTURE_N_DOUBLE_TAPS,
          ELM_GESTURE_STATE_END, dbl_click_end, infra);
    elm_gesture_layer_cb_set(g, ELM_GESTURE_N_DOUBLE_TAPS,
@@ -777,4 +806,3 @@ test_gesture_layer2(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
 
    evas_object_show(win);
 }
-#endif

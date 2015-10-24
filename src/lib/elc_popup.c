@@ -1,77 +1,95 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
+#define ELM_INTERFACE_ATSPI_ACCESSIBLE_PROTECTED
+#define ELM_INTERFACE_ATSPI_COMPONENT_PROTECTED
+#define ELM_INTERFACE_ATSPI_WIDGET_ACTION_PROTECTED
+#define ELM_WIDGET_ITEM_PROTECTED
+
 #include <Elementary.h>
 #include "elm_priv.h"
 #include "elm_widget_popup.h"
 
-#define _TIZEN_
+#include "elm_popup_item.eo.h"
+
+#define MY_CLASS ELM_POPUP_CLASS
+
+#define MY_CLASS_NAME "Elm_Popup"
+#define MY_CLASS_NAME_LEGACY "elm_popup"
 
 #define ELM_POPUP_ACTION_BUTTON_MAX 3
-
-EAPI const char ELM_POPUP_SMART_NAME[] = "elm_popup";
 
 static void _button_remove(Evas_Object *, int, Eina_Bool);
 
 static const char ACCESS_TITLE_PART[] = "access.title";
 static const char ACCESS_BODY_PART[] = "access.body";
-static const char ACCESS_OUTLINE_PART[] = "access.outline";
+static const char CONTENT_PART[] = "elm.swallow.content";
 
 static const char SIG_DISMISSED[] = "dismissed";
 static const char SIG_SHOW_FINISHED[] = "show,finished";
 static const char SIG_BLOCK_CLICKED[] = "block,clicked";
 static const char SIG_TIMEOUT[] = "timeout";
-static const char SIG_ACCESS_CHANGED[] = "access,changed";
-static const char SIG_LANG_CHANGED[] = "language,changed";
+static const char SIG_ITEM_FOCUSED[] = "item,focused";
+static const char SIG_ITEM_UNFOCUSED[] = "item,unfocused";
 
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_DISMISSED, ""},
    {SIG_SHOW_FINISHED, ""},
    {SIG_BLOCK_CLICKED, ""},
    {SIG_TIMEOUT, ""},
-   {SIG_ACCESS_CHANGED, ""},
-   {SIG_LANG_CHANGED, ""},
+   {SIG_ITEM_FOCUSED, ""},
+   {SIG_ITEM_UNFOCUSED, ""},
+   {SIG_WIDGET_LANG_CHANGED, ""}, /**< handled by elm_widget */
+   {SIG_WIDGET_ACCESS_CHANGED, ""}, /**< handled by elm_widget */
+   {SIG_LAYOUT_FOCUSED, ""}, /**< handled by elm_layout */
+   {SIG_LAYOUT_UNFOCUSED, ""}, /**< handled by elm_layout */
    {NULL, NULL}
 };
 
-EVAS_SMART_SUBCLASS_NEW
-  (ELM_POPUP_SMART_NAME, _elm_popup, Elm_Popup_Smart_Class,
-  Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks);
+static void _parent_resize_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED);
+static Eina_Bool _key_action_move(Evas_Object *obj, const char *params);
+//TIZEN_ONLY(20150709) : add keybinding for elm_popup "block,clicked" action
+static Eina_Bool _key_action_escape(Evas_Object *obj, const char *params);
+///
 
-static void _notify_resize_cb(void *data, Evas *e, Evas_Object *obj, void *event_info);
+static const Elm_Action key_actions[] = {
+   {"move", _key_action_move},
+//TIZEN_ONLY(20150709) : add keybinding for elm_popup "block,clicked" action
+   {"escape", _key_action_escape},
+///
+   {NULL, NULL}
+};
+
 static void  _on_content_del(void *data, Evas *e, Evas_Object *obj, void *event_info);
-static void _mouse_up_cb(void *, Evas *, Evas_Object *, void *);
-static void _mouse_down_cb(void *, Evas *, Evas_Object *, void *);
-static void _mouse_move_cb(void *, Evas *, Evas_Object *, void *);
-static void _item_highlight(Elm_Popup_Item *it);
-static void _item_unselect(Elm_Popup_Item *it);
-static void _highlight_timer_enable(Elm_Popup_Item *it);
-static Eina_Bool _focus_enabled(Evas_Object *obj);
 
-static Eina_Bool
-_elm_popup_smart_translate(Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_popup_elm_widget_translate(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd)
 {
-   ELM_POPUP_DATA_GET(obj, sd);
-   Elm_Popup_Item *it;
+   Elm_Popup_Item_Data *it;
    Eina_List *l;
 
    EINA_LIST_FOREACH(sd->items, l, it)
-     elm_widget_item_translate(it);
+      eo_do(EO_OBJ(it), elm_wdg_item_translate());
 
-   evas_object_smart_callback_call(obj, SIG_LANG_CHANGED, NULL);
+   eo_do_super(obj, MY_CLASS, elm_obj_widget_translate());
+   eo_do(sd->main_layout, elm_obj_widget_translate());
 
    return EINA_TRUE;
 }
 
 static void
 _show_finished_cb(void *data,
-                  Evas_Object *obj __UNUSED__,
-                  void *event_info __UNUSED__)
+                  Evas_Object *obj EINA_UNUSED,
+                  void *event_info EINA_UNUSED)
 {
    evas_object_smart_callback_call(data, SIG_SHOW_FINISHED, NULL);
 }
 
 static void
 _hide_effect_finished_cb(void *data,
-                  Evas_Object *obj __UNUSED__,
-                  void *event_info __UNUSED__)
+                         Evas_Object *obj EINA_UNUSED,
+                         void *event_info EINA_UNUSED)
 {
    evas_object_smart_callback_call(data, SIG_DISMISSED, NULL);
 }
@@ -86,49 +104,37 @@ _visuals_set(Evas_Object *obj)
    else
      elm_layout_signal_emit(sd->main_layout, "elm,state,title_area,visible", "elm");
 
-   if (sd->button_count)
+   if (sd->action_area)
      elm_layout_signal_emit(sd->main_layout, "elm,state,action_area,visible", "elm");
    else
      elm_layout_signal_emit(sd->main_layout, "elm,state,action_area,hidden", "elm");
 }
 
 static void
-_item_update(Elm_Popup_Item *item)
-{
-   if (item->label)
-     {
-        edje_object_part_text_escaped_set
-           (VIEW(item), "elm.text", item->label);
-        edje_object_signal_emit
-           (VIEW(item), "elm,state,item,text,visible", "elm");
-     }
-   if (item->icon)
-      edje_object_signal_emit
-         (VIEW(item), "elm,state,item,icon,visible", "elm");
-
-#ifdef _TIZEN_
-   if (item->bottom_line)
-      edje_object_signal_emit
-         (VIEW(item), "elm,state,item,bottomline,hide", "elm");
-#endif
-   evas_object_show(VIEW(item));
-   edje_object_message_signal_process(VIEW(item));
-}
-
-static void
 _block_clicked_cb(void *data,
-                  Evas_Object *obj __UNUSED__,
-                  void *event_info __UNUSED__)
+                  Evas_Object *obj EINA_UNUSED,
+                  void *event_info EINA_UNUSED)
 {
    evas_object_smart_callback_call(data, SIG_BLOCK_CLICKED, NULL);
 }
 
 static void
 _timeout_cb(void *data,
-            Evas_Object *obj __UNUSED__,
-            void *event_info __UNUSED__)
+            Evas_Object *obj EINA_UNUSED,
+            void *event_info EINA_UNUSED)
 {
-   evas_object_hide(data);
+   //TIZEN_ONLY(20150903): prevent popup hiding when the layout has "hide_finished_signal" data item
+   //evas_object_hide(data);
+   const char *hide_signal = NULL;
+
+   ELM_POPUP_DATA_GET(data, sd);
+   hide_signal = edje_object_data_get(elm_layout_edje_get(sd->main_layout), "hide_finished_signal");
+
+   if ((hide_signal) && (!strcmp(hide_signal, "on")))
+     elm_layout_signal_emit(sd->main_layout, "elm,state,hide", "elm");
+   else
+     evas_object_hide(data);
+   //
    evas_object_smart_callback_call(data, SIG_TIMEOUT, NULL);
 }
 
@@ -146,278 +152,502 @@ _access_object_get(const Evas_Object *obj, const char* part)
 }
 
 static void
-_item_highlight(Elm_Popup_Item *it)
-{
-   ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
-
-   if (elm_widget_item_disabled_get(it)) return;
-   edje_object_signal_emit(VIEW(it), "elm,state,selected", "elm");
-}
-
-static void
-_item_unhighlight(Elm_Popup_Item *it)
-{
-   ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
-
-   edje_object_signal_emit(VIEW(it), "elm,state,unselected", "elm");
-}
-
-static void
-_item_unselect(Elm_Popup_Item *it)
-{
-   ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
-
-   if (!it->selected) return;
-
-   it->selected = EINA_FALSE;
-   _item_unhighlight(it);
-}
-
-static Eina_Bool
-_highlight_timer(void *data)
-{
-   Elm_Popup_Item *it = data;
-   it->highlight_timer = NULL;
-   _item_highlight(it);
-
-   return ECORE_CALLBACK_CANCEL;
-}
-
-static void
-_highlight_timer_enable(Elm_Popup_Item *it)
-{
-   if (it->highlight_timer) ecore_timer_del(it->highlight_timer);
-   it->highlight_timer =
-      ecore_timer_add(ELM_ITEM_HIGHLIGHT_TIMER, _highlight_timer, it);
-}
-
-static void
-_mouse_move_cb(void *data,
-               Evas *evas __UNUSED__,
-               Evas_Object *o __UNUSED__,
-               void *event_info)
-{
-   Evas_Object *obj;
-   Elm_Popup_Item *it = data;
-   Evas_Event_Mouse_Move *ev = event_info;
-
-   ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
-   obj = WIDGET(it);
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   evas_object_ref(obj);
-
-   if(it->selected) _item_unselect(it);
-
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
-     {
-        if (it->highlight_timer)
-          {
-             ecore_timer_del(it->highlight_timer);
-             it->highlight_timer = NULL;
-          }
-        else _item_unhighlight(it);
-        if (!sd->on_hold)
-          {
-             sd->on_hold = EINA_TRUE;
-             if (!sd->was_selected)
-               _item_unselect(it);
-          }
-     }
-   evas_object_unref(obj);
-}
-
-static void
-_mouse_down_cb(void *data,
-               Evas *evas,
-               Evas_Object *o __UNUSED__,
-               void *event_info)
-{
-   Evas_Event_Mouse_Down *ev = event_info;
-   Elm_Popup_Item *it = data;
-   Evas_Object *obj;
-
-   ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
-   obj = WIDGET(it);
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   if (ev->button != 1) return;
-
-   // mouse_down is only activated when one finger touched
-   if (evas_event_down_count_get(evas) != 1) return;
-
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) sd->on_hold = EINA_TRUE;
-   else sd->on_hold = EINA_FALSE;
-
-   if (sd->on_hold) return;
-   sd->was_selected = it->selected;
-
-   evas_object_ref(obj);
-
-   _highlight_timer_enable(it);
-
-   evas_object_unref(obj);
-}
-
-static void
-_mouse_up_cb(void *data,
-             Evas *evas,
-             Evas_Object *o __UNUSED__,
-             void *event_info)
-{
-   Evas_Object *obj;
-   Elm_Popup_Item *it = data;
-   Evas_Event_Mouse_Up *ev = event_info;
-
-   ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
-   obj = WIDGET(it);
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   if (ev->button != 1) return;
-
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) sd->on_hold = EINA_TRUE;
-   else sd->on_hold = EINA_FALSE;
-
-   // mouse up is only activated when no finger touched
-   if (evas_event_down_count_get(evas) != 0)
-     {
-        if (!it->highlight_timer)  return;
-     }
-   if (it->highlight_timer)
-     {
-        ecore_timer_del(it->highlight_timer);
-        it->highlight_timer = NULL;
-        if (evas_event_down_count_get(evas) == 0) _item_unhighlight(it);
-     }
-
-   if (sd->on_hold) sd->on_hold = EINA_FALSE;
-
-}
-
-static void
-_on_show(void *data __UNUSED__,
-         Evas *e __UNUSED__,
+_on_show(void *data EINA_UNUSED,
+         Evas *e EINA_UNUSED,
          Evas_Object *obj,
-         void *event_info __UNUSED__)
+         void *event_info EINA_UNUSED)
 {
-   ELM_POPUP_DATA_GET(obj, sd);
-
    elm_object_focus_set(obj, EINA_TRUE);
-   sd->access_first = EINA_TRUE;
 }
 
 static void
 _scroller_size_calc(Evas_Object *obj)
 {
-
    Evas_Coord h;
    Evas_Coord h_title = 0;
+   //TIZEN_ONLY(20150128): add subtitle text code of popup
    Evas_Coord h_subtitle = 0;
+   //
    Evas_Coord h_action_area = 0;
    Evas_Coord h_pad = 0;
+   //TIZEN_ONLY(20150305): fix popup align and size problem
+   //const char *action_area_height;
    const char *str;
+   //
 
    ELM_POPUP_DATA_GET(obj, sd);
+   //TIZEN_ONLY(20150909): add widget data get to check orient mode
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
+   //
 
-   // Popup maximum height
+   //TIZEN_ONLY(20150204): add scroller of content text of popup
+   //if (!sd->items) return;
+   //
+
+   sd->scr_size_recalc = EINA_FALSE;
+   sd->max_sc_h = -1;
+   sd->max_sc_w = -1;
+
+   evas_object_geometry_get(sd->notify, NULL, NULL, NULL, &h);
+   //TIZEN_ONLY(20150305): fix popup align and size problem
    str = edje_object_data_get(elm_layout_edje_get(sd->main_layout),
                               "max_height");
    if (str) h = (int)(atoi(str)
-                      / edje_object_base_scale_get(elm_layout_edje_get(sd->main_layout))
                       * elm_config_scale_get()
-                      * elm_object_scale_get(obj));
-   else evas_object_geometry_get(sd->notify, NULL, NULL, NULL, &h);
+                      * elm_object_scale_get(obj)
+                      / edje_object_base_scale_get(elm_layout_edje_get(sd->main_layout)));
+   //
 
-   // Title area height
    if (sd->title_text || sd->title_icon)
-     {
-        str = edje_object_data_get(elm_layout_edje_get(sd->main_layout),
-                                   "title_height");
-        if (str) h_title = (int)(atoi(str)
-                                 / edje_object_base_scale_get(elm_layout_edje_get(sd->main_layout))
-                                 * elm_config_scale_get()
-                                 * elm_object_scale_get(obj));
-     }
+     edje_object_part_geometry_get(elm_layout_edje_get(sd->main_layout),
+                                   "elm.bg.title", NULL, NULL, NULL, &h_title);
+   //TIZEN_ONLY(20150128): add subtitle text code of popup
    if (sd->subtitle_text)
      edje_object_part_geometry_get(elm_layout_edje_get(sd->main_layout),
                                    "elm.text.subtitle", NULL, NULL, NULL, &h_subtitle);
-   // Action area height
-   if (sd->action_area)
-     {
-        str = edje_object_data_get(elm_layout_edje_get(sd->action_area),
-                                   "action_area_height");
-        if (str) h_action_area = (int)(atoi(str)
-                                       / edje_object_base_scale_get(elm_layout_edje_get(sd->action_area))
-                                       * elm_config_scale_get()
-                                       * elm_object_scale_get(obj));
-     }
-   // Padding
+   //
    str = edje_object_data_get(elm_layout_edje_get(sd->main_layout),
                               "popup_outside_pad");
    if (str) h_pad = (int)(atoi(str)
-                          / edje_object_base_scale_get(elm_layout_edje_get(sd->main_layout))
-                          * elm_config_scale_get()
-                          * elm_object_scale_get(obj));
+                      * elm_config_scale_get()
+                      * elm_object_scale_get(obj)
+                      / edje_object_base_scale_get(elm_layout_edje_get(sd->main_layout)));
 
-   // Scroll area height
-   sd->max_sc_h = h - (h_title + h_subtitle + h_action_area + h_pad);
+   //TIZEN_ONLY(20150204): add scroller of content text of popup
+   //if (sd->action_area)
+   //  {
+   //     action_area_height = edje_object_data_get(
+   //     elm_layout_edje_get(sd->action_area), "action_area_height");
+   //     if (action_area_height)
+   //       h_action_area =
+   //         (int)(atoi(action_area_height)
+   //               * elm_config_scale_get() * elm_object_scale_get(obj));
+   //  }
+   if (sd->action_area)
+     edje_object_part_geometry_get(elm_layout_edje_get(sd->main_layout),
+                                   "elm.swallow.action_area.bg", NULL, NULL, NULL, &h_action_area);
+   //
+
+   //TIZEN_ONLY(20150827): add display mode configure to check compress mode
+   //sd->max_sc_h = h - (h_title + h_action_area);
+   if ((sd->dispmode == EVAS_DISPLAY_MODE_COMPRESS) && ((wd->orient_mode == 90) || (wd->orient_mode == 270)))
+     sd->max_sc_h = h - h_action_area;
+   else
+     sd->max_sc_h = h - (h_title + h_subtitle + h_action_area + h_pad);
+   //
 }
 
 static void
 _size_hints_changed_cb(void *data,
-                       Evas *e __UNUSED__,
-                       Evas_Object *obj __UNUSED__,
-                       void *event_info __UNUSED__)
+                       Evas *e EINA_UNUSED,
+                       Evas_Object *obj EINA_UNUSED,
+                       void *event_info EINA_UNUSED)
 {
    elm_layout_sizing_eval(data);
 }
 
 static void
-_list_del(Elm_Popup_Smart_Data *sd)
+_list_del(Elm_Popup_Data *sd)
 {
    if (!sd->scr) return;
 
    evas_object_event_callback_del
      (sd->scr, EVAS_CALLBACK_CHANGED_SIZE_HINTS, _size_hints_changed_cb);
 
-   evas_object_del(sd->tbl);
+   ELM_SAFE_FREE(sd->tbl, evas_object_del);
    sd->scr = NULL;
    sd->box = NULL;
    sd->spacer = NULL;
-   sd->tbl = NULL;
 }
 
 static void
-_item_callback_delete(Elm_Popup_Item *item)
+_items_remove(Elm_Popup_Data *sd)
 {
-   evas_object_event_callback_del_full
-     (VIEW(item), EVAS_CALLBACK_MOUSE_DOWN, _mouse_down_cb, item);
-   evas_object_event_callback_del_full
-     (VIEW(item), EVAS_CALLBACK_MOUSE_UP, _mouse_up_cb, item);
-   evas_object_event_callback_del_full
-     (VIEW(item), EVAS_CALLBACK_MOUSE_MOVE, _mouse_move_cb, item);
-}
-
-static void
-_items_remove(Elm_Popup_Smart_Data *sd)
-{
-   Elm_Popup_Item *item;
+   Elm_Popup_Item_Data *it;
 
    if (!sd->items) return;
 
-   EINA_LIST_FREE (sd->items, item) {
-      _item_callback_delete(item);
-      elm_widget_item_del(item);
-   }
+   EINA_LIST_FREE(sd->items, it)
+     eo_do(EO_OBJ(it), elm_wdg_item_del());
 
    sd->items = NULL;
 }
 
+EOLIAN static void
+_elm_popup_evas_object_smart_del(Eo *obj, Elm_Popup_Data *sd)
+{
+   unsigned int i;
+
+   evas_object_event_callback_del_full(sd->parent, EVAS_CALLBACK_RESIZE, _parent_resize_cb, obj);
+   evas_object_smart_callback_del
+     (sd->notify, "show,finished", _show_finished_cb);
+   evas_object_smart_callback_del
+     (sd->notify, "block,clicked", _block_clicked_cb);
+   evas_object_smart_callback_del(sd->notify, "timeout", _timeout_cb);
+   evas_object_event_callback_del
+     (sd->content, EVAS_CALLBACK_DEL, _on_content_del);
+   evas_object_event_callback_del(obj, EVAS_CALLBACK_SHOW, _on_show);
+
+   sd->last_button_number = 0;
+
+   for (i = 0; i < ELM_POPUP_ACTION_BUTTON_MAX; i++)
+     {
+        if (sd->buttons[i])
+          {
+             evas_object_del(sd->buttons[i]->btn);
+             ELM_SAFE_FREE(sd->buttons[i], free);
+          }
+     }
+   if (sd->items)
+     {
+        _items_remove(sd);
+        _list_del(sd);
+     }
+
+   // XXX? delete other objects? just to be sure.
+   ELM_SAFE_FREE(sd->main_layout, evas_object_del);
+   ELM_SAFE_FREE(sd->notify, evas_object_del);
+   ELM_SAFE_FREE(sd->title_icon, evas_object_del);
+   ELM_SAFE_FREE(sd->content_area, evas_object_del);
+   ELM_SAFE_FREE(sd->text_content_obj, evas_object_del);
+   ELM_SAFE_FREE(sd->action_area, evas_object_del);
+   ELM_SAFE_FREE(sd->box, evas_object_del);
+   ELM_SAFE_FREE(sd->tbl, evas_object_del);
+   ELM_SAFE_FREE(sd->spacer, evas_object_del);
+   ELM_SAFE_FREE(sd->scr, evas_object_del);
+   ELM_SAFE_FREE(sd->content, evas_object_del);
+   ELM_SAFE_FREE(sd->title_text, eina_stringshare_del);
+   //TIZEN_ONLY(20150128): add subtitle text code of popup
+   ELM_SAFE_FREE(sd->subtitle_text, eina_stringshare_del);
+   //
+
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_del());
+}
+
+static void
+_mirrored_set(Evas_Object *obj,
+              Eina_Bool rtl)
+{
+   ELM_POPUP_DATA_GET(obj, sd);
+
+   elm_object_mirrored_set(sd->notify, rtl);
+}
+
+static void
+_access_obj_process(Eo *obj, Eina_Bool is_access)
+{
+   Evas_Object *ao;
+
+   ELM_POPUP_DATA_GET(obj, sd);
+
+   if (is_access)
+     {
+        if (sd->title_text)
+          {
+             ao = _elm_access_edje_object_part_object_register
+                    (obj, elm_layout_edje_get(sd->main_layout), ACCESS_TITLE_PART);
+             _elm_access_text_set(_elm_access_info_get(ao),
+                                  ELM_ACCESS_TYPE, E_("Popup Title"));
+             _elm_access_text_set(_elm_access_info_get(ao),
+                                  ELM_ACCESS_INFO, sd->title_text);
+          }
+
+        if (sd->text_content_obj)
+          {
+             ao = _elm_access_edje_object_part_object_register
+                    (obj, elm_layout_edje_get(sd->main_layout), ACCESS_BODY_PART);
+             _elm_access_text_set(_elm_access_info_get(ao),
+                                  ELM_ACCESS_TYPE, E_("Popup Body Text"));
+             _elm_access_text_set(_elm_access_info_get(ao),
+               ELM_ACCESS_INFO, elm_object_text_get(sd->text_content_obj));
+          }
+     }
+   else
+     {
+        if (sd->title_text)
+          {
+             _elm_access_edje_object_part_object_unregister
+                    (obj, elm_layout_edje_get(sd->main_layout), ACCESS_TITLE_PART);
+          }
+
+        if (sd->text_content_obj)
+          {
+             _elm_access_edje_object_part_object_unregister
+                    (obj, elm_layout_edje_get(sd->main_layout), ACCESS_BODY_PART);
+          }
+     }
+}
+
+EOLIAN static Eina_Bool
+_elm_popup_elm_widget_theme_apply(Eo *obj, Elm_Popup_Data *sd)
+{
+   Elm_Popup_Item_Data *it;
+   Eina_List *elist;
+   char buf[1024], style[1024];
+
+   _mirrored_set(obj, elm_widget_mirrored_get(obj));
+
+   // TIZEN_ONLY(20150121): Change style name of popup groups.
+   //snprintf(style, sizeof(style), "popup/%s", elm_widget_style_get(obj));
+   snprintf(style, sizeof(style), "%s", elm_widget_style_get(obj));
+
+   // TIZEN_ONLY(20150722): Change style name of popup groups.
+   if (!strcmp(style, "default"))
+     elm_widget_style_set(sd->notify, "popup");
+   //
+   else
+     elm_widget_style_set(sd->notify, style);
+
+   if (!elm_layout_theme_set(sd->main_layout, "popup", "base",
+                             elm_widget_style_get(obj)))
+     ERR("Failed to set layout!");
+
+   if (sd->action_area)
+     {
+        snprintf(buf, sizeof(buf), "buttons%i", sd->last_button_number);
+        if (!elm_layout_theme_set(sd->action_area, "popup", buf, style))
+          ERR("Failed to set layout!");
+     }
+   if (!elm_layout_theme_set(sd->content_area, "popup", "content", style))
+     ERR("Failed to set layout!");
+   if (sd->text_content_obj)
+   // TIZEN_ONLY(20150722): Change style name of popup groups.
+   // elm_object_style_set(sd->text_content_obj, style);
+   //
+     {
+        snprintf(buf, sizeof(buf), "popup/%s", style);
+        elm_object_style_set(sd->text_content_obj, buf);
+     }
+   else if (sd->items)
+     {
+        EINA_LIST_FOREACH(sd->items, elist, it)
+          {
+             if (!elm_layout_theme_set(VIEW(it), "popup", "item", style))
+               ERR("Failed to set layout!");
+             else
+               {
+                  if (it->label)
+                    {
+                       elm_layout_text_set(VIEW(it), "elm.text", it->label);
+                       elm_layout_signal_emit(VIEW(it),
+                                              "elm,state,item,text,visible",
+                                              "elm");
+                    }
+                  if (it->icon)
+                    elm_layout_signal_emit(VIEW(it),
+                                           "elm,state,item,icon,visible",
+                                           "elm");
+                  if (it->disabled)
+                    elm_layout_signal_emit(VIEW(it),
+                                           "elm,state,item,disabled", "elm");
+                  evas_object_show(VIEW(it));
+                  edje_object_message_signal_process(
+                     elm_layout_edje_get(VIEW(it)));
+               }
+          }
+     }
+   if (sd->title_text)
+     {
+        elm_layout_text_set(sd->main_layout, "elm.text.title", sd->title_text);
+        elm_layout_signal_emit(sd->main_layout, "elm,state,title,text,visible", "elm");
+     }
+   if (sd->title_icon)
+     elm_layout_signal_emit(sd->main_layout, "elm,state,title,icon,visible", "elm");
+   //TIZEN_ONLY(20150128): add subtitle text code of popup
+   if (sd->subtitle_text)
+     {
+        elm_layout_text_set(sd->main_layout, "elm.text.subtitle", sd->subtitle_text);
+        elm_layout_signal_emit(sd->main_layout, "elm,state,subtitle,text,visible", "elm");
+     }
+   //
+
+   _visuals_set(obj);
+   //TIZEN_ONLY(20150820): change layout sizing eval to popup sizing eval
+   edje_object_message_signal_process(elm_layout_edje_get(sd->main_layout));
+   //elm_layout_sizing_eval(sd->main_layout);
+   _scroller_size_calc(obj);
+   elm_layout_sizing_eval(obj);
+   //
+
+   /* access */
+   if (_elm_config->access_mode) _access_obj_process(obj, EINA_TRUE);
+
+   return EINA_TRUE;
+}
+
+static void
+_item_sizing_eval(Elm_Popup_Item_Data *it)
+{
+   Evas_Coord min_w = -1, min_h = -1, max_w = -1, max_h = -1;
+   Evas_Object *edje = elm_layout_edje_get(VIEW(it));
+
+   edje_object_size_min_restricted_calc
+     (edje, &min_w, &min_h, min_w, min_h);
+   evas_object_size_hint_min_set(edje, min_w, min_h);
+   evas_object_size_hint_max_set(edje, max_w, max_h);
+}
+
+EOLIAN static void
+_elm_popup_elm_layout_sizing_eval(Eo *obj, Elm_Popup_Data *sd)
+{
+   Eina_List *elist;
+   Elm_Popup_Item_Data *it;
+   Evas_Coord h_box = 0, minh_box = 0;
+   Evas_Coord minw = -1, minh = -1;
+
+   //TIZEN_ONLY(20150305): add a allow eval flag not to call another sizing eval during sizing eval
+   if (!sd->allow_eval) return;
+
+   sd->allow_eval = EINA_FALSE;
+   //
+   if (sd->items)
+     {
+        EINA_LIST_FOREACH(sd->items, elist, it)
+          {
+             _item_sizing_eval(it);
+             evas_object_size_hint_min_get(elm_layout_edje_get(VIEW(it)),
+                                           NULL, &minh_box);
+             if (minh_box != -1) h_box += minh_box;
+          }
+        evas_object_size_hint_min_set(sd->spacer, 0, MIN(h_box, sd->max_sc_h));
+        evas_object_size_hint_max_set(sd->spacer, -1, sd->max_sc_h);
+
+        evas_object_size_hint_min_get(sd->scr, &minw, &minh);
+        evas_object_size_hint_max_get(sd->scr, &minw, &minh);
+     }
+   //TIZEN_ONLY(20150305): fix popup align and size problem
+   else if(sd->content || sd->text_content_obj)
+     {
+        double horizontal, vertical;
+        Evas_Coord w, h;
+        int w_content_area = 9999;
+        int rotation = -1;
+        const char *str;
+
+        edje_object_message_signal_process(elm_layout_edje_get(sd->content_area));
+
+        elm_popup_align_get(obj, &horizontal, &vertical);
+        evas_object_geometry_get(elm_widget_parent_get(obj), NULL, NULL, &w, &h);
+
+        str = edje_object_data_get(elm_layout_edje_get(sd->content_area), "content_area_width");
+
+        if (str) w_content_area = (int)(atoi(str)
+                                      * elm_config_scale_get()
+                                      * elm_object_scale_get(obj)
+                                      / edje_object_base_scale_get(elm_layout_edje_get(sd->content_area)));
+
+        if (horizontal == ELM_NOTIFY_ALIGN_FILL)
+          minw = w;
+
+        if (vertical == ELM_NOTIFY_ALIGN_FILL)
+          minh = h;
+
+        rotation = elm_win_rotation_get(elm_widget_top_get(elm_widget_parent_get(sd->notify)));
+        if ((rotation == 90 || rotation == 270) && (horizontal == ELM_NOTIFY_ALIGN_FILL))
+          minw = w_content_area;
+
+        edje_object_size_min_restricted_calc(elm_layout_edje_get(sd->content_area),
+                                             &minw, &minh, minw, minh);
+        evas_object_size_hint_min_set(sd->content_area, minw, minh);
+
+        //TIZEN_ONLY(20150806): support scrollable content
+        //FIXME: genlist only now, it should be changed to support other scrollable.
+        if (sd->scrollable_content)
+          minh = sd->min_scrollable_content_h;
+        //
+
+        if (minh > sd->max_sc_h)
+          evas_object_size_hint_min_set(sd->spacer, minw, sd->max_sc_h);
+        else if(minh >= 0)
+          evas_object_size_hint_min_set(sd->spacer, minw, minh);
+     }
+     //
+
+   //TIZEN_ONLY(20150305): fix popup align and size problem
+   //edje_object_size_min_calc(elm_layout_edje_get(sd->main_layout), &minw, &minh);
+
+   //evas_object_size_hint_min_set(obj, minw, minh);
+   //evas_object_size_hint_max_set(obj, -1, -1);
+   //
+
+   //TIZEN_ONLY(20150305): add a allow eval flag not to call another sizing eval during sizing eval
+   sd->allow_eval = EINA_TRUE;
+   //
+}
+
+EOLIAN static Eina_Bool
+_elm_popup_elm_widget_sub_object_del(Eo *obj, Elm_Popup_Data *sd, Evas_Object *sobj)
+{
+   Elm_Popup_Item_Data *it;
+   Eina_Bool int_ret = EINA_FALSE;
+
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_sub_object_del(sobj));
+   if (!int_ret) return EINA_FALSE;
+
+   if (sobj == sd->title_icon)
+     {
+        elm_layout_signal_emit(sd->main_layout, "elm,state,title,icon,hidden", "elm");
+        edje_object_message_signal_process(elm_layout_edje_get(sd->main_layout));
+     }
+   else if ((it =
+               evas_object_data_get(sobj, "_popup_icon_parent_item")) != NULL)
+     {
+        if (sobj == it->icon)
+          {
+             eo_do(VIEW(it), elm_obj_container_content_unset(CONTENT_PART));
+             elm_layout_signal_emit(VIEW(it),
+                                    "elm,state,item,icon,hidden", "elm");
+             it->icon = NULL;
+          }
+     }
+
+   return EINA_TRUE;
+}
+
+static void
+_on_content_del(void *data,
+                Evas *e EINA_UNUSED,
+                Evas_Object *obj EINA_UNUSED,
+                void *event_info EINA_UNUSED)
+{
+   ELM_POPUP_DATA_GET(data, sd);
+
+   sd->content = NULL;
+   elm_layout_sizing_eval(sd->main_layout);
+}
+
+static void
+_on_text_content_del(void *data,
+                     Evas *e EINA_UNUSED,
+                     Evas_Object *obj EINA_UNUSED,
+                     void *event_info EINA_UNUSED)
+{
+   ELM_POPUP_DATA_GET(data, sd);
+
+   sd->text_content_obj = NULL;
+   elm_layout_sizing_eval(sd->main_layout);
+}
+
+static void
+_on_table_del(void *data,
+              Evas *e EINA_UNUSED,
+              Evas_Object *obj EINA_UNUSED,
+              void *event_info EINA_UNUSED)
+{
+   ELM_POPUP_DATA_GET(data, sd);
+
+   sd->tbl = NULL;
+   sd->spacer = NULL;
+   sd->scr = NULL;
+   sd->box = NULL;
+   elm_layout_sizing_eval(sd->main_layout);
+}
+
 static void
 _on_button_del(void *data,
-               Evas *e __UNUSED__,
+               Evas *e EINA_UNUSED,
                Evas_Object *obj,
-               void *event_info __UNUSED__)
+               void *event_info EINA_UNUSED)
 {
    int i;
 
@@ -435,467 +665,6 @@ _on_button_del(void *data,
 }
 
 static void
-_elm_popup_smart_del(Evas_Object *obj)
-{
-   unsigned int i;
-
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   evas_object_smart_callback_del
-     (sd->notify, "show,finished", _show_finished_cb);
-   evas_object_smart_callback_del
-     (sd->notify, "block,clicked", _block_clicked_cb);
-   evas_object_smart_callback_del(sd->notify, "timeout", _timeout_cb);
-   evas_object_event_callback_del
-     (sd->content, EVAS_CALLBACK_DEL, _on_content_del);
-   evas_object_event_callback_del(obj, EVAS_CALLBACK_SHOW, _on_show);
-   evas_object_event_callback_del
-      (sd->notify, EVAS_CALLBACK_RESIZE, _notify_resize_cb);
-   sd->button_count = 0;
-
-   for (i = 0; i < ELM_POPUP_ACTION_BUTTON_MAX; i++)
-     {
-        if (sd->buttons[i])
-          {
-             evas_object_event_callback_del
-                (sd->buttons[i]->btn, EVAS_CALLBACK_DEL, _on_button_del);
-             evas_object_del(sd->buttons[i]->btn);
-             free(sd->buttons[i]);
-             sd->buttons[i] = NULL;
-          }
-     }
-   if (sd->items)
-     {
-        _items_remove(sd);
-        _list_del(sd);
-     }
-   sd->allow_eval = EINA_FALSE;
-
-   // XXX? delete other objects? just to be sure.
-   ELM_SAFE_FREE(sd->content_area, evas_object_del);
-   ELM_SAFE_FREE(sd->notify, evas_object_del);
-   ELM_SAFE_FREE(sd->main_layout, evas_object_del);
-   ELM_SAFE_FREE(sd->title_icon, evas_object_del);
-   ELM_SAFE_FREE(sd->text_content_obj, evas_object_del);
-   ELM_SAFE_FREE(sd->action_area, evas_object_del);
-   ELM_SAFE_FREE(sd->box, evas_object_del);
-   ELM_SAFE_FREE(sd->tbl, evas_object_del);
-   ELM_SAFE_FREE(sd->spacer, evas_object_del);
-   ELM_SAFE_FREE(sd->scr, evas_object_del);
-   ELM_SAFE_FREE(sd->content, evas_object_del);
-
-   ELM_SAFE_FREE(sd->title_text, eina_stringshare_del);
-   ELM_SAFE_FREE(sd->subtitle_text, eina_stringshare_del);
-
-   ELM_WIDGET_CLASS(_elm_popup_parent_sc)->base.del(obj);
-}
-
-static void
-_mirrored_set(Evas_Object *obj,
-              Eina_Bool rtl)
-{
-   Eina_List *elist;
-   Elm_Popup_Item *item;
-
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   elm_object_mirrored_set(sd->notify, rtl);
-   if (sd->items)
-     EINA_LIST_FOREACH(sd->items, elist, item)
-       edje_object_mirrored_set(VIEW(item), rtl);
-}
-
-static void
-_access_base_activate_cb(void *data,
-                        Evas_Object *part_obj __UNUSED__,
-                        Elm_Object_Item *item __UNUSED__)
-{
-   evas_object_smart_callback_call(data, SIG_BLOCK_CLICKED, NULL);
-}
-
-static void
-_access_title_read_stop_cb(void *data,
-                          Evas_Object *obj __UNUSED__,
-                          void *event_info __UNUSED__)
-{
-   ELM_POPUP_DATA_GET(data, sd);
-
-   if (sd->access_first)
-     {
-        Evas_Object *ao = _access_object_get(data, ACCESS_BODY_PART);
-
-        if (ao)
-          _elm_access_highlight_set(ao, EINA_TRUE);
-     }
-   sd->access_first = EINA_FALSE;
-}
-
-static void
-_access_title_read_cancel_cb(void *data,
-                            Evas_Object *obj __UNUSED__,
-                            void *event_info __UNUSED__)
-{
-   ELM_POPUP_DATA_GET(data, sd);
-
-   sd->access_first = EINA_FALSE;
-}
-
-static void
-_access_obj_process(Evas_Object *obj, Eina_Bool is_access)
-{
-   Evas_Object *ao;
-
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   if (is_access)
-     {
-        if (sd->title_text)
-          {
-             ao = _elm_access_edje_object_part_object_register
-                    (obj, elm_layout_edje_get(sd->main_layout), ACCESS_TITLE_PART);
-             _elm_access_text_set(_elm_access_object_get(ao),
-                                  ELM_ACCESS_INFO, sd->title_text);
-             _elm_access_highlight_set(ao, EINA_TRUE);
-             evas_object_smart_callback_add(ao, "access,read,stop", _access_title_read_stop_cb, obj);
-             evas_object_smart_callback_add(ao, "access,read,cancel", _access_title_read_cancel_cb, obj);
-          }
-
-        if (sd->text_content_obj)
-          {
-             ao = _elm_access_edje_object_part_object_register
-                    (obj, elm_layout_edje_get(sd->main_layout), ACCESS_BODY_PART);
-             _elm_access_text_set(_elm_access_object_get(ao),
-               ELM_ACCESS_INFO, elm_object_text_get(sd->text_content_obj));
-             if (!sd->button_count)
-                _elm_access_activate_callback_set
-                  (_elm_access_object_get(ao), _access_base_activate_cb, obj);
-             if (!sd->title_text && sd->button_count)
-                _elm_access_highlight_set(ao, EINA_TRUE);
-          }
-
-        /* register outline */
-        if (!sd->button_count)
-          {
-             ao = _access_object_get(obj, ACCESS_OUTLINE_PART);
-             if (!ao)
-               {
-                  ao = _elm_access_edje_object_part_object_register
-                     (obj, elm_layout_edje_get(sd->main_layout), ACCESS_OUTLINE_PART);
-                  _elm_access_text_set(_elm_access_object_get(ao),
-                                       ELM_ACCESS_TYPE,
-                                       E_("Central popup"));
-                  _elm_access_text_set(_elm_access_object_get(ao),
-                                       ELM_ACCESS_CONTEXT_INFO,
-                                       E_("Double tap to close it"));
-                  _elm_access_activate_callback_set
-                     (_elm_access_object_get(ao), _access_base_activate_cb, obj);
-                  if (!sd->title_text)
-                    _elm_access_highlight_set(ao, EINA_TRUE);
-               }
-             if (sd->title_text)
-               _elm_access_text_set(_elm_access_object_get(ao),
-                                    ELM_ACCESS_INFO,
-                                    sd->title_text);
-          }
-     }
-   else
-     {
-        if (sd->title_text)
-          {
-             _elm_access_edje_object_part_object_unregister
-                    (obj, elm_layout_edje_get(sd->main_layout), ACCESS_TITLE_PART);
-          }
-
-        if (sd->text_content_obj)
-          {
-             _elm_access_edje_object_part_object_unregister
-                    (obj, elm_layout_edje_get(sd->main_layout), ACCESS_BODY_PART);
-          }
-
-        /* unregister outline */
-        if (!sd->button_count)
-          _elm_access_edje_object_part_object_unregister
-                 (obj, elm_layout_edje_get(sd->main_layout), ACCESS_OUTLINE_PART);
-     }
-}
-
-static Eina_Bool
-_elm_popup_smart_theme(Evas_Object *obj)
-{
-   Elm_Popup_Item *item;
-   Eina_List *elist;
-   char buf[128];
-   const char *style, *str;
-   Evas_Coord x = -1;
-
-   ELM_POPUP_DATA_GET(obj, sd);
-   ELM_WIDGET_DATA_GET(obj, wsd);
-
-   _mirrored_set(obj, elm_widget_mirrored_get(obj));
-
-   style = elm_widget_style_get(obj);
-
-   if (!strcmp(style, "default"))
-      elm_widget_style_set(sd->notify, "popup");
-   else
-      elm_widget_style_set(sd->notify, style);
-
-   if (!elm_layout_theme_set(sd->main_layout, "popup", "base", style))
-     CRITICAL("Failed to set layout!");
-
-   if (sd->button_count)
-     {
-        snprintf(buf, sizeof(buf), "buttons%u", sd->button_count);
-        if (!elm_layout_theme_set(sd->action_area, "popup", buf, style))
-          CRITICAL("Failed to set layout!");
-     }
-
-   if (sd->content_area)
-     {
-        if(!elm_layout_theme_set(sd->content_area, "popup", "content", style))
-          CRITICAL("Failed to set layout!");
-     }
-
-   if (sd->text_content_obj)
-     {
-        snprintf(buf, sizeof(buf), "popup/%s", style);
-        elm_object_style_set(sd->text_content_obj, buf);
-     }
-   if (sd->items)
-     {
-        evas_object_geometry_get(elm_layout_edje_get(sd->main_layout), &x, NULL, NULL, NULL);
-        evas_object_move(obj, x, -1);
-        if (_focus_enabled(obj))
-          {
-             str = edje_object_data_get(elm_layout_edje_get(sd->main_layout), "focus_highlight");
-             if ((str) && (!strcmp(str, "on")))
-               elm_widget_highlight_in_theme_set(obj, EINA_TRUE);
-             else
-               elm_widget_highlight_in_theme_set(obj, EINA_FALSE);
-          }
-
-        EINA_LIST_FOREACH(sd->items, elist, item)
-          {
-             if (wsd->orient_mode == 90 || wsd->orient_mode == 270)
-               {
-                  elm_widget_theme_object_set
-                     (obj, VIEW(item), "popup", "item/landscape", elm_widget_style_get(obj));
-               }
-             else
-               {
-                  elm_widget_theme_object_set
-                     (obj, VIEW(item), "popup", "item", elm_widget_style_get(obj));
-               }
-             _item_update(item);
-          }
-
-     }
-   if (sd->title_text)
-     {
-        elm_layout_text_set(sd->main_layout, "elm.text.title", sd->title_text);
-        elm_layout_signal_emit(sd->main_layout, "elm,state,title,text,visible", "elm");
-     }
-   if (sd->title_icon)
-     elm_layout_signal_emit(sd->main_layout, "elm,state,title,icon,visible", "elm");
-   if (sd->subtitle_text)
-     {
-        elm_layout_text_set(sd->main_layout, "elm.text.subtitle", sd->subtitle_text);
-        elm_layout_signal_emit(sd->main_layout, "elm,state,subtitle,text,visible", "elm");
-     }
-
-   _visuals_set(obj);
-   _scroller_size_calc(obj);
-   elm_layout_sizing_eval(obj);
-
-   /* access */
-   if (_elm_config->access_mode) _access_obj_process(obj, EINA_TRUE);
-
-   return EINA_TRUE;
-}
-
-static void
-_item_sizing_eval(Elm_Popup_Item *item)
-{
-   Evas_Coord min_w = -1, min_h = -1, max_w = -1, max_h = -1;
-
-   edje_object_size_min_restricted_calc
-     (VIEW(item), &min_w, &min_h, min_w, min_h);
-   evas_object_size_hint_min_set(VIEW(item), min_w, min_h);
-   evas_object_size_hint_max_set(VIEW(item), max_w, max_h);
-}
-
-static void
-_on_table_del(void *data,
-              Evas *e __UNUSED__,
-              Evas_Object *obj __UNUSED__,
-              void *event_info __UNUSED__)
-{
-   ELM_POPUP_DATA_GET(data, sd);
-
-   sd->tbl = NULL;
-   sd->spacer = NULL;
-   sd->scr = NULL;
-   sd->box = NULL;
-   elm_layout_sizing_eval(data);
-}
-
-static void
-_create_scroller(Evas_Object *obj)
-{
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   //table
-   sd->tbl = elm_table_add(sd->main_layout);
-   evas_object_event_callback_add(sd->tbl, EVAS_CALLBACK_DEL,
-                                  _on_table_del, obj);
-
-   //spacer
-   sd->spacer = evas_object_rectangle_add(evas_object_evas_get(obj));
-   evas_object_color_set(sd->spacer, 0, 0, 0, 0);
-   elm_table_pack(sd->tbl, sd->spacer, 0, 0, 1, 1);
-
-   //Scroller
-   sd->scr = elm_scroller_add(obj);
-   elm_object_style_set(sd->scr, "effect");
-   evas_object_size_hint_weight_set(sd->scr, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(sd->scr, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   elm_scroller_content_min_limit(sd->scr, EINA_TRUE, EINA_FALSE);
-   elm_scroller_bounce_set(sd->scr, EINA_FALSE, EINA_TRUE);
-   evas_object_event_callback_add(sd->scr, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-                                  _size_hints_changed_cb, obj);
-   elm_table_pack(sd->tbl, sd->scr, 0, 0, 1, 1);
-   evas_object_show(sd->scr);
-}
-
-static void
-_elm_popup_smart_sizing_eval(Evas_Object *obj)
-{
-   Eina_List *elist;
-   Elm_Popup_Item *item;
-   Evas_Coord h_box = 0, minh_box = 0;
-   Evas_Coord minw = -1, minh = -1;
-
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   if (!sd->allow_eval) return;
-
-   sd->allow_eval = EINA_FALSE;
-   if (sd->items)
-     {
-        EINA_LIST_FOREACH(sd->items, elist, item)
-          {
-             _item_sizing_eval(item);
-             evas_object_size_hint_min_get(VIEW(item), NULL, &minh_box);
-             if (minh_box != -1) h_box += minh_box;
-          }
-
-        evas_object_size_hint_min_set(sd->spacer, 0, MIN(h_box, sd->max_sc_h));
-        evas_object_size_hint_max_set(sd->spacer, -1, sd->max_sc_h);
-     }
-   else if (sd->content_area)
-     {
-        double horizontal, vertical;
-        Evas_Coord w, h;
-        int w_content_area = 9999;
-        int rotation = -1;
-        const char *str;
-
-        edje_object_message_signal_process(elm_layout_edje_get(sd->content_area));
-
-        elm_popup_align_get(obj, &horizontal, &vertical);
-        evas_object_geometry_get(elm_popup_parent_get(obj), NULL, NULL, &w, &h);
-
-        if (horizontal == ELM_NOTIFY_ALIGN_FILL)
-          minw = w;
-        if (vertical == ELM_NOTIFY_ALIGN_FILL)
-          minh = sd->max_sc_h;
-
-        //Tizen Only: This has an UX dependency. If UX is changed this should be removed.
-        rotation = elm_win_rotation_get(elm_widget_top_get(obj));
-        if ((rotation == 90 || rotation == 270) && (horizontal == ELM_NOTIFY_ALIGN_FILL))
-          {
-             str = edje_object_data_get(elm_layout_edje_get(sd->content_area),
-                                        "content_area_width");
-             if (str) w_content_area = (int)(atoi(str)
-                                             / edje_object_base_scale_get(elm_layout_edje_get(sd->content_area))
-                                             * elm_config_scale_get()
-                                             * elm_object_scale_get(obj));
-          }
-
-        if (minw > w_content_area) minw = w_content_area;
-
-        edje_object_size_min_restricted_calc(elm_layout_edje_get(sd->content_area),
-                                             &minw, &minh, minw, minh);
-        evas_object_size_hint_min_set(sd->content_area, minw, minh);
-
-        if (minh > sd->max_sc_h)
-          evas_object_size_hint_min_set(sd->spacer, minw, sd->max_sc_h);
-        else if (minh >= 0)
-          evas_object_size_hint_min_set(sd->spacer, minw, minh);
-     }
-
-   if (sd->main_layout)
-     edje_object_size_min_calc(elm_layout_edje_get(sd->main_layout), &minw, &minh);
-
-   evas_object_size_hint_min_set(sd->main_layout, minw, minh);
-   sd->allow_eval = EINA_TRUE;
-}
-
-static Eina_Bool
-_elm_popup_smart_sub_object_del(Evas_Object *obj,
-                                Evas_Object *sobj)
-{
-   Elm_Popup_Item *item;
-
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   if (!ELM_WIDGET_CLASS(_elm_popup_parent_sc)->sub_object_del(obj, sobj))
-     return EINA_FALSE;
-
-   if (sobj == sd->title_icon)
-     {
-        elm_layout_signal_emit(sd->main_layout, "elm,state,title,icon,hidden", "elm");
-        sd->title_icon = NULL;
-     }
-   else if ((item =
-               evas_object_data_get(sobj, "_popup_icon_parent_item")) != NULL)
-     {
-        if (sobj == item->icon)
-          {
-             edje_object_signal_emit
-               (VIEW(item), "elm,state,item,icon,hidden", "elm");
-             item->icon = NULL;
-          }
-     }
-
-   return EINA_TRUE;
-}
-
-static void
-_on_content_del(void *data,
-                Evas *e __UNUSED__,
-                Evas_Object *obj __UNUSED__,
-                void *event_info __UNUSED__)
-{
-   ELM_POPUP_DATA_GET(data, sd);
-
-   sd->content = NULL;
-   elm_layout_sizing_eval(data);
-}
-
-static void
-_on_text_content_del(void *data,
-                     Evas *e __UNUSED__,
-                     Evas_Object *obj __UNUSED__,
-                     void *event_info __UNUSED__)
-{
-   ELM_POPUP_DATA_GET(data, sd);
-
-   sd->text_content_obj = NULL;
-   elm_layout_sizing_eval(data);
-}
-
-static void
 _button_remove(Evas_Object *obj,
                int pos,
                Eina_Bool delete)
@@ -905,420 +674,345 @@ _button_remove(Evas_Object *obj,
 
    ELM_POPUP_DATA_GET(obj, sd);
 
-   if (!sd->button_count) return;
+   if (!sd->last_button_number) return;
 
    if (!sd->buttons[pos]) return;
 
-   if (delete) evas_object_del(sd->buttons[pos]->btn);
-
-   evas_object_event_callback_del
-     (sd->buttons[pos]->btn, EVAS_CALLBACK_DEL, _on_button_del);
-   free(sd->buttons[pos]);
-
-   sd->buttons[pos] = NULL;
-   sd->button_count -= 1;
-
-   if (!sd->no_shift)
+   if (delete)
      {
-        /* shift left the remaining buttons */
-        for (i = pos; i < ELM_POPUP_ACTION_BUTTON_MAX - 1; i++)
-          {
-             sd->buttons[i] = sd->buttons[i + 1];
-
-             snprintf(buf, sizeof(buf), "actionbtn%d", pos + 1);
-             elm_object_part_content_unset(sd->action_area, buf);
-             snprintf(buf, sizeof(buf), "actionbtn%d", pos);
-             elm_object_part_content_set
-               (sd->action_area, buf, sd->buttons[i]->btn);
-          }
-     }
-
-   if (!sd->button_count)
-     {
-        _visuals_set(obj);
-        elm_layout_content_unset(sd->main_layout, "elm.swallow.action_area");
-        evas_object_hide(sd->action_area);
+        evas_object_del(sd->buttons[pos]->btn);
      }
    else
      {
-        snprintf(buf, sizeof(buf), "buttons%u", sd->button_count);
-        elm_layout_theme_set
-          (sd->action_area, "popup", buf, elm_widget_style_get(obj));
+        evas_object_event_callback_del
+          (sd->buttons[pos]->btn, EVAS_CALLBACK_DEL, _on_button_del);
+        // TIZEN_ONLY(20150121): Change style name of popup groups.
+        //snprintf(buf, sizeof(buf), "elm.swallow.content.button%i", pos + 1);
+        snprintf(buf, sizeof(buf), "actionbtn%i", pos + 1);
+        //
+        elm_object_part_content_unset(sd->action_area, buf);
+     }
+
+   ELM_SAFE_FREE(sd->buttons[pos], free);
+
+   for (i = ELM_POPUP_ACTION_BUTTON_MAX - 1; i >= 0; i--)
+     {
+        if (sd->buttons[i])
+          {
+             sd->last_button_number = i + 1;
+             break;
+          }
+     }
+
+   if (!sd->last_button_number)
+     {
+        _visuals_set(obj);
+        ELM_SAFE_FREE(sd->action_area, evas_object_del);
+        edje_object_message_signal_process(elm_layout_edje_get(sd->main_layout));
+     }
+   else
+     {
+        char style[1024];
+
+        // TIZEN_ONLY(20150121): Change style name of popup groups.
+        //snprintf(style, sizeof(style), "popup/%s", elm_widget_style_get(obj));
+        snprintf(style, sizeof(style), "%s", elm_widget_style_get(obj));
+        //
+        snprintf(buf, sizeof(buf), "buttons%i", sd->last_button_number);
+        if (!elm_layout_theme_set(sd->action_area, "popup", buf, style))
+          ERR("Failed to set layout!");
      }
 }
 
 static void
-_layout_change_cb(void *data,
-                  Evas_Object *obj __UNUSED__,
-                  const char *emission __UNUSED__,
-                  const char *source __UNUSED__)
+_layout_change_cb(void *data EINA_UNUSED,
+                  Evas_Object *obj,
+                  const char *emission EINA_UNUSED,
+                  const char *source EINA_UNUSED)
 {
-   elm_layout_sizing_eval(data);
+   elm_layout_sizing_eval(obj);
 }
 
 static void
-_restack_cb(void *data __UNUSED__,
-            Evas *e __UNUSED__,
+_restack_cb(void *data EINA_UNUSED,
+            Evas *e EINA_UNUSED,
             Evas_Object *obj,
-            void *event_info __UNUSED__)
+            void *event_info EINA_UNUSED)
 {
    ELM_POPUP_DATA_GET(obj, sd);
 
    evas_object_raise(sd->notify);
 }
 
-static void
-_list_add(Evas_Object *obj)
-{
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   sd->box = elm_box_add(sd->scr);
-   evas_object_size_hint_weight_set(sd->box, EVAS_HINT_EXPAND, 0.0);
-   evas_object_size_hint_align_set(sd->box, EVAS_HINT_FILL, 0.0);
-   elm_object_content_set(sd->scr, sd->box);
-}
+//TIZEN_ONLY(20150204): add scroller of content text of popup
+//static void
+//_list_add(Evas_Object *obj)
+//{
+//   char style[1024];
+//
+//   ELM_POPUP_DATA_GET(obj, sd);
+//
+//   //Table
+//   sd->tbl = elm_table_add(sd->main_layout);
+//   evas_object_event_callback_add(sd->tbl, EVAS_CALLBACK_DEL,
+//                                  _on_table_del, obj);
+//   eo_do(sd->main_layout, elm_obj_container_content_set(CONTENT_PART, sd->tbl));
+//   evas_object_show(sd->tbl);
+//
+//   //Spacer
+//   sd->spacer = evas_object_rectangle_add(evas_object_evas_get(obj));
+//   evas_object_color_set(sd->spacer, 0, 0, 0, 0);
+//   elm_table_pack(sd->tbl, sd->spacer, 0, 0, 1, 1);
+//
+//   //Scroller
+//   snprintf(style, sizeof(style), "popup/%s", elm_widget_style_get(obj));
+//   sd->scr = elm_scroller_add(sd->tbl);
+//   elm_widget_style_set(sd->scr, style);
+//   elm_scroller_content_min_limit(sd->scr, EINA_TRUE, EINA_FALSE);
+//   elm_scroller_bounce_set(sd->scr, EINA_FALSE, EINA_TRUE);
+//   evas_object_size_hint_weight_set(sd->scr,
+//                                    EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+//   evas_object_size_hint_align_set(sd->scr, EVAS_HINT_FILL, EVAS_HINT_FILL);
+//   evas_object_event_callback_add(sd->scr, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
+//                                  _size_hints_changed_cb, sd->main_layout);
+//   elm_table_pack(sd->tbl, sd->scr, 0, 0, 1, 1);
+//   evas_object_show(sd->scr);
+//
+//   //Box
+//   sd->box = elm_box_add(sd->scr);
+//   evas_object_size_hint_weight_set(sd->box, EVAS_HINT_EXPAND, 0.0);
+//   evas_object_size_hint_align_set(sd->box, EVAS_HINT_FILL, 0.0);
+//   elm_object_content_set(sd->scr, sd->box);
+//   evas_object_show(sd->box);
+//}
+//
 
 static void
 _item_select_cb(void *data,
-                Evas_Object *obj __UNUSED__,
-                const char *emission __UNUSED__,
-                const char *source __UNUSED__)
+                Evas_Object *obj EINA_UNUSED,
+                const char *emission EINA_UNUSED,
+                const char *source EINA_UNUSED)
 {
-   Elm_Popup_Item *item = data;
+   Elm_Popup_Item_Data *it = data;
 
-   if (!item || item->disabled) return;
-   if (item->func)
-     item->func((void *)item->base.data, WIDGET(item), data);
-}
-
-#ifdef _TIZEN_
-static void
-_item_bottomline_hide_cb(void *data,
-                Evas_Object *obj __UNUSED__,
-                const char *emission __UNUSED__,
-                const char *source __UNUSED__)
-{
-   Elm_Popup_Item *item = data;
-
-   if (!item || item->disabled) return;
-   item->bottom_line = EINA_TRUE;
-   edje_object_signal_emit
-     (VIEW(item), "elm,state,item,bottomline,hide", "elm");
+   if (!it || it->disabled) return;
+   if (it->func)
+     it->func((void *)WIDGET_ITEM_DATA_GET(EO_OBJ(it)), WIDGET(it), EO_OBJ(it));
 }
 
 static void
-_item_bottomline_show_cb(void *data,
-                Evas_Object *obj __UNUSED__,
-                const char *emission __UNUSED__,
-                const char *source __UNUSED__)
-{
-   Elm_Popup_Item *item = data;
-
-   if (!item || item->disabled) return;
-   item->bottom_line = EINA_FALSE;
-   edje_object_signal_emit
-     (VIEW(item), "elm,state,item,bottomline,show", "elm");
-}
-#endif
-
-static void
-_item_text_set(Elm_Popup_Item *item,
+_item_text_set(Elm_Popup_Item_Data *it,
                const char *label)
 {
-   if (!eina_stringshare_replace(&item->label, label)) return;
+   if (!eina_stringshare_replace(&it->label, label)) return;
 
-   edje_object_part_text_escaped_set(VIEW(item), "elm.text", label);
+   elm_layout_text_set(VIEW(it), "elm.text", label);
 
-   if (item->label)
-     edje_object_signal_emit
-       (VIEW(item), "elm,state,item,text,visible", "elm");
+   if (it->label)
+     elm_layout_signal_emit(VIEW(it),
+                            "elm,state,item,text,visible", "elm");
    else
-     edje_object_signal_emit
-       (VIEW(item), "elm,state,item,text,hidden", "elm");
+     elm_layout_signal_emit(VIEW(it),
+                            "elm,state,item,text,hidden", "elm");
 
-   edje_object_message_signal_process(VIEW(item));
+   edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
 }
 
-static void
-_item_text_set_hook(Elm_Object_Item *it,
+EOLIAN static void
+_elm_popup_item_elm_widget_item_part_text_set(Eo *eo_it EINA_UNUSED, Elm_Popup_Item_Data *it,
                     const char *part,
                     const char *label)
 {
-   Elm_Popup_Item *item = (Elm_Popup_Item *)it;
-
    ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
 
    if ((!part) || (!strcmp(part, "default")))
      {
-        _item_text_set(item, label);
+        _item_text_set(it, label);
         return;
      }
 
-   WRN("The part name is invalid! : popup=%p", WIDGET(item));
+   WRN("The part name is invalid! : popup=%p", WIDGET(it));
 }
 
-static const char *
-_item_text_get_hook(const Elm_Object_Item *it,
+EOLIAN static const char *
+_elm_popup_item_elm_widget_item_part_text_get(Eo *eo_it EINA_UNUSED, Elm_Popup_Item_Data *it,
                     const char *part)
 {
-   Elm_Popup_Item *item = (Elm_Popup_Item *)it;
-
    ELM_POPUP_ITEM_CHECK_OR_RETURN(it, NULL);
 
    if ((!part) || (!strcmp(part, "default")))
-     return item->label;
+     return it->label;
 
-   WRN("The part name is invalid! : popup=%p", WIDGET(item));
+   WRN("The part name is invalid! : popup=%p", WIDGET(it));
 
    return NULL;
 }
 
 static void
-_item_icon_set(Elm_Popup_Item *item,
+_item_icon_set(Elm_Popup_Item_Data *it,
                Evas_Object *icon)
 {
-   if (item->icon == icon) return;
+   if (it->icon == icon) return;
 
-   if (item->icon)
-     evas_object_del(item->icon);
-
-   item->icon = icon;
-   if (item->icon)
+   evas_object_del(it->icon);
+   it->icon = icon;
+   if (it->icon)
      {
-        elm_widget_sub_object_add(WIDGET(item), item->icon);
-        evas_object_data_set(item->icon, "_popup_icon_parent_item", item);
-        edje_object_part_swallow
-          (VIEW(item), "elm.swallow.content", item->icon);
-        edje_object_signal_emit
-          (VIEW(item), "elm,state,item,icon,visible", "elm");
+        elm_widget_sub_object_add(WIDGET(it), it->icon);
+        evas_object_data_set(it->icon, "_popup_icon_parent_item", it);
+        eo_do(VIEW(it), elm_obj_container_content_set(CONTENT_PART, it->icon));
+        elm_layout_signal_emit(VIEW(it), "elm,state,item,icon,visible", "elm");
      }
    else
-     edje_object_signal_emit(VIEW(item), "elm,state,item,icon,hidden", "elm");
+     elm_layout_signal_emit(VIEW(it), "elm,state,item,icon,hidden", "elm");
 
-   edje_object_message_signal_process(item->base.view);
+   edje_object_message_signal_process(elm_layout_edje_get(VIEW(it)));
 }
 
-static void
-_item_content_set_hook(Elm_Object_Item *it,
+EOLIAN static void
+_elm_popup_item_elm_widget_item_part_content_set(Eo *eo_it EINA_UNUSED, Elm_Popup_Item_Data *it,
                        const char *part,
                        Evas_Object *content)
 {
-   Elm_Popup_Item *item = (Elm_Popup_Item *)it;
-
    ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
 
    if ((!(part)) || (!strcmp(part, "default")))
-     _item_icon_set(item, content);
+     _item_icon_set(it, content);
    else
-     WRN("The part name is invalid! : popup=%p", WIDGET(item));
+     WRN("The part name is invalid! : popup=%p", WIDGET(it));
 }
 
-static Evas_Object *
-_item_content_get_hook(const Elm_Object_Item *it,
+EOLIAN static Evas_Object *
+_elm_popup_item_elm_widget_item_part_content_get(Eo *eo_it EINA_UNUSED, Elm_Popup_Item_Data *it,
                        const char *part)
 {
-   Elm_Popup_Item *item = (Elm_Popup_Item *)it;
-
    ELM_POPUP_ITEM_CHECK_OR_RETURN(it, NULL);
 
    if ((!(part)) || (!strcmp(part, "default")))
-     return item->icon;
+     return it->icon;
 
-   WRN("The part name is invalid! : popup=%p", WIDGET(item));
+   WRN("The part name is invalid! : popup=%p", WIDGET(it));
 
    return NULL;
 }
 
 static Evas_Object *
-_item_icon_unset(Elm_Popup_Item *item)
+_item_icon_unset(Elm_Popup_Item_Data *it)
 {
-   Evas_Object *icon = item->icon;
+   Evas_Object *icon = it->icon;
 
-   if (!item->icon) return NULL;
-   elm_widget_sub_object_del(WIDGET(item), icon);
+   if (!it->icon) return NULL;
+   elm_widget_sub_object_del(WIDGET(it), icon);
    evas_object_data_del(icon, "_popup_icon_parent_item");
-   edje_object_part_unswallow(item->base.view, icon);
-   edje_object_signal_emit(VIEW(item), "elm,state,item,icon,hidden", "elm");
-   item->icon = NULL;
+   eo_do(VIEW(it), elm_obj_container_content_unset(CONTENT_PART));
+   elm_layout_signal_emit(VIEW(it), "elm,state,item,icon,hidden", "elm");
+   it->icon = NULL;
 
    return icon;
 }
 
-static Evas_Object *
-_item_content_unset_hook(const Elm_Object_Item *it,
+EOLIAN static Evas_Object *
+_elm_popup_item_elm_widget_item_part_content_unset(Eo *eo_it EINA_UNUSED, Elm_Popup_Item_Data *it,
                          const char *part)
 {
    Evas_Object *content = NULL;
-   Elm_Popup_Item *item = (Elm_Popup_Item *)it;
 
    ELM_POPUP_ITEM_CHECK_OR_RETURN(it, NULL);
 
    if ((!(part)) || (!strcmp(part, "default")))
-     content = _item_icon_unset(item);
+     content = _item_icon_unset(it);
    else
-     WRN("The part name is invalid! : popup=%p", WIDGET(item));
+     WRN("The part name is invalid! : popup=%p", WIDGET(it));
 
    return content;
 }
 
-static void
-_item_disable_hook(Elm_Object_Item *it)
+EOLIAN static void
+_elm_popup_item_elm_widget_item_disable(Eo *eo_it, Elm_Popup_Item_Data *it)
 {
-   Elm_Popup_Item *item = (Elm_Popup_Item *)it;
-
    ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
 
-   if (elm_widget_item_disabled_get(it))
-     edje_object_signal_emit(VIEW(item), "elm,state,item,disabled", "elm");
+   if (eo_do(eo_it, elm_wdg_item_disabled_get()))
+     elm_layout_signal_emit(VIEW(it), "elm,state,item,disabled", "elm");
    else
-     edje_object_signal_emit(VIEW(item), "elm,state,item,enabled", "elm");
+     elm_layout_signal_emit(VIEW(it), "elm,state,item,enabled", "elm");
 }
 
-static Eina_Bool
-_item_del_pre_hook(Elm_Object_Item *it)
+EOLIAN static void
+_elm_popup_item_eo_base_destructor(Eo *eo_it, Elm_Popup_Item_Data *it)
 {
-   Elm_Popup_Item *item = (Elm_Popup_Item *)it;
+   ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
+   ELM_POPUP_DATA_GET(WIDGET(it), sd);
 
-   ELM_POPUP_ITEM_CHECK_OR_RETURN(it, EINA_FALSE);
-
-#ifdef _TIZEN_
-   item->bottom_line = EINA_FALSE;
-#endif
-   if (item->icon)
-     evas_object_del(item->icon);
-
-   eina_stringshare_del(item->label);
-
-   return EINA_TRUE;
+   evas_object_del(it->icon);
+   eina_stringshare_del(it->label);
+   sd->items = eina_list_remove(sd->items, it);
+   if (!eina_list_count(sd->items))
+     {
+        sd->items = NULL;
+        _list_del(sd);
+     }
+   eo_do_super(eo_it, ELM_POPUP_ITEM_CLASS, eo_destructor());
 }
 
-static void
-_item_signal_emit_hook(Elm_Object_Item *it,
+EOLIAN static void
+_elm_popup_item_elm_widget_item_signal_emit(Eo *eo_it EINA_UNUSED, Elm_Popup_Item_Data *it,
                        const char *emission,
                        const char *source)
 {
-   Elm_Popup_Item *item = (Elm_Popup_Item *)it;
-
-   ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
-
-   edje_object_signal_emit(VIEW(item), emission, source);
+   elm_layout_signal_emit(VIEW(it), emission, source);
 }
 
 static void
-_access_activate_cb(void *data __UNUSED__,
-                    Evas_Object *part_obj __UNUSED__,
-                    Elm_Object_Item *item)
+_item_focused_cb(void *data,
+                 Evas_Object *obj EINA_UNUSED,
+                 void *event_info EINA_UNUSED)
 {
-   _item_select_cb(item, NULL, NULL, NULL);
-}
+   Elm_Popup_Item_Data *it = data;
 
-static char *
-_access_state_cb(void *data, Evas_Object *obj __UNUSED__)
-{
-   Elm_Popup_Item *it = (Elm_Popup_Item *)data;
-   if (!it) return NULL;
-
-   if (it->base.disabled)
-     return strdup(E_("Disabled"));
-
-   return NULL;
-}
-
-static char *
-_access_info_cb(void *data, Evas_Object *obj __UNUSED__)
-{
-   Elm_Popup_Item *it = (Elm_Popup_Item *)data;
-   const char *txt = NULL;
-   Evas_Object *icon = NULL;
-   Eina_Strbuf *buf = NULL;
-   char *str = NULL;
-
-   if (!it) return NULL;
-
-   txt = it->label;
-   icon = it->icon;
-
-   if (txt && icon)
-     {
-        buf = eina_strbuf_new();
-        eina_strbuf_append(buf, E_("icon "));
-        eina_strbuf_append(buf, txt);
-        str = eina_strbuf_string_steal(buf);
-        eina_strbuf_free(buf);
-        return str;
-     }
-   else if ((!txt) && icon) return strdup(E_("icon"));
-   else if (txt && (!icon)) return strdup(txt);
-
-   return NULL;
+   evas_object_smart_callback_call(WIDGET(it), SIG_ITEM_FOCUSED, EO_OBJ(it));
 }
 
 static void
-_access_widget_item_register(Elm_Popup_Item *it)
+_item_unfocused_cb(void *data,
+                   Evas_Object *obj EINA_UNUSED,
+                   void *event_info EINA_UNUSED)
 {
-   Elm_Access_Info *ao;
+   Elm_Popup_Item_Data *it = data;
 
-   _elm_access_widget_item_register((Elm_Widget_Item *)it);
-   ao = _elm_access_object_get(it->base.access_obj);
-   _elm_access_callback_set(ao, ELM_ACCESS_INFO, _access_info_cb, it);
-   _elm_access_callback_set(ao, ELM_ACCESS_STATE, _access_state_cb, it);
-   _elm_access_text_set(ao, ELM_ACCESS_TYPE, E_("Popup_list"));
-   _elm_access_activate_callback_set(ao, _access_activate_cb, it);
+   evas_object_smart_callback_call(WIDGET(it), SIG_ITEM_UNFOCUSED, EO_OBJ(it));
+}
 
+EOLIAN static void
+_elm_popup_item_eo_base_constructor(Eo *eo_it, Elm_Popup_Item_Data *it)
+{
+   eo_do_super(eo_it, ELM_POPUP_ITEM_CLASS, eo_constructor());
+   it->base = eo_data_scope_get(eo_it, ELM_WIDGET_ITEM_CLASS);
 }
 
 static void
-_item_new(Elm_Popup_Item *item)
+_item_new(Elm_Popup_Item_Data *it)
 {
-   int orientation = -1;
+   char style[1024];
 
-   ELM_POPUP_DATA_GET(WIDGET(item), sd);
+   VIEW(it) = elm_layout_add(WIDGET(it));
+   elm_object_focus_allow_set(VIEW(it), EINA_TRUE);
 
-   elm_widget_item_text_set_hook_set(item, _item_text_set_hook);
-   elm_widget_item_text_get_hook_set(item, _item_text_get_hook);
-   elm_widget_item_content_set_hook_set(item, _item_content_set_hook);
-   elm_widget_item_content_get_hook_set(item, _item_content_get_hook);
-   elm_widget_item_content_unset_hook_set(item, _item_content_unset_hook);
-   elm_widget_item_disable_hook_set(item, _item_disable_hook);
-   elm_widget_item_del_pre_hook_set(item, _item_del_pre_hook);
-   elm_widget_item_signal_emit_hook_set(item, _item_signal_emit_hook);
-   VIEW(item) = edje_object_add
-       (evas_object_evas_get(ELM_WIDGET_DATA(sd)->obj));
-
-   orientation = sd->orientation;
-   if (orientation == 90 || orientation == 270)
-      elm_widget_theme_object_set
-         (WIDGET(item), VIEW(item), "popup", "item/landscape",
-          elm_widget_style_get(WIDGET(item)));
+   snprintf(style, sizeof(style), "popup/%s", elm_widget_style_get(WIDGET(it)));
+   if (!elm_layout_theme_set(VIEW(it), "popup", "item", style))
+     ERR("Failed to set layout!");
    else
-      elm_widget_theme_object_set
-         (WIDGET(item), VIEW(item), "popup", "item", elm_widget_style_get(WIDGET(item)));
-   edje_object_mirrored_set(VIEW(item), elm_widget_mirrored_get(WIDGET(item)));
-   edje_object_signal_callback_add
-     (VIEW(item), "elm,action,click", "", _item_select_cb, item);
-   evas_object_size_hint_align_set
-     (VIEW(item), EVAS_HINT_FILL, EVAS_HINT_FILL);
-#ifdef _TIZEN_
-   edje_object_signal_callback_add
-     (VIEW(item), "elm,action,bottomline,show", "", _item_bottomline_show_cb, item);
-   edje_object_signal_callback_add
-     (VIEW(item), "elm,action,bottomline,hide", "", _item_bottomline_hide_cb, item);
-
-#endif
-   evas_object_event_callback_add
-     (VIEW(item), EVAS_CALLBACK_MOUSE_DOWN, _mouse_down_cb, item);
-   evas_object_event_callback_add
-     (VIEW(item), EVAS_CALLBACK_MOUSE_UP, _mouse_up_cb, item);
-
-   evas_object_event_callback_add
-     (VIEW(item), EVAS_CALLBACK_MOUSE_MOVE, _mouse_move_cb, item);
-
-   /* access */
-   if (_elm_config->access_mode) _access_widget_item_register(item);
-
-   evas_object_show(VIEW(item));
+     {
+        elm_layout_signal_callback_add(VIEW(it), "elm,action,click", "*",
+                                       _item_select_cb, it);
+        evas_object_size_hint_align_set(VIEW(it), EVAS_HINT_FILL, EVAS_HINT_FILL);
+        evas_object_smart_callback_add(VIEW(it), SIG_LAYOUT_FOCUSED, _item_focused_cb, it);
+        evas_object_smart_callback_add(VIEW(it), SIG_LAYOUT_UNFOCUSED, _item_unfocused_cb, it);
+        evas_object_show(VIEW(it));
+     }
 }
 
+//TIZEN_ONLY(20150128): add subtitle text code of popup
 static Eina_Bool
 _subtitle_text_set(Evas_Object *obj,
                 const char *text)
@@ -1338,19 +1032,26 @@ _subtitle_text_set(Evas_Object *obj,
    else
      elm_object_signal_emit(sd->main_layout, "elm,state,subtitle,text,hidden", "elm");
 
-   _scroller_size_calc(obj);
-   elm_layout_sizing_eval(obj);
+   edje_object_message_signal_process(elm_layout_edje_get(sd->main_layout));
 
    return EINA_TRUE;
 }
+//
+
+//TIZEN ONLY(20150717): expose title as at-spi object
+static char *
+_access_info_cb(void *data, Evas_Object *obj EINA_UNUSED)
+{
+   Elm_Popup_Data *priv = data;
+   return priv->title_text ? strdup(priv->title_text) : NULL;
+}
+//
 
 static Eina_Bool
 _title_text_set(Evas_Object *obj,
                 const char *text)
 {
    Evas_Object *ao;
-   char *mkup_text = NULL;
-
    Eina_Bool title_visibility_old, title_visibility_current;
 
    ELM_POPUP_DATA_GET(obj, sd);
@@ -1365,29 +1066,40 @@ _title_text_set(Evas_Object *obj,
    /* access */
    if (_elm_config->access_mode)
      {
-        mkup_text = _elm_util_mkup_to_text(text);
-        if (!mkup_text) return EINA_FALSE;
-
         ao = _access_object_get(obj, ACCESS_TITLE_PART);
         if (!ao)
           {
-
              ao = _elm_access_edje_object_part_object_register
                     (obj, elm_layout_edje_get(sd->main_layout), ACCESS_TITLE_PART);
-             evas_object_smart_callback_add(ao, "access,read,stop", _access_title_read_stop_cb, obj);
-             evas_object_smart_callback_add(ao, "access,read,cancel", _access_title_read_cancel_cb, obj);
+             _elm_access_text_set(_elm_access_info_get(ao),
+                                  ELM_ACCESS_TYPE, E_("Popup Title"));
           }
-        _elm_access_text_set(_elm_access_object_get(ao), ELM_ACCESS_INFO, mkup_text);
-
-        free(mkup_text);
-        mkup_text = NULL;
-
-        ao = _access_object_get(obj, ACCESS_OUTLINE_PART);
-        if (ao)
-          _elm_access_text_set(_elm_access_object_get(ao),
-                               ELM_ACCESS_INFO, sd->title_text);
+        _elm_access_text_set(_elm_access_info_get(ao), ELM_ACCESS_INFO, text);
      }
 
+   //TIZEN ONLY(20150717): expose title as at-spi object
+   if (_elm_config->atspi_mode)
+     {
+        if (sd->title_text)
+          {
+             ao = _access_object_get(obj, ACCESS_TITLE_PART);
+             if (!ao)
+               {
+                  ao = _elm_access_edje_object_part_object_register
+                        (sd->main_layout, elm_layout_edje_get(sd->main_layout), ACCESS_TITLE_PART);
+                  elm_atspi_accessible_role_set(ao, ELM_ATSPI_ROLE_HEADING);
+                  _elm_access_callback_set(_elm_access_info_get(ao),
+                                            ELM_ACCESS_INFO, _access_info_cb, sd);
+               }
+          }
+        else
+          {
+                ao = _access_object_get(obj, ACCESS_TITLE_PART);
+                if (ao)
+                    _elm_access_object_unregister(ao, NULL);
+          }
+     }
+   //
    if (sd->title_text)
      elm_layout_signal_emit(sd->main_layout, "elm,state,title,text,visible", "elm");
    else
@@ -1398,8 +1110,9 @@ _title_text_set(Evas_Object *obj,
    if (title_visibility_old != title_visibility_current)
      _visuals_set(obj);
 
-   _scroller_size_calc(obj);
-   elm_layout_sizing_eval(obj);
+   //TIZEN_ONLY(20150316): scroller size calculation for title text popup
+   edje_object_message_signal_process(elm_layout_edje_get(sd->main_layout));
+   //
 
    return EINA_TRUE;
 }
@@ -1408,35 +1121,33 @@ static Eina_Bool
 _content_text_set(Evas_Object *obj,
                   const char *text)
 {
-   Evas_Object *prev_content, *ao;
-   char buf[128];
+   Evas_Object *ao;
+   char style[1024];
 
    ELM_POPUP_DATA_GET(obj, sd);
 
-   if (sd->items) _items_remove(sd);
-
-   if (!sd->content_area)
+   if (sd->items)
      {
-        sd->content_area = elm_layout_add(sd->main_layout);
-        if (!elm_layout_theme_set(sd->content_area, "popup", "content",
-                                  elm_widget_style_get(obj)))
-          CRITICAL("Failed to set layout!");
-        else
-          evas_object_event_callback_add
-             (sd->content_area, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-              _size_hints_changed_cb, obj);
+        _items_remove(sd);
+        _list_del(sd);
      }
-
-   prev_content = elm_layout_content_get(sd->content_area, "elm.swallow.content");
-   if (prev_content) evas_object_del(prev_content);
+   //TIZEN_ONLY(20150204): add scroller of content text of popup
+   //else eo_do(sd->main_layout, elm_obj_container_content_set(CONTENT_PART, sd->content_area));
+   else elm_object_content_set(sd->scr, sd->content_area);
+   //
 
    if (!text) goto end;
 
-   elm_object_content_set(sd->scr, sd->content_area);
+   if (sd->text_content_obj)
+     {
+        eo_do(sd->content_area, sd->text_content_obj = elm_obj_container_content_unset(CONTENT_PART));
+        evas_object_del(sd->text_content_obj);
+        sd->text_content_obj = NULL;
+     }
 
-   sd->text_content_obj = elm_label_add(obj);
-   snprintf(buf, sizeof(buf), "popup/%s", elm_widget_style_get(obj));
-   elm_object_style_set(sd->text_content_obj, buf);
+   sd->text_content_obj = elm_label_add(sd->content_area);
+   snprintf(style, sizeof(style), "popup/%s", elm_widget_style_get(obj));
+   elm_object_style_set(sd->text_content_obj, style);
 
    evas_object_event_callback_add
      (sd->text_content_obj, EVAS_CALLBACK_DEL, _on_text_content_del, obj);
@@ -1447,79 +1158,70 @@ _content_text_set(Evas_Object *obj,
      (sd->text_content_obj, EVAS_HINT_EXPAND, 0.0);
    evas_object_size_hint_align_set
      (sd->text_content_obj, EVAS_HINT_FILL, EVAS_HINT_FILL);
-
-   elm_layout_content_set
-     (sd->content_area, "elm.swallow.content", sd->text_content_obj);
-
-   _elm_access_edje_object_part_object_unregister
-      (obj, elm_layout_edje_get(sd->main_layout), ACCESS_OUTLINE_PART);
+   eo_do(sd->content_area, elm_obj_container_content_set
+     (CONTENT_PART, sd->text_content_obj));
 
    /* access */
    if (_elm_config->access_mode)
      {
         /* unregister label, ACCESS_BODY_PART will register */
         elm_access_object_unregister(sd->text_content_obj);
-        char *mkup_text = _elm_util_mkup_to_text(text);
-        if (!mkup_text) return EINA_FALSE;
 
         ao = _access_object_get(obj, ACCESS_BODY_PART);
         if (!ao)
           {
              ao = _elm_access_edje_object_part_object_register
                     (obj, elm_layout_edje_get(sd->main_layout), ACCESS_BODY_PART);
+             _elm_access_text_set(_elm_access_info_get(ao),
+                                  ELM_ACCESS_TYPE, E_("Popup Body Text"));
           }
-        _elm_access_activate_callback_set
-          (_elm_access_object_get(ao), _access_base_activate_cb, obj);
-        _elm_access_text_set(_elm_access_object_get(ao), ELM_ACCESS_INFO, mkup_text);
-        free(mkup_text);
-        mkup_text = NULL;
+        _elm_access_text_set(_elm_access_info_get(ao), ELM_ACCESS_INFO, text);
      }
 
 end:
-   elm_layout_sizing_eval(obj);
-
    return EINA_TRUE;
 }
 
-static Eina_Bool
-_elm_popup_smart_text_set(Evas_Object *obj,
-                          const char *part,
-                          const char *label)
+EOLIAN static Eina_Bool
+_elm_popup_elm_layout_text_set(Eo *obj, Elm_Popup_Data *_pd, const char *part, const char *label)
 {
-   ELM_POPUP_DATA_GET(obj, sd);
+   Eina_Bool int_ret = EINA_FALSE;
 
    if (!part || !strcmp(part, "default"))
-     return _content_text_set(obj, label);
+     int_ret = _content_text_set(obj, label);
    else if (!strcmp(part, "title,text"))
-     return _title_text_set(obj, label);
+     int_ret = _title_text_set(obj, label);
+   //TIZEN_ONLY(20150128): add subtitle text code of popup
    else if (!strcmp(part, "subtitle,text"))
-     return _subtitle_text_set(obj, label);
+     int_ret = _subtitle_text_set(obj, label);
+   //
    else
-     return elm_layout_text_set(sd->main_layout, part, label);
+     int_ret = elm_layout_text_set(_pd->main_layout, part, label);
+
+   _scroller_size_calc(obj);
+   elm_layout_sizing_eval(obj);
+
+   return int_ret;
 }
 
+//TIZEN_ONLY(20150128): add subtitle text code of popup
 static const char *
-_subtitle_text_get(const Evas_Object *obj)
+_subtitle_text_get(const Elm_Popup_Data *sd)
 {
-   ELM_POPUP_DATA_GET(obj, sd);
-
    return sd->subtitle_text;
 }
+//
 
 static const char *
-_title_text_get(const Evas_Object *obj)
+_title_text_get(const Elm_Popup_Data *sd)
 {
-   ELM_POPUP_DATA_GET(obj, sd);
-
    return sd->title_text;
 }
 
 static const char *
-_content_text_get(const Evas_Object *obj)
+_content_text_get(const Elm_Popup_Data *sd)
 {
    const char *str = NULL;
-
-   ELM_POPUP_DATA_GET(obj, sd);
 
    if (sd->text_content_obj)
      str = elm_object_text_get(sd->text_content_obj);
@@ -1527,23 +1229,23 @@ _content_text_get(const Evas_Object *obj)
    return str;
 }
 
-static const char *
-_elm_popup_smart_text_get(const Evas_Object *obj,
-                          const char *part)
+EOLIAN static const char*
+_elm_popup_elm_layout_text_get(Eo *obj EINA_UNUSED, Elm_Popup_Data *_pd, const char *part)
 {
-   const char *str = NULL;
-   ELM_POPUP_DATA_GET(obj, sd);
+   const char *text = NULL;
 
    if (!part || !strcmp(part, "default"))
-     str = _content_text_get(obj);
+     text = _content_text_get(_pd);
    else if (!strcmp(part, "title,text"))
-     str = _title_text_get(obj);
+     text = _title_text_get(_pd);
+   //TIZEN_ONLY(20150128): add subtitle text code of popup
    else if (!strcmp(part, "subtitle,text"))
-     str = _subtitle_text_get(obj);
+     text = _subtitle_text_get(_pd);
+   //
    else
-     str = elm_layout_text_get(sd->main_layout, part);
+     text = elm_layout_text_get(_pd->main_layout, part);
 
-   return str;
+   return text;
 }
 
 static Eina_Bool
@@ -1556,64 +1258,74 @@ _title_icon_set(Evas_Object *obj,
 
    if (sd->title_icon == icon) return EINA_TRUE;
    title_visibility_old = (sd->title_text) || (sd->title_icon);
-   if (sd->title_icon) evas_object_del(sd->title_icon);
+   evas_object_del(sd->title_icon);
 
    sd->title_icon = icon;
    title_visibility_current = (sd->title_text) || (sd->title_icon);
 
-   elm_layout_content_set
-     (sd->main_layout, "elm.swallow.title.icon", sd->title_icon);
+   eo_do(sd->main_layout, elm_obj_container_content_set
+      ("elm.swallow.title.icon", sd->title_icon));
 
    if (sd->title_icon)
      elm_layout_signal_emit(sd->main_layout, "elm,state,title,icon,visible", "elm");
    if (title_visibility_old != title_visibility_current) _visuals_set(obj);
 
-   _scroller_size_calc(obj);
-   elm_layout_sizing_eval(obj);
-
    return EINA_TRUE;
 }
+
+//TIZEN_ONLY(20150806): support scrollable content
+//FIXME: genlist only now, it should be changed to support other scrollable.
+static void
+_scrollable_content_loaded_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   ELM_POPUP_DATA_GET(data, sd);
+
+   Evas_Coord w, h;
+   eo_do(obj, elm_interface_scrollable_content_size_get(&w, &h));
+
+   sd->scrollable_content = EINA_TRUE;
+   sd->min_scrollable_content_h = h;
+
+   elm_layout_sizing_eval(data);
+}
+//
 
 static Eina_Bool
 _content_set(Evas_Object *obj,
              Evas_Object *content)
 {
-   Evas_Object *prev_content;
-
    ELM_POPUP_DATA_GET(obj, sd);
 
    if (sd->content && sd->content == content) return EINA_TRUE;
-   if (sd->items) _items_remove(sd);
-
-   if (!sd->content_area)
+   if (sd->items)
      {
-        sd->content_area = elm_layout_add(sd->main_layout);
-        if (!elm_layout_theme_set(sd->content_area, "popup", "content",
-                                  elm_widget_style_get(obj)))
-          CRITICAL("Failed to set layout!");
-        else
-          evas_object_event_callback_add
-             (sd->content_area, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-              _size_hints_changed_cb, obj);
+        _items_remove(sd);
+        _list_del(sd);
      }
-
-   prev_content = elm_layout_content_get(sd->content_area, "elm.swallow.content");
-   if (prev_content) evas_object_del(prev_content);
 
    sd->content = content;
    if (content)
      {
+        //TIZEN_ONLY(20150305): set scroller to content area
+        //eo_do(sd->main_layout, elm_obj_container_content_set
+        //   (CONTENT_PART, sd->content_area));
         evas_object_show(sd->content_area);
         elm_object_content_set(sd->scr, sd->content_area);
+        //
 
-        elm_layout_content_set
-          (sd->content_area, "elm.swallow.content", content);
+        eo_do(sd->content_area, elm_obj_container_content_set
+          (CONTENT_PART, content));
         evas_object_show(content);
+
+        //TIZEN_ONLY(20150806): support scrollable content
+        //FIXME: genlist only now, it should be changed to support other scrollable.
+        if (eo_isa(content, ELM_INTERFACE_SCROLLABLE_MIXIN))
+          evas_object_smart_callback_add(content, "loaded", _scrollable_content_loaded_cb, obj);
+        //
 
         evas_object_event_callback_add
           (content, EVAS_CALLBACK_DEL, _on_content_del, obj);
      }
-   elm_layout_sizing_eval(obj);
 
    return EINA_TRUE;
 }
@@ -1623,9 +1335,7 @@ _action_button_set(Evas_Object *obj,
                    Evas_Object *btn,
                    unsigned int idx)
 {
-   Action_Area_Data *adata;
-   char buf[128];
-   Evas_Object *ao;
+   char buf[128], style[1024];
 
    ELM_POPUP_DATA_GET(obj, sd);
 
@@ -1637,118 +1347,98 @@ _action_button_set(Evas_Object *obj,
         return;
      }
 
-   if (!sd->buttons[idx]) sd->button_count++;
-   else
+   if (sd->buttons[idx])
      {
-        sd->no_shift = EINA_TRUE;
         evas_object_del(sd->buttons[idx]->btn);
-        ELM_SAFE_FREE(sd->buttons[idx], free);
-        sd->no_shift = EINA_FALSE;
+        free(sd->buttons[idx]);
      }
 
-   if (_elm_config->access_mode)
-     {
-        /* if popup has a button, popup should be closed by the button
-           so outline(ACCESS_OUTLINE_PART) is not necessary any more */
-        ao = _access_object_get(obj, ACCESS_OUTLINE_PART);
-
-        if (ao && sd->button_count)
-          _elm_access_edje_object_part_object_unregister
-            (obj, elm_layout_edje_get(sd->main_layout), ACCESS_OUTLINE_PART);
-
-        ao = _access_object_get(obj, ACCESS_BODY_PART);
-        if (ao && sd->button_count)
-        _elm_access_activate_callback_set
-          (_elm_access_object_get(ao), NULL, obj);
-     }
-
-   if (!sd->action_area)
-     {
-        sd->action_area = elm_layout_add(sd->main_layout);
-        evas_object_event_callback_add
-           (sd->action_area, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
-            _size_hints_changed_cb, obj);
-     }
-
-   snprintf(buf, sizeof(buf), "buttons%u", sd->button_count);
-   elm_layout_theme_set
-     (sd->action_area, "popup", buf, elm_widget_style_get(obj));
-
-   adata = ELM_NEW(Action_Area_Data);
-   adata->obj = obj;
-   adata->btn = btn;
+   sd->buttons[idx] = ELM_NEW(Action_Area_Data);
+   sd->buttons[idx]->obj = obj;
+   sd->buttons[idx]->btn = btn;
 
    evas_object_event_callback_add
      (btn, EVAS_CALLBACK_DEL, _on_button_del, obj);
 
-   sd->buttons[idx] = adata;
+   for (unsigned int i = ELM_POPUP_ACTION_BUTTON_MAX - 1; i >= idx; i--)
+     {
+        if (sd->buttons[i])
+          {
+             sd->last_button_number = i + 1;
+             break;
+          }
+     }
 
-   snprintf(buf, sizeof(buf), "actionbtn%u", idx + 1);
+   snprintf(buf, sizeof(buf), "buttons%i", sd->last_button_number);
+   if (!sd->action_area)
+     {
+        sd->action_area = elm_layout_add(sd->main_layout);
+        evas_object_event_callback_add
+          (sd->action_area, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
+           _size_hints_changed_cb, sd->main_layout);
+        eo_do(sd->main_layout, elm_obj_container_content_set
+          ("elm.swallow.action_area", sd->action_area));
+
+        _visuals_set(obj);
+     }
+
+   // TIZEN_ONLY(20150121): Change style name of popup groups.
+   //snprintf(style, sizeof(style), "popup/%s", elm_widget_style_get(obj));
+   snprintf(style, sizeof(style), "%s", elm_widget_style_get(obj));
+   //
+   if (!elm_layout_theme_set(sd->action_area, "popup", buf, style))
+     ERR("Failed to set layout!");
+
+   // TIZEN_ONLY(20150121): Change style name of popup groups.
+   //snprintf(buf, sizeof(buf), "elm.swallow.content.button%i", idx + 1);
+   snprintf(buf, sizeof(buf), "actionbtn%i", idx + 1);
+   //
    elm_object_part_content_set
      (sd->action_area, buf, sd->buttons[idx]->btn);
-   evas_object_show(sd->buttons[idx]->btn);
 
-   elm_layout_content_set
-     (sd->main_layout, "elm.swallow.action_area", sd->action_area);
-   evas_object_show(sd->action_area);
-   if (sd->button_count == 1) _visuals_set(obj);
-
-   _scroller_size_calc(obj);
-
-   elm_layout_sizing_eval(obj);
+   edje_object_message_signal_process(elm_layout_edje_get(sd->main_layout));
 }
 
-static Eina_Bool
-_elm_popup_smart_content_set(Evas_Object *obj,
-                             const char *part,
-                             Evas_Object *content)
+EOLIAN static Eina_Bool
+_elm_popup_elm_container_content_set(Eo *obj, Elm_Popup_Data *_pd EINA_UNUSED, const char *part, Evas_Object *content)
 {
-   ELM_POPUP_DATA_GET(obj, sd);
    unsigned int i;
+   Eina_Bool ret = EINA_TRUE;
 
    if (!part || !strcmp(part, "default"))
-     return _content_set(obj, content);
+     ret = _content_set(obj, content);
    else if (!strcmp(part, "title,icon"))
-     return _title_icon_set(obj, content);
+     ret = _title_icon_set(obj, content);
    else if (!strncmp(part, "button", 6))
      {
         i = atoi(part + 6) - 1;
 
         if (i >= ELM_POPUP_ACTION_BUTTON_MAX)
-          goto err;
+          {
+             ERR("The part name is invalid! : popup=%p", obj);
+             return EINA_FALSE;
+          }
 
         _action_button_set(obj, content, i);
-
-        return EINA_TRUE;
      }
-#ifdef ELM_FEATURE_WEARABLE
-   else if (!strcmp(part, "toast,icon"))
-     {
-        elm_layout_content_set(sd->main_layout, part, content);
-        return EINA_TRUE;
-     }
-#endif
-   else elm_layout_content_set(sd->main_layout, part, content);
+   else
+     eo_do(_pd->main_layout, ret = elm_obj_container_content_set(part, content));
 
-err:
-   ERR("The part name is invalid! : popup=%p", obj);
+   _scroller_size_calc(obj);
+   elm_layout_sizing_eval(obj);
 
-   return EINA_FALSE;
+   return ret;
 }
 
 static Evas_Object *
-_title_icon_get(const Evas_Object *obj)
+_title_icon_get(const Elm_Popup_Data *sd)
 {
-   ELM_POPUP_DATA_GET(obj, sd);
-
    return sd->title_icon;
 }
 
 static Evas_Object *
-_content_get(const Evas_Object *obj)
+_content_get(const Elm_Popup_Data *sd)
 {
-   ELM_POPUP_DATA_GET(obj, sd);
-
    return sd->content;
 }
 
@@ -1759,7 +1449,7 @@ _action_button_get(const Evas_Object *obj,
    Evas_Object *button = NULL;
 
    ELM_POPUP_DATA_GET(obj, sd);
-   if (!sd->button_count) return NULL;
+   if (!sd->action_area) return NULL;
 
    if (sd->buttons[idx])
      button = sd->buttons[idx]->btn;
@@ -1767,18 +1457,16 @@ _action_button_get(const Evas_Object *obj,
    return button;
 }
 
-static Evas_Object *
-_elm_popup_smart_content_get(const Evas_Object *obj,
-                             const char *part)
+EOLIAN static Evas_Object*
+_elm_popup_elm_container_content_get(Eo *obj, Elm_Popup_Data *_pd, const char *part)
 {
-   ELM_POPUP_DATA_GET(obj, sd);
    Evas_Object *content = NULL;
    unsigned int i;
 
    if (!part || !strcmp(part, "default"))
-     content = _content_get(obj);
+     content = _content_get(_pd);
    else if (!strcmp(part, "title,text"))
-     content = _title_icon_get(obj);
+     content = _title_icon_get(_pd);
    else if (!strncmp(part, "button", 6))
      {
         i = atoi(part + 6) - 1;
@@ -1789,13 +1477,16 @@ _elm_popup_smart_content_get(const Evas_Object *obj,
         content = _action_button_get(obj, i);
      }
    else
-     content = elm_layout_content_get(sd->main_layout, part);
+     content = eo_do(_pd->main_layout, elm_obj_container_content_get(part));
+
+   if (!content)
+     goto err;
 
    return content;
 
 err:
    WRN("The part name is invalid! : popup=%p", obj);
-   return content;
+   return NULL;
 }
 
 static Evas_Object *
@@ -1810,10 +1501,13 @@ _content_unset(Evas_Object *obj)
    evas_object_event_callback_del
      (sd->content, EVAS_CALLBACK_DEL, _on_content_del);
 
-   content = elm_layout_content_unset(sd->content_area, "elm.swallow.content");
+   content = eo_do(sd->content_area, elm_obj_container_content_unset(CONTENT_PART));
    sd->content = NULL;
 
+   //TIZEN_ONLY(20150206): change layout sizing eval to popup sizing eval
+   //elm_layout_sizing_eval(sd->main_layout);
    elm_layout_sizing_eval(obj);
+   //
 
    return content;
 }
@@ -1828,15 +1522,14 @@ _title_icon_unset(Evas_Object *obj)
    if (!sd->title_icon) return NULL;
 
    icon = sd->title_icon;
-   elm_layout_content_unset(sd->main_layout, "elm.swallow.title.icon");
+   eo_do(sd->main_layout, elm_obj_container_content_unset("elm.swallow.title.icon"));
    sd->title_icon = NULL;
 
    return icon;
 }
 
-static Evas_Object *
-_elm_popup_smart_content_unset(Evas_Object *obj,
-                               const char *part)
+EOLIAN static Evas_Object*
+_elm_popup_elm_container_content_unset(Eo *obj, Elm_Popup_Data *_pd EINA_UNUSED, const char *part)
 {
    Evas_Object *content = NULL;
    unsigned int i;
@@ -1865,25 +1558,22 @@ err:
    return NULL;
 }
 
-static Eina_Bool
-_elm_popup_smart_focus_next(const Evas_Object *obj,
-                            Elm_Focus_Direction dir,
-                            Evas_Object **next)
+EOLIAN static Eina_Bool
+_elm_popup_elm_widget_focus_next_manager_is(Eo *obj EINA_UNUSED, Elm_Popup_Data *_pd EINA_UNUSED)
+{
+   return EINA_TRUE;
+}
+
+EOLIAN static Eina_Bool
+_elm_popup_elm_widget_focus_next(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd, Elm_Focus_Direction dir, Evas_Object **next)
 {
    Evas_Object *ao;
    Eina_List *items = NULL;
-   Elm_Popup_Item * it = NULL;
-   Eina_List *l;
-   Eina_Bool ret = EINA_FALSE;
-
-   ELM_POPUP_DATA_GET(obj, sd);
+   Eina_List *base_items = NULL;
 
    /* access */
    if (_elm_config->access_mode)
      {
-        ao = _access_object_get(obj, ACCESS_OUTLINE_PART);
-        if (ao) items = eina_list_append(items, ao);
-
         if (sd->title_text)
           {
              ao = _access_object_get(obj, ACCESS_TITLE_PART);
@@ -1892,61 +1582,35 @@ _elm_popup_smart_focus_next(const Evas_Object *obj,
 
         ao = _access_object_get(obj, ACCESS_BODY_PART);
         if (ao) items = eina_list_append(items, ao);
-
-        EINA_LIST_FOREACH(sd->items, l, it)
-          items = eina_list_append(items, it->base.access_obj);
      }
 
-   /* content area */
-   if (sd->content) items = eina_list_append(items, sd->tbl);
+   eo_do(sd->main_layout, base_items = elm_obj_container_content_swallow_list_get());
 
-   /* action area */
-   if (sd->button_count) items = eina_list_append(items, sd->action_area);
+   items = eina_list_merge(items, base_items);
 
-   if (_elm_config->access_mode)
-     {
-        _elm_access_auto_highlight_set(EINA_TRUE);
-        ret = elm_widget_focus_list_next_get
-           (sd->main_layout, items, eina_list_data_get, dir, next);
-        _elm_access_auto_highlight_set(EINA_FALSE);
-        eina_list_free(items);
-        return ret;
-     }
-
-   if (!elm_widget_focus_list_next_get
-       (sd->main_layout, items, eina_list_data_get, dir, next))
-     *next = (Evas_Object *)obj;
+   if (!elm_widget_focus_list_next_get(sd->main_layout, items, eina_list_data_get, dir, next))
+     *next = sd->main_layout;
    eina_list_free(items);
 
    return EINA_TRUE;
 }
 
-static Eina_Bool
-_elm_popup_smart_focus_direction_manager_is(const Evas_Object *obj __UNUSED__)
+EOLIAN static Eina_Bool
+_elm_popup_elm_widget_focus_direction_manager_is(Eo *obj EINA_UNUSED, Elm_Popup_Data *_pd EINA_UNUSED)
 {
    return EINA_TRUE;
 }
 
-static Eina_Bool
-_elm_popup_smart_focus_direction(const Evas_Object *obj,
-                                 const Evas_Object *base,
-                                 double degree,
-                                 Evas_Object **direction,
-                                 double *weight)
+EOLIAN static Eina_Bool
+_elm_popup_elm_widget_focus_direction(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd, const Evas_Object *base, double degree, Evas_Object **direction, double *weight)
 {
    Evas_Object *ao;
    Eina_List *items = NULL;
-   Elm_Popup_Item * it = NULL;
-   Eina_List *l;
-
-   ELM_POPUP_DATA_GET(obj, sd);
+   Eina_List *base_items = NULL;
 
    /* access */
    if (_elm_config->access_mode)
      {
-        ao = _access_object_get(obj, ACCESS_OUTLINE_PART);
-        if (ao) items = eina_list_append(items, ao);
-
         if (sd->title_text)
           {
              ao = _access_object_get(obj, ACCESS_TITLE_PART);
@@ -1955,124 +1619,98 @@ _elm_popup_smart_focus_direction(const Evas_Object *obj,
 
         ao = _access_object_get(obj, ACCESS_BODY_PART);
         if (ao) items = eina_list_append(items, ao);
-
-        EINA_LIST_FOREACH(sd->items, l, it)
-          items = eina_list_append(items, it->base.access_obj);
      }
 
-   /* content area */
-   if (sd->content) items = eina_list_append(items, sd->content_area);
+   eo_do(sd->main_layout, base_items = elm_obj_container_content_swallow_list_get());
 
-   /* action area */
-   if (sd->button_count) items = eina_list_append(items, sd->action_area);
+   items = eina_list_merge(items, base_items);
 
    elm_widget_focus_list_direction_get
      (sd->main_layout, base, items, eina_list_data_get, degree, direction, weight);
+   eina_list_free(items);
 
    return EINA_TRUE;
 }
 
-// FIXME: There are applications which do not use elm_win as top widget.
-// This is workaround! Those could not use focus!
-static Eina_Bool _focus_enabled(Evas_Object *obj)
+//TIZEN_ONLY(20150709) : add keybinding for elm_popup "block,clicked" action
+static Eina_Bool
+_key_action_escape(Evas_Object *obj, const char *params EINA_UNUSED)
 {
-   if (!elm_widget_focus_get(obj)) return EINA_FALSE;
-
-   const Evas_Object *win = elm_widget_top_get(obj);
-   const char *type = evas_object_type_get(win);
-
-   if (type && !strcmp(type, "elm_win"))
-     {
-        return elm_win_focus_highlight_enabled_get(win);
-     }
-   return EINA_FALSE;
+   evas_object_smart_callback_call(obj, SIG_BLOCK_CLICKED, NULL);
+   return EINA_TRUE;
 }
+//
 
 static Eina_Bool
-_elm_popup_smart_on_focus(Evas_Object *obj, Elm_Focus_Info *info)
+_key_action_move(Evas_Object *obj, const char *params)
 {
-   Elm_Popup_Item *item;
-   ELM_POPUP_DATA_GET(obj, sd);
+   const char *dir = params;
 
-   if (!ELM_WIDGET_CLASS(_elm_popup_parent_sc)->on_focus(obj, info))
+   if (!strcmp(dir, "previous"))
+     elm_widget_focus_cycle(obj, ELM_FOCUS_PREVIOUS);
+   else if (!strcmp(dir, "next"))
+     elm_widget_focus_cycle(obj, ELM_FOCUS_NEXT);
+   else if (!strcmp(dir, "left"))
+     elm_widget_focus_cycle(obj, ELM_FOCUS_LEFT);
+   else if (!strcmp(dir, "right"))
+     elm_widget_focus_cycle(obj, ELM_FOCUS_RIGHT);
+   else if (!strcmp(dir, "up"))
+     elm_widget_focus_cycle(obj, ELM_FOCUS_UP);
+   else if (!strcmp(dir, "down"))
+     elm_widget_focus_cycle(obj, ELM_FOCUS_DOWN);
+   else return EINA_FALSE;
+
+   return EINA_TRUE;
+
+}
+
+EOLIAN static Eina_Bool
+_elm_popup_elm_widget_event(Eo *obj, Elm_Popup_Data *_pd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
+{
+   (void)src;
+   Evas_Event_Key_Down *ev = event_info;
+
+   if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
+
+   if (!_elm_config_key_binding_call(obj, ev, key_actions))
      return EINA_FALSE;
 
-   if (sd->items)
-     {
-        if (elm_widget_focus_get(obj))
-          {
-             if (_focus_enabled(obj))
-               {
-                  if (!sd->focused) sd->focused = sd->items;
-                  item = eina_list_data_get(sd->focused);
-                  edje_object_signal_emit(VIEW(item), "elm,action,focus_highlight,show", "elm");
-                  evas_object_smart_callback_call(obj, "item,focused", item);
-               }
-          }
-        else
-          {
-             if (sd->focused)
-               {
-                  item = eina_list_data_get(sd->focused);
-                  edje_object_signal_emit(VIEW(item), "elm,action,focus_highlight,hide", "elm");
-                  evas_object_smart_callback_call(obj, "item,unfocused", item);
-               }
-          }
-     }
+   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
    return EINA_TRUE;
 }
 
-static void _rotation_changed_cb(void *data,
-                               Evas_Object *o __UNUSED__,
-                               const char *emission __UNUSED__,
-                               const char *source __UNUSED__)
+//TIZEN_ONLY(20150204): add scroller of content text of popup
+static void
+_create_scroller(Evas_Object *obj)
 {
-   int rotation = -1;
-   Eina_List *elist;
-   Evas_Object *popup = data;
-   Elm_Popup_Item *item;
+   ELM_POPUP_DATA_GET(obj, sd);
 
-   ELM_POPUP_CHECK(popup);
-   ELM_POPUP_DATA_GET(popup, sd);
+   //table
+   sd->tbl = elm_table_add(sd->main_layout);
+   evas_object_event_callback_add(sd->tbl, EVAS_CALLBACK_DEL,
+                                  _on_table_del, obj);
 
-   rotation = ELM_WIDGET_DATA(sd)->orient_mode;
+   //spacer
+   sd->spacer = evas_object_rectangle_add(evas_object_evas_get(obj));
+   evas_object_color_set(sd->spacer, 0, 0, 0, 0);
+   elm_table_pack(sd->tbl, sd->spacer, 0, 0, 1, 1);
 
-   if (sd->orientation == rotation) return;
-
-   sd->orientation = rotation;
-
-   if (sd->items)
-     {
-        EINA_LIST_FOREACH(sd->items, elist, item)
-        {
-           if (rotation == 90 || rotation == 270)
-             {
-                elm_widget_theme_object_set
-                   (WIDGET(item), VIEW(item), "popup", "item/landscape",
-                    elm_widget_style_get(WIDGET(item)));
-             }
-           else
-             {
-                elm_widget_theme_object_set
-                   (WIDGET(item), VIEW(item), "popup", "item",
-                    elm_widget_style_get(WIDGET(item)));
-             }
-           _item_update(item);
-           if (elm_widget_item_disabled_get(item))
-              edje_object_signal_emit
-                 (VIEW(item), "elm,state,item,disabled", "elm");
-        }
-      if (sd->focused)
-        {
-           item = eina_list_data_get(sd->focused);
-           edje_object_signal_emit(VIEW(item), "elm,action,focus_highlight,show", "elm");
-        }
-   }
-
-   _scroller_size_calc(popup);
-   elm_layout_sizing_eval(popup);
+   //Scroller
+   sd->scr = elm_scroller_add(sd->tbl);
+   elm_object_style_set(sd->scr, "effect");
+   evas_object_size_hint_weight_set(sd->scr, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(sd->scr, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   elm_scroller_content_min_limit(sd->scr, EINA_TRUE, EINA_FALSE);
+   elm_scroller_bounce_set(sd->scr, EINA_FALSE, EINA_TRUE);
+   evas_object_event_callback_add(sd->scr, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
+                                  _size_hints_changed_cb, obj);
+   elm_table_pack(sd->tbl, sd->scr, 0, 0, 1, 1);
+   evas_object_show(sd->scr);
 }
+//
 
+//TIZEN_ONLY(20150305): fix popup align and size problem
 static void
 _notify_resize_cb(void *data,
                   Evas *e EINA_UNUSED,
@@ -2081,317 +1719,221 @@ _notify_resize_cb(void *data,
 {
    Evas_Object *popup = data;
 
+   ELM_POPUP_CHECK(popup);
+
    _scroller_size_calc(popup);
    elm_layout_sizing_eval(popup);
 }
+//
 
-static void
-_elm_popup_smart_add(Evas_Object *obj)
+//TIZEN_ONLY(20150305): add resize callback for rotation
+static void _rotation_changed_cb(void *data,
+                               Evas_Object *o EINA_UNUSED,
+                               const char *emission EINA_UNUSED,
+                               const char *source EINA_UNUSED)
 {
-   EVAS_SMART_DATA_ALLOC(obj, Elm_Popup_Smart_Data);
+   Evas_Object *popup = data;
 
-   ELM_WIDGET_CLASS(_elm_popup_parent_sc)->base.add(obj);
+   ELM_POPUP_CHECK(popup);
 
+   _scroller_size_calc(popup);
+   elm_layout_sizing_eval(popup);
 }
+//
 
+//TIZEN_ONLY(20150827): add display mode configure to check compress mode
 static void
-_elm_popup_smart_parent_set(Evas_Object *obj,
-                            Evas_Object *parent)
+_on_obj_size_hints_changed(void *data EINA_UNUSED, Evas *e EINA_UNUSED,
+                           Evas_Object *obj, void *event_info EINA_UNUSED)
 {
+   Evas_Display_Mode dispmode;
+
    ELM_POPUP_DATA_GET(obj, sd);
 
-   if (sd->notify)
-     elm_notify_parent_set(sd->notify, parent);
+   dispmode = evas_object_size_hint_display_mode_get(obj);
+   if (sd->dispmode == dispmode) return;
+
+   sd->dispmode = dispmode;
+
+   _scroller_size_calc(obj);
+   elm_layout_sizing_eval(obj);
+}
+//
+
+EOLIAN static void
+_elm_popup_evas_object_smart_add(Eo *obj, Elm_Popup_Data *priv)
+{
+   char style[1024];
+
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   elm_widget_sub_object_parent_add(obj);
+
+   // TIZEN_ONLY(20150121): Change style name of popup groups.
+   //snprintf(style, sizeof(style), "popup/%s", elm_widget_style_get(obj));
+   snprintf(style, sizeof(style), "%s", elm_widget_style_get(obj));
+   //
+
+   //TIZEN_ONLY(20150305): add a allow eval flag not to call another sizing eval during sizing eval
+   priv->allow_eval = EINA_TRUE;
+   //
+
+   //TIZEN_ONLY(20150806): support scrollable content
+   //FIXME: genlist only now, it should be changed to support other scrollable.
+   priv->scrollable_content = EINA_FALSE;
+   //
+
+   //TIZEN_ONLY(20150827): add display mode configure to check compress mode
+   priv->dispmode = evas_object_size_hint_display_mode_get(obj);
+   //
+
+   priv->notify = elm_notify_add(obj);
+
+   //TIZEN_ONLY(20150305): fix popup align and size problem
+   //elm_object_style_set(priv->notify, style);
+   elm_object_style_set(priv->notify, "popup");
+   //
+
+   //TIZEN_ONLY(20150723): add popup default align
+   //elm_notify_align_set(priv->notify, 0.5, 0.5);
+   elm_notify_align_set(priv->notify,
+                        _elm_config->popup_horizontal_align,
+                        _elm_config->popup_vertical_align);
+   //
+   elm_notify_allow_events_set(priv->notify, EINA_FALSE);
+   evas_object_size_hint_weight_set
+     (priv->notify, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set
+     (priv->notify, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   evas_object_smart_member_add(priv->notify, obj);
+
+   evas_object_smart_callback_add(priv->notify, "block,clicked", _block_clicked_cb, obj);
+   evas_object_smart_callback_add(priv->notify, "timeout", _timeout_cb, obj);
+   evas_object_smart_callback_add(priv->notify, "show,finished", _show_finished_cb, obj);
+   evas_object_smart_callback_add(priv->notify, "dismissed", _hide_effect_finished_cb, obj);
+   //TIZEN_ONLY(20150305): fix popup align and size problem
+   evas_object_event_callback_add
+     (priv->notify, EVAS_CALLBACK_RESIZE, _notify_resize_cb, obj);
+   //
+
+   priv->main_layout = elm_layout_add(obj);
+   if (!elm_layout_theme_set(priv->main_layout, "popup", "base",
+                             elm_widget_style_get(obj)))
+     ERR("Failed to set layout!");
+
+   //TIZEN_ONLY(20150204): add scroller of content text of popup
+   _create_scroller(obj);
+   elm_layout_content_set(priv->main_layout, "elm.swallow.content", priv->tbl);
+   _scroller_size_calc(obj);
+   //
+
+   elm_object_content_set(priv->notify, priv->main_layout);
+
+   evas_object_event_callback_add(obj, EVAS_CALLBACK_SHOW, _on_show, NULL);
+
+   evas_object_event_callback_add
+     (obj, EVAS_CALLBACK_RESTACK, _restack_cb, NULL);
+
+   //TIZEN_ONLY(20150827): add display mode configure to check compress mode
+   evas_object_event_callback_add(obj, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
+                                  _on_obj_size_hints_changed, NULL);
+   //
+
+   elm_layout_signal_callback_add
+     (priv->main_layout, "elm,state,title_area,visible", "elm", _layout_change_cb, NULL);
+   elm_layout_signal_callback_add
+     (priv->main_layout, "elm,state,title_area,hidden", "elm", _layout_change_cb, NULL);
+   elm_layout_signal_callback_add
+     (priv->main_layout, "elm,state,action_area,visible", "elm", _layout_change_cb, NULL);
+   elm_layout_signal_callback_add
+     (priv->main_layout, "elm,state,action_area,hidden", "elm", _layout_change_cb, NULL);
+   //TIZEN_ONLY(20150305): add resize callback for rotation
+   elm_layout_signal_callback_add
+     (priv->main_layout, "elm,state,orientation,changed", "", _rotation_changed_cb, obj);
+   //
+
+   priv->content_area = elm_layout_add(priv->main_layout);
+   if (!elm_layout_theme_set(priv->content_area, "popup", "content", style))
+     ERR("Failed to set layout!");
+   else
+   //TIZEN_ONLY(20150305): fix popup align and size problem
+   //  evas_object_event_callback_add
+   //     (priv->content_area, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
+   //      _size_hints_changed_cb, priv->main_layout);
+   evas_object_event_callback_add
+        (priv->content_area, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
+         _size_hints_changed_cb, obj);
+   //
+
+   priv->content_text_wrap_type = ELM_WRAP_MIXED;
+
+   elm_widget_can_focus_set(obj, EINA_TRUE);
+   elm_widget_can_focus_set(priv->main_layout, EINA_TRUE);
+
+   _visuals_set(obj);
+   edje_object_message_signal_process(elm_layout_edje_get(priv->main_layout));
 }
 
 static void
-_elm_popup_smart_access(Evas_Object *obj, Eina_Bool is_access)
+_parent_resize_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   Evas_Coord x, y, w, h;
+   Evas_Object *popup = data;
+
+   evas_object_geometry_get(obj, &x, &y, &w, &h);
+
+   evas_object_move(popup, x, y);
+   evas_object_resize(popup, w, h);
+}
+
+EOLIAN static void
+_elm_popup_elm_widget_parent_set(Eo *obj, Elm_Popup_Data *sd EINA_UNUSED, Evas_Object *parent)
+{
+   Evas_Coord x, y, w, h;
+   evas_object_geometry_get(parent, &x, &y, &w, &h);
+
+   if (eo_isa(parent, ELM_WIN_CLASS))
+     {
+        x = 0;
+        y = 0;
+     }
+   evas_object_move(obj, x, y);
+   evas_object_resize(obj, w, h);
+
+   sd->parent = parent;
+   evas_object_event_callback_add(parent, EVAS_CALLBACK_RESIZE, _parent_resize_cb, obj);
+}
+
+EOLIAN static void
+_elm_popup_elm_widget_access(Eo *obj, Elm_Popup_Data *_pd EINA_UNUSED, Eina_Bool is_access)
 {
    _access_obj_process(obj, is_access);
-
-   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
-}
-
-static Evas_Object *
-_elm_popup_smart_access_object_get(Evas_Object *obj, char *part)
-{
-   ELM_POPUP_CHECK(obj) NULL;
-
-   return _access_object_get(obj, part);
-}
-
-static void
-_elm_popup_item_coordinates_calc(Elm_Popup_Item *item,
-                                   Evas_Coord *x,
-                                   Evas_Coord *y,
-                                   Evas_Coord *w,
-                                   Evas_Coord *h)
-{
-   Evas_Coord ix, iy, iw, ih, bx, by, vw, vh;
-
-   ELM_POPUP_DATA_GET(WIDGET(item), sd);
-   elm_scroller_region_get(sd->scr, NULL, NULL, &vw, &vh);
-   evas_object_geometry_get(sd->box, &bx, &by, NULL, NULL);
-   evas_object_geometry_get(VIEW(item), &ix, &iy, &iw, &ih);
-   *x = ix - bx;
-   *y = iy - by;
-   *w = iw;
-   *h = ih;
-}
-
-static Eina_Bool
-_elm_popup_smart_event(Evas_Object *obj,
-                       Evas_Object *src __UNUSED__,
-                       Evas_Callback_Type type,
-                       void *event_info)
-{
-   Evas_Event_Key_Down *ev = event_info;
-   ELM_POPUP_DATA_GET(obj, sd);
-   Elm_Popup_Item *item = NULL;
-   Elm_Popup_Item *temp_item = NULL;
-   Eina_List *list = NULL;
-   Evas_Coord x, y, w, h;
-
-   // TIZEN ONLY(20131221) : When access mode, focused ui is disabled.
-   if (_elm_config->access_mode) return EINA_FALSE;
-
-   if (elm_widget_disabled_get(obj)) return EINA_FALSE;
-   if(!_focus_enabled(obj)) return EINA_FALSE;
-   if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
-   if (!sd->focused) sd->focused = sd->items;
-   temp_item = eina_list_data_get(sd->focused);
-
-   if (!strcmp(ev->keyname, "Tab"))
-     {
-        if (evas_key_modifier_is_set(ev->modifiers, "Shift"))
-          elm_widget_focus_cycle(obj, ELM_FOCUS_PREVIOUS);
-        else
-          elm_widget_focus_cycle(obj, ELM_FOCUS_NEXT);
-
-        goto success;
-     }
-   if ((!strcmp(ev->keyname, "Return")) ||
-            ((!strcmp(ev->keyname, "KP_Enter")) && !ev->string))
-     {
-        if (sd->focused)
-          {
-             item = eina_list_data_get(sd->focused);
-             if (!elm_widget_item_disabled_get(item))
-               edje_object_signal_emit(VIEW(item), "elm,anim,activate", "elm");
-          }
-        goto success;
-     }
-   else if ((!strcmp(ev->keyname, "Left")) ||
-            ((!strcmp(ev->keyname, "KP_Left")) && (!ev->string)))
-     {
-        elm_widget_focus_direction_go(obj, 270.0);
-        goto success;
-     }
-   else if ((!strcmp(ev->keyname, "Right")) ||
-            ((!strcmp(ev->keyname, "KP_Right")) && (!ev->string)))
-     {
-        elm_widget_focus_direction_go(obj, 90.0);
-        goto success;
-     }
-   else if ((!strcmp(ev->keyname, "Up")) ||
-            ((!strcmp(ev->keyname, "KP_Up")) && (!ev->string)))
-     {
-        if (sd->focused)
-          list = eina_list_prev(sd->focused);
-        elm_widget_focus_direction_go(obj, 0.0);
-        goto success;
-     }
-   else if ((!strcmp(ev->keyname, "Down")) ||
-            ((!strcmp(ev->keyname, "KP_Down")) && (!ev->string)))
-     {
-        if (sd->focused)
-          list = eina_list_next(sd->focused);
-        elm_widget_focus_direction_go(obj, 180.0);
-        goto success;
-     }
-
-   return EINA_FALSE;
-
-success:
-   if (list)
-     {
-        item = eina_list_data_get(list);
-        edje_object_signal_emit
-           (VIEW(item), "elm,action,focus_highlight,show", "elm");
-        evas_object_smart_callback_call(obj, "item,focused", item);
-        if (temp_item && (temp_item != item))
-          {
-             edje_object_signal_emit(VIEW(temp_item), "elm,action,focus_highlight,hide", "elm");
-             evas_object_smart_callback_call(obj, "item,unfocused", temp_item);
-          }
-        sd->focused = list;
-        _elm_popup_item_coordinates_calc(item, &x, &y, &w, &h);
-        elm_scroller_region_bring_in(sd->scr, x, y, w, h);
-     }
-   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-   return EINA_TRUE;
-}
-
-static void
-_elm_popup_smart_set_user(Elm_Popup_Smart_Class *sc)
-{
-   ELM_WIDGET_CLASS(sc)->base.add = _elm_popup_smart_add;
-   ELM_WIDGET_CLASS(sc)->base.del = _elm_popup_smart_del;
-
-   ELM_WIDGET_CLASS(sc)->parent_set = _elm_popup_smart_parent_set;
-   ELM_WIDGET_CLASS(sc)->event = _elm_popup_smart_event;
-   ELM_WIDGET_CLASS(sc)->theme = _elm_popup_smart_theme;
-   ELM_WIDGET_CLASS(sc)->translate = _elm_popup_smart_translate;
-   ELM_WIDGET_CLASS(sc)->focus_next = _elm_popup_smart_focus_next;
-   ELM_WIDGET_CLASS(sc)->on_focus = _elm_popup_smart_on_focus;
-   ELM_WIDGET_CLASS(sc)->access = _elm_popup_smart_access;
-   ELM_WIDGET_CLASS(sc)->access_object_get = _elm_popup_smart_access_object_get;
-   ELM_WIDGET_CLASS(sc)->focus_direction_manager_is =
-      _elm_popup_smart_focus_direction_manager_is;
-   ELM_WIDGET_CLASS(sc)->focus_direction = _elm_popup_smart_focus_direction;
-   ELM_WIDGET_CLASS(sc)->sub_object_del = _elm_popup_smart_sub_object_del;
-
-   ELM_CONTAINER_CLASS(sc)->content_set = _elm_popup_smart_content_set;
-   ELM_CONTAINER_CLASS(sc)->content_get = _elm_popup_smart_content_get;
-   ELM_CONTAINER_CLASS(sc)->content_unset = _elm_popup_smart_content_unset;
-
-   ELM_LAYOUT_CLASS(sc)->text_set = _elm_popup_smart_text_set;
-   ELM_LAYOUT_CLASS(sc)->text_get = _elm_popup_smart_text_get;
-   ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_popup_smart_sizing_eval;
-}
-
-EAPI const Elm_Popup_Smart_Class *
-elm_popup_smart_class_get(void)
-{
-   static Elm_Popup_Smart_Class _sc =
-     ELM_POPUP_SMART_CLASS_INIT_NAME_VERSION(ELM_POPUP_SMART_NAME);
-   static const Elm_Popup_Smart_Class *class = NULL;
-   Evas_Smart_Class *esc = (Evas_Smart_Class *)&_sc;
-
-   if (class)
-     return class;
-
-   _elm_popup_smart_set(&_sc);
-   esc->callbacks = _smart_callbacks;
-   class = &_sc;
-
-   return class;
 }
 
 EAPI Evas_Object *
 elm_popup_add(Evas_Object *parent)
 {
-   Evas_Object *obj, *ao;
-   const char *str;
-   int orient = ELM_POPUP_ORIENT_CENTER;
-
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
+   Evas_Object *obj = eo_add(MY_CLASS, parent);
 
-   obj = elm_widget_add(_elm_popup_smart_class_new(), parent);
-   if (!obj) return NULL;
-
-   if (!elm_widget_sub_object_add(parent, obj))
-     ERR("could not add %p as sub object of %p", obj, parent);
-
-   ELM_WIDGET_DATA_GET(obj, wd);
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   sd->allow_eval = EINA_TRUE;
-
-   // Notify
-   sd->notify = elm_notify_add(obj);
-   elm_object_style_set(sd->notify, "popup");
-   elm_notify_align_set(sd->notify, 0.5, 0.5);
-   elm_notify_allow_events_set(sd->notify, EINA_FALSE);
-   evas_object_size_hint_weight_set
-     (sd->notify, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set
-     (sd->notify, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   evas_object_smart_member_add(sd->notify, obj);
-   elm_notify_parent_set(sd->notify, parent);
-
-   evas_object_smart_callback_add(sd->notify, "block,clicked", _block_clicked_cb, obj);
-   evas_object_smart_callback_add(sd->notify, "timeout", _timeout_cb, obj);
-   evas_object_smart_callback_add(sd->notify, "show,finished", _show_finished_cb, obj);
-   evas_object_smart_callback_add(sd->notify, "dismissed", _hide_effect_finished_cb, obj);
-   evas_object_event_callback_add
-     (sd->notify, EVAS_CALLBACK_RESIZE, _notify_resize_cb, obj);
-
-   // Main layout
-   sd->main_layout = elm_layout_add(obj);
-   if (!elm_layout_theme_set(sd->main_layout, "popup", "base",
-                             elm_widget_style_get(obj)))
-     CRITICAL("Failed to set layout!");
-
-   _create_scroller(obj);
-   elm_layout_content_set(sd->main_layout, "elm.swallow.content", sd->tbl);
-
-   _scroller_size_calc(obj);
-
-   evas_object_event_callback_add(obj, EVAS_CALLBACK_SHOW, _on_show, NULL);
-   evas_object_event_callback_add
-     (obj, EVAS_CALLBACK_RESTACK, _restack_cb, NULL);
-
-   elm_layout_signal_callback_add
-     (sd->main_layout, "elm,state,title_area,visible", "elm", _layout_change_cb, obj);
-   elm_layout_signal_callback_add
-     (sd->main_layout, "elm,state,title_area,hidden", "elm", _layout_change_cb, obj);
-   elm_layout_signal_callback_add
-     (sd->main_layout, "elm,state,action_area,visible", "elm", _layout_change_cb, obj);
-   elm_layout_signal_callback_add
-     (sd->main_layout, "elm,state,action_area,hidden", "elm", _layout_change_cb, obj);
-
-   elm_layout_signal_callback_add
-     (sd->main_layout, "elm,state,orientation,changed", "", _rotation_changed_cb, obj);
-
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, NULL);
    wd->highlight_root = EINA_TRUE;
-   sd->orientation = wd->orient_mode;
-   sd->content_text_wrap_type = ELM_WRAP_MIXED;
-
-   _elm_widget_orient_signal_emit(obj);
-
-   elm_widget_can_focus_set(obj, EINA_TRUE);
-
-   //Tizen Only: This should be removed when eo is applied.
-   wd->on_create = EINA_FALSE;
-
-   /* access */
-   if (_elm_config->access_mode)
-     {
-        ao = _access_object_get(obj, ACCESS_OUTLINE_PART);
-        if (!ao)
-          {
-             ao = _elm_access_edje_object_part_object_register
-                (obj, elm_layout_edje_get(sd->main_layout), ACCESS_OUTLINE_PART);
-             _elm_access_text_set(_elm_access_object_get(ao),
-                                  ELM_ACCESS_TYPE,
-                                  E_("Central popup"));
-             _elm_access_text_set(_elm_access_object_get(ao),
-                                  ELM_ACCESS_CONTEXT_INFO,
-                                  E_("Double tap to close it"));
-             _elm_access_activate_callback_set
-                (_elm_access_object_get(ao), _access_base_activate_cb, obj);
-          }
-     }
-
-   _visuals_set(obj);
-
-   str = edje_object_data_get(elm_layout_edje_get(sd->main_layout), "default_orient");
-   if (str) orient = atoi(str);
-   elm_popup_orient_set(obj, orient);
-   elm_object_content_set(sd->notify, sd->main_layout);
 
    return obj;
 }
 
-EAPI void
-elm_popup_content_text_wrap_type_set(Evas_Object *obj,
-                                     Elm_Wrap_Type wrap)
+EOLIAN static void
+_elm_popup_eo_base_constructor(Eo *obj, Elm_Popup_Data *_pd EINA_UNUSED)
 {
-   ELM_POPUP_CHECK(obj);
-   ELM_POPUP_DATA_GET(obj, sd);
+   eo_do_super(obj, MY_CLASS, eo_constructor());
+   eo_do(obj,
+         evas_obj_type_set(MY_CLASS_NAME_LEGACY),
+         evas_obj_smart_callbacks_descriptions_set(_smart_callbacks),
+         elm_interface_atspi_accessible_role_set(ELM_ATSPI_ROLE_DIALOG));
+}
 
+EOLIAN static void
+_elm_popup_content_text_wrap_type_set(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd, Elm_Wrap_Type wrap)
+{
    //Need to wrap the content text, so not allowing ELM_WRAP_NONE
    if (sd->content_text_wrap_type == ELM_WRAP_NONE) return;
 
@@ -2400,89 +1942,15 @@ elm_popup_content_text_wrap_type_set(Evas_Object *obj,
      elm_label_line_wrap_set(sd->text_content_obj, wrap);
 }
 
-EAPI Elm_Wrap_Type
-elm_popup_content_text_wrap_type_get(const Evas_Object *obj)
+EOLIAN static Elm_Wrap_Type
+_elm_popup_content_text_wrap_type_get(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd)
 {
-   ELM_POPUP_CHECK(obj) ELM_WRAP_LAST;
-   ELM_POPUP_DATA_GET(obj, sd);
-
    return sd->content_text_wrap_type;
 }
 
-EAPI void
-elm_popup_align_set(Evas_Object *obj,
-                    double horizontal, double vertical)
-{
-   ELM_POPUP_CHECK(obj);
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   elm_notify_align_set(sd->notify, horizontal, vertical);
-}
-
-EAPI void
-elm_popup_align_get(const Evas_Object *obj,
-                    double *horizontal, double *vertical)
-{
-   ELM_POPUP_CHECK(obj);
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   elm_notify_align_get(sd->notify, horizontal, vertical);
-}
-
-EAPI void
-elm_popup_orient_set(Evas_Object *obj,
-                     Elm_Popup_Orient orient)
-{
-   ELM_POPUP_CHECK(obj);
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   if (orient >= ELM_POPUP_ORIENT_LAST) return;
-   double horizontal = 0, vertical = 0;
-
-      switch (orient)
-        {
-         case ELM_POPUP_ORIENT_TOP:
-            horizontal = 0.5; vertical = 0.0;
-           break;
-
-         case ELM_POPUP_ORIENT_CENTER:
-            horizontal = 0.5; vertical = 0.5;
-           break;
-
-         case ELM_POPUP_ORIENT_BOTTOM:
-            horizontal = 0.5; vertical = 1.0;
-           break;
-
-         case ELM_POPUP_ORIENT_LEFT:
-            horizontal = 0.0; vertical = 0.5;
-           break;
-
-         case ELM_POPUP_ORIENT_RIGHT:
-            horizontal = 1.0; vertical = 0.5;
-           break;
-
-         case ELM_POPUP_ORIENT_TOP_LEFT:
-            horizontal = 0.0; vertical = 0.0;
-           break;
-
-         case ELM_POPUP_ORIENT_TOP_RIGHT:
-            horizontal = 1.0; vertical = 0.0;
-           break;
-
-         case ELM_POPUP_ORIENT_BOTTOM_LEFT:
-            horizontal = 0.0; vertical = 1.0;
-           break;
-
-         case ELM_POPUP_ORIENT_BOTTOM_RIGHT:
-            horizontal = 1.0; vertical = 1.0;
-           break;
-
-         default:
-           break;
-        }
-   elm_notify_align_set(sd->notify, horizontal, vertical);
-}
-
+/* keeping old externals orient api for notify, but taking away the
+ * introduced deprecation warning by copying the deprecated code
+ * here */
 static Elm_Notify_Orient
 _elm_notify_orient_get(const Evas_Object *obj)
 {
@@ -2514,124 +1982,213 @@ _elm_notify_orient_get(const Evas_Object *obj)
    return orient;
 }
 
-EAPI Elm_Popup_Orient
-elm_popup_orient_get(const Evas_Object *obj)
+static void
+_elm_notify_orient_set(Evas_Object *obj,
+                       Elm_Notify_Orient orient)
 {
-   ELM_POPUP_CHECK(obj) - 1;
-   ELM_POPUP_DATA_GET(obj, sd);
+   double horizontal = 0, vertical = 0;
 
+   switch (orient)
+     {
+      case ELM_NOTIFY_ORIENT_TOP:
+         horizontal = 0.5; vertical = 0.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_CENTER:
+         horizontal = 0.5; vertical = 0.5;
+        break;
+
+      case ELM_NOTIFY_ORIENT_BOTTOM:
+         horizontal = 0.5; vertical = 1.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_LEFT:
+         horizontal = 0.0; vertical = 0.5;
+        break;
+
+      case ELM_NOTIFY_ORIENT_RIGHT:
+         horizontal = 1.0; vertical = 0.5;
+        break;
+
+      case ELM_NOTIFY_ORIENT_TOP_LEFT:
+         horizontal = 0.0; vertical = 0.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_TOP_RIGHT:
+         horizontal = 1.0; vertical = 0.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_BOTTOM_LEFT:
+         horizontal = 0.0; vertical = 1.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_BOTTOM_RIGHT:
+         horizontal = 1.0; vertical = 1.0;
+        break;
+
+      case ELM_NOTIFY_ORIENT_LAST:
+        break;
+     }
+
+   elm_notify_align_set(obj, horizontal, vertical);
+}
+
+EOLIAN static void
+_elm_popup_orient_set(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd, Elm_Popup_Orient orient)
+{
+   if (orient >= ELM_POPUP_ORIENT_LAST) return;
+   _elm_notify_orient_set(sd->notify, (Elm_Notify_Orient)orient);
+}
+
+EOLIAN static Elm_Popup_Orient
+_elm_popup_orient_get(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd)
+{
    return (Elm_Popup_Orient)_elm_notify_orient_get(sd->notify);
 }
 
-EAPI void
-elm_popup_timeout_set(Evas_Object *obj,
-                      double timeout)
+EOLIAN static void
+_elm_popup_align_set(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd, double horizontal, double vertical)
 {
-   ELM_POPUP_CHECK(obj);
-   ELM_POPUP_DATA_GET(obj, sd);
+   elm_notify_align_set(sd->notify, horizontal, vertical);
+}
 
+EOLIAN static void
+_elm_popup_align_get(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd, double *horizontal, double *vertical)
+{
+   elm_notify_align_get(sd->notify, horizontal, vertical);
+}
+
+EOLIAN static void
+_elm_popup_timeout_set(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd, double timeout)
+{
    elm_notify_timeout_set(sd->notify, timeout);
 }
 
-EAPI double
-elm_popup_timeout_get(const Evas_Object *obj)
+EOLIAN static double
+_elm_popup_timeout_get(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd)
 {
-   ELM_POPUP_CHECK(obj) 0.0;
-   ELM_POPUP_DATA_GET(obj, sd);
-
    return elm_notify_timeout_get(sd->notify);
 }
 
-EAPI void
-elm_popup_allow_events_set(Evas_Object *obj,
-                           Eina_Bool allow)
+EOLIAN static void
+_elm_popup_allow_events_set(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd, Eina_Bool allow)
 {
    Eina_Bool allow_events = !!allow;
-
-   ELM_POPUP_CHECK(obj);
-   ELM_POPUP_DATA_GET(obj, sd);
 
    elm_notify_allow_events_set(sd->notify, allow_events);
 }
 
-EAPI Eina_Bool
-elm_popup_allow_events_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_popup_allow_events_get(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd)
 {
-   ELM_POPUP_CHECK(obj) EINA_FALSE;
-   ELM_POPUP_DATA_GET(obj, sd);
-
    return elm_notify_allow_events_get(sd->notify);
 }
 
-EAPI Elm_Object_Item *
-elm_popup_item_append(Evas_Object *obj,
-                      const char *label,
-                      Evas_Object *icon,
-                      Evas_Smart_Cb func,
-                      const void *data)
+EOLIAN static Elm_Object_Item*
+_elm_popup_item_append(Eo *obj, Elm_Popup_Data *sd, const char *label, Evas_Object *icon, Evas_Smart_Cb func, const void *data)
 {
    Evas_Object *prev_content;
-   Elm_Popup_Item *item;
+   Eo *eo_it;
 
-   ELM_POPUP_CHECK(obj) NULL;
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   item = elm_widget_item_new(obj, Elm_Popup_Item);
-   if (!item) return NULL;
+   eo_it = eo_add(ELM_POPUP_ITEM_CLASS, obj);
+   if (!eo_it) return NULL;
+   ELM_POPUP_ITEM_DATA_GET(eo_it, it);
    if (sd->content || sd->text_content_obj)
      {
-        prev_content = elm_layout_content_get
-            (sd->content_area, "elm.swallow.content");
-        if (prev_content)
-          evas_object_del(prev_content);
+        prev_content = eo_do(sd->content_area,
+                             elm_obj_container_content_get(CONTENT_PART));
+        evas_object_del(prev_content);
      }
 
    //The first item is appended.
-   if (!sd->items)
-     _list_add(obj);
+   //TIZEN_ONLY(20150204): add scroller of content text of popup
+   //if (!sd->items)
+   //  _list_add(obj);
+   //
 
-   item->func = func;
-   item->base.data = data;
+   it->func = func;
+   WIDGET_ITEM_DATA_SET(eo_it, data);
 
-   _item_new(item);
-   _item_icon_set(item, icon);
-   _item_text_set(item, label);
+   _item_new(it);
+   _item_icon_set(it, icon);
+   _item_text_set(it, label);
 
-   elm_box_pack_end(sd->box, VIEW(item));
-   sd->items = eina_list_append(sd->items, item);
+   elm_box_pack_end(sd->box, VIEW(it));
+   sd->items = eina_list_append(sd->items, it);
 
+   _scroller_size_calc(obj);
    elm_layout_sizing_eval(obj);
 
-   return (Elm_Object_Item *)item;
+   return eo_it;
 }
 
-EAPI void
-elm_popup_parent_set(Evas_Object *obj,
-                           Evas_Object *parent)
-  {
-     ELM_POPUP_CHECK(obj);
-     ELM_POPUP_DATA_GET(obj, sd);
-
-     elm_notify_parent_set(sd->notify, parent);
-  }
-
-EAPI Evas_Object *
-elm_popup_parent_get(Evas_Object *obj)
-  {
-     ELM_POPUP_CHECK(obj) NULL;
-     ELM_POPUP_DATA_GET(obj, sd);
-
-     return elm_notify_parent_get(sd->notify);
-  }
-
-EAPI void
-elm_popup_dismiss(Evas_Object *obj)
+EOLIAN static void
+_elm_popup_dismiss(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd)
 {
-   ELM_POPUP_CHECK(obj);
-   ELM_POPUP_DATA_GET(obj, sd);
-
-   elm_layout_signal_emit(sd->main_layout, "elm,state,tizen,content,hide", "elm");
+   elm_layout_signal_emit(sd->main_layout, "elm,state,hide", "elm");
    elm_notify_dismiss(sd->notify);
 }
 
-#undef _TIZEN_
+static void
+_elm_popup_class_constructor(Eo_Class *klass)
+{
+   evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
+}
+
+EOLIAN const Elm_Atspi_Action *
+_elm_popup_elm_interface_atspi_widget_action_elm_actions_get(Eo *obj EINA_UNUSED, Elm_Popup_Data *pd EINA_UNUSED)
+{
+   static Elm_Atspi_Action atspi_actions[] = {
+//TIZEN_ONLY(20150709) : add keybinding for elm_popup "block,clicked" action
+          { "escape", "escape", NULL, _key_action_escape},
+          { NULL, NULL, NULL, NULL }
+   };
+   if (pd->action_area)
+     return NULL;
+///
+
+   return &atspi_actions[0];
+}
+
+EOLIAN static Elm_Atspi_State_Set
+_elm_popup_elm_interface_atspi_accessible_state_set_get(Eo *obj, Elm_Popup_Data *sd EINA_UNUSED)
+{
+   Elm_Atspi_State_Set ret;
+   eo_do_super(obj, MY_CLASS, ret = elm_interface_atspi_accessible_state_set_get());
+
+   STATE_TYPE_SET(ret, ELM_ATSPI_STATE_MODAL);
+
+   return ret;
+}
+
+//TIZEN ONLY(20150708): popup and ctxpopup accessibility highlight impementation
+EOLIAN static Eina_Bool
+_elm_popup_elm_interface_atspi_component_highlight_grab(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd)
+{
+   if (sd->scr)
+     {
+        elm_object_accessibility_highlight_set(sd->main_layout, EINA_TRUE);
+        ///TIZEN_ONLY(20170717) : expose highlight information on atspi
+        elm_interface_atspi_accessible_state_changed_signal_emit(obj, ELM_ATSPI_STATE_HIGHLIGHTED, EINA_TRUE);
+        ///
+        return EINA_TRUE;
+     }
+   return EINA_FALSE;
+}
+
+EOLIAN static Eina_Bool
+_elm_popup_elm_interface_atspi_component_highlight_clear(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd)
+{
+   if (sd->scr)
+     {
+        elm_object_accessibility_highlight_set(sd->main_layout, EINA_FALSE);
+        ///TIZEN_ONLY(20170717) : expose highlight information on atspi
+        elm_interface_atspi_accessible_state_changed_signal_emit(obj, ELM_ATSPI_STATE_HIGHLIGHTED, EINA_FALSE);
+        ///
+        return EINA_TRUE;
+     }
+   return EINA_FALSE;
+}
+//
+#include "elm_popup.eo.c"
+#include "elm_popup_item.eo.c"

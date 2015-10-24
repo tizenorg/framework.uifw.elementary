@@ -1,7 +1,13 @@
 #ifndef ELM_WIDGET_DATETIME_H
 #define ELM_WIDGET_DATETIME_H
 
-#include "elm_widget_layout.h"
+#include "Elementary.h"
+
+/* DO NOT USE THIS HEADER UNLESS YOU ARE PREPARED FOR BREAKING OF YOUR
+ * CODE. THIS IS ELEMENTARY'S INTERNAL WIDGET API (for now) AND IS NOT
+ * FINAL. CALL elm_widget_api_check(ELM_INTERNAL_API_VERSION) TO CHECK
+ * IT AT RUNTIME.
+ */
 
 /**
  * @internal
@@ -16,118 +22,36 @@
  */
 
 /**
- * @def ELM_DATETIME_CLASS
- *
- * Use this macro to cast whichever subclass of
- * #Elm_Datetime_Smart_Class into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_DATETIME_CLASS(x) ((Elm_Datetime_Smart_Class *)x)
-
-/**
- * @def ELM_DATETIME_DATA
- *
- * Use this macro to cast whichever subdata of
- * #Elm_Datetime_Smart_Data into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_DATETIME_DATA(x)  ((Elm_Datetime_Smart_Data *)x)
-
-/**
- * @def ELM_DATETIME_SMART_CLASS_VERSION
- *
- * Current version for Elementary datetime @b base smart class, a value
- * which goes to _Elm_Datetime_Smart_Class::version.
- *
- * @ingroup Widget
- */
-#define ELM_DATETIME_SMART_CLASS_VERSION 1
-
-/**
- * @def ELM_DATETIME_SMART_CLASS_INIT
- *
- * Initializer for a whole #Elm_Datetime_Smart_Class structure, with
- * @c NULL values on its specific fields.
- *
- * @param smart_class_init initializer to use for the "base" field
- * (#Evas_Smart_Class).
- *
- * @see EVAS_SMART_CLASS_INIT_NULL
- * @see EVAS_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_DATETIME_SMART_CLASS_INIT_NULL
- * @see ELM_DATETIME_SMART_CLASS_INIT_NAME_VERSION
- *
- * @ingroup Widget
- */
-#define ELM_DATETIME_SMART_CLASS_INIT(smart_class_init) \
-  {smart_class_init, ELM_DATETIME_SMART_CLASS_VERSION}
-
-/**
- * @def ELM_DATETIME_SMART_CLASS_INIT_NULL
- *
- * Initializer to zero out a whole #Elm_Datetime_Smart_Class structure.
- *
- * @see ELM_DATETIME_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_DATETIME_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_DATETIME_SMART_CLASS_INIT_NULL \
-  ELM_DATETIME_SMART_CLASS_INIT(EVAS_SMART_CLASS_INIT_NULL)
-
-/**
- * @def ELM_DATETIME_SMART_CLASS_INIT_NAME_VERSION
- *
- * Initializer to zero out a whole #Elm_Datetime_Smart_Class structure and
- * set its name and version.
- *
- * This is similar to #ELM_DATETIME_SMART_CLASS_INIT_NULL, but it will
- * also set the version field of #Elm_Datetime_Smart_Class (base field)
- * to the latest #ELM_DATETIME_SMART_CLASS_VERSION and name it to the
- * specific value.
- *
- * It will keep a reference to the name field as a <c>"const char *"</c>,
- * i.e., the name must be available while the structure is
- * used (hint: static or global variable!) and must not be modified.
- *
- * @see ELM_DATETIME_SMART_CLASS_INIT_NULL
- * @see ELM_DATETIME_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_DATETIME_SMART_CLASS_INIT_NAME_VERSION(name) \
-  ELM_DATETIME_SMART_CLASS_INIT                          \
-    (ELM_LAYOUT_SMART_CLASS_INIT_NAME_VERSION(name))
-
-/**
- * Elementary datetime base smart class. This inherits directly from
- * #Elm_Layout_Smart_Class and is meant to build widgets extending the
- * behavior of a datetime.
- *
- * All of the functions listed on @ref Datetime namespace will work for
- * objects deriving from #Elm_Datetime_Smart_Class.
- */
-typedef struct _Elm_Datetime_Smart_Class
-{
-   Elm_Layout_Smart_Class base;
-
-   int                    version;    /**< Version of this smart class definition */
-} Elm_Datetime_Smart_Class;
-
-/**
  * Base layout smart data extended with datetime instance data.
  */
-typedef struct _Elm_Datetime_Smart_Data Elm_Datetime_Smart_Data;
-typedef struct _Datetime_Field          Datetime_Field;
-typedef struct _Datetime_Mod_Api        Datetime_Mod_Api;
-typedef struct _Format_Map              Format_Map;
+typedef struct _Elm_Datetime_Module_Data Elm_Datetime_Module_Data;
+typedef struct _Elm_Datetime_Data        Elm_Datetime_Data;
+typedef struct _Datetime_Field           Datetime_Field;
+typedef struct _Datetime_Mod_Api         Datetime_Mod_Api;
+typedef struct _Format_Map               Format_Map;
 
 #define ELM_DATETIME_TYPE_COUNT           6
 #define ELM_DATETIME_MAX_FORMAT_LEN       64
 #define ELM_DATETIME_MAX_FIELD_FORMAT_LEN 3
 
+struct _Elm_Datetime_Module_Data
+{
+   Evas_Object *base;
+   void         (*field_limit_get)(Evas_Object *obj,
+                                   Elm_Datetime_Field_Type field_type,
+                                   int *range_min,
+                                   int *range_max);
+   const char  *(*field_format_get)(Evas_Object * obj,
+                                    Elm_Datetime_Field_Type field_type);
+   // TIZEN_ONLY(20150529): Add datetime_input_circle module.
+   Eina_Bool    (*field_location_get)(Evas_Object *obj,
+                                      Elm_Datetime_Field_Type field_type,
+                                      int *loc);
+   //
+   //TIZEN_ONLY(20150715): Spinner entry changed callback support for datetime UX.
+   Eina_List   *(*fields_sorted_get)(Evas_Object *obj);
+   //
+};
 
 struct _Datetime_Field
 {
@@ -154,14 +78,15 @@ struct _Datetime_Mod_Api
    void                      (*field_value_display)(Elm_Datetime_Module_Data
                                                     *mdata,
                                                     Evas_Object *obj);
+   // TIZEN_ONLY(20150602): notify modules when field format is changed.
    void                      (*field_format_changed)(Elm_Datetime_Module_Data
                                                     *mdata,
                                                     Evas_Object *obj);
+   //
 };
 
-struct _Elm_Datetime_Smart_Data
+struct _Elm_Datetime_Data
 {
-   Elm_Layout_Smart_Data     base;
    /* fixed set of fields. */
    Datetime_Field            field_list[ELM_DATETIME_TYPE_COUNT];
    struct tm                 curr_time, min_limit, max_limit;
@@ -188,33 +113,29 @@ struct _Format_Map
  * @}
  */
 
-EAPI extern const char ELM_DATETIME_SMART_NAME[];
-EAPI const Elm_Datetime_Smart_Class *elm_datetime_smart_class_get(void);
-
 #define ELM_DATETIME_DATA_GET(o, sd) \
-  Elm_Datetime_Smart_Data * sd = evas_object_smart_data_get(o)
+  Elm_Datetime_Data * sd = eo_data_scope_get(o, ELM_DATETIME_CLASS)
 
 #define ELM_DATETIME_DATA_GET_OR_RETURN(o, ptr)      \
   ELM_DATETIME_DATA_GET(o, ptr);                     \
-  if (!ptr)                                          \
+  if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
-       CRITICAL("No widget data for object %p (%s)", \
-                o, evas_object_type_get(o));         \
+       CRI("No widget data for object %p (%s)",      \
+           o, evas_object_type_get(o));              \
        return;                                       \
     }
 
 #define ELM_DATETIME_DATA_GET_OR_RETURN_VAL(o, ptr, val) \
   ELM_DATETIME_DATA_GET(o, ptr);                         \
-  if (!ptr)                                              \
+  if (EINA_UNLIKELY(!ptr))                               \
     {                                                    \
-       CRITICAL("No widget data for object %p (%s)",     \
-                o, evas_object_type_get(o));             \
+       CRI("No widget data for object %p (%s)",          \
+           o, evas_object_type_get(o));                  \
        return val;                                       \
     }
 
-#define ELM_DATETIME_CHECK(obj)                                      \
-  if (!obj || !elm_widget_type_check((obj), ELM_DATETIME_SMART_NAME, \
-                                     __func__))                      \
+#define ELM_DATETIME_CHECK(obj)                              \
+  if (EINA_UNLIKELY(!eo_isa((obj), ELM_DATETIME_CLASS))) \
     return
 
 #endif

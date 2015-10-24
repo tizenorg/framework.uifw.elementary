@@ -1,40 +1,29 @@
 AUTOMAKE_OPTIONS     = 1.4 foreign
 MAINTAINERCLEANFILES = Makefile.in
 
+CLEANFILES=
+
+EOLIAN_FLAGS = @DEPS_EOLIAN_FLAGS@ \
+	       -I$(top_srcdir)/src/lib
+
+include $(top_srcdir)/Makefile_Eolian_Helper.am
+include $(top_srcdir)/Makefile_Eolian_Cxx_Helper.am
+
 AM_CPPFLAGS = \
 -DELM_INTERNAL_API_ARGESFSDFEFC=1 \
--DMODULES_PATH=\"$(libdir)/elementary/modules\" \
+-DMODULES_PATH=\"$(pkglibdir)/modules\" \
 -I. \
 -I$(top_builddir) \
 -I$(top_srcdir) \
+-I$(top_srcdir)/src/imported \
 -I$(top_srcdir)/src/lib \
 -I$(top_builddir)/src/lib \
--DPACKAGE_DATA_DIR=\"$(datadir)/$(PACKAGE)\" \
--DLOCALE_DIR=\"@LOCALE_DIR@\" \
+-DPACKAGE_DATA_DIR=\"$(pkgdatadir)\" \
+-DLOCALE_DIR=\"$(localedir)\" \
 -DPACKAGE_LIB_DIR=\"$(libdir)\" \
-@ELEMENTARY_CFLAGS@ \
-@ELEMENTARY_X_CFLAGS@ \
-@ELEMENTARY_FB_CFLAGS@ \
-@ELEMENTARY_SDL_CFLAGS@ \
-@ELEMENTARY_WIN32_CFLAGS@ \
-@ELEMENTARY_WINCE_CFLAGS@ \
-@ELEMENTARY_EDBUS_CFLAGS@ \
-@ELEMENTARY_EFREET_CFLAGS@ \
-@ELEMENTARY_EWEATHER_CFLAGS@ \
-@ELEMENTARY_ETHUMB_CFLAGS@ \
-@ELEMENTARY_WEB_CFLAGS@ \
-@ELEMENTARY_EMAP_CFLAGS@ \
-@ELEMENTARY_ECORE_CON_CFLAGS@ \
-@ELEMENTARY_ECORE_IMF_CFLAGS@ \
-@ELEMENTARY_WAYLAND_CFLAGS@ \
-@EVIL_CFLAGS@ \
-@EIO_CFLAGS@ \
-@EMOTION_CFLAGS@ \
-@SDBD_CFLAGS@
-
-if ELEMENTARY_WINDOWS_BUILD
-AM_CPPFLAGS += -DELEMENTARY_BUILD
-endif
+-DICON_DIR=\"$(datadir)/icons\" \
+-DELEMENTARY_BUILD \
+@ELEMENTARY_CFLAGS@
 
 lib_LTLIBRARIES = libelementary.la
 
@@ -44,8 +33,19 @@ Elementary_Cursor.h \
 Elementary_GL_Helpers.h
 includesdir = $(includedir)/elementary-@VMAJ@
 
+### TIZEN_ONLY(20150709): Don't build unused widgets.
+### elm_widget_video.h
+### elm_widget_player.h
+###
 includesunstable_HEADERS = \
+elm_gen_common.h \
+elm_atspi_bridge.h \
+elm_interface_atspi_accessible.h \
+elm_interface_atspi_text.h \
+elm_interface_atspi_widget_action.h \
+elm_interface_fileselector.h \
 elm_interface_scrollable.h \
+elm_interfaces.h \
 elm_widget.h \
 elm_widget_actionslider.h \
 elm_widget_bg.h \
@@ -92,9 +92,9 @@ elm_widget_panel.h \
 elm_widget_panes.h \
 elm_widget_photo.h \
 elm_widget_photocam.h \
-elm_widget_player.h \
 elm_widget_plug.h \
 elm_widget_popup.h \
+elm_widget_prefs.h \
 elm_widget_progressbar.h \
 elm_widget_radio.h \
 elm_widget_route.h \
@@ -106,109 +106,294 @@ elm_widget_slideshow.h \
 elm_widget_spinner.h \
 elm_widget_table.h \
 elm_widget_thumb.h \
-elm_widget_toolbar.h \
-elm_widget_video.h \
-elm_widget_web.h
+elm_widget_toolbar.h
 includesunstabledir = $(includedir)/elementary-@VMAJ@
 
+### TIZEN_ONLY(20150709): Don't build unused widgets.
+### elm_video.h
+### elm_video_eo.h
+### elm_video_legacy.h
+###
 includesub_HEADERS = \
 elc_ctxpopup.h \
-elm_dayselector.h \
-elc_fileselector_button.h \
-elc_fileselector_entry.h \
+elc_ctxpopup_eo.h \
+elc_ctxpopup_legacy.h \
+elc_ctxpopup_common.h \
 elc_fileselector.h \
+elc_fileselector_eo.h \
+elc_fileselector_legacy.h \
+elc_fileselector_common.h \
+elc_fileselector_button.h \
+elc_fileselector_button_eo.h \
+elc_fileselector_button_legacy.h \
+elc_fileselector_entry.h \
+elc_fileselector_entry_eo.h \
+elc_fileselector_entry_legacy.h \
 elc_hoversel.h \
+elc_hoversel_eo.h \
+elc_hoversel_legacy.h \
 elc_multibuttonentry.h \
+elc_multibuttonentry_eo.h \
+elc_multibuttonentry_legacy.h \
+elc_multibuttonentry_common.h \
 elc_naviframe.h \
+elc_naviframe_eo.h \
+elc_naviframe_legacy.h \
+elc_naviframe_common.h \
 elc_popup.h \
+elc_popup_eo.h \
+elc_popup_legacy.h \
+elc_popup_common.h \
 elm_access.h \
 elm_actionslider.h \
+elm_actionslider_eo.h \
+elm_actionslider_legacy.h \
+elm_actionslider_common.h \
+elm_app_common.h \
+elm_app_server_eo.h \
+elm_app_server_view_eo.h \
+elm_app_server_view.h \
+elm_app_server_eet.h \
+elm_app_server.h \
+elm_app_client_eo.h \
+elm_app_client.h \
+elm_app_client_view_eo.h \
+elm_app_client_view.h \
 elm_app.h \
+elm_atspi_app_object.h \
+elm_atspi_proxy.h \
 elm_authors.h \
 elm_bg.h \
+elm_bg_eo.h \
+elm_bg_legacy.h \
+elm_bg_common.h \
 elm_box.h \
+elm_box_eo.h \
+elm_box_legacy.h \
+elm_box_common.h \
 elm_bubble.h \
+elm_bubble_eo.h \
+elm_bubble_legacy.h \
+elm_bubble_common.h \
 elm_button.h \
+elm_button_eo.h \
+elm_button_legacy.h \
 elm_cache.h \
 elm_calendar.h \
+elm_calendar_eo.h \
+elm_calendar_legacy.h \
+elm_calendar_common.h \
 elm_check.h \
+elm_check_eo.h \
+elm_check_legacy.h \
 elm_clock.h \
+elm_clock_eo.h \
+elm_clock_legacy.h \
+elm_clock_common.h \
 elm_cnp.h \
 elm_colorselector.h \
+elm_colorselector_eo.h \
+elm_colorselector_legacy.h \
+elm_colorselector_common.h \
 elm_config.h \
 elm_conform.h \
+elm_conform_eo.h \
+elm_conform_legacy.h \
+elm_container.h \
 elm_cursor.h \
 elm_datetime.h \
+elm_datetime_common.h \
+elm_datetime_eo.h \
+elm_datetime_legacy.h \
+elm_dayselector.h \
+elm_dayselector_common.h \
+elm_dayselector_eo.h \
+elm_dayselector_legacy.h \
 elm_debug.h \
 elm_deprecated.h \
 elm_diskselector.h \
+elm_diskselector_common.h \
+elm_diskselector_eo.h \
+elm_diskselector_legacy.h \
 elm_entry.h \
+elm_entry_common.h \
+elm_entry_eo.h \
+elm_entry_legacy.h \
 elm_finger.h \
 elm_flip.h \
+elm_flip_common.h \
+elm_flip_eo.h \
+elm_flip_legacy.h \
 elm_flipselector.h \
+elm_flipselector_eo.h \
+elm_flipselector_legacy.h \
 elm_focus.h \
 elm_font.h \
 elm_frame.h \
+elm_frame_eo.h \
+elm_frame_legacy.h \
 elm_gen.h \
 elm_general.h \
 elm_gengrid.h \
+elm_gengrid_common.h \
+elm_gengrid_eo.h \
+elm_gengrid_legacy.h \
 elm_genlist.h \
+elm_genlist_common.h \
+elm_genlist_eo.h \
+elm_genlist_legacy.h \
 elm_gesture_layer.h \
+elm_gesture_layer_common.h \
+elm_gesture_layer_eo.h \
+elm_gesture_layer_legacy.h \
 elm_getting_started.h \
 elm_glview.h \
+elm_glview_common.h \
+elm_glview_eo.h \
+elm_glview_legacy.h \
 elm_grid.h \
+elm_grid_eo.h \
+elm_grid_legacy.h \
 elm_hover.h \
+elm_hover_common.h \
+elm_hover_eo.h \
+elm_hover_legacy.h \
 elm_icon.h \
+elm_icon_common.h \
+elm_icon_eo.h \
+elm_icon_legacy.h \
 elm_image.h \
-elm_inwin.h \
-elm_plug.h \
+elm_image_common.h \
+elm_image_eo.h \
+elm_image_legacy.h \
 elm_index.h \
+elm_index_common.h \
+elm_index_eo.h \
+elm_index_legacy.h \
 elm_intro.h \
+elm_inwin.h \
+elm_inwin_eo.h \
+elm_inwin_legacy.h \
 elm_label.h \
+elm_label_common.h \
+elm_label_eo.h \
+elm_label_legacy.h \
 elm_layout.h \
+elm_layout_common.h \
+elm_layout_eo.h \
+elm_layout_legacy.h \
 elm_list.h \
+elm_list_common.h \
+elm_list_eo.h \
+elm_list_legacy.h \
 elm_macros.h \
-elm_mapbuf.h \
 elm_map.h \
+elm_map_common.h \
+elm_map_eo.h \
+elm_map_legacy.h \
+elm_mapbuf.h \
+elm_mapbuf_eo.h \
+elm_mapbuf_legacy.h \
 elm_menu.h \
+elm_menu_common.h \
+elm_menu_eo.h \
+elm_menu_legacy.h \
 elm_mirroring.h \
 elm_need.h \
 elm_notify.h \
+elm_notify_common.h \
+elm_notify_eo.h \
+elm_notify_legacy.h \
 elm_object.h \
 elm_object_item.h \
 elm_panel.h \
+elm_panel_common.h \
+elm_panel_eo.h \
+elm_panel_legacy.h \
 elm_panes.h \
-elm_photocam.h \
+elm_panes_eo.h \
+elm_panes_legacy.h \
 elm_photo.h \
+elm_photo_eo.h \
+elm_photo_legacy.h \
+elm_photocam.h \
+elm_photocam_eo.h \
+elm_photocam_legacy.h \
+elm_plug.h \
+elm_plug_eo.h \
+elm_plug_legacy.h \
+elm_prefs.h \
+elm_prefs_common.h \
+elm_prefs_eo.h \
+elm_prefs_legacy.h \
+elm_prefs_data.h \
 elm_progressbar.h \
+elm_progressbar_common.h \
+elm_progressbar_eo.h \
+elm_progressbar_legacy.h \
 elm_radio.h \
+elm_radio_eo.h \
+elm_radio_legacy.h \
 elm_route.h \
+elm_route_eo.h \
+elm_route_legacy.h \
 elm_scale.h \
-elm_scroller.h \
 elm_scroll.h \
+elm_scroller.h \
+elm_scroller_common.h \
+elm_scroller_eo.h \
+elm_scroller_legacy.h \
 elm_segment_control.h \
+elm_segment_control_common.h \
+elm_segment_control_eo.h \
+elm_segment_control_legacy.h \
 elm_separator.h \
+elm_separator_eo.h \
+elm_separator_legacy.h \
 elm_slider.h \
+elm_slider_common.h \
+elm_slider_eo.h \
+elm_slider_legacy.h \
 elm_slideshow.h \
+elm_slideshow_common.h \
+elm_slideshow_eo.h \
+elm_slideshow_legacy.h \
 elm_spinner.h \
+elm_spinner_eo.h \
+elm_spinner_legacy.h \
 elm_store.h \
+elm_systray.h \
+elm_systray_eo.h \
+elm_systray_common.h \
+elm_systray_watcher.h \
+elm_sys_notify.h \
 elm_table.h \
+elm_table_eo.h \
+elm_table_legacy.h \
 elm_theme.h \
 elm_thumb.h \
+elm_thumb_common.h \
+elm_thumb_eo.h \
+elm_thumb_legacy.h \
 elm_toolbar.h \
+elm_toolbar_common.h \
+elm_toolbar_eo.h \
+elm_toolbar_legacy.h \
 elm_tooltip.h \
 elm_transit.h \
-elm_video.h \
-elm_web.h \
-elm_win.h
+elm_win.h \
+elm_win_common.h \
+elm_win_eo.h \
+elm_win_legacy.h
 includesubdir = $(includedir)/elementary-@VMAJ@/
 
+### TIZEN_ONLY(20150709): Don't build unused widgets.
+### elm_video.c
+### elc_player.c
+###
 libelementary_la_SOURCES = \
-elm_gen_common.h \
 elm_priv.h \
 els_box.h \
-els_pan.h \
-els_scroller.h \
 elc_ctxpopup.c \
 elc_fileselector.c \
 elc_fileselector_button.c \
@@ -216,11 +401,19 @@ elc_fileselector_entry.c \
 elc_hoversel.c \
 elc_multibuttonentry.c \
 elc_naviframe.c \
-elc_player.c \
 elc_popup.c \
 elc_scrolled_entry.c \
 elm_access.c \
 elm_actionslider.c \
+elm_app_common.c \
+elm_app_server_eet.c \
+elm_app_server.c \
+elm_app_server_view.c \
+elm_app_client.c \
+elm_app_client_view.c \
+elm_atspi_app_object.c \
+elm_atspi_proxy.c \
+elm_atspi_bridge.c \
 elm_bg.c \
 elm_box.c \
 elm_bubble.c \
@@ -235,6 +428,7 @@ elm_conform.c \
 elm_container.c \
 elm_datetime.c \
 elm_dayselector.c \
+elm_dbus_menu.c \
 elm_diskselector.c \
 elm_entry.c \
 elm_flip.c \
@@ -244,12 +438,24 @@ elm_frame.c \
 elm_gengrid.c \
 elm_genlist.c \
 elm_gesture_layer.c \
+elm_gesture_layer_extra_gestures.c \
 elm_glview.c \
 elm_grid.c \
 elm_hover.c \
 elm_icon.c \
 elm_image.c \
 elm_index.c \
+elm_interface_atspi_accessible.c \
+elm_interface_atspi_action.c \
+elm_interface_atspi_component.c \
+elm_interface_atspi_editable_text.c \
+elm_interface_atspi_image.c \
+elm_interface_atspi_selection.c \
+elm_interface_atspi_text.c \
+elm_interface_atspi_value.c \
+elm_interface_atspi_widget_action.c \
+elm_interface_atspi_window.c \
+elm_interface_fileselector.c \
 elm_interface_scrollable.c \
 elm_inwin.c \
 elm_label.c \
@@ -266,6 +472,9 @@ elm_panes.c \
 elm_photo.c \
 elm_photocam.c \
 elm_plug.c \
+elm_prefs.c \
+elm_prefs_data.c \
+elm_prefs_edd.x \
 elm_progressbar.c \
 elm_radio.c \
 elm_route.c \
@@ -276,51 +485,293 @@ elm_slider.c \
 elm_slideshow.c \
 elm_spinner.c \
 elm_store.c \
+elm_systray.c \
+elm_systray_watcher.c \
+elm_sys_notify.c \
 elm_table.c \
 elm_theme.c \
 elm_thumb.c \
 elm_toolbar.c \
 elm_transit.c \
 elm_util.c \
-elm_video.c \
-elm_web.c \
-elm_web2.c \
+elm_url.c \
 elm_widget.c \
 elm_win.c \
 els_box.c \
 els_cursor.c \
-els_pan.c \
-els_scroller.c \
 els_tooltip.c \
-elu_ews_wm.c
+elu_ews_wm.c \
+tizen_vector.c
 
-libelementary_la_CFLAGS =
+libelementary_la_CFLAGS = @ELEMENTARY_CFLAGS@
 libelementary_la_LIBADD = \
-@my_libs@ \
-@dlopen_libs@ \
 @ELEMENTARY_LIBS@ \
-@ELEMENTARY_X_LIBS@ \
-@ELEMENTARY_FB_LIBS@ \
-@ELEMENTARY_SDL_LIBS@ \
-@ELEMENTARY_WIN32_LIBS@ \
-@ELEMENTARY_WINCE_LIBS@ \
-@ELEMENTARY_EDBUS_LIBS@ \
-@ELEMENTARY_EFREET_LIBS@ \
-@ELEMENTARY_ETHUMB_LIBS@ \
-@ELEMENTARY_WEB_LIBS@ \
-@ELEMENTARY_EMAP_LIBS@ \
-@ELEMENTARY_ECORE_IMF_LIBS@ \
-@ELEMENTARY_ECORE_CON_LIBS@ \
-@ELEMENTARY_WAYLAND_LIBS@ \
-@EVIL_LIBS@ \
-@EIO_LIBS@ \
-@EMOTION_LIBS@ \
 @LTLIBINTL@
 
-libelementary_la_LDFLAGS = \
--no-undefined @lt_enable_auto_import@ \
--version-info @version_info@ @release_info@
+libelementary_la_LDFLAGS = @EFL_LTLIBRARY_FLAGS@
 
 EXTRA_DIST = \
 elm_factory.h \
-elm_factory.c
+elm_factory.c \
+elm_intro.h.in
+
+### TIZEN_ONLY(20150709): Don't build unused widgets.
+### elm_video.eo
+### elm_player.eo
+###
+elm_eolian_files = \
+elm_access.eo \
+elm_actionslider.eo \
+elm_atspi_bridge.eo \
+elm_app_client.eo \
+elm_app_client_view.eo \
+elm_app_server.eo \
+elm_app_server_view.eo \
+elm_atspi_app_object.eo \
+elm_atspi_proxy.eo \
+elm_bg.eo \
+elm_box.eo \
+elm_bubble.eo \
+elm_button.eo \
+elm_calendar.eo \
+elm_check.eo \
+elm_clock.eo \
+elm_colorselector.eo \
+elm_conformant.eo \
+elm_container.eo \
+elm_ctxpopup.eo \
+elm_datetime.eo \
+elm_dayselector.eo \
+elm_diskselector.eo \
+elm_entry.eo \
+elm_fileselector.eo \
+elm_fileselector_button.eo \
+elm_fileselector_entry.eo \
+elm_flip.eo \
+elm_flipselector.eo \
+elm_frame.eo \
+elm_gengrid.eo \
+elm_gengrid_pan.eo \
+elm_genlist.eo \
+elm_genlist_pan.eo \
+elm_gesture_layer.eo \
+elm_glview.eo \
+elm_grid.eo \
+elm_hover.eo \
+elm_hoversel.eo \
+elm_icon.eo \
+elm_image.eo \
+elm_index.eo \
+elm_interface_atspi_accessible.eo \
+elm_interface_atspi_action.eo \
+elm_interface_atspi_component.eo \
+elm_interface_atspi_editable_text.eo \
+elm_interface_atspi_image.eo \
+elm_interface_atspi_selection.eo \
+elm_interface_atspi_text.eo \
+elm_interface_atspi_value.eo \
+elm_interface_atspi_widget_action.eo \
+elm_interface_atspi_window.eo \
+elm_interface_fileselector.eo \
+elm_interface_scrollable.eo \
+elm_inwin.eo \
+elm_label.eo \
+elm_layout.eo \
+elm_list.eo \
+elm_map.eo \
+elm_map_pan.eo \
+elm_mapbuf.eo \
+elm_menu.eo \
+elm_multibuttonentry.eo \
+elm_naviframe.eo \
+elm_notify.eo \
+elm_pan.eo \
+elm_panel.eo \
+elm_panes.eo \
+elm_photo.eo \
+elm_photocam.eo \
+elm_photocam_pan.eo \
+elm_plug.eo \
+elm_popup.eo \
+elm_prefs.eo \
+elm_progressbar.eo \
+elm_radio.eo \
+elm_route.eo \
+elm_scroller.eo \
+elm_segment_control.eo \
+elm_separator.eo \
+elm_slider.eo \
+elm_slideshow.eo \
+elm_spinner.eo \
+elm_systray.eo \
+elm_table.eo \
+elm_thumb.eo \
+elm_toolbar.eo \
+elm_widget.eo \
+elm_win.eo \
+elm_widget_item.eo \
+elm_color_item.eo \
+elm_dayselector_item.eo \
+elm_hoversel_item.eo \
+elm_segment_control_item.eo \
+elm_slideshow_item.eo \
+elm_flipselector_item.eo \
+elm_menu_item.eo \
+elm_ctxpopup_item.eo \
+elm_index_item.eo \
+elm_multibuttonentry_item.eo \
+elm_naviframe_item.eo \
+elm_genlist_item.eo \
+elm_gengrid_item.eo \
+elm_list_item.eo \
+elm_toolbar_item.eo \
+elm_diskselector_item.eo \
+elm_popup_item.eo
+
+elm_eolian_c = $(elm_eolian_files:%.eo=%.eo.c)
+elm_eolian_h = $(elm_eolian_files:%.eo=%.eo.h)
+elm_eolian_legacy_h = $(elm_eolian_files:%.eo=%.eo.legacy.h)
+elm_eolian_hh = $(elm_eolian_files:%.eo=%.eo.hh)
+
+BUILT_SOURCES = \
+	$(elm_eolian_c)	\
+	$(elm_eolian_h)	\
+	$(elm_eolian_legacy_h)
+
+elementaryeolianfilesdir = $(datadir)/eolian/include/elementary-@VMAJ@
+elementaryeolianfiles_DATA = $(elm_eolian_files)
+EXTRA_DIST += ${elementaryeolianfiles_DATA}
+
+nodist_includesunstable_HEADERS = $(elm_eolian_h) $(elm_eolian_legacy_h)
+CLEANFILES += $(nodist_includesunstable_HEADERS)
+
+### TIZEN_ONLY(20150709): Don't build unused widgets.
+### elm_video.eo
+### elm_player.eo
+###
+elementaryeolianfilesdir = $(datadir)/eolian/include/elementary-@VMAJ@
+elementaryeolianfiles_DATA = \
+	     elm_widget.eo \
+	     elm_container.eo \
+	     elm_layout.eo \
+	     elm_interface_scrollable.eo \
+	     elm_pan.eo \
+	     elm_frame.eo \
+	     elm_hover.eo \
+	     elm_access.eo \
+	     elm_actionslider.eo \
+	     elm_app_client.eo \
+	     elm_app_client_view.eo \
+	     elm_app_server.eo \
+	     elm_app_server_view.eo \
+	     elm_atspi_app_object.eo \
+	     elm_atspi_proxy.eo \
+	     elm_atspi_bridge.eo \
+	     elm_interface_atspi_accessible.eo \
+	     elm_interface_atspi_action.eo \
+	     elm_interface_atspi_component.eo \
+	     elm_interface_atspi_editable_text.eo \
+	     elm_interface_atspi_image.eo \
+	     elm_interface_atspi_selection.eo \
+	     elm_interface_atspi_text.eo \
+	     elm_interface_atspi_value.eo \
+	     elm_interface_atspi_widget_action.eo \
+	     elm_interface_atspi_window.eo \
+	     elm_bg.eo \
+	     elm_box.eo \
+	     elm_bubble.eo \
+	     elm_button.eo \
+	     elm_calendar.eo \
+	     elm_check.eo \
+	     elm_clock.eo \
+	     elm_colorselector.eo \
+	     elm_conformant.eo \
+	     elm_ctxpopup.eo \
+	     elm_datetime.eo \
+	     elm_dayselector.eo \
+	     elm_diskselector.eo \
+	     elm_entry.eo \
+	     elm_fileselector.eo \
+	     elm_fileselector_button.eo \
+	     elm_fileselector_entry.eo \
+	     elm_flipselector.eo \
+	     elm_flip.eo \
+	     elm_gengrid.eo \
+	     elm_gengrid_pan.eo \
+	     elm_genlist.eo \
+	     elm_genlist_pan.eo \
+	     elm_gesture_layer.eo \
+	     elm_glview.eo \
+	     elm_grid.eo \
+	     elm_hoversel.eo \
+	     elm_image.eo \
+	     elm_icon.eo \
+	     elm_index.eo \
+	     elm_interface_fileselector.eo \
+	     elm_inwin.eo \
+	     elm_label.eo \
+	     elm_list.eo \
+	     elm_map_pan.eo \
+	     elm_map.eo \
+	     elm_menu.eo \
+	     elm_multibuttonentry.eo \
+	     elm_naviframe.eo \
+	     elm_panel.eo \
+	     elm_mapbuf.eo \
+	     elm_notify.eo \
+	     elm_panes.eo \
+	     elm_photocam.eo \
+	     elm_photocam_pan.eo \
+	     elm_photo.eo \
+	     elm_plug.eo \
+	     elm_popup.eo \
+	     elm_prefs.eo \
+	     elm_progressbar.eo \
+	     elm_radio.eo \
+	     elm_route.eo \
+	     elm_scroller.eo \
+	     elm_segment_control.eo \
+	     elm_separator.eo \
+	     elm_slider.eo \
+	     elm_slideshow.eo \
+	     elm_spinner.eo \
+	     elm_systray.eo \
+	     elm_table.eo \
+	     elm_thumb.eo \
+	     elm_toolbar.eo \
+	     elm_win.eo \
+	     elm_widget_item.eo \
+	     elm_color_item.eo \
+	     elm_dayselector_item.eo \
+	     elm_hoversel_item.eo \
+	     elm_segment_control_item.eo \
+	     elm_slideshow_item.eo \
+	     elm_flipselector_item.eo \
+	     elm_menu_item.eo \
+	     elm_ctxpopup_item.eo \
+	     elm_index_item.eo \
+	     elm_multibuttonentry_item.eo \
+	     elm_naviframe_item.eo \
+	     elm_genlist_item.eo \
+	     elm_gengrid_item.eo \
+	     elm_list_item.eo \
+	     elm_toolbar_item.eo \
+	     elm_diskselector_item.eo \
+	     elm_popup_item.eo
+
+EXTRA_DIST += ${elementaryeolianfiles_DATA}
+
+includecxxbindingsdir = $(includedir)/elementary-cxx-@VMAJ@
+
+if HAVE_CXX11
+nodist_includecxxbindings_HEADERS = Elementary.hh $(elm_eolian_hh)
+CLEANFILES += Elementary.hh $(nodist_includecxxbindings_HEADERS)
+Elementary.hh: $(elm_eolian_hh)
+	@echo @ECHO_E@ "#ifndef ELEMENTARY_CXX_HH\n#define ELEMENTARY_CXX_HH\n" > $(top_builddir)/src/lib/Elementary.hh
+	@echo @ECHO_E@ "#ifdef EFL_BETA_API_SUPPORT" >> $(top_builddir)/src/lib/Elementary.hh
+	@for i in $(elm_eolian_hh); do echo "#include <$$(basename $$i)>" >> $(top_builddir)/src/lib/Elementary.hh; done
+	@echo @ECHO_E@ "#endif\n\n#endif\n" >> $(top_builddir)/src/lib/Elementary.hh
+endif
+
+
+

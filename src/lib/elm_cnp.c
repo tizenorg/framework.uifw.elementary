@@ -2,6 +2,7 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
+#include <Efreet.h>
 #include "elm_priv.h"
 #ifdef HAVE_MMAN_H
 # include <sys/mman.h>
@@ -181,15 +182,24 @@ static Eina_List *cont_drag_tg = NULL; /* List of Item_Container_Drag_Info */
 static void _cont_obj_mouse_up( void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void _cont_obj_mouse_move( void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void _all_drop_targets_cbs_del(void *data, Evas *e, Evas_Object *obj, void *info);
+#ifdef HAVE_ELEMENTARY_X
 static Ecore_X_Window _x11_elm_widget_xwin_get(const Evas_Object *obj);
+#endif
+static  Eina_Bool _local_elm_drop_target_del(Evas_Object *obj, Elm_Sel_Format format,
+                         Elm_Drag_State entercb, void *enterdata,
+                         Elm_Drag_State leavecb, void *leavedata,
+                         Elm_Drag_Pos poscb, void *posdata,
+                         Elm_Drop_Cb dropcb, void *dropdata);
 
 static Eina_Bool
-_drag_cancel_animate(void *data __UNUSED__, double pos)
+_drag_cancel_animate(void *data EINA_UNUSED, double pos)
 {  /* Animation to "move back" drag-window */
    if (pos >= 0.99)
      {
+#ifdef HAVE_ELEMENTARY_X
         Ecore_X_Window xdragwin = _x11_elm_widget_xwin_get(data);
         ecore_x_window_ignore_set(xdragwin, 0);
+#endif
         evas_object_del(data);
         return ECORE_CALLBACK_CANCEL;
      }
@@ -205,9 +215,10 @@ _drag_cancel_animate(void *data __UNUSED__, double pos)
 }
 
 static void
-_all_drop_targets_cbs_del(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *info __UNUSED__)
+_all_drop_targets_cbs_del(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *info EINA_UNUSED)
 {
-   Dropable *dropable = evas_object_data_get(obj, "__elm_dropable");
+   Dropable *dropable = NULL;
+   eo_do(obj, dropable = eo_key_data_get("__elm_dropable"));
    if (dropable)
      {
         Dropable_Cbs *cbs;
@@ -219,17 +230,20 @@ _all_drop_targets_cbs_del(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object
                                  cbs->poscb, cbs->posdata, cbs->dropcb, cbs->dropdata);
              // If elm_drop_target_del() happened to delete dropabale, then
              // re-fetch it each loop to make sure it didn't
-             dropable = evas_object_data_get(obj, "__elm_dropable");
+             eo_do(obj, dropable = eo_key_data_get("__elm_dropable"));
              if (!dropable) break;
           }
      }
 }
 
-
+#ifdef HAVE_ELEMENTARY_X
 static Tmp_Info  *_tempfile_new      (int size);
 static int        _tmpinfo_free      (Tmp_Info *tmp);
 static Eina_Bool  _pasteimage_append (char *file, Evas_Object *entry);
-static void       _entry_insert_filter(Evas_Object *entry, char *str); // TIZEN ONLY
+//TIZEN ONLY (20150721) : Entry markup (Image) & (Image + Text) CNP
+static void       _entry_insert_filter(Evas_Object *entry, char *str);
+//
+#endif
 
 // x11 specific stuff
 ////////////////////////////////////////////////////////////////////////////
@@ -278,39 +292,41 @@ struct _X11_Cnp_Atom
    Ecore_X_Atom             atom;
 };
 
-static void           _x11_sel_obj_del              (void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__);
-static void           _x11_sel_obj_del2             (void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__);
-static Eina_Bool      _x11_selection_clear          (void *udata __UNUSED__, int type, void *event);
-static Eina_Bool      _x11_selection_notify         (void *udata __UNUSED__, int type, void *event);
+static void           _x11_sel_obj_del              (void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED);
+static void           _x11_sel_obj_del2             (void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED);
+static Eina_Bool      _x11_selection_clear          (void *udata EINA_UNUSED, int type, void *event);
+static Eina_Bool      _x11_selection_notify         (void *udata EINA_UNUSED, int type, void *event);
 static Eina_Bool      _x11_targets_converter        (char *target, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype, int *typesize);
 static Eina_Bool      _x11_text_converter           (char *target, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype, int *typesize);
 static Eina_Bool      _x11_general_converter        (char *target, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype, int *typesize);
 static Eina_Bool      _x11_image_converter          (char *target, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype, int *typesize);
 static Eina_Bool      _x11_vcard_send               (char *target, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype, int *typesize);
-//TIZEN ONLY : static Eina_Bool      _x11_is_uri_type_data         (X11_Cnp_Selection *sel __UNUSED__, Ecore_X_Event_Selection_Notify *notify);
+//TIZEN ONLY (20150721) : Entry markup (Image) & (Image + Text) CNP
+//static Eina_Bool      _x11_is_uri_type_data         (X11_Cnp_Selection *sel EINA_UNUSED, Ecore_X_Event_Selection_Notify *notify);
+//
 static int            _x11_response_handler_targets (X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *);
 static int            _x11_notify_handler_targets   (X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *notify);
 static int            _x11_notify_handler_text      (X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *notify);
 static int            _x11_notify_handler_image     (X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *notify);
 static int            _x11_notify_handler_uri       (X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *notify);
 //static int            _x11_notify_handler_html      (X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *notify);
-static int            _x11_notify_handler_edje      (X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *notify); // TIZEN ONLY
+//TIZEN ONLY (20150721) : Entry markup (Image) & (Image + Text) CNP
+static int            _x11_notify_handler_edje      (X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *notify);
+//
 static int            _x11_vcard_receive            (X11_Cnp_Selection *sed, Ecore_X_Event_Selection_Notify *notify);
-static Eina_Bool      _x11_dnd_enter                (void *data __UNUSED__, int etype __UNUSED__, void *ev);
-static Eina_Bool      _x11_dnd_drop                 (void *data __UNUSED__, int etype __UNUSED__, void *ev);
-static Eina_Bool      _x11_dnd_position             (void *data __UNUSED__, int etype __UNUSED__, void *ev);
-static Eina_Bool      _x11_dnd_status               (void *data __UNUSED__, int etype __UNUSED__, void *ev);
-static Eina_Bool      _x11_dnd_leave                (void *data __UNUSED__, int etype __UNUSED__, void *ev);
-static Eina_Bool      _x11_drag_mouse_up            (void *data, int etype __UNUSED__, void *event);
-static void           _x11_drag_move                (void *data __UNUSED__, Ecore_X_Xdnd_Position *pos);
-
-static Ecore_X_Window _x11_elm_widget_xwin_get           (const Evas_Object *obj);
+static Eina_Bool      _x11_dnd_enter                (void *data EINA_UNUSED, int etype EINA_UNUSED, void *ev);
+static Eina_Bool      _x11_dnd_drop                 (void *data EINA_UNUSED, int etype EINA_UNUSED, void *ev);
+static Eina_Bool      _x11_dnd_position             (void *data EINA_UNUSED, int etype EINA_UNUSED, void *ev);
+static Eina_Bool      _x11_dnd_status               (void *data EINA_UNUSED, int etype EINA_UNUSED, void *ev);
+static Eina_Bool      _x11_dnd_leave                (void *data EINA_UNUSED, int etype EINA_UNUSED, void *ev);
+static Eina_Bool      _x11_drag_mouse_up            (void *data, int etype EINA_UNUSED, void *event);
+static void           _x11_drag_move                (void *data EINA_UNUSED, Ecore_X_Xdnd_Position *pos);
 
 static Eina_Bool _x11_elm_cnp_init                       (void);
-static Eina_Bool _x11_elm_cnp_selection_set              (Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format, const void *selbuf, size_t buflen);
-static void      _x11_elm_cnp_selection_loss_callback_set(Evas_Object *obj __UNUSED__, Elm_Sel_Type selection, Elm_Selection_Loss_Cb func, const void *data);
+static Eina_Bool _x11_elm_cnp_selection_set              (Ecore_X_Window xwin, Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format, const void *selbuf, size_t buflen);
+static void      _x11_elm_cnp_selection_loss_callback_set(Evas_Object *obj EINA_UNUSED, Elm_Sel_Type selection, Elm_Selection_Loss_Cb func, const void *data);
 static Eina_Bool _x11_elm_object_cnp_selection_clear     (Evas_Object *obj, Elm_Sel_Type selection);
-static Eina_Bool _x11_elm_cnp_selection_get              (Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format, Elm_Drop_Cb datacb, void *udata);
+static Eina_Bool _x11_elm_cnp_selection_get              (Ecore_X_Window xwin, Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format, Elm_Drop_Cb datacb, void *udata);
 static Eina_Bool _x11_elm_drop_target_add                (Evas_Object *obj, Elm_Sel_Format format,
                                                           Elm_Drag_State entercb, void *enterdata,
                                                           Elm_Drag_State leavecb, void *leavedata,
@@ -321,7 +337,7 @@ static Eina_Bool _x11_elm_drop_target_del                (Evas_Object *obj, Elm_
                                                           Elm_Drag_State leavecb, void *leavedata,
                                                           Elm_Drag_Pos poscb, void *posdata,
                                                           Elm_Drop_Cb dropcb, void *dropdata);
-static Eina_Bool _x11_elm_selection_selection_has_owner  (Evas_Object *obj __UNUSED__);
+static Eina_Bool _x11_elm_selection_selection_has_owner  (Evas_Object *obj EINA_UNUSED);
 
 static X11_Cnp_Atom _x11_atoms[CNP_N_ATOMS] = {
    [CNP_ATOM_TARGETS] = {
@@ -345,14 +361,18 @@ static X11_Cnp_Atom _x11_atoms[CNP_N_ATOMS] = {
       ELM_SEL_FORMAT_MARKUP,
       _x11_general_converter,
       NULL,
-      //NULL,                    // TIZEN ONLY
-      _x11_notify_handler_edje,  // TIZEN ONLY
+      ///TIZEN ONLY (20150721) : Entry markup (Image) & (Image + Text) CNP
+      //NULL,
+      _x11_notify_handler_edje,
+      //
       0
    },
    [CNP_ATOM_text_uri] = {
       "text/uri",
-      //ELM_SEL_FORMAT_MARKUP | ELM_SEL_FORMAT_IMAGE, /* Either images or entries */   // TIZEN ONLY
-      ELM_SEL_FORMAT_IMAGE,      // TIZEN ONLY
+      //TIZEN ONLY (20150721) : Entry markup (Image) & (Image + Text) CNP
+      //ELM_SEL_FORMAT_MARKUP | ELM_SEL_FORMAT_IMAGE, /* Either images or entries */
+      ELM_SEL_FORMAT_IMAGE,
+      //
       _x11_general_converter,
       NULL,
       _x11_notify_handler_uri,
@@ -542,7 +562,7 @@ static X11_Cnp_Selection _x11_selections[ELM_SEL_TYPE_CLIPBOARD + 1] = {
 };
 
 static void
-_x11_sel_obj_del(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_x11_sel_obj_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    X11_Cnp_Selection *sel = data;
    if (sel->widget == obj) sel->widget = NULL;
@@ -550,14 +570,14 @@ _x11_sel_obj_del(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_i
 }
 
 static void
-_x11_sel_obj_del2(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_x11_sel_obj_del2(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    X11_Cnp_Selection *sel = data;
    if (sel->requestwidget == obj) sel->requestwidget = NULL;
 }
 
 static Eina_Bool
-_x11_selection_clear(void *udata __UNUSED__, int type __UNUSED__, void *event)
+_x11_selection_clear(void *udata EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_X_Event_Selection_Clear *ev = event;
    X11_Cnp_Selection *sel;
@@ -596,7 +616,7 @@ _x11_selection_clear(void *udata __UNUSED__, int type __UNUSED__, void *event)
  *    else it's the data we want.
  */
 static Eina_Bool
-_x11_selection_notify(void *udata __UNUSED__, int type __UNUSED__, void *event)
+_x11_selection_notify(void *udata EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
    Ecore_X_Event_Selection_Notify *ev = event;
    X11_Cnp_Selection *sel;
@@ -622,10 +642,6 @@ _x11_selection_notify(void *udata __UNUSED__, int type __UNUSED__, void *event)
      }
    cnp_debug("Target is %s\n", ev->target);
 
-   if (!elm_widget_focus_get(sel->requestwidget) &&
-       ((ev->selection == ECORE_X_SELECTION_SECONDARY) || (ev->selection == ECORE_X_SELECTION_CLIPBOARD)))
-     return ECORE_CALLBACK_PASS_ON;
-
    for (i = 0; i < CNP_N_ATOMS; i++)
      {
         if (!strcmp(ev->target, _x11_atoms[i].name))
@@ -636,6 +652,7 @@ _x11_selection_notify(void *udata __UNUSED__, int type __UNUSED__, void *event)
                   _x11_atoms[i].notify(sel, ev);
                }
              else cnp_debug("Ignored: No handler!\n");
+             break;
           }
      }
    return ECORE_CALLBACK_PASS_ON;
@@ -659,7 +676,7 @@ _get_selection_type(void *data, int size)
 }
 
 static Eina_Bool
-_x11_targets_converter(char *target __UNUSED__, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype, int *typesize)
+_x11_targets_converter(char *target EINA_UNUSED, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype, int *typesize)
 {
    int i, count;
    Ecore_X_Atom *aret;
@@ -698,14 +715,14 @@ _x11_targets_converter(char *target __UNUSED__, void *data, int size, void **dat
 }
 
 static Eina_Bool
-_x11_image_converter(char *target __UNUSED__, void *data __UNUSED__, int size __UNUSED__, void **data_ret __UNUSED__, int *size_ret __UNUSED__, Ecore_X_Atom *ttype __UNUSED__, int *typesize __UNUSED__)
+_x11_image_converter(char *target EINA_UNUSED, void *data EINA_UNUSED, int size EINA_UNUSED, void **data_ret EINA_UNUSED, int *size_ret EINA_UNUSED, Ecore_X_Atom *ttype EINA_UNUSED, int *typesize EINA_UNUSED)
 {
    cnp_debug("Image converter called\n");
    return EINA_TRUE;
 }
 
 static Eina_Bool
-_x11_vcard_send(char *target __UNUSED__, void *data __UNUSED__, int size __UNUSED__, void **data_ret, int *size_ret, Ecore_X_Atom *ttype __UNUSED__, int *typesize __UNUSED__)
+_x11_vcard_send(char *target EINA_UNUSED, void *data EINA_UNUSED, int size EINA_UNUSED, void **data_ret, int *size_ret, Ecore_X_Atom *ttype EINA_UNUSED, int *typesize EINA_UNUSED)
 {
    X11_Cnp_Selection *sel;
 
@@ -716,10 +733,10 @@ _x11_vcard_send(char *target __UNUSED__, void *data __UNUSED__, int size __UNUSE
    return EINA_TRUE;
 }
 
-// TIZEN ONLY
+//TIZEN ONLY (20150721) : Entry markup (Image) & (Image + Text) CNP
 #if 0
 static Eina_Bool
-_x11_is_uri_type_data(X11_Cnp_Selection *sel __UNUSED__, Ecore_X_Event_Selection_Notify *notify)
+_x11_is_uri_type_data(X11_Cnp_Selection *sel EINA_UNUSED, Ecore_X_Event_Selection_Notify *notify)
 {
    Ecore_X_Selection_Data *data;
    char *p;
@@ -730,7 +747,7 @@ _x11_is_uri_type_data(X11_Cnp_Selection *sel __UNUSED__, Ecore_X_Event_Selection
    p = (char *)data->data;
    if (!p) return EINA_TRUE;
    cnp_debug("Got %s\n", p);
-   if (strncmp(p, "file://", 7))
+   if (strncmp(p, "file:/", 6))
      {
         if (*p != '/') return EINA_FALSE;
      }
@@ -760,7 +777,7 @@ _x11_notify_handler_targets(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Noti
           {
              if ((_x11_atoms[j].atom == atomlist[i]) && (_x11_atoms[j].notify))
                {
-// TIZEN ONLY
+                //TIZEN ONLY (20150721) : Entry markup (Image) & (Image + Text) CNP
 #if 0
                   if ((j == CNP_ATOM_text_uri) ||
                       (j == CNP_ATOM_text_urilist))
@@ -831,7 +848,7 @@ _x11_notify_handler_text(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify 
           }
         if (dropable)
           {
-             Dropable_Cbs *cbs = NULL;
+             Dropable_Cbs *cbs;
              Eina_Inlist *itr;
              ddata.x = savedtypes.x;
              ddata.y = savedtypes.y;
@@ -867,16 +884,20 @@ _x11_notify_handler_text(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify 
         cnp_debug("Notify handler text %d %d %p\n", data->format,
                   data->length, data->data);
         mkupstr = _elm_util_text_to_mkup((const char *)stripstr);
+
+        if (!mkupstr)
+          {
+             ERR("Failed to convert text to markup text!");
+             free(stripstr);
+             goto end;
+          }
+
         cnp_debug("String is %s (from %s)\n", stripstr, data->data);
         /* TODO BUG: should never NEVER assume it's an elm_entry! */
-        //_elm_entry_entry_paste(sel->requestwidget, mkupstr); // TIZEN ONLY
-        // TIZEN ONLY
-        if (mkupstr)
+        //TIZEN ONLY (20150721) : Entry markup (Image) & (Image + Text) CNP
+        //_elm_entry_entry_paste(sel->requestwidget, mkupstr);
           _entry_insert_filter(sel->requestwidget, mkupstr);
-        else
-          _entry_insert_filter(sel->requestwidget, stripstr);
         //
-
         free(stripstr);
         free(mkupstr);
      }
@@ -901,6 +922,7 @@ _x11_notify_handler_uri(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *
    if (data->content == ECORE_X_SELECTION_CONTENT_FILES)
      {
         int i, len = 0;
+        Efreet_Uri **uri;
 
         cnp_debug("got a files list\n");
         files = notify->data;
@@ -913,12 +935,29 @@ _x11_notify_handler_uri(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *
           }
         stripstr = p = strdup(files->files[0]);
          */
+
+        uri = calloc(1, sizeof(*uri) * files->num_files);
+        if (!uri) return 0;
+
         for (i = 0; i < files->num_files ; i++)
           {
-             p = files->files[i];
-             if (strncmp(p, "file://", 7) && (p[0] != '/')) continue;
-             if (!strncmp(p, "file://", 7)) p += 7;
-             len += strlen(p) + 1;
+             uri[i] = efreet_uri_decode(files->files[i]);
+             if (!uri[i])
+               {
+                  /* Is there any reason why we care of URI without scheme? */
+                  if (files->files[i][0] != '/') continue;
+                  len += strlen(files->files[i]) + 1;
+               }
+             else
+               {
+                  if (strcmp(uri[i]->protocol, "file"))
+                    {
+                       efreet_uri_free(uri[i]);
+                       uri[i] = NULL;
+                       continue;
+                    }
+                  len += strlen(uri[i]->path) + 1;
+               }
           }
         p = NULL;
         if (len > 0)
@@ -926,48 +965,150 @@ _x11_notify_handler_uri(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *
              s = stripstr = malloc(len + 1);
              for (i = 0; i < files->num_files ; i++)
                {
-                  p = files->files[i];
-                  if ((strncmp(p, "file://", 7)) && (p[0] != '/')) continue;
-                  if (!strncmp(p, "file://", 7)) p += 7;
-                  len = strlen(p);
-                  strcpy(s, p);
-                  if (i < (files->num_files - 1))
-                    {
-                       s[len] = '\n';
-                       s[len + 1] = 0;
-                       s += len + 1;
-                    }
+                  if (uri[i])
+                    p = (char *)uri[i]->path;
                   else
+                    p = files->files[i];
+
+                  if (s)
                     {
-                       s[len] = 0;
-                       s += len;
+                       len = strlen(p);
+                       strcpy(s, p);
+                       if (i < (files->num_files - 1))
+                         {
+                            s[len] = '\n';
+                            s[len + 1] = 0;
+                            s += len + 1;
+                         }
+                       else
+                         {
+                            s[len] = 0;
+                            s += len;
+                         }
                     }
+
+                  if (uri[i])
+                    efreet_uri_free(uri[i]);
                }
           }
+        free(uri);
+
+        // TIZEN_ONLY(20150622): Prevent to use pointer after free.
+        if (!stripstr)
+          {
+             cnp_debug("Couldn't find a file\n");
+             return 0;
+          }
+        free(savedtypes.imgfile);
+        if (savedtypes.textreq)
+          {
+             savedtypes.textreq = 0;
+             savedtypes.imgfile = stripstr;
+          }
+        else
+          {
+             savedtypes.imgfile = NULL;
+             _pasteimage_append(p, sel->requestwidget);
+             free(stripstr);
+          }
+        //
      }
    else
      {
-        p = (char *)data->data;
-        if ((!strncmp(p, "file://", 7)) || (p[0] == '/'))
+        Efreet_Uri *uri;
+
+        p = (char *)eina_memdup((unsigned char *)data->data, data->length, EINA_TRUE);
+        if (!p) return EINA_FALSE;
+        uri = efreet_uri_decode(p);
+        if (!uri)
           {
-             int len = data->length;
-             if (!strncmp(p, "file://", 7))
-               {
-                  p += 7;
-                  len -= 7;
-               }
-             stripstr = malloc(len + 1);
-             if (!stripstr) return 0;
-             memcpy(stripstr, p, len);
-             stripstr[len] = 0;
+             /* Is there any reason why we care of URI without scheme? */
+             if (p[0] == '/') stripstr = p;
+             // TIZEN_ONLY(20150622): Prevent to use pointer after free.
+             //else free(p);
           }
+        else
+          {
+             // TIZEN_ONLY(20150622): Prevent to use pointer after free.
+             //free(p);
+             stripstr = (char *)eina_memdup((unsigned char *)uri->path, strlen(uri->path), EINA_TRUE);
+             efreet_uri_free(uri);
+             // TIZEN_ONLY(20150622): Prevent to use pointer after free.
+             //if (!stripstr) return EINA_FALSE;
+          }
+
+        // TIZEN_ONLY(20150622): Prevent to use pointer after free.
+        if (!stripstr)
+          {
+             cnp_debug("Couldn't find a file\n");
+             free(p);
+             return 0;
+          }
+        free(savedtypes.imgfile);
+        if (savedtypes.textreq)
+          {
+             savedtypes.textreq = 0;
+             savedtypes.imgfile = stripstr;
+          }
+        else
+          {
+             savedtypes.imgfile = NULL;
+
+             // TIZEN ONLY(20150812): Support uri dnd
+             if (sel == (_x11_selections + ELM_SEL_TYPE_XDND))
+               {
+                  Elm_Selection_Data ddata;
+                  Eina_List *l;
+                  Dropable *dropable;
+
+                  cnp_debug("drag & drop\n");
+                  EINA_LIST_FOREACH(drops, l, dropable)
+                    {
+                       if (dropable->obj == sel->requestwidget) break;
+                       dropable = NULL;
+                    }
+                  if (dropable)
+                    {
+                       Dropable_Cbs *cbs = NULL;
+                       Eina_Inlist *itr;
+                       char *dstr = malloc(data->length + 1);
+                       if (dstr)
+                         {
+                            memcpy(dstr, data->data, data->length);
+                            dstr[data->length] = '\0';
+                            ddata.data = dstr;
+                            ddata.x = savedtypes.x;
+                            ddata.y = savedtypes.y;
+                            ddata.format = ELM_SEL_FORMAT_IMAGE;
+                            ddata.len = data->length;
+                            ddata.action = sel->action;
+                            EINA_INLIST_FOREACH_SAFE(dropable->cbs_list, itr, cbs)
+                               if (cbs->dropcb)
+                                 cbs->dropcb(cbs->dropdata, dropable->obj, &ddata);
+                            free(dstr);
+                         }
+                       ecore_x_dnd_send_finished();
+                    }
+               }
+             else // TINZEN ONLY - END
+               {
+                  cnp_debug("call to _pastimage_append\n");
+                  _pasteimage_append(p, sel->requestwidget);
+               }
+             free(stripstr);
+          }
+        if (stripstr != p)
+          free(p);
+        //
      }
+   // TIZEN_ONLY(20150622): Prevent to use pointer after free.
+   /*
    if (!stripstr)
      {
         cnp_debug("Couldn't find a file\n");
         return 0;
      }
-   if (savedtypes.imgfile) free(savedtypes.imgfile);
+   free(savedtypes.imgfile);
    if (savedtypes.textreq)
      {
         savedtypes.textreq = 0;
@@ -976,52 +1117,10 @@ _x11_notify_handler_uri(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *
    else
      {
         savedtypes.imgfile = NULL;
-        // TIZEN ONLY - START
-        if (sel == (_x11_selections + ELM_SEL_TYPE_XDND))
-          {
-             Elm_Selection_Data ddata;
-             Eina_List *l;
-             Dropable *dropable;
-
-             cnp_debug("drag & drop\n");
-             /* FIXME: this needs to be generic: Used for all receives */
-             EINA_LIST_FOREACH(drops, l, dropable)
-               {
-                  if (dropable->obj == sel->requestwidget) break;
-                  dropable = NULL;
-               }
-             if (dropable)
-               {
-                  Dropable_Cbs *cbs = NULL;
-                  Eina_Inlist *itr;
-                  char *dstr = malloc(data->length + 1);
-
-                  if (dstr)
-                    {
-                       memcpy(dstr, data->data, data->length);
-                       dstr[data->length] = '\0';
-                    }
-
-                  ddata.data = dstr;
-                  ddata.x = savedtypes.x;
-                  ddata.y = savedtypes.y;
-                  ddata.format = ELM_SEL_FORMAT_IMAGE;
-                  ddata.len = data->length;
-                  ddata.action = sel->action;
-                  EINA_INLIST_FOREACH_SAFE(dropable->cbs_list, itr, cbs)
-                     if (cbs->dropcb)
-                       cbs->dropcb(cbs->dropdata, dropable->obj, &ddata);
-                  free(dstr);
-               }
-             ecore_x_dnd_send_finished();
-          }
-        else // TIZEN ONLY - END
-          {
-             cnp_debug("call to _pasteimage_append\n");
-             _pasteimage_append(stripstr, sel->requestwidget);
-          }
+        _pasteimage_append(p, sel->requestwidget);
         free(stripstr);
      }
+   */
    return 0;
 }
 
@@ -1039,7 +1138,7 @@ _x11_vcard_receive(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *notif
    cnp_debug("vcard receive\n");
    if (sel == (_x11_selections + ELM_SEL_TYPE_XDND))
      {
-        Dropable_Cbs *cbs = NULL;
+        Dropable_Cbs *cbs;
         Eina_Inlist *itr;
         Elm_Selection_Data ddata;
 
@@ -1114,7 +1213,7 @@ _x11_notify_handler_image(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify
    return 0;
 }
 
-// TIZEN ONLY
+//TIZEN ONLY (20150721) : Entry markup (Image) & (Image + Text) CNP
 static int
 _x11_notify_handler_edje(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify *notify)
 {
@@ -1130,6 +1229,7 @@ _x11_notify_handler_edje(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify 
         ddata.data = data->data;
         ddata.len = data->length;
         sel->datacb(sel->udata, sel->widget, &ddata);
+        cnp_debug("CBHM:String is %s", (char*)(ddata.data));
      }
    else
      {
@@ -1140,7 +1240,7 @@ _x11_notify_handler_edje(X11_Cnp_Selection *sel, Ecore_X_Event_Selection_Notify 
         stripstr[data->length] = '\0';
 
         _entry_insert_filter(sel->requestwidget, stripstr);
-        cnp_debug("String is %s (%d bytes)\n", stripstr, data->length);
+        cnp_debug("CBHM:String is %s (%d bytes)\n", stripstr, data->length);
         free(stripstr);
      }
 
@@ -1243,7 +1343,7 @@ _x11_text_converter(char *target, void *data, int size, void **data_ret, int *si
 }
 
 static Eina_Bool
-_x11_general_converter(char *target __UNUSED__, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype __UNUSED__, int *typesize __UNUSED__)
+_x11_general_converter(char *target EINA_UNUSED, void *data, int size, void **data_ret, int *size_ret, Ecore_X_Atom *ttype EINA_UNUSED, int *typesize EINA_UNUSED)
 {
    if (_get_selection_type(data, size) == ELM_SEL_FORMAT_NONE)
      {
@@ -1325,7 +1425,7 @@ _x11_dropable_list_geom_find(Ecore_X_Window win, Evas_Coord px, Evas_Coord py)
          */
         while (object)
           {
-             dropable = evas_object_data_get(object, "__elm_dropable");
+             eo_do(object, dropable = eo_key_data_get("__elm_dropable"));
              if (dropable)
                {
                   Eina_Bool exist = EINA_FALSE;
@@ -1344,7 +1444,7 @@ _x11_dropable_list_geom_find(Ecore_X_Window win, Evas_Coord px, Evas_Coord py)
                   object = evas_object_smart_parent_get(object);
                   if (dropable)
                     cnp_debug("Drop target %p of type %s found\n",
-                              dropable->obj, evas_object_type_get(dropable->obj));
+                              dropable->obj, eo_class_name_get(eo_class_get(dropable->obj)));
                }
              else
                 object = evas_object_smart_parent_get(object);
@@ -1401,7 +1501,7 @@ _x11_dropable_coords_adjust(Dropable *dropable, Evas_Coord *x, Evas_Coord *y)
 }
 
 static Eina_Bool
-_x11_dnd_enter(void *data __UNUSED__, int etype __UNUSED__, void *ev)
+_x11_dnd_enter(void *data EINA_UNUSED, int etype EINA_UNUSED, void *ev)
 {
    Ecore_X_Event_Xdnd_Enter *enter = ev;
    int i;
@@ -1419,7 +1519,7 @@ _x11_dnd_enter(void *data __UNUSED__, int etype __UNUSED__, void *ev)
 
    cnp_debug("Types\n");
    savedtypes.ntypes = enter->num_types;
-   if (savedtypes.types) free(savedtypes.types);
+   free(savedtypes.types);
    savedtypes.types = malloc(sizeof(char *) * enter->num_types);
    if (!savedtypes.types) return EINA_FALSE;
 
@@ -1447,7 +1547,7 @@ _x11_dnd_dropable_handle(Dropable *dropable, Evas_Coord x, Evas_Coord y, Elm_Xdn
 {
    Dropable *d, *last_dropable = NULL;
    Eina_List *l;
-   Dropable_Cbs *cbs = NULL;
+   Dropable_Cbs *cbs;
    Eina_Inlist *itr;
 
    EINA_LIST_FOREACH(drops, l, d)
@@ -1463,9 +1563,17 @@ _x11_dnd_dropable_handle(Dropable *dropable, Evas_Coord x, Evas_Coord y, Elm_Xdn
         if (last_dropable == dropable) // same
           {
              cnp_debug("same obj dropable %p\n", dropable->obj);
+             // TIZEN ONLY: (20150730): Correct cursor position on dnd
+             //EINA_INLIST_FOREACH_SAFE(dropable->cbs_list, itr, cbs)
+             //   if (cbs->poscb)
+             //     cbs->poscb(cbs->posdata, dropable->obj, x, y, action);
+             Evas_Coord ox, oy;
+
+             evas_object_geometry_get(dropable->obj, &ox, &oy, NULL, NULL);
              EINA_INLIST_FOREACH_SAFE(dropable->cbs_list, itr, cbs)
                 if (cbs->poscb)
-                  cbs->poscb(cbs->posdata, dropable->obj, x, y, action);
+                  cbs->poscb(cbs->posdata, dropable->obj, x - ox, y - oy, action);
+             //
           }
         else
           {
@@ -1499,14 +1607,21 @@ _x11_dnd_dropable_handle(Dropable *dropable, Evas_Coord x, Evas_Coord y, Elm_Xdn
         if (dropable) // enter new obj
           {
              cnp_debug("enter %p\n", dropable->obj);
+             // TIZEN ONLY: (20150730): Correct cursor position on dnd
+             Evas_Coord ox, oy;
+
+             evas_object_geometry_get(dropable->obj, &ox, &oy, NULL, NULL);
              dropable->last.in = EINA_TRUE;
              EINA_INLIST_FOREACH_SAFE(dropable->cbs_list, itr, cbs)
                {
                 if (cbs->entercb)
                   cbs->entercb(cbs->enterdata, dropable->obj);
+                //if (cbs->poscb)
+                //  cbs->poscb(cbs->posdata, dropable->obj, x, y, action);
                 if (cbs->poscb)
-                  cbs->poscb(cbs->posdata, dropable->obj, x, y, action);
+                  cbs->poscb(cbs->posdata, dropable->obj, x - ox, y - oy, action);
                }
+             //
           }
         else
           {
@@ -1582,7 +1697,7 @@ _x11_dnd_types_get(Elm_Sel_Format format, const char **types)
 }
 
 static Eina_Bool
-_x11_dnd_position(void *data __UNUSED__, int etype __UNUSED__, void *ev)
+_x11_dnd_position(void *data EINA_UNUSED, int etype EINA_UNUSED, void *ev)
 {
    Ecore_X_Event_Xdnd_Position *pos = ev;
    Ecore_X_Rectangle rect = { 0, 0, 0, 0 };
@@ -1612,7 +1727,7 @@ _x11_dnd_position(void *data __UNUSED__, int etype __UNUSED__, void *ev)
 
              EINA_LIST_FOREACH(dropable_list, l, dropable)
                {
-                  Dropable_Cbs *cbs = NULL;
+                  Dropable_Cbs *cbs;
                   Eina_Inlist *itr;
                   EINA_INLIST_FOREACH_SAFE(dropable->cbs_list, itr, cbs)
                     {
@@ -1692,7 +1807,7 @@ _x11_dnd_position(void *data __UNUSED__, int etype __UNUSED__, void *ev)
 }
 
 static Eina_Bool
-_x11_dnd_leave(void *data __UNUSED__, int etype __UNUSED__, void *ev)
+_x11_dnd_leave(void *data EINA_UNUSED, int etype EINA_UNUSED, void *ev)
 {
 #ifdef DEBUGON
    cnp_debug("Leave %x\n", ((Ecore_X_Event_Xdnd_Leave *)ev)->win);
@@ -1706,7 +1821,7 @@ _x11_dnd_leave(void *data __UNUSED__, int etype __UNUSED__, void *ev)
 }
 
 static Eina_Bool
-_x11_dnd_drop(void *data __UNUSED__, int etype __UNUSED__, void *ev)
+_x11_dnd_drop(void *data EINA_UNUSED, int etype EINA_UNUSED, void *ev)
 {
    Ecore_X_Event_Xdnd_Drop *drop;
    Dropable *dropable = NULL;
@@ -1714,7 +1829,7 @@ _x11_dnd_drop(void *data __UNUSED__, int etype __UNUSED__, void *ev)
    Evas_Coord x = 0, y = 0;
    Elm_Xdnd_Action act = ELM_XDND_ACTION_UNKNOWN;
    Eina_List *l;
-   Dropable_Cbs *cbs = NULL;
+   Dropable_Cbs *cbs;
    Eina_Inlist *itr;
 
    drop = ev;
@@ -1750,13 +1865,17 @@ found:
 
    act = _x11_dnd_action_map(drop->action);
 
-   if (dropable->last.type && (!strcmp(dropable->last.type, text_uri)))
+   dropable->last.in = EINA_FALSE;
+   if ((!strcmp(dropable->last.type, text_uri)))
      {
         cnp_debug("We found a URI... (%scached) %s\n",
                   savedtypes.imgfile ? "" : "not ",
                   savedtypes.imgfile);
         if (savedtypes.imgfile)
           {
+             char *entrytag;
+             static const char *tagstring =
+               "<item absize=240x180 href=file://%s></item>";
              ddata.x = savedtypes.x;
              ddata.y = savedtypes.y;
              ddata.action = act;
@@ -1767,8 +1886,13 @@ found:
                   if ((cbs->types & ELM_SEL_FORMAT_MARKUP) &&
                       (cbs->types & ELM_SEL_FORMAT_IMAGE))
                     {
+                       int len;
                        ddata.format = ELM_SEL_FORMAT_MARKUP;
-                       ddata.data = savedtypes.imgfile;
+
+                       len = strlen(tagstring) + strlen(savedtypes.imgfile);
+                       entrytag = alloca(len + 1);
+                       snprintf(entrytag, len + 1, tagstring, savedtypes.imgfile);
+                       ddata.data = entrytag;
                        cnp_debug("Insert %s\n", (char *)ddata.data);
                        if (cbs->dropcb)
                          cbs->dropcb(cbs->dropdata, dropable->obj, &ddata);
@@ -1794,38 +1918,24 @@ found:
           {
              /* Already asked: Pretend we asked now, and paste immediately when
               * it comes in */
-             cnp_debug("textreq <%d>\n", __LINE__);
-             ddata.x = savedtypes.x;
-             ddata.y = savedtypes.y;
-             ddata.data = _x11_selections[ELM_SEL_TYPE_PRIMARY].selbuf;
-             EINA_INLIST_FOREACH_SAFE(dropable->cbs_list, itr, cbs)
-                if (cbs->dropcb)
-                  cbs->dropcb(cbs->dropdata, dropable->obj, &ddata);
+             savedtypes.textreq = 0;
              ecore_x_dnd_send_finished();
              return EINA_TRUE;
           }
      }
 
-   if (dropable->last.type)
-     {
-        cnp_debug("doing a request then: %s\n", dropable->last.type);
-        _x11_selections[ELM_SEL_TYPE_XDND].xwin = drop->win;
-        _x11_selections[ELM_SEL_TYPE_XDND].requestwidget = dropable->obj;
-        _x11_selections[ELM_SEL_TYPE_XDND].requestformat = dropable->last.format;
-        _x11_selections[ELM_SEL_TYPE_XDND].active = EINA_TRUE;
-        _x11_selections[ELM_SEL_TYPE_XDND].action = act;
-
-        ecore_x_selection_xdnd_request(drop->win, dropable->last.type);
-     }
-   else
-     {
-        cnp_debug("cannot match format\n");
-     }
+   cnp_debug("doing a request then: %s\n", dropable->last.type);
+   _x11_selections[ELM_SEL_TYPE_XDND].xwin = drop->win;
+   _x11_selections[ELM_SEL_TYPE_XDND].requestwidget = dropable->obj;
+   _x11_selections[ELM_SEL_TYPE_XDND].requestformat = dropable->last.format;
+   _x11_selections[ELM_SEL_TYPE_XDND].active = EINA_TRUE;
+   _x11_selections[ELM_SEL_TYPE_XDND].action = act;
+   ecore_x_selection_xdnd_request(drop->win, dropable->last.type);
    return EINA_TRUE;
 }
 
 static Eina_Bool
-_x11_dnd_status(void *data __UNUSED__, int etype __UNUSED__, void *ev)
+_x11_dnd_status(void *data EINA_UNUSED, int etype EINA_UNUSED, void *ev)
 {
    Ecore_X_Event_Xdnd_Status *status = ev;
    doaccept = EINA_FALSE;
@@ -1851,35 +1961,12 @@ static void
 _x11_win_rotation_changed_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *win = data;
-   Ecore_Evas *ee;
-   Evas_Coord aw, bw;
-   int rot;
-
-   ee = ecore_evas_ecore_evas_get(evas_object_evas_get(win));
-   ecore_evas_geometry_get(ee, NULL, NULL, &aw, NULL);
-   rot = elm_win_rotation_get(obj);
+   int rot = elm_win_rotation_get(obj);
    elm_win_rotation_set(win, rot);
-   ecore_evas_geometry_get(ee, NULL, NULL, &bw, NULL);
-
-   if (aw != bw)
-     {
-        Evas_Coord x, y, tmp;
-        x = dragwin_x_end + _dragx;
-        y = dragwin_y_end + _dragy;
-        x -= _dragy;
-        y -= _dragx;
-        evas_object_move(win, x, y);
-
-        tmp = _dragx;
-        _dragx = _dragy;
-        _dragy = tmp;
-        dragwin_x_end = x;
-        dragwin_y_end = y;
-     }
 }
 
 static Eina_Bool
-_x11_drag_mouse_up(void *data, int etype __UNUSED__, void *event)
+_x11_drag_mouse_up(void *data, int etype EINA_UNUSED, void *event)
 {
    Ecore_X_Window xwin = (Ecore_X_Window)(long)data;
    Ecore_Event_Mouse_Button *ev = event;
@@ -1915,7 +2002,7 @@ _x11_drag_mouse_up(void *data, int etype __UNUSED__, void *event)
                   if (elm_widget_is(dragwidget))
                     {
                        Evas_Object *win = elm_widget_top_get(dragwidget);
-                       if (win && !strcmp(evas_object_type_get(win), "elm_win"))
+                       if (win && eo_isa(win, ELM_WIN_CLASS))
                          evas_object_smart_callback_del_full(win, "rotation,changed",
                                                   _x11_win_rotation_changed_cb, dragwin);
                     }
@@ -1954,7 +2041,7 @@ _x11_drag_mouse_up(void *data, int etype __UNUSED__, void *event)
 }
 
 static void
-_x11_drag_move(void *data __UNUSED__, Ecore_X_Xdnd_Position *pos)
+_x11_drag_move(void *data EINA_UNUSED, Ecore_X_Xdnd_Position *pos)
 {
    evas_object_move(dragwin,
                     pos->position.x - _dragx, pos->position.y - _dragy);
@@ -1974,13 +2061,17 @@ _x11_elm_widget_xwin_get(const Evas_Object *obj)
    Evas_Object *top, *par;
    Ecore_X_Window xwin = 0;
 
-   top = elm_widget_top_get(obj);
-   if (!top)
+   if (elm_widget_is(obj))
      {
-        par = elm_widget_parent_widget_get(obj);
-        if (par) top = elm_widget_top_get(par);
+        top = elm_widget_top_get(obj);
+        if (!top)
+          {
+             par = elm_widget_parent_widget_get(obj);
+             if (par) top = elm_widget_top_get(par);
+          }
+        if (top && (eo_isa(top, ELM_WIN_CLASS)))
+            xwin = elm_win_xwindow_get(top);
      }
-   if (top) xwin = elm_win_xwindow_get(top);
    if (!xwin)
      {
         Ecore_Evas *ee;
@@ -1988,7 +2079,23 @@ _x11_elm_widget_xwin_get(const Evas_Object *obj)
         if (!evas) return 0;
         ee = ecore_evas_ecore_evas_get(evas);
         if (!ee) return 0;
-        xwin = _elm_ee_xwin_get(ee);
+
+        while(!xwin)
+          {
+             const char *engine_name = ecore_evas_engine_name_get(ee);
+             if (!strcmp(engine_name, ELM_BUFFER))
+               {
+                  ee = ecore_evas_buffer_ecore_evas_parent_get(ee);
+                  if (!ee) return 0;
+                  xwin = _elm_ee_xwin_get(ee);
+               }
+             else
+               {
+                  /* In case the engine is not a buffer, we want to check once. */
+                  xwin = _elm_ee_xwin_get(ee);
+                  if (!xwin) return 0;
+               }
+          }
      }
    return xwin;
 }
@@ -2014,9 +2121,8 @@ _x11_elm_cnp_init(void)
 }
 
 static Eina_Bool
-_x11_elm_cnp_selection_set(Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format, const void *selbuf, size_t buflen)
+_x11_elm_cnp_selection_set(Ecore_X_Window xwin, Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format, const void *selbuf, size_t buflen)
 {
-   Ecore_X_Window xwin = _x11_elm_widget_xwin_get(obj);
    X11_Cnp_Selection *sel;
 
    _x11_elm_cnp_init();
@@ -2041,6 +2147,7 @@ _x11_elm_cnp_selection_set(Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_For
    evas_object_event_callback_add
      (sel->widget, EVAS_CALLBACK_DEL, _x11_sel_obj_del, sel);
 
+   ELM_SAFE_FREE(sel->selbuf, free);
    if (selbuf)
      {
         if (format == ELM_SEL_FORMAT_IMAGE)
@@ -2058,14 +2165,12 @@ _x11_elm_cnp_selection_set(Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_For
         else
           sel->selbuf = strdup((char*)selbuf);
      }
-   else
-     sel->selbuf = NULL;
 
    return EINA_TRUE;
 }
 
 static void
-_x11_elm_cnp_selection_loss_callback_set(Evas_Object *obj __UNUSED__, Elm_Sel_Type selection, Elm_Selection_Loss_Cb func, const void *data)
+_x11_elm_cnp_selection_loss_callback_set(Evas_Object *obj EINA_UNUSED, Elm_Sel_Type selection, Elm_Selection_Loss_Cb func, const void *data)
 {
    X11_Cnp_Selection *sel;
 
@@ -2106,11 +2211,10 @@ _x11_elm_object_cnp_selection_clear(Evas_Object *obj, Elm_Sel_Type selection)
 }
 
 static Eina_Bool
-_x11_elm_cnp_selection_get(Evas_Object *obj, Elm_Sel_Type selection,
+_x11_elm_cnp_selection_get(Ecore_X_Window xwin, Evas_Object *obj, Elm_Sel_Type selection,
                            Elm_Sel_Format format, Elm_Drop_Cb datacb,
                            void *udata)
 {
-   Ecore_X_Window xwin = _x11_elm_widget_xwin_get(obj);
    X11_Cnp_Selection *sel;
 
    _x11_elm_cnp_init();
@@ -2175,7 +2279,7 @@ _x11_elm_drop_target_add(Evas_Object *obj, Elm_Sel_Format format,
    cbs->dropdata = dropdata;
    cbs->types = format;
 
-   dropable = evas_object_data_get(obj, "__elm_dropable");
+   eo_do(obj, dropable = eo_key_data_get("__elm_dropable"));
    if (!dropable)
      {
         /* Create new drop */
@@ -2185,7 +2289,7 @@ _x11_elm_drop_target_add(Evas_Object *obj, Elm_Sel_Format format,
         drops = eina_list_append(drops, dropable);
         if (!drops) goto error;
         dropable->obj = obj;
-        evas_object_data_set(obj, "__elm_dropable", dropable);
+        eo_do(obj, eo_key_data_set("__elm_dropable", dropable, NULL));
      }
    dropable->cbs_list = eina_inlist_append(dropable->cbs_list, EINA_INLIST_GET(cbs));
 
@@ -2221,43 +2325,18 @@ _x11_elm_drop_target_del(Evas_Object *obj, Elm_Sel_Format format,
                          Elm_Drag_Pos poscb, void *posdata,
                          Elm_Drop_Cb dropcb, void *dropdata)
 {
-   Dropable *dropable;
+   Dropable *dropable = NULL;
    Eina_List *l;
    Ecore_X_Window xwin;
    Eina_Bool have_drops = EINA_FALSE;
 
    _x11_elm_cnp_init();
 
-   dropable = evas_object_data_get(obj, "__elm_dropable");
-   if (dropable)
+   if (!_local_elm_drop_target_del(obj, format, entercb, enterdata,
+           leavecb, leavedata, poscb, posdata, dropcb, dropdata))
      {
-        Eina_Inlist *itr;
-        Dropable_Cbs *cbs_info = NULL;
-        /* Look for the callback in the list */
-        EINA_INLIST_FOREACH_SAFE(dropable->cbs_list, itr, cbs_info)
-           if (cbs_info->entercb == entercb && cbs_info->enterdata == enterdata &&
-                 cbs_info->leavecb == leavecb && cbs_info->leavedata == leavedata &&
-                 cbs_info->poscb == poscb && cbs_info->posdata == posdata &&
-                 cbs_info->dropcb == dropcb && cbs_info->dropdata == dropdata &&
-                 cbs_info->types == format)
-             {
-                dropable->cbs_list = eina_inlist_remove(dropable->cbs_list,
-                      EINA_INLIST_GET(cbs_info));
-                free(cbs_info);
-                cbs_info = NULL;
-             }
-        /* In case no more callbacks are listed for the object */
-        if (!dropable->cbs_list)
-          {
-             drops = eina_list_remove(drops, dropable);
-             evas_object_data_del(obj, "__elm_dropable");
-             free(dropable);
-             dropable = NULL;
-             evas_object_event_callback_del(obj, EVAS_CALLBACK_DEL,
-                                            _all_drop_targets_cbs_del);
-          }
+        return EINA_FALSE;
      }
-   else return EINA_FALSE;
 
    /* TODO BUG: we should handle dnd-aware per window, not just the last that released it */
 
@@ -2290,7 +2369,7 @@ _x11_elm_drop_target_del(Evas_Object *obj, Elm_Sel_Format format,
 }
 
 static void
-_x11_drag_target_del(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *info __UNUSED__)
+_x11_drag_target_del(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *info EINA_UNUSED)
 {
    X11_Cnp_Selection *sel = _x11_selections + ELM_SEL_TYPE_XDND;
 
@@ -2390,7 +2469,7 @@ _x11_elm_drag_start(Evas_Object *obj, Elm_Sel_Format format, const char *data,
    if (elm_widget_is(obj))
      {
         Evas_Object *win = elm_widget_top_get(obj);
-        if (win && !strcmp(evas_object_type_get(win), "elm_win"))
+        if (win && eo_isa(win, ELM_WIN_CLASS))
           {
              elm_win_rotation_set(dragwin, elm_win_rotation_get(win));
              evas_object_smart_callback_add(win, "rotation,changed",
@@ -2428,6 +2507,8 @@ _x11_elm_drag_start(Evas_Object *obj, Elm_Sel_Format format, const char *data,
    evas_object_show(icon);
    evas_object_show(dragwin);
    evas_pointer_canvas_xy_get(evas_object_evas_get(obj), &x3, &y3);
+   _dragx = x3 - x2;
+   _dragy = y3 - y2;
 
    rot = ecore_evas_rotation_get(ee);
    switch (rot)
@@ -2435,26 +2516,18 @@ _x11_elm_drag_start(Evas_Object *obj, Elm_Sel_Format format, const char *data,
       case 90:
          xr = y3;
          yr = ew - x3;
-         _dragx = y3 - y2;
-         _dragy = x3 - x2;
          break;
       case 180:
          xr = ew - x3;
          yr = eh - y3;
-         _dragx = x3 - x2;
-         _dragy = y3 - y2;
          break;
       case 270:
          xr = eh - y3;
          yr = x3;
-         _dragx = y3 - y2;
-         _dragy = x3 - x2;
          break;
       default:
          xr = x3;
          yr = y3;
-         _dragx = x3 - x2;
-         _dragy = y3 - y2;
          break;
      }
    x = ex + xr - _dragx;
@@ -2483,7 +2556,7 @@ _x11_elm_drag_action_set(Evas_Object *obj, Elm_Xdnd_Action action)
 }
 
 static Eina_Bool
-_x11_elm_selection_selection_has_owner(Evas_Object *obj __UNUSED__)
+_x11_elm_selection_selection_has_owner(Evas_Object *obj EINA_UNUSED)
 {
    _x11_elm_cnp_init();
    return !!ecore_x_selection_owner_get(ECORE_X_ATOM_SELECTION_CLIPBOARD);
@@ -2501,67 +2574,271 @@ struct _Wl_Cnp_Selection
 
    Evas_Object *widget;
    Evas_Object *requestwidget;
+
+   void *udata;
+   Elm_Sel_Type seltype;
+   Elm_Sel_Format requestformat;
+   Elm_Drop_Cb datacb;
+
+   Elm_Selection_Loss_Cb loss_cb;
+   void *loss_data;
+
+   Elm_Sel_Format format;
+   Ecore_Wl_Window *win;
+   Elm_Xdnd_Action action;
+
+   Eina_Bool active : 1;
 };
 
 static Eina_Bool _wl_elm_cnp_init(void);
 
-static Wl_Cnp_Selection wl_cnp_selection = {0, 0, NULL, NULL};
-static void _wl_sel_obj_del2(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__);
-static Eina_Bool _wl_elm_cnp_selection_set(Evas_Object *obj __UNUSED__, Elm_Sel_Type selection, Elm_Sel_Format format __UNUSED__, const void *selbuf, size_t buflen);
-static Eina_Bool _wl_elm_cnp_selection_get(Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format __UNUSED__, Elm_Drop_Cb datacb __UNUSED__, void *udata __UNUSED__);
-static Eina_Bool _wl_selection_send(void *udata, int type __UNUSED__, void *event);
-static Eina_Bool _wl_selection_receive(void *udata, int type __UNUSED__, void *event);
+static Wl_Cnp_Selection wl_cnp_selection =
+{
+   0, 0, NULL, NULL,
+   NULL, 0, 0, NULL, NULL, NULL,
+   0, NULL, 0, EINA_FALSE
+};
+
+static void _wl_sel_obj_del2(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED);
+static Eina_Bool _wl_elm_cnp_selection_set(Evas_Object *obj EINA_UNUSED, Elm_Sel_Type selection, Elm_Sel_Format format EINA_UNUSED, const void *selbuf, size_t buflen);
+static Eina_Bool _wl_elm_cnp_selection_get(Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format EINA_UNUSED, Elm_Drop_Cb datacb EINA_UNUSED, void *udata EINA_UNUSED);
+static Eina_Bool _wl_elm_cnp_selection_clear(Evas_Object *obj, Elm_Sel_Type selection);
+
+static Eina_Bool _wl_selection_send(void *udata, int type EINA_UNUSED, void *event);
+static Eina_Bool _wl_selection_receive(void *udata, int type EINA_UNUSED, void *event);
+
+static Eina_Bool _wl_elm_dnd_init(void);
+static Eina_Bool _wl_elm_drop_target_add(Evas_Object *obj, Elm_Sel_Format format, Elm_Drag_State entercb, void *enterdata, Elm_Drag_State leavecb, void *leavedata, Elm_Drag_Pos poscb, void *posdata, Elm_Drop_Cb dropcb, void *dropdata);
+static Eina_Bool _wl_elm_drop_target_del(Evas_Object *obj, Elm_Sel_Format format, Elm_Drag_State entercb, void *enterdata, Elm_Drag_State leavecb, void *leavedata, Elm_Drag_Pos poscb, void *posdata, Elm_Drop_Cb dropcb, void *dropdata);
+
+static Eina_Bool _wl_elm_drag_action_set(Evas_Object *obj, Elm_Xdnd_Action action);
+static Eina_Bool _wl_elm_drag_start(Evas_Object *obj, Elm_Sel_Format format, const char *data, Elm_Xdnd_Action action, Elm_Drag_Icon_Create_Cb createicon, void *createdata, Elm_Drag_Pos dragpos, void *dragdata, Elm_Drag_Accept acceptcb, void *acceptdata, Elm_Drag_State dragdone, void *donecbdata);
+
+static void _wl_drag_source_del(void *data EINA_UNUSED, Evas *evas EINA_UNUSED, Evas_Object *obj, void *event EINA_UNUSED);
+
+static Eina_Bool _wl_dnd_enter(void *data EINA_UNUSED, int type EINA_UNUSED, void *event);
+static Eina_Bool _wl_dnd_leave(void *data EINA_UNUSED, int type EINA_UNUSED, void *event);
+static Eina_Bool _wl_dnd_position(void *data EINA_UNUSED, int type EINA_UNUSED, void *event);
+static Eina_Bool _wl_dnd_drop(void *data EINA_UNUSED, int type EINA_UNUSED, void *event);
+/* static Eina_Bool _wl_dnd_offer(void *data EINA_UNUSED, int type EINA_UNUSED, void *event); */
+
+static Eina_Bool _wl_dnd_send(void *data, int type EINA_UNUSED, void *event);
+static Eina_Bool _wl_dnd_receive(void *data, int type EINA_UNUSED, void *event);
+static Eina_Bool _wl_dnd_end(void *data EINA_UNUSED, int type EINA_UNUSED, void *event EINA_UNUSED);
+static void _wl_dropable_data_handle(Wl_Cnp_Selection *sel, char *data);
+
+static Dropable *_wl_dropable_find(unsigned int win);
+static Dropable *_wl_dropable_find_geom(unsigned int win, Evas_Coord x, Evas_Coord y);
+static void _wl_dropable_handle(Dropable *drop, Evas_Coord x, Evas_Coord y, Eina_Bool have_obj);
+static void _wl_dropable_all_set(unsigned int win, Evas_Coord x, Evas_Coord y, Eina_Bool set);
+static Eina_Bool _wl_drops_accept(const char *type);
+static unsigned int _wl_elm_widget_window_get(Evas_Object *obj);
 
 static void
-_wl_sel_obj_del2(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_wl_sel_obj_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   Wl_Cnp_Selection *sel = data;
+   if (sel->widget == obj) sel->widget = NULL;
+   if (dragwidget == obj) dragwidget = NULL;
+}
+
+static void
+_wl_sel_obj_del2(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Wl_Cnp_Selection *sel = data;
    if (sel->requestwidget == obj) sel->requestwidget = NULL;
 }
 
 static Eina_Bool
-_wl_elm_cnp_selection_set(Evas_Object *obj __UNUSED__, Elm_Sel_Type selection, Elm_Sel_Format format __UNUSED__, const void *selbuf, size_t buflen)
+_wl_elm_cnp_selection_set(Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format, const void *selbuf, size_t buflen)
 {
-   const char *types[10] = {0, };
+   Ecore_Wl_Window *win;
+   Wl_Cnp_Selection *sel = &wl_cnp_selection;
+
+   if ((!selbuf) && (format != ELM_SEL_FORMAT_IMAGE))
+     return elm_object_cnp_selection_clear(obj, selection);
+
+   if (buflen <= 0)
+     return EINA_FALSE;
 
    _wl_elm_cnp_init();
 
-   /* TODO: other EML_SEL_TYPE and ELM_SEL_FORMAT */
-   if (ELM_SEL_TYPE_CLIPBOARD == selection)
-     {
-        types[0] = "text/plain;charset=utf-8";
-        ecore_wl_dnd_set_selection(ecore_wl_dnd_get(), types);
+   win = elm_win_wl_window_get(obj);
 
-        if (wl_cnp_selection.selbuf) free(wl_cnp_selection.selbuf);
-        wl_cnp_selection.selbuf = strdup((char*)selbuf);
-        wl_cnp_selection.buflen = buflen;
-        return EINA_TRUE;
+   if (sel->loss_cb) sel->loss_cb(sel->loss_data, selection);
+
+   if (sel->widget)
+     evas_object_event_callback_del_full(sel->widget,
+                                         EVAS_CALLBACK_DEL,
+                                         _wl_sel_obj_del, &wl_cnp_selection);
+   sel->widget = NULL;
+
+   sel->active = EINA_TRUE;
+   sel->seltype = selection;
+   sel->widget = obj;
+   sel->win = win;
+   /* sel->set(win, &selection, sizeof(Elm_Sel_Type)); */
+   sel->format = format;
+   sel->loss_cb = NULL;
+   sel->loss_data = NULL;
+
+   evas_object_event_callback_add
+     (sel->widget, EVAS_CALLBACK_DEL, _wl_sel_obj_del,
+         &wl_cnp_selection);
+
+   if (selbuf)
+     {
+        if (format & ELM_SEL_FORMAT_IMAGE)
+          {
+             /* FIXME */
+             // selbuf is actual image data, not text/string
+             sel->selbuf = malloc(buflen + 1);
+             if (!sel->selbuf)
+               {
+                  elm_object_cnp_selection_clear(obj, selection);
+                  return EINA_FALSE;
+               }
+             memcpy(sel->selbuf, selbuf, buflen);
+             sel->selbuf[buflen] = 0;
+          }
+        else
+          {
+             const char *types[10] = {0, };
+             int i = -1;
+
+             if ((format & ELM_SEL_FORMAT_MARKUP) ||
+                 (format & ELM_SEL_FORMAT_TEXT))
+               {
+                  types[++i] = "application/x-elementary-markup";
+                  types[++i] = "text/plain";
+                  types[++i] = "text/plain;charset=utf-8";
+               }
+
+             if (format & ELM_SEL_FORMAT_HTML)
+               {
+                  types[++i] = "text/html";
+                  types[++i] = "text/html;charset=utf-8";
+               }
+
+             if (i < 0) return EINA_FALSE;
+
+             ecore_wl_dnd_selection_set(ecore_wl_input_get(), types);
+
+             free(sel->selbuf);
+             sel->buflen = buflen;
+             sel->selbuf = strdup((char*)selbuf);
+
+             return EINA_TRUE;
+          }
      }
+   else
+     sel->selbuf = NULL;
 
    return EINA_FALSE;
 }
 
 static Eina_Bool
-_wl_elm_cnp_selection_get(Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format __UNUSED__, Elm_Drop_Cb datacb __UNUSED__, void *udata __UNUSED__)
+_wl_elm_cnp_selection_get(Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format, Elm_Drop_Cb datacb, void *udata)
 {
+   Ecore_Wl_Window *win;
+   Wl_Cnp_Selection *sel = &wl_cnp_selection;
+
    _wl_elm_cnp_init();
 
-   /* For now, just avoid overlapped request */
-   if (wl_cnp_selection.requestwidget) return EINA_FALSE;
+   win = elm_win_wl_window_get(obj);
 
-   /* TODO: other EML_SEL_TYPE and ELM_SEL_FORMAT */
-   if (ELM_SEL_TYPE_CLIPBOARD == selection)
+   if (sel->requestwidget)
+     evas_object_event_callback_del_full(sel->requestwidget,
+                                         EVAS_CALLBACK_DEL,
+                                         _wl_sel_obj_del2, &wl_cnp_selection);
+   sel->requestwidget = NULL;
+
+   sel->requestformat = format;
+   sel->requestwidget = obj;
+   sel->win = win;
+   /* sel->request(win, ECORE_X_SELECTION_TARGET_TARGETS); */
+   sel->datacb = datacb;
+   sel->udata = udata;
+
+   evas_object_event_callback_add(sel->requestwidget,
+                                  EVAS_CALLBACK_DEL, _wl_sel_obj_del2,
+                                  &wl_cnp_selection);
+
+   if ((selection == ELM_SEL_TYPE_CLIPBOARD) ||
+       (selection == ELM_SEL_TYPE_PRIMARY) ||
+       (selection == ELM_SEL_TYPE_SECONDARY))
      {
-        wl_cnp_selection.requestwidget = obj;
-        evas_object_event_callback_add(wl_cnp_selection.requestwidget, EVAS_CALLBACK_DEL,
-                                       _wl_sel_obj_del2, &wl_cnp_selection);
-        ecore_wl_dnd_get_selection(ecore_wl_dnd_get(), "text/plain;charset=utf-8");
+        const char *types[10] = {0, };
+        int i = -1;
+
+        if ((format & ELM_SEL_FORMAT_MARKUP) ||
+            (format & ELM_SEL_FORMAT_TEXT))
+          {
+             types[++i] = "application/x-elementary-markup";
+             types[++i] = "text/plain";
+             types[++i] = "text/plain;charset=utf-8";
+          }
+
+        if (format & ELM_SEL_FORMAT_HTML)
+          {
+             types[++i] = "text/html";
+             types[++i] = "text/html;charset=utf-8";
+          }
+
+        if (i < 0) return EINA_FALSE;
+
+        ecore_wl_dnd_selection_get(ecore_wl_input_get(), *types);
      }
+
+   return EINA_TRUE;
+}
+
+static void
+_wl_elm_cnp_selection_loss_callback_set(Evas_Object *obj EINA_UNUSED, Elm_Sel_Type selection EINA_UNUSED, Elm_Selection_Loss_Cb func, const void *data)
+{
+   Wl_Cnp_Selection *sel = &wl_cnp_selection;
+
+   _wl_elm_cnp_init();
+
+   sel->loss_cb = func;
+   sel->loss_data = (void *)data;
+}
+
+static Eina_Bool
+_wl_elm_cnp_selection_clear(Evas_Object *obj, Elm_Sel_Type selection EINA_UNUSED)
+{
+   Wl_Cnp_Selection *sel = &wl_cnp_selection;
+
+   _wl_elm_cnp_init();
+
+   if ((!sel->active) || (sel->widget != obj))
+     return EINA_TRUE;
+
+   if (sel->widget)
+     evas_object_event_callback_del_full(sel->widget,
+                                         EVAS_CALLBACK_DEL,
+                                         _wl_sel_obj_del, &wl_cnp_selection);
+   if (sel->requestwidget)
+     evas_object_event_callback_del_full(sel->requestwidget,
+                                         EVAS_CALLBACK_DEL,
+                                         _wl_sel_obj_del2, &wl_cnp_selection);
+
+   sel->widget = NULL;
+   sel->requestwidget = NULL;
+   sel->loss_cb = NULL;
+   sel->loss_data = NULL;
+
+   sel->active = EINA_FALSE;
+   ELM_SAFE_FREE(sel->selbuf, free);
+   sel->buflen = 0;
+   /* sel->clear(); */
+   ecore_wl_dnd_selection_clear(ecore_wl_input_get());
+
    return EINA_TRUE;
 }
 
 static Eina_Bool
-_wl_selection_send(void *udata, int type __UNUSED__, void *event)
+_wl_selection_send(void *udata, int type EINA_UNUSED, void *event)
 {
    char *buf;
    int ret, len_remained;
@@ -2588,7 +2865,7 @@ _wl_selection_send(void *udata, int type __UNUSED__, void *event)
 }
 
 static Eina_Bool
-_wl_selection_receive(void *udata, int type __UNUSED__, void *event)
+_wl_selection_receive(void *udata, int type EINA_UNUSED, void *event)
 {
    Wl_Cnp_Selection *sel = udata;
    Ecore_Wl_Event_Selection_Data_Ready *ev = event;
@@ -2599,15 +2876,76 @@ _wl_selection_receive(void *udata, int type __UNUSED__, void *event)
      {
         if (!ev->done)
           {
-             /* TODO BUG: should never NEVER assume it's an elm_entry! */
-             _elm_entry_entry_paste(sel->requestwidget, ev->data);
+             if (sel->seltype == ELM_SEL_TYPE_XDND)
+               {
+                  Elm_Selection_Data sdata;
+                  Eina_List *l;
+                  Dropable *dropable;
+
+                  EINA_LIST_FOREACH(drops, l, dropable)
+                    {
+                       if (dropable->obj == sel->requestwidget) break;
+                       dropable = NULL;
+                    }
+
+                  if (dropable)
+                    {
+                       Dropable_Cbs *cbs;
+
+                       sdata.x = savedtypes.x;
+                       sdata.y = savedtypes.y;
+                       sdata.format = ELM_SEL_FORMAT_TEXT;
+                       sdata.data = ev->data;
+                       sdata.len = ev->len;
+                       sdata.action = sel->action;
+
+                       EINA_INLIST_FOREACH(dropable->cbs_list, cbs)
+                         if (cbs->dropcb)
+                           cbs->dropcb(cbs->dropdata, dropable->obj, &sdata);
+
+                       goto end;
+                    }
+               }
+
+             if (sel->datacb)
+               {
+                  Elm_Selection_Data sdata;
+
+                  sdata.x = sdata.y = 0;
+                  sdata.format = ELM_SEL_FORMAT_TEXT;
+                  sdata.data = ev->data;
+                  sdata.len = ev->len;
+                  sdata.action = sel->action;
+                  sel->datacb(sel->udata, sel->widget, &sdata);
+               }
+             else
+               {
+                  char *stripstr, *mkupstr;
+
+                  stripstr = malloc(ev->len + 1);
+                  if (!stripstr) goto end;
+                  strncpy(stripstr, (char *)ev->data, ev->len);
+                  stripstr[ev->len] = '\0';
+                  mkupstr = _elm_util_text_to_mkup((const char *)stripstr);
+                  /* TODO BUG: should never NEVER assume it's an elm_entry! */
+                  _elm_entry_entry_paste(sel->requestwidget, mkupstr);
+                  free(stripstr);
+                  free(mkupstr);
+               }
           }
         else
           {
-             evas_object_event_callback_del_full(sel->requestwidget, EVAS_CALLBACK_DEL,
+             evas_object_event_callback_del_full(sel->requestwidget,
+                                                 EVAS_CALLBACK_DEL,
                                                  _wl_sel_obj_del2, sel);
              sel->requestwidget = NULL;
           }
+     }
+
+end:
+   if (sel->seltype == ELM_SEL_TYPE_XDND)
+     {
+        /* FIXME: Send Finished ?? */
      }
 
    return ECORE_CALLBACK_PASS_ON;
@@ -2628,12 +2966,748 @@ _wl_elm_cnp_init(void)
 
    return EINA_TRUE;
 }
+
+static Eina_Bool
+_wl_elm_dnd_init(void)
+{
+   static int _init_count = 0;
+
+   if (_init_count > 0) return EINA_TRUE;
+   _init_count++;
+
+   text_uri = eina_stringshare_add("text/uri-list");
+
+   ecore_event_handler_add(ECORE_WL_EVENT_DATA_SOURCE_SEND,
+                           _wl_dnd_send, &wl_cnp_selection);
+   ecore_event_handler_add(ECORE_WL_EVENT_SELECTION_DATA_READY,
+                           _wl_dnd_receive, &wl_cnp_selection);
+
+   ecore_event_handler_add(ECORE_WL_EVENT_DND_END,
+                           _wl_dnd_end, &wl_cnp_selection);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_wl_elm_drop_target_add(Evas_Object *obj, Elm_Sel_Format format, Elm_Drag_State entercb, void *enterdata, Elm_Drag_State leavecb, void *leavedata, Elm_Drag_Pos poscb, void *posdata, Elm_Drop_Cb dropcb, void *dropdata)
+{
+   Dropable *dropable = NULL;
+   Dropable_Cbs *cbs = NULL;
+
+   Eina_Bool first = !drops;
+
+   cbs = calloc(1, sizeof(*cbs));
+   if (!cbs) return EINA_FALSE;
+
+   cbs->entercb = entercb;
+   cbs->enterdata = enterdata;
+   cbs->leavecb = leavecb;
+   cbs->leavedata = leavedata;
+   cbs->poscb = poscb;
+   cbs->posdata = posdata;
+   cbs->dropcb = dropcb;
+   cbs->dropdata = dropdata;
+   cbs->types = format;
+
+   eo_do(obj, dropable = eo_key_data_get("__elm_dropable"));
+   if (!dropable)
+     {
+        /* Create new drop */
+        dropable = calloc(1, sizeof(Dropable));
+        if (!dropable) goto error;
+        drops = eina_list_append(drops, dropable);
+        if (!drops) goto error;
+        dropable->obj = obj;
+        eo_do(obj, eo_key_data_set("__elm_dropable", dropable, NULL));
+     }
+   dropable->cbs_list = eina_inlist_append(dropable->cbs_list, EINA_INLIST_GET(cbs));
+
+   evas_object_event_callback_add(obj, EVAS_CALLBACK_DEL,
+         _all_drop_targets_cbs_del, obj);
+
+   if (first)
+     {
+        handler_enter =
+          ecore_event_handler_add(ECORE_WL_EVENT_DND_ENTER,
+                                  _wl_dnd_enter, NULL);
+        handler_leave =
+          ecore_event_handler_add(ECORE_WL_EVENT_DND_LEAVE,
+                                  _wl_dnd_leave, NULL);
+        handler_pos =
+          ecore_event_handler_add(ECORE_WL_EVENT_DND_POSITION,
+                                  _wl_dnd_position, NULL);
+        handler_drop =
+          ecore_event_handler_add(ECORE_WL_EVENT_DND_DROP,
+                                  _wl_dnd_drop, NULL);
+     }
+
+   return EINA_TRUE;
+error:
+   free(cbs);
+   free(dropable);
+   return EINA_FALSE;
+}
+
+static Eina_Bool
+_wl_elm_drop_target_del(Evas_Object *obj, Elm_Sel_Format format,
+                        Elm_Drag_State entercb, void *enterdata,
+                        Elm_Drag_State leavecb, void *leavedata,
+                        Elm_Drag_Pos poscb, void *posdata,
+                        Elm_Drop_Cb dropcb, void *dropdata)
+{
+
+   if (!_local_elm_drop_target_del(obj, format, entercb, enterdata,
+           leavecb, leavedata, poscb, posdata, dropcb, dropdata))
+     {
+        return EINA_FALSE;
+     }
+
+   if (!drops)
+     {
+        ELM_SAFE_FREE(handler_pos, ecore_event_handler_del);
+        ELM_SAFE_FREE(handler_drop, ecore_event_handler_del);
+        ELM_SAFE_FREE(handler_enter, ecore_event_handler_del);
+        ELM_SAFE_FREE(handler_leave, ecore_event_handler_del);
+     }
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_wl_elm_drag_action_set(Evas_Object *obj, Elm_Xdnd_Action action)
+{
+   if (!dragwin) return EINA_FALSE;
+   if (dragwidget != obj) return EINA_FALSE;
+   if (dragaction == action) return EINA_TRUE;
+   dragaction = action;
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_wl_elm_drag_start(Evas_Object *obj, Elm_Sel_Format format EINA_UNUSED, const char *data,
+                   Elm_Xdnd_Action action,
+                   Elm_Drag_Icon_Create_Cb createicon, void *createdata,
+                   Elm_Drag_Pos dragpos, void *dragdata,
+                   Elm_Drag_Accept acceptcb, void *acceptdata,
+                   Elm_Drag_State dragdone, void *donecbdata)
+{
+   Ecore_Evas *ee;
+   Evas_Object *icon = NULL;
+   int x, y, x2 = 0, y2 = 0, x3, y3, w = 0, h = 0;
+   const char *types[2] = { "text/uri-list", NULL };
+   Ecore_Wl_Window *parent = NULL;
+
+   _wl_elm_dnd_init();
+
+   /* if we already have a drag, get out */
+   if (dragwin) return EINA_FALSE;
+
+   ecore_wl_dnd_drag_types_set(ecore_wl_input_get(), types);
+
+   /* set the drag data used when a drop occurs */
+   free(wl_cnp_selection.selbuf);
+   wl_cnp_selection.selbuf = strdup((char*)data);
+   wl_cnp_selection.buflen = strlen(wl_cnp_selection.selbuf);
+
+   /* setup callback to notify if this object gets deleted */
+   evas_object_event_callback_add(obj, EVAS_CALLBACK_DEL,
+                                  _wl_drag_source_del, obj);
+
+   dragwidget = obj;
+   dragaction = action;
+   dragposcb = dragpos;
+   dragposdata = dragdata;
+   dragacceptcb = acceptcb;
+   dragacceptdata = acceptdata;
+   dragdonecb = dragdone;
+   dragdonedata = donecbdata;
+
+   dragwin = elm_win_add(NULL, "Elm-Drag", ELM_WIN_DND);
+   elm_win_alpha_set(dragwin, EINA_TRUE);
+   elm_win_borderless_set(dragwin, EINA_TRUE);
+   elm_win_override_set(dragwin, EINA_TRUE);
+
+   ecore_wl_window_type_set(elm_win_wl_window_get(dragwin),
+                            ECORE_WL_WINDOW_TYPE_DND);
+
+   if (createicon)
+     {
+        Evas_Coord xoff = 0, yoff = 0;
+
+        icon = createicon(createdata, dragwin, &xoff, &yoff);
+        if (icon)
+          {
+             x2 = xoff;
+             y2 = yoff;
+             evas_object_geometry_get(icon, NULL, NULL, &w, &h);
+          }
+     }
+   else
+     {
+        icon = elm_icon_add(dragwin);
+        evas_object_size_hint_weight_set(icon, EVAS_HINT_EXPAND,
+                                         EVAS_HINT_EXPAND);
+        evas_object_size_hint_align_set(icon, EVAS_HINT_FILL, EVAS_HINT_FILL);
+     }
+
+   elm_win_resize_object_add(dragwin, icon);
+   evas_object_show(icon);
+
+   /* Position subwindow appropriately */
+   ee = ecore_evas_ecore_evas_get(evas_object_evas_get(obj));
+   ecore_evas_geometry_get(ee, &x, &y, NULL, NULL);
+   x += x2;
+   y += y2;
+   dragwin_x_start = dragwin_x_end = x;
+   dragwin_y_start = dragwin_y_end = y;
+
+   evas_object_move(dragwin, x, y);
+   evas_object_resize(dragwin, w, h);
+   evas_object_show(dragwin);
+
+   evas_pointer_canvas_xy_get(evas_object_evas_get(obj), &x3, &y3);
+   _dragx = x3 - x2;
+   _dragy = y3 - y2;
+
+   if (elm_widget_is(obj))
+     {
+        Evas_Object *top;
+
+        top = elm_widget_top_get(obj);
+        if (!top) top = elm_widget_top_get(elm_widget_parent_widget_get(obj));
+        if (top && (eo_isa(top, ELM_WIN_CLASS)))
+          parent = elm_win_wl_window_get(top);
+     }
+   if (!parent)
+     {
+        Evas *evas;
+
+        if (!(evas = evas_object_evas_get(obj)))
+          return EINA_FALSE;
+        if (!(ee = ecore_evas_ecore_evas_get(evas)))
+          return EINA_FALSE;
+
+        parent = ecore_evas_wayland_window_get(ee);
+     }
+
+   ecore_wl_dnd_drag_start(ecore_wl_input_get(), parent, 
+                           elm_win_wl_window_get(dragwin),
+                           x3, y3, w, h);
+
+   return EINA_TRUE;
+}
+
+static void
+_wl_drag_source_del(void *data EINA_UNUSED, Evas *evas EINA_UNUSED, Evas_Object *obj, void *event EINA_UNUSED)
+{
+   if (dragwidget == obj)
+     dragwidget = NULL;
+}
+
+static Eina_Bool
+_wl_dnd_enter(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+{
+   Ecore_Wl_Event_Dnd_Enter *ev;
+   int i = 0;
+
+   ev = event;
+
+   if (_wl_dropable_find(ev->win))
+     _wl_dropable_all_set(ev->win, 0, 0, EINA_FALSE);
+
+   if ((!ev->num_types) || (!ev->types)) return ECORE_CALLBACK_PASS_ON;
+
+   savedtypes.ntypes = ev->num_types;
+   free(savedtypes.types);
+   savedtypes.types = malloc(sizeof(char *) * ev->num_types);
+   if (!savedtypes.types) return EINA_FALSE;
+
+   for (i = 0; i < ev->num_types; i++)
+     {
+        savedtypes.types[i] = eina_stringshare_add(ev->types[i]);
+        if (savedtypes.types[i] == text_uri)
+          {
+             savedtypes.textreq = 1;
+             ELM_SAFE_FREE(savedtypes.imgfile, free);
+          }
+     }
+
+   doaccept = EINA_FALSE;
+   for (i = 0; i < ev->num_types; i++)
+     {
+        doaccept = _wl_drops_accept(ev->types[i]);
+        if (doaccept)
+          wl_data_offer_accept(ev->offer, ev->serial, ev->types[i]);
+        else
+          wl_data_offer_accept(ev->offer, ev->serial, NULL);
+     }
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool
+_wl_dnd_leave(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+{
+   Ecore_Wl_Event_Dnd_Leave *ev;
+   Dropable *drop;
+
+   ev = event;
+
+   if ((drop = _wl_dropable_find(ev->win)))
+     {
+        _wl_dropable_handle(drop, 0, 0, EINA_FALSE);
+        _wl_dropable_all_set(ev->win, 0, 0, EINA_FALSE);
+     }
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool
+_wl_dnd_position(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+{
+   Ecore_Wl_Event_Dnd_Position *ev;
+   Dropable *drop, *dropable_old;
+   Eina_Bool will_accept = EINA_FALSE;
+
+   ev = event;
+
+   dragwin_x_end = ev->position.x - _dragx;
+   dragwin_y_end = ev->position.y - _dragy;
+
+   dropable_old = drop = _wl_dropable_find(ev->win);
+
+   if (drop)
+     {
+        Ecore_Evas *ee;
+        Evas_Coord ex = 0, ey = 0;
+        Evas_Coord x = 0, y = 0;
+
+        x = ev->position.x;
+        y = ev->position.y;
+        ee = ecore_evas_ecore_evas_get(evas_object_evas_get(drop->obj));
+        ecore_evas_geometry_get(ee, &ex, &ey, NULL, NULL);
+        x -= ex;
+        y -= ey;
+
+        if ((drop = _wl_dropable_find_geom(ev->win, x, y)))
+          {
+             Evas_Coord ox = 0, oy = 0;
+             int i = 0;
+
+             evas_object_geometry_get(drop->obj, &ox, &oy, NULL, NULL);
+
+             _wl_dropable_handle(drop, x - ox, y - oy, EINA_TRUE);
+
+             for (i = 0; i < savedtypes.ntypes; i++)
+               {
+                  Dropable_Cbs *cbs;
+                  EINA_INLIST_FOREACH(drop->cbs_list, cbs)
+                    {
+                       switch (cbs->types)
+                         {
+                          case ELM_SEL_FORMAT_TARGETS:
+                          case ELM_SEL_FORMAT_IMAGE:
+                             if ((!strncmp(savedtypes.types[i], "text/uri", 8)) ||
+                                   (!strncmp(savedtypes.types[i], "image/", 6)))
+                               {
+                                  wl_cnp_selection.requestwidget = drop->obj;
+                                  will_accept = EINA_TRUE;
+                               }
+                             break;
+                          default:
+                             break;
+                         }
+                    }
+                  if (will_accept) break;
+               }
+          }
+        else
+          _wl_dropable_handle(dropable_old, 0, 0, EINA_FALSE);
+
+        _wl_dropable_all_set(ev->win, x, y, EINA_TRUE);
+     }
+
+   doaccept = will_accept;
+
+   if (dragacceptcb)
+     dragacceptcb(dragacceptdata, wl_cnp_selection.requestwidget, will_accept);
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool
+_wl_dnd_drop(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+{
+   Ecore_Wl_Event_Dnd_Drop *ev;
+   Dropable *drop;
+   Ecore_Evas *ee;
+   Evas_Coord ex = 0, ey = 0;
+   int i = 0;
+
+   ev = event;
+
+   if (!(drop = _wl_dropable_find(ev->win)))
+     return ECORE_CALLBACK_PASS_ON;
+
+   savedtypes.x = ev->position.x;
+   savedtypes.y = ev->position.y;
+   ee = ecore_evas_ecore_evas_get(evas_object_evas_get(drop->obj));
+   ecore_evas_geometry_get(ee, &ex, &ey, NULL, NULL);
+   savedtypes.x -= ex;
+   savedtypes.y -= ey;
+
+   if (!(drop = _wl_dropable_find_geom(ev->win, savedtypes.x, savedtypes.y)))
+     return ECORE_CALLBACK_PASS_ON;
+
+   for (i = 0; i < savedtypes.ntypes; i++)
+     {
+        Dropable_Cbs *cbs;
+        EINA_INLIST_FOREACH(drop->cbs_list, cbs)
+          {
+             if ((savedtypes.types[i] == text_uri) &&
+                   (cbs->types & ELM_SEL_FORMAT_MARKUP) &&
+                   (cbs->types & ELM_SEL_FORMAT_IMAGE))
+               {
+                  wl_cnp_selection.requestwidget = drop->obj;
+                  evas_object_event_callback_add(wl_cnp_selection.requestwidget,
+                        EVAS_CALLBACK_DEL,
+                        _wl_sel_obj_del2,
+                        &wl_cnp_selection);
+                  ecore_wl_dnd_drag_get(ecore_wl_input_get(), text_uri);
+                  return ECORE_CALLBACK_PASS_ON;
+               }
+          }
+     }
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool
+_wl_dnd_send(void *data, int type EINA_UNUSED, void *event)
+{
+   char *buf;
+   int ret, len_remained;
+   int len_written = 0;
+   Wl_Cnp_Selection *sel;
+   Ecore_Wl_Event_Data_Source_Send *ev;
+
+   ev = event;
+   sel = data;
+
+   len_remained = sel->buflen;
+   buf = sel->selbuf;
+
+   while (len_written < sel->buflen)
+     {
+        ret = write(ev->fd, buf, len_remained);
+        if (ret == -1) break;
+        buf += ret;
+        len_written += ret;
+        len_remained -= ret;
+     }
+
+   close(ev->fd);
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool
+_wl_dnd_receive(void *data, int type EINA_UNUSED, void *event)
+{
+   Wl_Cnp_Selection *sel;
+   Ecore_Wl_Event_Selection_Data_Ready *ev;
+
+   ev = event;
+   sel = data;
+
+   if (sel->requestwidget)
+     {
+        if (!ev->done)
+          _wl_dropable_data_handle(sel, ev->data);
+        else
+          {
+             evas_object_event_callback_del_full(sel->requestwidget,
+                                                 EVAS_CALLBACK_DEL,
+                                                 _wl_sel_obj_del2, sel);
+             sel->requestwidget = NULL;
+          }
+     }
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool
+_wl_dnd_end(void *data EINA_UNUSED, int type EINA_UNUSED, void *event EINA_UNUSED)
+{
+   /* Ecore_Wl_Event_Dnd_End *ev; */
+
+   /* ev = event; */
+
+   if (dragdonecb) dragdonecb(dragdonedata, dragwidget);
+
+   if (dragwin)
+     {
+        if (!doaccept)
+          {
+             /* Commit animation when drag cancelled */
+             /* Record final position of dragwin, then do animation */
+             ecore_animator_timeline_add(0.3, _drag_cancel_animate, dragwin);
+          }
+        else
+          {
+             /* No animation drop was committed */
+             evas_object_del(dragwin);
+          }
+
+        dragwin = NULL;  /* if not freed here, free in end of anim */
+     }
+
+   dragdonecb = NULL;
+   dragacceptcb = NULL;
+   dragposcb = NULL;
+   dragwidget = NULL;
+   doaccept = EINA_FALSE;
+
+   ecore_wl_input_ungrab(ecore_wl_input_get());
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static void
+_wl_dropable_data_handle(Wl_Cnp_Selection *sel, char *data)
+{
+   Dropable *drop;
+   unsigned int win = 0;
+   Elm_Selection_Data sdata;
+   int len = 0;
+   char *s = NULL;
+
+   win = _wl_elm_widget_window_get(sel->requestwidget);
+   drop = _wl_dropable_find_geom(win, savedtypes.x, savedtypes.y);
+
+   len = strlen(data);
+   if (!(s = malloc(len + 1))) return;
+   memcpy(s, data, len);
+   s[len] = 0;
+
+   if (savedtypes.textreq)
+     {
+        savedtypes.textreq = 0;
+        savedtypes.imgfile = s;
+     }
+
+   sdata.len = len;
+   sdata.x = savedtypes.x;
+   sdata.y = savedtypes.y;
+
+   if (!savedtypes.imgfile) return;
+
+   Dropable_Cbs *cbs;
+   Eina_Inlist *itr;
+   EINA_INLIST_FOREACH_SAFE(drop->cbs_list, itr, cbs)
+     {
+        /* If it's markup that also supports images */
+        if ((cbs->types & ELM_SEL_FORMAT_MARKUP) &&
+              (cbs->types & ELM_SEL_FORMAT_IMAGE))
+          {
+             sdata.format = ELM_SEL_FORMAT_MARKUP;
+             sdata.data = (char *)savedtypes.imgfile;
+             if (cbs->dropcb) cbs->dropcb(cbs->dropdata, drop->obj, &sdata);
+             ecore_wl_dnd_drag_end(ecore_wl_input_get());
+          }
+        else if (cbs->types & ELM_SEL_FORMAT_IMAGE)
+          {
+             sdata.format = ELM_SEL_FORMAT_IMAGE;
+             sdata.data = (char *)savedtypes.imgfile;
+             if (cbs->dropcb) cbs->dropcb(cbs->dropdata, drop->obj, &sdata);
+             ecore_wl_dnd_drag_end(ecore_wl_input_get());
+          }
+     }
+   ELM_SAFE_FREE(savedtypes.imgfile, free);
+}
+
+static Dropable *
+_wl_dropable_find(unsigned int win)
+{
+   Eina_List *l;
+   Dropable *dropable;
+
+   if (!drops) return NULL;
+   EINA_LIST_FOREACH(drops, l, dropable)
+     if (_wl_elm_widget_window_get(dropable->obj) == win)
+       return dropable;
+   return NULL;
+}
+
+static Dropable *
+_wl_dropable_find_geom(unsigned int win, Evas_Coord x, Evas_Coord y)
+{
+   Eina_List *l;
+   Dropable *drop;
+
+   EINA_LIST_FOREACH(drops, l, drop)
+     {
+        if (_wl_elm_widget_window_get(drop->obj) == win)
+          {
+             Evas_Coord ox, oy, ow, oh;
+
+             evas_object_geometry_get(drop->obj, &ox, &oy, &ow, &oh);
+             if ((x >= ox) && (y >= oy) && (x < (ox + ow)) && (y < (oy + oh)))
+               return drop;
+          }
+     }
+
+   return NULL;
+}
+
+static void
+_wl_dropable_handle(Dropable *drop, Evas_Coord x, Evas_Coord y, Eina_Bool have_obj)
+{
+   Dropable *last = NULL;
+   Dropable_Cbs *cbs;
+   Eina_Inlist *itr;
+
+   if (drop->last.in)
+     last = _wl_dropable_find_geom(_wl_elm_widget_window_get(drop->obj),
+                                   drop->last.x, drop->last.y);
+
+   if ((have_obj) && (last == drop))
+     {
+        EINA_INLIST_FOREACH_SAFE(drop->cbs_list, itr, cbs)
+           if (cbs->poscb)
+              cbs->poscb(cbs->posdata, drop->obj, x, y, dragaction);
+     }
+   else if ((have_obj) && (!last))
+     {
+        EINA_INLIST_FOREACH_SAFE(drop->cbs_list, itr, cbs)
+           if (cbs->entercb)
+              cbs->entercb(cbs->enterdata, drop->obj);
+        EINA_INLIST_FOREACH_SAFE(drop->cbs_list, itr, cbs)
+           if (cbs->poscb)
+              cbs->poscb(cbs->posdata, drop->obj, x, y, dragaction);
+     }
+   else if ((!have_obj) && (last))
+     {
+        EINA_INLIST_FOREACH_SAFE(drop->cbs_list, itr, cbs)
+           if (cbs->leavecb)
+              cbs->leavecb(cbs->leavedata, drop->obj);
+     }
+   else if (have_obj)
+     {
+        EINA_INLIST_FOREACH_SAFE(drop->cbs_list, itr, cbs)
+           if (cbs->entercb)
+              cbs->entercb(cbs->enterdata, drop->obj);
+        if (last)
+          {
+             drop = last;
+             EINA_INLIST_FOREACH_SAFE(drop->cbs_list, itr, cbs)
+                if (cbs->leavecb)
+                   cbs->leavecb(cbs->leavedata, drop->obj);
+          }
+     }
+}
+
+static void
+_wl_dropable_all_set(unsigned int win, Evas_Coord x, Evas_Coord y, Eina_Bool set)
+{
+   Eina_List *l;
+   Dropable *dropable;
+
+   EINA_LIST_FOREACH(drops, l, dropable)
+     {
+        if (_wl_elm_widget_window_get(dropable->obj) == win)
+          {
+             dropable->last.x = x;
+             dropable->last.y = y;
+             dropable->last.in = set;
+          }
+     }
+}
+
+static Eina_Bool
+_wl_drops_accept(const char *type)
+{
+   Eina_List *l;
+   Dropable *drop;
+   Eina_Bool will_accept = EINA_FALSE;
+
+   EINA_LIST_FOREACH(drops, l, drop)
+     {
+        Dropable_Cbs *cbs;
+        EINA_INLIST_FOREACH(drop->cbs_list, cbs)
+          {
+             switch (cbs->types)
+               {
+                case ELM_SEL_FORMAT_TARGETS:
+                case ELM_SEL_FORMAT_IMAGE:
+                   if ((!strncmp(type, "text/uri", 8)) ||
+                         (!strncmp(type, "image/", 6)))
+                     {
+                        wl_cnp_selection.requestwidget = drop->obj;
+                        return EINA_TRUE;
+                     }
+                   break;
+                case ELM_SEL_FORMAT_NONE:
+                   break;
+                case ELM_SEL_FORMAT_TEXT:
+                   break;
+                case ELM_SEL_FORMAT_MARKUP:
+                   break;
+                case ELM_SEL_FORMAT_VCARD:
+                   break;
+                case ELM_SEL_FORMAT_HTML:
+                   break;
+               }
+          }
+     }
+
+   return will_accept;
+}
+
+static unsigned int
+_wl_elm_widget_window_get(Evas_Object *obj)
+{
+   Evas_Object *top;
+   Ecore_Wl_Window *win = NULL;
+
+   if (elm_widget_is(obj))
+     {
+        top = elm_widget_top_get(obj);
+        if (!top) top = elm_widget_top_get(elm_widget_parent_widget_get(obj));
+        if (top && (eo_isa(top, ELM_WIN_CLASS)))
+            win = elm_win_wl_window_get(top);
+     }
+   if (!win)
+     {
+        Ecore_Evas *ee;
+        Evas *evas;
+
+        if (!(evas = evas_object_evas_get(obj)))
+          return 0;
+        if (!(ee = ecore_evas_ecore_evas_get(evas)))
+          return 0;
+
+        while(!win)
+          {
+             const char *engine_name = ecore_evas_engine_name_get(ee);
+             if (!strcmp(engine_name, ELM_BUFFER))
+               {
+                  ee = ecore_evas_buffer_ecore_evas_parent_get(ee);
+                  if (!ee) return 0;
+                  win = ecore_evas_wayland_window_get(ee);
+               }
+             else
+               {
+                  /* In case the engine is not a buffer, we want to check once. */
+                  win = ecore_evas_wayland_window_get(ee);
+                  if (!win) return 0;
+               }
+          }
+     }
+
+   return ecore_wl_window_id_get(win);
+}
+
 #endif
-
-
-
-
-
 
 ////////////////////////////////////////////////////////////////////////////
 // for local (Within 1 app/process) cnp (used by fb as fallback
@@ -2663,36 +3737,35 @@ static Local_Selinfo _local_selinfo[4];
 static void       _local_get_job(void *data);
 
 static Eina_Bool  _local_elm_cnp_init(void);
-static Eina_Bool  _local_elm_cnp_selection_set(Evas_Object *obj __UNUSED__, Elm_Sel_Type selection, Elm_Sel_Format format, const void *selbuf, size_t buflen);
-static void       _local_elm_cnp_selection_loss_callback_set(Evas_Object *obj __UNUSED__, Elm_Sel_Type selection __UNUSED__, Elm_Selection_Loss_Cb func __UNUSED__, const void *data __UNUSED__);
-static Eina_Bool  _local_elm_object_cnp_selection_clear(Evas_Object *obj __UNUSED__, Elm_Sel_Type selection);
-static Eina_Bool  _local_elm_cnp_selection_get(Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format __UNUSED__, Elm_Drop_Cb datacb, void *udata);
-static  Eina_Bool _local_elm_drop_target_add(Evas_Object *obj __UNUSED__, Elm_Sel_Format format __UNUSED__,
-                                             Elm_Drag_State entercb __UNUSED__, void *enterdata __UNUSED__,
-                                             Elm_Drag_State leavecb __UNUSED__, void *leavedata __UNUSED__,
-                                             Elm_Drag_Pos poscb __UNUSED__, void *posdata __UNUSED__,
-                                             Elm_Drop_Cb dropcb __UNUSED__, void *cbdata __UNUSED__);
-static  Eina_Bool _local_elm_drop_target_del(Evas_Object *obj __UNUSED__);
-static Eina_Bool  _local_elm_drag_start(Evas_Object *obj __UNUSED__,
-                                        Elm_Sel_Format format __UNUSED__,
-                                        const char *data __UNUSED__,
-                                        Elm_Xdnd_Action action __UNUSED__,
-                                        Elm_Drag_Icon_Create_Cb createicon __UNUSED__,
-                                        void *createdata __UNUSED__,
-                                        Elm_Drag_Pos dragpos __UNUSED__,
-                                        void *dragdata __UNUSED__,
-                                        Elm_Drag_Accept acceptcb __UNUSED__,
-                                        void *acceptdata __UNUSED__,
-                                        Elm_Drag_State dragdone __UNUSED__,
-                                        void *donecbdata __UNUSED__);
-static Eina_Bool  _local_elm_selection_selection_has_owner(Evas_Object *obj __UNUSED__);
+static Eina_Bool  _local_elm_cnp_selection_set(Evas_Object *obj EINA_UNUSED, Elm_Sel_Type selection, Elm_Sel_Format format, const void *selbuf, size_t buflen);
+static void       _local_elm_cnp_selection_loss_callback_set(Evas_Object *obj EINA_UNUSED, Elm_Sel_Type selection EINA_UNUSED, Elm_Selection_Loss_Cb func EINA_UNUSED, const void *data EINA_UNUSED);
+static Eina_Bool  _local_elm_object_cnp_selection_clear(Evas_Object *obj EINA_UNUSED, Elm_Sel_Type selection);
+static Eina_Bool  _local_elm_cnp_selection_get(Evas_Object *obj, Elm_Sel_Type selection, Elm_Sel_Format format EINA_UNUSED, Elm_Drop_Cb datacb, void *udata);
+static  Eina_Bool _local_elm_drop_target_add(Evas_Object *obj EINA_UNUSED, Elm_Sel_Format format EINA_UNUSED,
+                                             Elm_Drag_State entercb EINA_UNUSED, void *enterdata EINA_UNUSED,
+                                             Elm_Drag_State leavecb EINA_UNUSED, void *leavedata EINA_UNUSED,
+                                             Elm_Drag_Pos poscb EINA_UNUSED, void *posdata EINA_UNUSED,
+                                             Elm_Drop_Cb dropcb EINA_UNUSED, void *dropdata EINA_UNUSED);
+static Eina_Bool  _local_elm_drag_start(Evas_Object *obj EINA_UNUSED,
+                                        Elm_Sel_Format format EINA_UNUSED,
+                                        const char *data EINA_UNUSED,
+                                        Elm_Xdnd_Action action EINA_UNUSED,
+                                        Elm_Drag_Icon_Create_Cb createicon EINA_UNUSED,
+                                        void *createdata EINA_UNUSED,
+                                        Elm_Drag_Pos dragpos EINA_UNUSED,
+                                        void *dragdata EINA_UNUSED,
+                                        Elm_Drag_Accept acceptcb EINA_UNUSED,
+                                        void *acceptdata EINA_UNUSED,
+                                        Elm_Drag_State dragdone EINA_UNUSED,
+                                        void *donecbdata EINA_UNUSED);
+static Eina_Bool  _local_elm_selection_selection_has_owner(Evas_Object *obj EINA_UNUSED);
 
 static void
 _local_get_job(void *data)
 {
    Local_Selinfo *info = data;
    Elm_Selection_Data ev;
-   
+
    info->get.job = NULL;
    ev.x = 0;
    ev.y = 0;
@@ -2716,13 +3789,12 @@ _local_elm_cnp_init(void)
 }
 
 static Eina_Bool
-_local_elm_cnp_selection_set(Evas_Object *obj __UNUSED__,
+_local_elm_cnp_selection_set(Evas_Object *obj EINA_UNUSED,
                              Elm_Sel_Type selection, Elm_Sel_Format format,
                              const void *selbuf, size_t buflen)
 {
    _local_elm_cnp_init();
-   if (_local_selinfo[selection].sel.buf)
-     free(_local_selinfo[selection].sel.buf);
+   free(_local_selinfo[selection].sel.buf);
    _local_selinfo[selection].format = format;
    _local_selinfo[selection].sel.buf = malloc(buflen + 1);
    if (_local_selinfo[selection].sel.buf)
@@ -2737,10 +3809,10 @@ _local_elm_cnp_selection_set(Evas_Object *obj __UNUSED__,
 }
 
 static void
-_local_elm_cnp_selection_loss_callback_set(Evas_Object *obj __UNUSED__,
-                                           Elm_Sel_Type selection __UNUSED__,
-                                           Elm_Selection_Loss_Cb func __UNUSED__,
-                                           const void *data __UNUSED__)
+_local_elm_cnp_selection_loss_callback_set(Evas_Object *obj EINA_UNUSED,
+                                           Elm_Sel_Type selection EINA_UNUSED,
+                                           Elm_Selection_Loss_Cb func EINA_UNUSED,
+                                           const void *data EINA_UNUSED)
 {
    _local_elm_cnp_init();
    // this doesnt need to do anything as we never lose selection to anyone
@@ -2748,13 +3820,11 @@ _local_elm_cnp_selection_loss_callback_set(Evas_Object *obj __UNUSED__,
 }
 
 static Eina_Bool
-_local_elm_object_cnp_selection_clear(Evas_Object *obj __UNUSED__,
+_local_elm_object_cnp_selection_clear(Evas_Object *obj EINA_UNUSED,
                                       Elm_Sel_Type selection)
 {
    _local_elm_cnp_init();
-   if (_local_selinfo[selection].sel.buf)
-     free(_local_selinfo[selection].sel.buf);
-   _local_selinfo[selection].sel.buf = NULL;
+   ELM_SAFE_FREE(_local_selinfo[selection].sel.buf, free);
    _local_selinfo[selection].sel.size = 0;
    return EINA_TRUE;
 }
@@ -2762,7 +3832,7 @@ _local_elm_object_cnp_selection_clear(Evas_Object *obj __UNUSED__,
 static Eina_Bool
 _local_elm_cnp_selection_get(Evas_Object *obj,
                              Elm_Sel_Type selection,
-                             Elm_Sel_Format format __UNUSED__,
+                             Elm_Sel_Format format EINA_UNUSED,
                              Elm_Drop_Cb datacb, void *udata)
 {
    _local_elm_cnp_init();
@@ -2777,16 +3847,16 @@ _local_elm_cnp_selection_get(Evas_Object *obj,
 }
 
 static  Eina_Bool
-_local_elm_drop_target_add(Evas_Object *obj __UNUSED__,
-                           Elm_Sel_Format format __UNUSED__,
-                           Elm_Drag_State entercb __UNUSED__,
-                           void *enterdata __UNUSED__,
-                           Elm_Drag_State leavecb __UNUSED__,
-                           void *leavedata __UNUSED__,
-                           Elm_Drag_Pos poscb __UNUSED__,
-                           void *posdata __UNUSED__,
-                           Elm_Drop_Cb dropcb __UNUSED__,
-                           void *dropdata __UNUSED__)
+_local_elm_drop_target_add(Evas_Object *obj EINA_UNUSED,
+                           Elm_Sel_Format format EINA_UNUSED,
+                           Elm_Drag_State entercb EINA_UNUSED,
+                           void *enterdata EINA_UNUSED,
+                           Elm_Drag_State leavecb EINA_UNUSED,
+                           void *leavedata EINA_UNUSED,
+                           Elm_Drag_Pos poscb EINA_UNUSED,
+                           void *posdata EINA_UNUSED,
+                           Elm_Drop_Cb dropcb EINA_UNUSED,
+                           void *dropdata EINA_UNUSED)
 {
    // XXX: implement me
    _local_elm_cnp_init();
@@ -2794,7 +3864,62 @@ _local_elm_drop_target_add(Evas_Object *obj __UNUSED__,
 }
 
 static  Eina_Bool
-_local_elm_drop_target_del(Evas_Object *obj __UNUSED__)
+_local_elm_drop_target_del(Evas_Object *obj, Elm_Sel_Format format,
+                         Elm_Drag_State entercb, void *enterdata,
+                         Elm_Drag_State leavecb, void *leavedata,
+                         Elm_Drag_Pos poscb, void *posdata,
+                         Elm_Drop_Cb dropcb, void *dropdata)
+{
+   Dropable *dropable = NULL;
+
+   _local_elm_cnp_init();
+
+   eo_do(obj, dropable = eo_key_data_get("__elm_dropable"));
+   if (dropable)
+     {
+        Eina_Inlist *itr;
+        Dropable_Cbs *cbs_info;
+        /* Look for the callback in the list */
+        EINA_INLIST_FOREACH_SAFE(dropable->cbs_list, itr, cbs_info)
+           if (cbs_info->entercb == entercb && cbs_info->enterdata == enterdata &&
+                 cbs_info->leavecb == leavecb && cbs_info->leavedata == leavedata &&
+                 cbs_info->poscb == poscb && cbs_info->posdata == posdata &&
+                 cbs_info->dropcb == dropcb && cbs_info->dropdata == dropdata &&
+                 cbs_info->types == format)
+             {
+                dropable->cbs_list = eina_inlist_remove(dropable->cbs_list,
+                      EINA_INLIST_GET(cbs_info));
+                free(cbs_info);
+             }
+        /* In case no more callbacks are listed for the object */
+        if (!dropable->cbs_list)
+          {
+             drops = eina_list_remove(drops, dropable);
+             eo_do(obj, eo_key_data_del("__elm_dropable"));
+             free(dropable);
+             dropable = NULL;
+             evas_object_event_callback_del(obj, EVAS_CALLBACK_DEL,
+                   _all_drop_targets_cbs_del);
+          }
+        return EINA_TRUE;
+     }
+
+   return EINA_FALSE;
+}
+
+static Eina_Bool
+_local_elm_drag_start(Evas_Object *obj EINA_UNUSED,
+                      Elm_Sel_Format format EINA_UNUSED,
+                      const char *data EINA_UNUSED,
+                      Elm_Xdnd_Action action EINA_UNUSED,
+                      Elm_Drag_Icon_Create_Cb createicon EINA_UNUSED,
+                      void *createdata EINA_UNUSED,
+                      Elm_Drag_Pos dragpos EINA_UNUSED,
+                      void *dragdata EINA_UNUSED,
+                      Elm_Drag_Accept acceptcb EINA_UNUSED,
+                      void *acceptdata EINA_UNUSED,
+                      Elm_Drag_State dragdone EINA_UNUSED,
+                      void *donecbdata EINA_UNUSED)
 {
    // XXX: implement me
    _local_elm_cnp_init();
@@ -2802,18 +3927,8 @@ _local_elm_drop_target_del(Evas_Object *obj __UNUSED__)
 }
 
 static Eina_Bool
-_local_elm_drag_start(Evas_Object *obj __UNUSED__,
-                      Elm_Sel_Format format __UNUSED__,
-                      const char *data __UNUSED__,
-                      Elm_Xdnd_Action action __UNUSED__,
-                      Elm_Drag_Icon_Create_Cb createicon __UNUSED__,
-                      void *createdata __UNUSED__,
-                      Elm_Drag_Pos dragpos __UNUSED__,
-                      void *dragdata __UNUSED__,
-                      Elm_Drag_Accept acceptcb __UNUSED__,
-                      void *acceptdata __UNUSED__,
-                      Elm_Drag_State dragdone __UNUSED__,
-                      void *donecbdata __UNUSED__)
+_local_elm_drag_action_set(Evas_Object *obj EINA_UNUSED,
+                           Elm_Xdnd_Action action EINA_UNUSED)
 {
    // XXX: implement me
    _local_elm_cnp_init();
@@ -2821,27 +3936,13 @@ _local_elm_drag_start(Evas_Object *obj __UNUSED__,
 }
 
 static Eina_Bool
-_local_elm_drag_action_set(Evas_Object *obj __UNUSED__,
-                           Elm_Xdnd_Action action __UNUSED__)
-{
-   // XXX: implement me
-   _local_elm_cnp_init();
-   return EINA_FALSE;
-}
-
-static Eina_Bool
-_local_elm_selection_selection_has_owner(Evas_Object *obj __UNUSED__)
+_local_elm_selection_selection_has_owner(Evas_Object *obj EINA_UNUSED)
 {
    _local_elm_cnp_init();
    if (_local_selinfo[ELM_SEL_TYPE_CLIPBOARD].sel.buf) return EINA_TRUE;
    return EINA_FALSE;
 }
 #endif
-
-
-
-
-
 
 // common internal funcs
 ////////////////////////////////////////////////////////////////////////////
@@ -2862,24 +3963,23 @@ _tempfile_new(int size)
 {
 #ifdef HAVE_MMAN_H
    Tmp_Info *info;
-   const char *tmppath;
+   const char *tmppath = NULL;
    mode_t cur_umask;
    int len;
 
    info = calloc(1, sizeof(Tmp_Info));
    if (!info) return NULL;
-
-   char* tmp_env = getenv("TMP");
-   if (!tmp_env) tmppath = strdup(P_tmpdir);
-   else tmppath = strdup(tmp_env);
+#if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
+   if (getuid() == geteuid())
+#endif
+     tmppath = getenv("TMP");
+   if (!tmppath) tmppath = P_tmpdir;
    len = snprintf(NULL, 0, "%s/%sXXXXXX", tmppath, "elmcnpitem-");
    if (len < 0) goto on_error;
    len++;
    info->filename = malloc(len);
    if (!info->filename) goto on_error;
    snprintf(info->filename,len,"%s/%sXXXXXX", tmppath, "elmcnpitem-");
-   free(tmppath);
-   tmppath = NULL;
    cur_umask = umask(S_IRWXO | S_IRWXG);
    info->fd = mkstemp(info->filename);
    umask(cur_umask);
@@ -2922,15 +4022,13 @@ _tempfile_new(int size)
    return info;
 
  on_error:
-   if (info->fd > 0) close(info->fd);
+   if (info->fd >= 0) close(info->fd);
    info->fd = -1;
    /* Set map to NULL and return */
    info->map = NULL;
    info->len = 0;
    free(info->filename);
    free(info);
-   if (tmppath)
-     free(tmppath);
    return NULL;
 #else
    (void) size;
@@ -2954,17 +4052,32 @@ _pasteimage_append(char *file, Evas_Object *entry)
    int len;
    /* TODO BUG: shouldn't define absize=240x180. Prefer data:// instead of href:// -- may need support for evas. See  http://dataurl.net/ */
    static const char *tagstring = "<item absize=240x180 href=file://%s></item>";
-
+   //TIZEN ONLY(20150720): Prevent double file:// insertion
+   static const char *tagstr2 = "<item absize=240x180 href=%s></item>";
+   //
    if ((!file) || (!entry)) return EINA_FALSE;
-   len = strlen(tagstring)+strlen(file);
+   //TIZEN ONLY(20150720): Prevent double file:// insertion
+   //len = strlen(tagstring)+strlen(file);
+   char *path = strstr(file, "file://");
+   if (path)
+     len = strlen(tagstr2)+strlen(file);
+   else
+     len = strlen(tagstring)+strlen(file);
+   //
    entrytag = alloca(len + 1);
-   snprintf(entrytag, len + 1, tagstring, file);
+   //TIZEN ONLY(20150720): Prevent double file:// insertion
+   //snprintf(entrytag, len + 1, tagstring, file);
+   if (path)
+     snprintf(entrytag, len + 1, tagstr2, file);
+   else
+     snprintf(entrytag, len + 1, tagstring, file);
+   //
    /* TODO BUG: should never NEVER assume it's an elm_entry! */
    _elm_entry_entry_paste(entry, entrytag);
    return EINA_TRUE;
 }
 
-// TIZEN ONLY
+//TIZEN ONLY (20150721) : Entry markup (Image) & (Image + Text) CNP
 static void
 _entry_insert_filter(Evas_Object *entry, char *str)
 {
@@ -2994,7 +4107,6 @@ _entry_insert_filter(Evas_Object *entry, char *str)
      free(insertStr);
 }
 //
-
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -3009,11 +4121,12 @@ elm_cnp_selection_set(Evas_Object *obj, Elm_Sel_Type selection,
    if (selection > ELM_SEL_TYPE_CLIPBOARD) return EINA_FALSE;
    if (!_elm_cnp_init_count) _elm_cnp_init();
 #ifdef HAVE_ELEMENTARY_X
-   if (_x11_elm_widget_xwin_get(obj))
-     return _x11_elm_cnp_selection_set(obj, selection, format, selbuf, buflen);
+   Ecore_X_Window xwin = _x11_elm_widget_xwin_get(obj);
+   if (xwin)
+     return _x11_elm_cnp_selection_set(xwin, obj, selection, format, selbuf, buflen);
 #endif
 #ifdef HAVE_ELEMENTARY_WAYLAND
-   if (elm_win_wl_window_get(obj))
+   if (_wl_elm_widget_window_get(obj))
       return _wl_elm_cnp_selection_set(obj, selection, format, selbuf, buflen);
 #endif
    return _local_elm_cnp_selection_set(obj, selection, format, selbuf, buflen);
@@ -3030,6 +4143,10 @@ elm_cnp_selection_loss_callback_set(Evas_Object *obj, Elm_Sel_Type selection,
    if (_x11_elm_widget_xwin_get(obj))
      _x11_elm_cnp_selection_loss_callback_set(obj, selection, func, data);
 #endif
+#ifdef HAVE_ELEMENTARY_WAYLAND
+   if (_wl_elm_widget_window_get(obj))
+     _wl_elm_cnp_selection_loss_callback_set(obj, selection, func, data);
+#endif
    _local_elm_cnp_selection_loss_callback_set(obj, selection, func, data);
 }
 
@@ -3042,6 +4159,10 @@ elm_object_cnp_selection_clear(Evas_Object *obj, Elm_Sel_Type selection)
    if (_x11_elm_widget_xwin_get(obj))
      return _x11_elm_object_cnp_selection_clear(obj, selection);
 #endif
+#ifdef HAVE_ELEMENTARY_WAYLAND
+   if (_wl_elm_widget_window_get(obj))
+      return _wl_elm_cnp_selection_clear(obj, selection);
+#endif
    return _local_elm_object_cnp_selection_clear(obj, selection);
 }
 
@@ -3052,11 +4173,12 @@ elm_cnp_selection_get(Evas_Object *obj, Elm_Sel_Type selection,
    if (selection > ELM_SEL_TYPE_CLIPBOARD) return EINA_FALSE;
    if (!_elm_cnp_init_count) _elm_cnp_init();
 #ifdef HAVE_ELEMENTARY_X
-   if (_x11_elm_widget_xwin_get(obj))
-     return _x11_elm_cnp_selection_get(obj, selection, format, datacb, udata);
+   Ecore_X_Window xwin = _x11_elm_widget_xwin_get(obj);
+   if (xwin)
+     return _x11_elm_cnp_selection_get(xwin, obj, selection, format, datacb, udata);
 #endif
 #ifdef HAVE_ELEMENTARY_WAYLAND
-   if (elm_win_wl_window_get(obj))
+   if (_wl_elm_widget_window_get(obj))
       return _wl_elm_cnp_selection_get(obj, selection, format, datacb, udata);
 #endif
    return _local_elm_cnp_selection_get(obj, selection, format, datacb, udata);
@@ -3082,9 +4204,10 @@ elm_drop_target_add(Evas_Object *obj, Elm_Sel_Format format,
                                      dropcb, dropdata);
 #endif
 #ifdef HAVE_ELEMENTARY_WAYLAND
-   return _wl_elm_drop_target_add(obj, format, entercb, enterdata,
-                                  leavecb, leavedata, poscb, posdata,
-                                  dropcb, dropdata);
+   if (_wl_elm_widget_window_get(obj))
+     return _wl_elm_drop_target_add(obj, format, entercb, enterdata,
+                                    leavecb, leavedata, poscb, posdata,
+                                    dropcb, dropdata);
 #endif
    return _local_elm_drop_target_add(obj, format, entercb, enterdata,
                                      leavecb, leavedata, poscb, posdata,
@@ -3104,7 +4227,20 @@ elm_drop_target_del(Evas_Object *obj, Elm_Sel_Format format,
      return _x11_elm_drop_target_del(obj, format, entercb, enterdata,
            leavecb, leavedata, poscb, posdata, dropcb, dropdata);
 #endif
-   return _local_elm_drop_target_del(obj);
+#ifdef HAVE_ELEMENTARY_WAYLAND
+   if (_wl_elm_widget_window_get(obj))
+     return _wl_elm_drop_target_del(obj, format, entercb, enterdata,
+           leavecb, leavedata, poscb, posdata, dropcb, dropdata);
+#endif
+   /* FIXME: Not the best place for an error message, but meh.
+    * This code path is actually valid if running in framebuffer, but it still shouldn't
+    * be getting here because the drop target shouldn't be added. This is an error
+    * and it's because of some stupid handling in both the X11 and the wayland backends
+    * as seen in the commit that introduced this comment.
+    * Window check is probably not the best idea, you should be doing engine check instead. */
+   ERR("Please contact developers, you should probably not get here.");
+   return _local_elm_drop_target_del(obj, format, entercb, enterdata,
+           leavecb, leavedata, poscb, posdata, dropcb, dropdata);
 }
 
 EAPI Eina_Bool
@@ -3124,6 +4260,14 @@ elm_drag_start(Evas_Object *obj, Elm_Sel_Format format, const char *data,
                                 acceptcb, acceptdata,
                                 dragdone, donecbdata);
 #endif
+#ifdef HAVE_ELEMENTARY_WAYLAND
+   if (_wl_elm_widget_window_get(obj))
+     return _wl_elm_drag_start(obj, format, data, action,
+                               createicon, createdata,
+                               dragpos, dragdata,
+                               acceptcb, acceptdata,
+                               dragdone, donecbdata);
+#endif
    return _local_elm_drag_start(obj, format, data, action,
                                 createicon, createdata,
                                 dragpos, dragdata,
@@ -3139,6 +4283,10 @@ elm_drag_action_set(Evas_Object *obj, Elm_Xdnd_Action action)
    if (_x11_elm_widget_xwin_get(obj))
      return _x11_elm_drag_action_set(obj, action);
 #endif
+#ifdef HAVE_ELEMENTARY_WAYLAND
+   if (_wl_elm_widget_window_get(obj))
+     return _wl_elm_drag_action_set(obj, action);
+#endif
    return _local_elm_drag_action_set(obj, action);
 }
 
@@ -3151,8 +4299,8 @@ elm_selection_selection_has_owner(Evas_Object *obj)
      return _x11_elm_selection_selection_has_owner(obj);
 #endif
 #ifdef HAVE_ELEMENTARY_WAYLAND
-   if (elm_win_wl_window_get(obj))
-     return ecore_wl_dnd_selection_has_owner(ecore_wl_dnd_get());
+   if (_wl_elm_widget_window_get(obj))
+     return ecore_wl_dnd_selection_owner_has(ecore_wl_input_get());
 #endif
    return _local_elm_selection_selection_has_owner(obj);
 }
@@ -3181,7 +4329,7 @@ _elm_item_container_pos_cb(void *data, Evas_Object *obj, Evas_Coord x, Evas_Coor
      {  /* Call container drop func with specific item pointer */
         int xo = 0;
         int yo = 0;
-        evas_object_geometry_get(obj, &xo, &yo, NULL, NULL);
+        eo_do(obj, efl_gfx_position_get(&xo, &yo));
         if (st->itemgetcb)
           it = st->itemgetcb(obj, x+xo, y+yo, &xposret, &yposret);
 
@@ -3203,7 +4351,7 @@ _elm_item_container_drop_cb(void *data, Evas_Object *obj , Elm_Selection_Data *e
      {  /* Call container drop func with specific item pointer */
         int xo = 0;
         int yo = 0;
-        evas_object_geometry_get(obj, &xo, &yo, NULL, NULL);
+        eo_do(obj, efl_gfx_position_get(&xo, &yo));
         if (st->itemgetcb)
           it = st->itemgetcb(obj, ev->x+xo, ev->y+yo, &xposret, &yposret);
 
@@ -3283,7 +4431,6 @@ elm_drop_item_container_add(Evas_Object *obj,
 }
 /* END   - Support elm containers for Drop */
 
-
 /* START - Support elm containers for Drag */
 static int
 _drag_item_container_cmp(const void *d1,
@@ -3294,7 +4441,7 @@ _drag_item_container_cmp(const void *d1,
 }
 
 static void
-_cont_drag_done_cb(void *data, Evas_Object *obj __UNUSED__)
+_cont_drag_done_cb(void *data, Evas_Object *obj EINA_UNUSED)
 {
    Item_Container_Drag_Info *st = data;
    elm_widget_scroll_freeze_pop(st->obj);
@@ -3320,6 +4467,7 @@ _cont_obj_drag_start(void *data)
          info->dragpos, info->dragdata,
          info->acceptcb, info->acceptdata,
          _cont_drag_done_cb, st);
+   ELM_SAFE_FREE(info->data, free);
 
    return ECORE_CALLBACK_CANCEL;
 }
@@ -3449,7 +4597,7 @@ _cont_obj_anim_start(void *data)
 
    if (st->data_get)
      {  /* collect info then start animation or start dragging */
-        if(st->data_get(    /* Collect drag info */
+        if (st->data_get(    /* Collect drag info */
                  st->obj,      /* The container object */
                  it,           /* Drag started on this item */
                  &st->user_info))
@@ -3474,11 +4622,7 @@ _cont_obj_anim_start(void *data)
 }
 
 static void
-_cont_obj_mouse_down(
-   void *data,
-   Evas *e,
-   Evas_Object *obj __UNUSED__,
-   void *event_info)
+_cont_obj_mouse_down(void *data, Evas *e, Evas_Object *obj EINA_UNUSED, void *event_info)
 {  /* Launch a timer to start dragging */
    Evas_Event_Mouse_Down *ev = event_info;
    cnp_debug("In - event %X\n", ev->event_flags);
@@ -3492,8 +4636,7 @@ _cont_obj_mouse_down(
    evas_object_event_callback_add(st->obj, EVAS_CALLBACK_MOUSE_UP,
          _cont_obj_mouse_up, st);
 
-   if (st->tm)
-     ecore_timer_del(st->tm);
+   ecore_timer_del(st->tm);
 
    st->e = e;
    st->x_down = ev->canvas.x;
@@ -3504,11 +4647,7 @@ _cont_obj_mouse_down(
 static Eina_Bool elm_drag_item_container_del_internal(Evas_Object *obj, Eina_Bool full);
 
 static void
-_cont_obj_mouse_move(
-   void *data,
-   Evas *e __UNUSED__,
-   Evas_Object *obj __UNUSED__,
-   void *event_info)
+_cont_obj_mouse_move(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {  /* Cancel any drag waiting to start on timeout */
    cnp_debug("In\n");
    if (((Evas_Event_Mouse_Move *)event_info)->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
@@ -3530,11 +4669,7 @@ _cont_obj_mouse_move(
 }
 
 static void
-_cont_obj_mouse_up(
-   void *data,
-   Evas *e __UNUSED__,
-   Evas_Object *obj __UNUSED__,
-   void *event_info)
+_cont_obj_mouse_up(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
 {  /* Cancel any drag waiting to start on timeout */
    Item_Container_Drag_Info *st = data;
 
@@ -3573,6 +4708,7 @@ elm_drag_item_container_del_internal(Evas_Object *obj, Eina_Bool full)
                 (obj, EVAS_CALLBACK_MOUSE_DOWN, _cont_obj_mouse_down, st);
 
              cont_drag_tg = eina_list_remove(cont_drag_tg, st);
+             ELM_SAFE_FREE(st->user_info.data, free);
              free(st);
           }
 
@@ -3588,12 +4724,7 @@ elm_drag_item_container_del(Evas_Object *obj)
 }
 
 EAPI Eina_Bool
-elm_drag_item_container_add(
-   Evas_Object *obj,
-   double anim_tm,
-   double tm_to_drag,
-   Elm_Xy_Item_Get_Cb itemgetcb,
-   Elm_Item_Container_Data_Get_Cb data_get)
+elm_drag_item_container_add(Evas_Object *obj, double anim_tm, double tm_to_drag, Elm_Xy_Item_Get_Cb itemgetcb, Elm_Item_Container_Data_Get_Cb data_get)
 {
    Item_Container_Drag_Info *st;
 
@@ -3643,9 +4774,9 @@ elm_drag_cancel(Evas_Object *obj)
         if (elm_widget_is(dragwidget))
           {
              Evas_Object *win = elm_widget_top_get(dragwidget);
-             if (win && !strcmp(evas_object_type_get(win), "elm_win"))
+             if (win && eo_isa(win, ELM_WIN_CLASS))
                evas_object_smart_callback_del_full(win, "rotation,changed",
-                                     _x11_win_rotation_changed_cb, dragwin);
+                                              _x11_win_rotation_changed_cb, dragwin);
           }
      }
 #endif

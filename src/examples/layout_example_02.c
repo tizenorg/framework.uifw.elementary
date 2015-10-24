@@ -28,7 +28,7 @@ _signal_cb(void *data, Evas_Object *o, const char *emission, const char *source)
      app->current++;
 
    if (app->current < 0)
-     app->current = sizeof(images) - 1;
+     app->current = (sizeof(images) / sizeof(images[0])) - 2;
    else if (images[app->current] == NULL)
      app->current = 0;
 
@@ -38,28 +38,23 @@ _signal_cb(void *data, Evas_Object *o, const char *emission, const char *source)
 EAPI_MAIN int
 elm_main(int argc, char **argv)
 {
-   Evas_Object *win, *bg, *layout, *icon;
+   Evas_Object *win, *layout, *icon;
    struct _App app;
 
    app.current = 0;
 
-   win = elm_win_add(NULL, "layout", ELM_WIN_BASIC);
-   elm_win_title_set(win, "Layout");
    elm_policy_set(ELM_POLICY_QUIT, ELM_POLICY_QUIT_LAST_WINDOW_CLOSED);
-   elm_win_autodel_set(win, EINA_TRUE);
 
-   bg = elm_bg_add(win);
-   elm_bg_color_set(bg, 255, 255, 255);
-   evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   elm_win_resize_object_add(win, bg);
-   evas_object_show(bg);
+   win = elm_win_util_standard_add("layout", "Layout");
+   elm_win_autodel_set(win, EINA_TRUE);
 
    // Adding layout and filling it with widgets
    layout = elm_layout_add(win);
    evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    elm_win_resize_object_add(win, layout);
-   elm_layout_theme_set(
-       layout, "layout", "application", "content-back-next");
+   if (!elm_layout_theme_set(
+         layout, "layout", "application", "content-back-next"))
+     fprintf(stderr, "Failed to set layout");
    evas_object_show(layout);
 
    icon = elm_icon_add(win);
@@ -67,14 +62,13 @@ elm_main(int argc, char **argv)
    evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    elm_object_part_content_set(layout, "elm.swallow.content", icon);
 
-   elm_object_signal_callback_add(layout, "elm,action,back", "", _signal_cb, &app);
-   elm_object_signal_callback_add(layout, "elm,action,next", "", _signal_cb, &app);
+   elm_object_signal_callback_add(layout, "elm,action,back", "elm", _signal_cb, &app);
+   elm_object_signal_callback_add(layout, "elm,action,next", "elm", _signal_cb, &app);
 
    evas_object_resize(win, 320, 320);
    evas_object_show(win);
 
    elm_run();
-   elm_shutdown();
 
    return 0;
 }

@@ -4,6 +4,12 @@
 #include "elm_interface_scrollable.h"
 #include "elm_widget_layout.h"
 
+/* DO NOT USE THIS HEADER UNLESS YOU ARE PREPARED FOR BREAKING OF YOUR
+ * CODE. THIS IS ELEMENTARY'S INTERNAL WIDGET API (for now) AND IS NOT
+ * FINAL. CALL elm_widget_api_check(ELM_INTERNAL_API_VERSION) TO CHECK
+ * IT AT RUNTIME.
+ */
+
 /**
  * @internal
  * @addtogroup Widget
@@ -16,129 +22,24 @@
  * other widgets which are a list with some more logic on top.
  */
 
-/**
- * @def ELM_LIST_CLASS
- *
- * Use this macro to cast whichever subclass of
- * #Elm_List_Smart_Class into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_LIST_CLASS(x) ((Elm_List_Smart_Class *)x)
-
-/**
- * @def ELM_LIST_DATA
- *
- * Use this macro to cast whichever subdata of
- * #Elm_List_Smart_Data into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_LIST_DATA(x)  ((Elm_List_Smart_Data *)x)
-
-/**
- * @def ELM_LIST_SMART_CLASS_VERSION
- *
- * Current version for Elementary list @b base smart class, a value
- * which goes to _Elm_List_Smart_Class::version.
- *
- * @ingroup Widget
- */
-#define ELM_LIST_SMART_CLASS_VERSION 1
-
-/**
- * @def ELM_LIST_SMART_CLASS_INIT
- *
- * Initializer for a whole #Elm_List_Smart_Class structure, with
- * @c NULL values on its specific fields.
- *
- * @param smart_class_init initializer to use for the "base" field
- * (#Evas_Smart_Class).
- *
- * @see EVAS_SMART_CLASS_INIT_NULL
- * @see EVAS_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_LIST_SMART_CLASS_INIT_NULL
- * @see ELM_LIST_SMART_CLASS_INIT_NAME_VERSION
- *
- * @ingroup Widget
- */
-#define ELM_LIST_SMART_CLASS_INIT(smart_class_init) \
-  {smart_class_init, ELM_LIST_SMART_CLASS_VERSION}
-
-/**
- * @def ELM_LIST_SMART_CLASS_INIT_NULL
- *
- * Initializer to zero out a whole #Elm_List_Smart_Class structure.
- *
- * @see ELM_LIST_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_LIST_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_LIST_SMART_CLASS_INIT_NULL \
-  ELM_LIST_SMART_CLASS_INIT(EVAS_SMART_CLASS_INIT_NULL)
-
-/**
- * @def ELM_LIST_SMART_CLASS_INIT_NAME_VERSION
- *
- * Initializer to zero out a whole #Elm_List_Smart_Class structure and
- * set its name and version.
- *
- * This is similar to #ELM_LIST_SMART_CLASS_INIT_NULL, but it will
- * also set the version field of #Elm_List_Smart_Class (base field)
- * to the latest #ELM_LIST_SMART_CLASS_VERSION and name it to the
- * specific value.
- *
- * It will keep a reference to the name field as a <c>"const char *"</c>,
- * i.e., the name must be available while the structure is
- * used (hint: static or global variable!) and must not be modified.
- *
- * @see ELM_LIST_SMART_CLASS_INIT_NULL
- * @see ELM_LIST_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_LIST_SMART_CLASS_INIT_NAME_VERSION(name) \
-  ELM_LIST_SMART_CLASS_INIT                          \
-    (ELM_LAYOUT_SMART_CLASS_INIT_NAME_VERSION(name))
-
-/**
- * Elementary list base smart class. This inherits directly from
- * #Elm_Layout_Smart_Class and is meant to build widgets extending the
- * behavior of a list.
- *
- * All of the functions listed on @ref List namespace will work for
- * objects deriving from #Elm_List_Smart_Class.
- */
-typedef struct _Elm_List_Smart_Class
-{
-   Elm_Layout_Smart_Class base;
-
-   int                    version;    /**< Version of this smart class definition */
-} Elm_List_Smart_Class;
-
 #define ELM_LIST_SWIPE_MOVES 12
 
+typedef struct _Elm_List_Item_Data Elm_List_Item_Data;
 /**
  * Base widget smart data extended with list instance data.
  */
-typedef struct _Elm_List_Smart_Data Elm_List_Smart_Data;
-struct _Elm_List_Smart_Data
+typedef struct _Elm_List_Data Elm_List_Data;
+struct _Elm_List_Data
 {
-   Elm_Layout_Smart_Data                 base; /* base widget smart data as
-                                                * first member obligatory, as
-                                                * we're inheriting from it */
-
    Evas_Object                          *box, *hit_rect;
-   const Elm_Scrollable_Smart_Interface *s_iface;
 
-   Evas_Object                          *focused_content;
-   Elm_Object_Item                      *focused;
    Eina_List                            *items, *selected, *to_delete;
    Elm_Object_Item                      *last_selected_item;
-   Elm_Object_Item                      *key_down;
-   Evas_Coord                            minw[2], minh[2];
+   Elm_Object_Item                      *focused_item; /**< a focused item by keypad arrow or mouse. This is set to NULL if widget looses focus. */
+   Elm_Object_Item                      *last_focused_item; /**< This records the last focused item when widget looses focus. This is required to set the focus on last focused item when widgets gets focus. */
+   Evas_Coord                            minw[2], minh[2], dx, dy;
    Elm_Object_Select_Mode                select_mode;
+   Elm_Object_Multi_Select_Mode          multi_select_mode; /**< select mode for multiple selection */
    int                                   movements;
    int                                   walking;
    Elm_List_Mode                         h_mode;
@@ -149,8 +50,7 @@ struct _Elm_List_Smart_Data
       Evas_Coord x, y;
    } history[ELM_LIST_SWIPE_MOVES];
 
-
-   Eina_Bool                             select_on_focus_enabled : 1;
+   Eina_Bool                             focus_on_selection_enabled : 1;
    Eina_Bool                             was_selected : 1;
    Eina_Bool                             fix_pending : 1;
    Eina_Bool                             longpressed : 1;
@@ -160,14 +60,14 @@ struct _Elm_List_Smart_Data
    Eina_Bool                             multi : 1;
    Eina_Bool                             swipe : 1;
    Eina_Bool                             delete_me : 1;
+   Eina_Bool                             mouse_down : 1; /**< a flag that mouse is down on the list at the moment. this flag is set to true on mouse and reset to false on mouse up */
+   Eina_Bool                             item_loop_enable : 1; /**< value whether item loop feature is enabled or not. */
+   Eina_Bool                             item_looping_on : 1;
 };
 
-typedef struct _Elm_List_Item Elm_List_Item;
-struct _Elm_List_Item
+struct _Elm_List_Item_Data
 {
-   ELM_WIDGET_ITEM;
-
-   Elm_List_Smart_Data *sd;
+   Elm_Widget_Item_Data     *base;
 
    Ecore_Timer         *swipe_timer;
    Ecore_Timer         *long_timer;
@@ -186,59 +86,59 @@ struct _Elm_List_Item
    Eina_Bool            is_even : 1;
    Eina_Bool            fixed : 1;
    Eina_Bool            even : 1;
-
-   Ecore_Timer          *highlight_timer;
-   Ecore_Timer          *unhighlight_timer;
 };
 
 /**
  * @}
  */
 
-EAPI extern const char ELM_LIST_SMART_NAME[];
-EAPI const Elm_List_Smart_Class *elm_list_smart_class_get(void);
-
 #define ELM_LIST_DATA_GET(o, sd) \
-  Elm_List_Smart_Data * sd = evas_object_smart_data_get(o)
+  Elm_List_Data * sd = eo_data_scope_get(o, ELM_LIST_CLASS)
+
+#define ELM_LIST_DATA_GET_FROM_ITEM(it, sd) \
+  ELM_LIST_DATA_GET(WIDGET(it), sd)
 
 #define ELM_LIST_DATA_GET_OR_RETURN(o, ptr)          \
   ELM_LIST_DATA_GET(o, ptr);                         \
-  if (!ptr)                                          \
+  if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
-       CRITICAL("No widget data for object %p (%s)", \
-                o, evas_object_type_get(o));         \
+       CRI("No widget data for object %p (%s)",      \
+           o, evas_object_type_get(o));              \
        return;                                       \
     }
 
 #define ELM_LIST_DATA_GET_OR_RETURN_VAL(o, ptr, val) \
   ELM_LIST_DATA_GET(o, ptr);                         \
-  if (!ptr)                                          \
+  if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
-       CRITICAL("No widget data for object %p (%s)", \
-                o, evas_object_type_get(o));         \
+       CRI("No widget data for object %p (%s)",      \
+           o, evas_object_type_get(o));              \
        return val;                                   \
     }
 
-#define ELM_LIST_CHECK(obj)                                                 \
-  if (!obj || !elm_widget_type_check((obj), ELM_LIST_SMART_NAME, __func__)) \
+#define ELM_LIST_CHECK(obj)                              \
+  if (EINA_UNLIKELY(!eo_isa((obj), ELM_LIST_CLASS))) \
     return
 
 #define ELM_LIST_ITEM_CHECK(it)                             \
-  ELM_WIDGET_ITEM_CHECK_OR_RETURN((Elm_Widget_Item *)it, ); \
-  ELM_LIST_CHECK(it->base.widget);                          \
-  if (((Elm_List_Item *)it)->deleted)                       \
+  ELM_WIDGET_ITEM_CHECK_OR_RETURN(it->base, ); \
+  ELM_LIST_CHECK(it->base->widget);                          \
+  if (it->deleted)                       \
     {                                                       \
        ERR("ERROR: " #it " has been DELETED.\n");           \
        return;                                              \
     }
 
 #define ELM_LIST_ITEM_CHECK_OR_RETURN(it, ...)                         \
-  ELM_WIDGET_ITEM_CHECK_OR_RETURN((Elm_Widget_Item *)it, __VA_ARGS__); \
-  ELM_LIST_CHECK(it->base.widget) __VA_ARGS__;                         \
-  if (((Elm_List_Item *)it)->deleted)                                  \
+  ELM_WIDGET_ITEM_CHECK_OR_RETURN(it->base, __VA_ARGS__); \
+  ELM_LIST_CHECK(it->base->widget) __VA_ARGS__;                         \
+  if (it->deleted)                                  \
     {                                                                  \
        ERR("ERROR: " #it " has been DELETED.\n");                      \
        return __VA_ARGS__;                                             \
     }
+
+#define ELM_LIST_ITEM_DATA_GET(o, sd) \
+  Elm_List_Item_Data* sd = eo_data_scope_get(o, ELM_LIST_ITEM_CLASS)
 
 #endif

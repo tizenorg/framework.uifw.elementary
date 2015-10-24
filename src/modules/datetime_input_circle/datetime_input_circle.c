@@ -4,6 +4,8 @@
 
 #include <Elementary.h>
 #include "elm_priv.h"
+#include "elm_widget.h"
+#include "elm_widget_datetime.h"
 #include <unicode/udat.h>
 #include <unicode/ustring.h>
 #include <unicode/ucnv.h>
@@ -90,7 +92,7 @@ _ampm_clicked_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
    for (idx = 0; idx < DATETIME_FIELD_COUNT; idx++)
      {
 
-        if (evas_object_data_get(circle_mod->field_obj[idx], "_field_type") ==ELM_DATETIME_AMPM)
+        if ((int)evas_object_data_get(circle_mod->field_obj[idx], "_field_type") == ELM_DATETIME_AMPM)
           ampm_field = circle_mod->field_obj[idx];
      }
 
@@ -161,7 +163,7 @@ static Evas_Object *
 _first_radio_get(Input_Circle_Module_Data *circle_mod)
 {
    Elm_Datetime_Field_Type field_type;
-   int idx = 0, begin, end, min_loc = ELM_DATETIME_LAST, loc;
+   int idx = 0, begin, end, min_loc = ELM_DATETIME_AMPM + 1, loc;
 
    if (!circle_mod) return NULL;
 
@@ -187,7 +189,7 @@ _first_radio_get(Input_Circle_Module_Data *circle_mod)
           }
      }
 
-   if (min_loc == ELM_DATETIME_LAST)
+   if (min_loc > ELM_DATETIME_AMPM)
      return NULL;
    else
      return circle_mod->field_obj[field_type];
@@ -271,6 +273,7 @@ field_format_changed(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
 EAPI void
 field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
 {
+#ifndef HAVE_ELEMENTARY_WIN32
    Input_Circle_Module_Data *circle_mod;
    Elm_Datetime_Field_Type field_type;
    struct tm tim;
@@ -410,6 +413,7 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
    u_austrcpy(buf, str);
    udat_close(dt_formatter);
    elm_object_text_set(obj, buf);
+#endif
 }
 
 EAPI Evas_Object *

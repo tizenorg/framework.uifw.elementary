@@ -4,7 +4,8 @@
 
 #include <Elementary.h>
 #include "elm_priv.h"
-
+#include "elm_widget.h"
+#include "elm_widget_datetime.h"
 #include <unicode/udat.h>
 #include <unicode/ustring.h>
 #include <unicode/ucnv.h>
@@ -42,6 +43,7 @@ _AM_PM_string_set(Evas_Object *field, Eina_Bool is_am)
 EAPI void
 field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
 {
+#ifndef HAVE_ELEMENTARY_WIN32
    Input_Button_Module_Data *button_mod;
    Elm_Datetime_Field_Type field_type;
    struct tm tim;
@@ -86,10 +88,7 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
         else if (!strcmp(fmt, "%Y"))
           u_uastrncpy(Pattern, "yyyy", strlen("yyyy"));
         else
-          {
-             ERR("Invalid format: %s", fmt);
-             return;
-          }
+          return;
 
         snprintf(strbuf, sizeof(strbuf), "%d", STRUCT_TM_YEAR_BASE_VALUE + tim.tm_year);
         u_uastrncpy(Ufield, strbuf, strlen(strbuf));
@@ -103,10 +102,7 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
         else if (!strcmp(fmt, "%b") || !strcmp(fmt, "%h"))
           u_uastrncpy(Pattern, "MMM", strlen("MMM"));
         else
-          {
-             ERR("Invalid format: %s", fmt);
-             return;
-          }
+          return;
 
         snprintf(strbuf, sizeof(strbuf), "%d", 1 + tim.tm_mon);
         u_uastrncpy(Ufield, strbuf, strlen(strbuf));
@@ -118,10 +114,7 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
         else if (!strcmp(fmt, "%d"))
           u_uastrncpy(Pattern, "dd", strlen("dd"));
         else
-          {
-             ERR("Invalid format: %s", fmt);
-             return;
-          }
+          return;
 
         snprintf(strbuf, sizeof(strbuf), "%d", tim.tm_mday);
         u_uastrncpy(Ufield, strbuf, strlen(strbuf));
@@ -147,10 +140,7 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
         else if (!strcmp(fmt, "%H"))
           u_uastrncpy(Pattern, "HH", strlen("HH"));
         else
-          {
-             ERR("Invalid format: %s", fmt);
-             return;
-          }
+          return;
 
         snprintf(strbuf, sizeof(strbuf), "%d", tim.tm_hour);
         u_uastrncpy(Ufield, strbuf, strlen(strbuf));
@@ -164,10 +154,7 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
              u_uastrncpy(Ufield, strbuf, strlen(strbuf));
           }
         else
-          {
-             ERR("Invalid format: %s", fmt);
-             return;
-          }
+          return;
         break;
 
       case ELM_DATETIME_AMPM:
@@ -178,7 +165,6 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
         return;
 
       default:
-        ERR("The default case is not allowed!");
         return;
      }
 
@@ -193,10 +179,11 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
    udat_close(dt_formatter);
 
    elm_object_text_set(obj, buf);
+#endif
 }
 
 static void
-_datetime_radio_ampm_clicked_cb(void *data, Evas_Object *obj EINA_UNUSED, const char *event_info EINA_UNUSED, const char source EINA_UNUSED)
+_datetime_radio_ampm_clicked_cb(void *data, Evas_Object *obj EINA_UNUSED, const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
 {
    struct tm tim;
    int min, max;

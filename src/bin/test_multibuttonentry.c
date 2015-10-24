@@ -2,11 +2,21 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
+
+static Elm_Multibuttonentry_Format_Cb format_func = NULL;
+
+static char *
+_custom_format(int count, void *data EINA_UNUSED)
+{
+   char buf[32];
+
+   if (!snprintf(buf, sizeof(buf), "+ %d rabbits", count)) return NULL;
+   return strdup(buf);
+}
 
 static void
-_item_selected_cb(void *data __UNUSED__,
-                  Evas_Object *obj __UNUSED__,
+_item_selected_cb(void *data EINA_UNUSED,
+                  Evas_Object *obj EINA_UNUSED,
                   void *event_info)
 {
    Elm_Object_Item *mbe_it = event_info;
@@ -15,8 +25,8 @@ _item_selected_cb(void *data __UNUSED__,
 
 // "item,added" smart callback of multibuttonentry.
 static void
-_item_added_cb(void *data __UNUSED__,
-               Evas_Object *obj __UNUSED__,
+_item_added_cb(void *data EINA_UNUSED,
+               Evas_Object *obj EINA_UNUSED,
                void *event_info)
 {
    Elm_Object_Item *mbe_it = event_info;
@@ -25,17 +35,17 @@ _item_added_cb(void *data __UNUSED__,
 
 // "item,deleted" smart callback
 static void
-_item_deleted_cb(void *data __UNUSED__,
-                 Evas_Object *obj __UNUSED__,
-                 void *event_info __UNUSED__)
+_item_deleted_cb(void *data EINA_UNUSED,
+                 Evas_Object *obj EINA_UNUSED,
+                 void *event_info EINA_UNUSED)
 {
    printf("deleted item\n");
 }
 
 // "item,clicked" smart callback
 static void
-_item_clicked_cb(void *data __UNUSED__,
-                 Evas_Object *obj __UNUSED__,
+_item_clicked_cb(void *data EINA_UNUSED,
+                 Evas_Object *obj EINA_UNUSED,
                  void *event_info )
 {
    Elm_Object_Item *mbe_it = event_info;
@@ -43,9 +53,9 @@ _item_clicked_cb(void *data __UNUSED__,
 }
 
 static void
-_mbe_clicked_cb(void *data __UNUSED__,
+_mbe_clicked_cb(void *data EINA_UNUSED,
                 Evas_Object *obj,
-                void *event_info __UNUSED__ )
+                void *event_info EINA_UNUSED )
 {
    //Unset the multibuttonentry to contracted mode of single line
    elm_multibuttonentry_expanded_set(obj, EINA_TRUE);
@@ -66,9 +76,9 @@ _mbe_clicked_cb(void *data __UNUSED__,
 }
 
 static void
-_mbe_unfocused_cb(void *data __UNUSED__,
+_mbe_unfocused_cb(void *data EINA_UNUSED,
                   Evas_Object *obj,
-                  void *event_info __UNUSED__ )
+                  void *event_info EINA_UNUSED )
 {
    //Set the multibuttonentry to contracted mode of single line
    elm_multibuttonentry_expanded_set(obj, EINA_FALSE);
@@ -76,46 +86,46 @@ _mbe_unfocused_cb(void *data __UNUSED__,
 }
 
 static void
-_mbe_focused_cb(void *data __UNUSED__,
-                Evas_Object *obj __UNUSED__,
-                void *event_info __UNUSED__ )
+_mbe_focused_cb(void *data EINA_UNUSED,
+                Evas_Object *obj EINA_UNUSED,
+                void *event_info EINA_UNUSED )
 {
    printf("multibuttonentry focused!\n");
 }
 
 // "expanded" smart callback
 static void
-_expanded_cb(void *data __UNUSED__,
-             Evas_Object *obj __UNUSED__,
-             void *event_info __UNUSED__)
+_expanded_cb(void *data EINA_UNUSED,
+             Evas_Object *obj EINA_UNUSED,
+             void *event_info EINA_UNUSED)
 {
    printf("expanded!\n");
 }
 
 // "contracted" smart callback
 static void
-_contracted_cb(void *data __UNUSED__,
-           Evas_Object *obj __UNUSED__,
-           void *event_info __UNUSED__)
+_contracted_cb(void *data EINA_UNUSED,
+           Evas_Object *obj EINA_UNUSED,
+           void *event_info EINA_UNUSED)
 {
    printf("contracted!\n");
 }
 
 // "contracted,state,changed" smart callback
 static void
-_shrink_state_changed_cb(void *data __UNUSED__,
-                         Evas_Object *obj __UNUSED__,
-                         void *event_info __UNUSED__)
+_shrink_state_changed_cb(void *data EINA_UNUSED,
+                         Evas_Object *obj EINA_UNUSED,
+                         void *event_info EINA_UNUSED)
 {
    printf("contracted state changed! \n");
 }
 
 // "item verified" confirm callback
 static Eina_Bool
-_item_filter_cb(Evas_Object *obj __UNUSED__,
+_item_filter_cb(Evas_Object *obj EINA_UNUSED,
                 const char* item_label,
-                void *item_data __UNUSED__,
-                void *data __UNUSED__)
+                void *item_data EINA_UNUSED,
+                void *data EINA_UNUSED)
 {
    printf("%s, label: %s\n", __func__, item_label);
 
@@ -123,11 +133,32 @@ _item_filter_cb(Evas_Object *obj __UNUSED__,
 }
 
 static void
-_button_clicked_cb(void *data __UNUSED__,
-                   Evas_Object *obj __UNUSED__,
-                   void *event_info __UNUSED__)
+_format_change_cb(void *data,
+                   Evas_Object *obj EINA_UNUSED,
+                   void *event_info EINA_UNUSED)
 {
-   printf("%s button is clicked\n", __func__);
+   Evas_Object *mbe = data;
+
+   if (format_func) format_func = NULL;
+   else format_func = _custom_format;
+
+   elm_multibuttonentry_format_function_set(mbe, format_func, NULL);
+
+   printf("Changing format function to %p\n", format_func);
+}
+
+static Evas_Object*
+_format_change_btn_add(Evas_Object *mbe)
+{
+   Evas_Object *btn;
+
+   btn = elm_button_add(mbe);
+   evas_object_smart_callback_add(btn, "clicked", _format_change_cb, mbe);
+   elm_object_text_set(btn, "Change format function");
+   evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, EVAS_HINT_FILL);
+
+   return btn;
 }
 
 static Evas_Object*
@@ -135,6 +166,7 @@ _add_multibuttonentry(Evas_Object *parent)
 {
    Evas_Object *scr = NULL;
    Evas_Object *mbe = NULL;
+   Evas_Object *btn = NULL;
    void *data = NULL;
 
    scr = elm_scroller_add(parent);
@@ -150,7 +182,7 @@ _add_multibuttonentry(Evas_Object *parent)
    elm_object_content_set(scr, mbe);
 
    // Add item verify callback to Multibuttonentry
-   elm_multibuttonentry_item_filter_append(mbe, (Elm_Multibuttonentry_Item_Filter_Cb)_item_filter_cb, data);
+   elm_multibuttonentry_item_filter_append(mbe, _item_filter_cb, data);
 
    // Add "item,selected","item,added", "item,deleted", "clicked", "unfocused",
    // "expanded", "contracted" and "contracted,state,changed" smart callback
@@ -167,39 +199,21 @@ _add_multibuttonentry(Evas_Object *parent)
    evas_object_smart_callback_add(mbe, "contracted", _contracted_cb, NULL);
    evas_object_smart_callback_add(mbe, "shrink,state,changed", _shrink_state_changed_cb, NULL);
 
+   btn = _format_change_btn_add(mbe);
+   elm_object_part_content_set(parent, "box", btn);
+
    evas_object_resize(mbe, 220, 300);
    elm_object_focus_set(mbe, EINA_TRUE);
 
    return scr;
 }
 
-static Evas_Object*
-_add_buttons(Evas_Object *parent)
-{
-   Evas_Object *bx = NULL;
-   Evas_Object *btn;
-
-   bx = elm_box_add(parent);
-   elm_box_horizontal_set(bx, EINA_TRUE);
-   elm_box_homogeneous_set(bx, EINA_TRUE);
-
-   btn = elm_button_add(parent);
-   evas_object_smart_callback_add(btn, "clicked", _button_clicked_cb, NULL);
-   elm_object_text_set(btn, "click");
-   evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, 0.0);
-   evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   elm_box_pack_end(bx, btn);
-   evas_object_show(btn);
-
-   return bx;
-}
-
 void
-test_multibuttonentry(void *data __UNUSED__,
-                      Evas_Object *obj __UNUSED__,
-                      void *event_info __UNUSED__)
+test_multibuttonentry(void *data EINA_UNUSED,
+                      Evas_Object *obj EINA_UNUSED,
+                      void *event_info EINA_UNUSED)
 {
-   Evas_Object *win, *sc, *bx;
+   Evas_Object *win, *sc;
    Evas_Object *ly;
    char buf[PATH_MAX];
 
@@ -216,11 +230,6 @@ test_multibuttonentry(void *data __UNUSED__,
    sc = _add_multibuttonentry(ly);
    elm_object_part_content_set(ly, "multibuttonentry", sc);
 
-   bx = _add_buttons(ly);
-   elm_object_part_content_set(ly, "box", bx);
-
    evas_object_resize(win, 320, 480);
    evas_object_show(win);
-   elm_object_focus_set(sc, EINA_TRUE);
 }
-#endif

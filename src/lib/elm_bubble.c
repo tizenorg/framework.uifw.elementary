@@ -1,11 +1,28 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
+#define ELM_INTERFACE_ATSPI_ACCESSIBLE_PROTECTED
+
 #include <Elementary.h>
 #include "elm_priv.h"
 #include "elm_widget_bubble.h"
+#include "elm_widget_layout.h"
 
-EAPI const char ELM_BUBBLE_SMART_NAME[] = "elm_bubble";
+#define MY_CLASS ELM_BUBBLE_CLASS
+
+#define MY_CLASS_NAME "Elm_Bubble"
+#define MY_CLASS_NAME_LEGACY "elm_bubble"
 
 static const char SIG_CLICKED[] = "clicked";
-static const char SIG_ACCESS_CHANGED[] = "access,changed";
+
+static const Evas_Smart_Cb_Description _smart_callbacks[] =
+{
+   {SIG_CLICKED, ""},
+   {SIG_LAYOUT_FOCUSED, ""}, /**< handled by elm_layout */
+   {SIG_LAYOUT_UNFOCUSED, ""}, /**< handled by elm_layout */
+   {NULL, NULL}
+};
 
 static const Elm_Layout_Part_Alias_Description _content_aliases[] =
 {
@@ -21,13 +38,6 @@ static const Elm_Layout_Part_Alias_Description _text_aliases[] =
    {NULL, NULL}
 };
 
-static const Evas_Smart_Cb_Description _smart_callbacks[] =
-{
-   {SIG_CLICKED, ""},
-   {SIG_ACCESS_CHANGED, ""},
-   {NULL, NULL}
-};
-
 static const char *corner_string[] =
 {
    "top_left",
@@ -36,28 +46,23 @@ static const char *corner_string[] =
    "bottom_right"
 };
 
-EVAS_SMART_SUBCLASS_NEW
-  (ELM_BUBBLE_SMART_NAME, _elm_bubble, Elm_Bubble_Smart_Class,
-  Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks);
-
-static void
-_elm_bubble_smart_sizing_eval(Evas_Object *obj)
+EOLIAN static void
+_elm_bubble_elm_layout_sizing_eval(Eo *obj, Elm_Bubble_Data *_pd EINA_UNUSED)
 {
-   Evas_Coord minw = -1, minh = -1, maxw = -1, maxh = -1;
-
-   ELM_BUBBLE_DATA_GET(obj, sd);
+   Evas_Coord minw = -1, minh = -1;
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    elm_coords_finger_size_adjust(1, &minw, 1, &minh);
    edje_object_size_min_restricted_calc
-     (ELM_WIDGET_DATA(sd)->resize_obj, &minw, &minh, minw, minh);
+     (wd->resize_obj, &minw, &minh, minw, minh);
    evas_object_size_hint_min_set(obj, minw, minh);
-   evas_object_size_hint_max_set(obj, maxw, maxh);
+   evas_object_size_hint_max_set(obj, -1, -1);
 }
 
 static void
 _on_mouse_up(void *data,
-             Evas *e __UNUSED__,
-             Evas_Object *obj __UNUSED__,
+             Evas *e EINA_UNUSED,
+             Evas_Object *obj EINA_UNUSED,
              void *event_info)
 {
    Evas_Event_Mouse_Up *ev = event_info;
@@ -70,17 +75,13 @@ _on_mouse_up(void *data,
 
 /* overriding layout's focus_next() in order to just cycle through the
  * content's tree */
-static Eina_Bool
-_elm_bubble_smart_focus_next(const Evas_Object *obj,
-                             Elm_Focus_Direction dir,
-                             Evas_Object **next)
+EOLIAN static Eina_Bool
+_elm_bubble_elm_widget_focus_next(Eo *obj, Elm_Bubble_Data *_pd EINA_UNUSED, Elm_Focus_Direction dir, Evas_Object **next)
 {
    Evas_Object *content;
-
-   ELM_BUBBLE_DATA_GET(obj, sd);
-
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, EINA_FALSE);
    if ((elm_widget_can_focus_get(obj)) &&
-       (!ELM_WIDGET_DATA(sd)->focused))
+       (!wd->focused))
      {
         // ACCESS
         *next = (Evas_Object *)obj;
@@ -96,18 +97,8 @@ _elm_bubble_smart_focus_next(const Evas_Object *obj,
      }
 }
 
-static Eina_Bool
-_elm_bubble_smart_focus_direction_manager_is(const Evas_Object *obj __UNUSED__)
-{
-   return EINA_TRUE;
-}
-
-static Eina_Bool
-_elm_bubble_smart_focus_direction(const Evas_Object *obj,
-                                  const Evas_Object *base,
-                                  double degree,
-                                  Evas_Object **direction,
-                                  double *weight)
+EOLIAN static Eina_Bool
+_elm_bubble_elm_widget_focus_direction(Eo *obj, Elm_Bubble_Data *_pd EINA_UNUSED, const Evas_Object *base, double degree, Evas_Object **direction, double *weight)
 {
    Evas_Object *content;
 
@@ -120,15 +111,15 @@ _elm_bubble_smart_focus_direction(const Evas_Object *obj,
             (content, base, degree, direction, weight);
 }
 
-static Eina_Bool
-_elm_bubble_smart_text_set(Evas_Object *obj,
-                           const char *item,
-                           const char *label)
+EOLIAN static Eina_Bool
+_elm_bubble_elm_layout_text_set(Eo *obj, Elm_Bubble_Data *_pd EINA_UNUSED, const char *part, const char *label)
 {
-   if (!_elm_bubble_parent_sc->text_set(obj, item, label))
-     return EINA_FALSE;
+   Eina_Bool int_ret = EINA_FALSE;
 
-   if (item && (!strcmp(item, "info") || !strcmp(item, "elm.info")))
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_layout_text_set(part, label));
+   if (!int_ret) return EINA_FALSE;
+
+   if (part && (!strcmp(part, "info") || !strcmp(part, "elm.info")))
      {
         if (label)
           elm_layout_signal_emit(obj, "elm,state,info,visible", "elm");
@@ -142,7 +133,7 @@ _elm_bubble_smart_text_set(Evas_Object *obj,
 }
 
 static char *
-_access_info_cb(void *data __UNUSED__, Evas_Object *obj)
+_access_info_cb(void *data EINA_UNUSED, Evas_Object *obj)
 {
    char *ret;
    Eina_Strbuf *buf;
@@ -181,16 +172,40 @@ _access_info_cb(void *data __UNUSED__, Evas_Object *obj)
    return ret;
 }
 
-static void
-_elm_bubble_smart_add(Evas_Object *obj)
+EOLIAN static void
+_elm_bubble_evas_object_smart_add(Eo *obj, Elm_Bubble_Data *priv)
 {
-   EVAS_SMART_DATA_ALLOC(obj, Elm_Bubble_Smart_Data);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-   ELM_WIDGET_CLASS(_elm_bubble_parent_sc)->base.add(obj);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   elm_widget_sub_object_parent_add(obj);
+
+   priv->pos = ELM_BUBBLE_POS_TOP_LEFT; //default
+
+   elm_widget_can_focus_set(obj, EINA_FALSE);
+
+   evas_object_event_callback_add
+     (wd->resize_obj, EVAS_CALLBACK_MOUSE_UP,
+     _on_mouse_up, obj);
+
+   // ACCESS
+   _elm_access_object_register(obj, wd->resize_obj);
+   _elm_access_text_set
+     (_elm_access_info_get(obj), ELM_ACCESS_TYPE, E_("Bubble"));
+   _elm_access_callback_set
+     (_elm_access_info_get(obj), ELM_ACCESS_INFO, _access_info_cb, NULL);
+
+   if (!elm_layout_theme_set(obj, "bubble", "base", elm_widget_style_get(obj)))
+     ERR("Failed to set layout!");
+
+   elm_layout_sizing_eval(obj);
+
+   if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
+     elm_widget_can_focus_set(obj, EINA_TRUE);
 }
 
-static void
-_elm_bubble_smart_access(Evas_Object *obj, Eina_Bool is_access)
+EOLIAN static void
+_elm_bubble_elm_widget_access(Eo *obj, Elm_Bubble_Data *_pd EINA_UNUSED, Eina_Bool is_access)
 {
    ELM_BUBBLE_CHECK(obj);
 
@@ -198,96 +213,30 @@ _elm_bubble_smart_access(Evas_Object *obj, Eina_Bool is_access)
      elm_widget_can_focus_set(obj, EINA_TRUE);
    else
      elm_widget_can_focus_set(obj, EINA_FALSE);
-
-   evas_object_smart_callback_call(obj, SIG_ACCESS_CHANGED, NULL);
-}
-
-static void
-_elm_bubble_smart_set_user(Elm_Bubble_Smart_Class *sc)
-{
-   ELM_WIDGET_CLASS(sc)->base.add = _elm_bubble_smart_add;
-
-   ELM_WIDGET_CLASS(sc)->focus_next = _elm_bubble_smart_focus_next;
-   ELM_WIDGET_CLASS(sc)->focus_direction_manager_is =
-      _elm_bubble_smart_focus_direction_manager_is;
-   ELM_WIDGET_CLASS(sc)->focus_direction = _elm_bubble_smart_focus_direction;
-   ELM_WIDGET_CLASS(sc)->access = _elm_bubble_smart_access;
-
-   ELM_LAYOUT_CLASS(sc)->text_set = _elm_bubble_smart_text_set;
-   ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_bubble_smart_sizing_eval;
-
-   ELM_LAYOUT_CLASS(sc)->content_aliases = _content_aliases;
-   ELM_LAYOUT_CLASS(sc)->text_aliases = _text_aliases;
-}
-
-EAPI const Elm_Bubble_Smart_Class *
-elm_bubble_smart_class_get(void)
-{
-   static Elm_Bubble_Smart_Class _sc =
-     ELM_BUBBLE_SMART_CLASS_INIT_NAME_VERSION(ELM_BUBBLE_SMART_NAME);
-   static const Elm_Bubble_Smart_Class *class = NULL;
-   Evas_Smart_Class *esc = (Evas_Smart_Class *)&_sc;
-
-   if (class)
-     return class;
-
-   _elm_bubble_smart_set(&_sc);
-   esc->callbacks = _smart_callbacks;
-   class = &_sc;
-
-   return class;
 }
 
 EAPI Evas_Object *
 elm_bubble_add(Evas_Object *parent)
 {
-   Evas_Object *obj;
-
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-
-   obj = elm_widget_add(_elm_bubble_smart_class_new(), parent);
-   if (!obj) return NULL;
-
-   if (!elm_widget_sub_object_add(parent, obj))
-     ERR("could not add %p as sub object of %p", obj, parent);
-
-   ELM_BUBBLE_DATA_GET_OR_RETURN_VAL(obj, sd, NULL);
-
-   sd->pos = ELM_BUBBLE_POS_TOP_LEFT; //default
-
-   elm_widget_can_focus_set(obj, EINA_FALSE);
-
-   evas_object_event_callback_add
-     (ELM_WIDGET_DATA(sd)->resize_obj, EVAS_CALLBACK_MOUSE_UP,
-     _on_mouse_up, obj);
-
-   // ACCESS
-   _elm_access_object_register(obj, ELM_WIDGET_DATA(sd)->resize_obj);
-   _elm_access_text_set
-     (_elm_access_object_get(obj), ELM_ACCESS_TYPE, E_("Bubble"));
-   _elm_access_callback_set
-     (_elm_access_object_get(obj), ELM_ACCESS_INFO, _access_info_cb, NULL);
-
-   elm_layout_theme_set(obj, "bubble", "base", elm_widget_style_get(obj));
-
-   elm_layout_sizing_eval(obj);
-
-   if ((_elm_config->access_mode == ELM_ACCESS_MODE_ON))
-     elm_widget_can_focus_set(obj, EINA_TRUE);
-
-   //Tizen Only: This should be removed when eo is applied.
-   ELM_WIDGET_DATA_GET(obj, wsd);
-   wsd->on_create = EINA_FALSE;
-
+   Evas_Object *obj = eo_add(MY_CLASS, parent);
    return obj;
 }
 
-EAPI void
-elm_bubble_pos_set(Evas_Object *obj,
-                   Elm_Bubble_Pos pos)
+EOLIAN static void
+_elm_bubble_eo_base_constructor(Eo *obj, Elm_Bubble_Data *_pd EINA_UNUSED)
 {
-   ELM_BUBBLE_CHECK(obj);
-   ELM_BUBBLE_DATA_GET_OR_RETURN(obj, sd);
+   eo_do_super(obj, MY_CLASS, eo_constructor());
+   eo_do(obj,
+         evas_obj_type_set(MY_CLASS_NAME_LEGACY),
+         evas_obj_smart_callbacks_descriptions_set(_smart_callbacks),
+         elm_interface_atspi_accessible_role_set(ELM_ATSPI_ROLE_FILLER));
+}
+
+EOLIAN static void
+_elm_bubble_pos_set(Eo *obj, Elm_Bubble_Data *sd, Elm_Bubble_Pos pos)
+{
+   ELM_LAYOUT_DATA_GET(obj, ld);
 
    if (pos < ELM_BUBBLE_POS_TOP_LEFT || pos > ELM_BUBBLE_POS_BOTTOM_RIGHT)
      return;
@@ -295,16 +244,45 @@ elm_bubble_pos_set(Evas_Object *obj,
    sd->pos = pos;
 
    eina_stringshare_replace
-     (&(ELM_LAYOUT_DATA(sd)->group), corner_string[sd->pos]);
+     (&ld->group, corner_string[sd->pos]);
 
-   ELM_WIDGET_DATA(sd)->api->theme(obj);
+   eo_do(obj, elm_obj_widget_theme_apply());
 }
 
-EAPI Elm_Bubble_Pos
-elm_bubble_pos_get(const Evas_Object *obj)
+EOLIAN static Elm_Bubble_Pos
+_elm_bubble_pos_get(Eo *obj EINA_UNUSED, Elm_Bubble_Data *sd)
 {
-   ELM_BUBBLE_CHECK(obj) ELM_BUBBLE_POS_INVALID;
-   ELM_BUBBLE_DATA_GET_OR_RETURN_VAL(obj, sd, ELM_BUBBLE_POS_INVALID);
-
    return sd->pos;
 }
+
+EOLIAN static Eina_Bool
+_elm_bubble_elm_widget_focus_next_manager_is(Eo *obj EINA_UNUSED, Elm_Bubble_Data *_pd EINA_UNUSED)
+{
+   return EINA_TRUE;
+}
+
+EOLIAN static Eina_Bool
+_elm_bubble_elm_widget_focus_direction_manager_is(Eo *obj EINA_UNUSED, Elm_Bubble_Data *_pd EINA_UNUSED)
+{
+   return EINA_TRUE;
+}
+
+EOLIAN static const Elm_Layout_Part_Alias_Description*
+_elm_bubble_elm_layout_text_aliases_get(Eo *obj EINA_UNUSED, Elm_Bubble_Data *_pd EINA_UNUSED)
+{
+   return _text_aliases;
+}
+
+EOLIAN static const Elm_Layout_Part_Alias_Description*
+_elm_bubble_elm_layout_content_aliases_get(Eo *obj EINA_UNUSED, Elm_Bubble_Data *_pd EINA_UNUSED)
+{
+   return _content_aliases;
+}
+
+EOLIAN static void
+_elm_bubble_class_constructor(Eo_Class *klass)
+{
+   evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
+}
+
+#include "elm_bubble.eo.c"

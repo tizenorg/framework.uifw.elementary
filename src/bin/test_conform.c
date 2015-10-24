@@ -2,10 +2,9 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 void
-test_conformant(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event __UNUSED__)
+test_conformant(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event EINA_UNUSED)
 {
    Evas_Object *win, *conform, *btn, *bx, *en;
 
@@ -14,8 +13,8 @@ test_conformant(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event 
    elm_win_conformant_set(win, EINA_TRUE);
 
    conform = elm_conformant_add(win);
-   elm_win_resize_object_add(win, conform);
    evas_object_size_hint_weight_set(conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, conform);
    evas_object_show(conform);
 
    bx = elm_box_add(win);
@@ -82,13 +81,13 @@ test_conformant(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event 
 }
 
 static void
-popobj(void *data, Evas_Object *obj __UNUSED__, void *event __UNUSED__)
+popobj(void *data, Evas_Object *obj EINA_UNUSED, void *event EINA_UNUSED)
 {
    elm_naviframe_item_pop(data);
 }
 
 void
-test_conformant2(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event __UNUSED__)
+test_conformant2(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event EINA_UNUSED)
 {
    Evas_Object *win, *conform, *btn, *bx, *en, *pg;
 
@@ -98,7 +97,6 @@ test_conformant2(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event
 
    bx = elm_box_add(win);
    evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(bx, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_win_resize_object_add(win, bx);
    evas_object_show(bx);
 
@@ -195,5 +193,3 @@ test_conformant2(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event
    evas_object_resize(win, 240, 480);
    evas_object_show(win);
 }
-
-#endif

@@ -2,7 +2,6 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 #include <Elementary.h>
 #ifndef M_PI
@@ -174,7 +173,6 @@ make_gear(GLData *gld, GLfloat inner_radius, GLfloat outer_radius, GLfloat width
    gl->glBufferData(GL_ARRAY_BUFFER, gear->count * 6 * 4,
                     gear->vertices, GL_STATIC_DRAW);
 
-
    return gear;
 }
 
@@ -343,12 +341,33 @@ static const char vertex_shader[] =
    "}\n";
 
 static void
+_print_gl_log(Evas_GL_API *gl, GLuint id)
+{
+   GLint log_len = 0;
+   char *log;
+
+   if (gl->glIsShader(id))
+     gl->glGetShaderiv(id, GL_INFO_LOG_LENGTH, &log_len);
+   else if (gl->glIsProgram(id))
+     gl->glGetProgramiv(id, GL_INFO_LOG_LENGTH, &log_len);
+
+   log = malloc(log_len * sizeof(char));
+
+   if (gl->glIsShader(id))
+     gl->glGetShaderInfoLog(id, log_len, NULL, log);
+   else if (gl->glIsProgram(id))
+     gl->glGetProgramInfoLog(id, log_len, NULL, log);
+
+   printf("%s", log);
+   free(log);
+}
+
+static void
 gears_init(GLData *gld)
 {
    Evas_GL_API *gl = gld->glapi;
 
    const char *p;
-   char msg[512];
 
    gl->glEnable(GL_CULL_FACE);
    gl->glEnable(GL_DEPTH_TEST);
@@ -357,15 +376,13 @@ gears_init(GLData *gld)
    gld->vtx_shader = gl->glCreateShader(GL_VERTEX_SHADER);
    gl->glShaderSource(gld->vtx_shader, 1, &p, NULL);
    gl->glCompileShader(gld->vtx_shader);
-   gl->glGetShaderInfoLog(gld->vtx_shader, sizeof msg, NULL, msg);
-   printf("vertex shader info: %s\n", msg);
+   _print_gl_log(gl, gld->vtx_shader);
 
    p = fragment_shader;
    gld->fgmt_shader = gl->glCreateShader(GL_FRAGMENT_SHADER);
    gl->glShaderSource(gld->fgmt_shader, 1, &p, NULL);
    gl->glCompileShader(gld->fgmt_shader);
-   gl->glGetShaderInfoLog(gld->fgmt_shader, sizeof msg, NULL, msg);
-   printf("fragment shader info: %s\n", msg);
+   _print_gl_log(gl, gld->fgmt_shader);
 
    gld->program = gl->glCreateProgram();
    gl->glAttachShader(gld->program, gld->vtx_shader);
@@ -374,8 +391,7 @@ gears_init(GLData *gld)
    gl->glBindAttribLocation(gld->program, 1, "normal");
 
    gl->glLinkProgram(gld->program);
-   gl->glGetProgramInfoLog(gld->program, sizeof msg, NULL, msg);
-   printf("info: %s\n", msg);
+   _print_gl_log(gl, gld->program);
 
    gl->glUseProgram(gld->program);
    gld->proj_location  = gl->glGetUniformLocation(gld->program, "proj");
@@ -403,7 +419,6 @@ gldata_init(GLData *gld)
    gld->light[1] = 1.0;
    gld->light[2] = -5.0;
 }
-
 
 //-------------------------//
 
@@ -482,51 +497,78 @@ _quit_idler(void *data)
 
 static void
 _on_done(void *data,
-         Evas_Object *obj __UNUSED__,
-         void *event_info __UNUSED__)
+         Evas_Object *obj EINA_UNUSED,
+         void *event_info EINA_UNUSED)
 {
    ecore_idler_add(_quit_idler, data);
 }
 
 static void
-_del(void *data __UNUSED__, Evas *evas __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_on_direct(void *data,
+           Evas_Object *obj EINA_UNUSED,
+           void *event_info EINA_UNUSED)
+{
+   if (!data) return;
+
+   elm_glview_mode_set(data, 0
+                       | ELM_GLVIEW_ALPHA
+                       | ELM_GLVIEW_DEPTH
+                       | ELM_GLVIEW_DIRECT
+                      );
+}
+
+static void
+_on_indirect(void *data,
+           Evas_Object *obj EINA_UNUSED,
+           void *event_info EINA_UNUSED)
+{
+   if (!data) return;
+
+   elm_glview_mode_set(data, 0
+                       | ELM_GLVIEW_ALPHA
+                       | ELM_GLVIEW_DEPTH
+                      );
+}
+
+static void
+_del(void *data EINA_UNUSED, Evas *evas EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Ecore_Animator *ani = evas_object_data_get(obj, "ani");
    ecore_animator_del(ani);
 }
 
 static void
-_key_down(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info)
+_key_down(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info)
 {
    Evas_Event_Key_Down *ev;
    ev = (Evas_Event_Key_Down *)event_info;
    GLData *gld = evas_object_data_get(obj, "gld");
 
-   if (strcmp(ev->keyname, "Left") == 0)
+   if (strcmp(ev->key, "Left") == 0)
      {
         gld->view_roty += 5.0;
         return;
      }
 
-   if (strcmp(ev->keyname, "Right") == 0)
+   if (strcmp(ev->key, "Right") == 0)
      {
         gld->view_roty -= 5.0;
         return;
      }
 
-   if (strcmp(ev->keyname, "Up") == 0)
+   if (strcmp(ev->key, "Up") == 0)
      {
         gld->view_rotx += 5.0;
         return;
      }
 
-   if (strcmp(ev->keyname, "Down") == 0)
+   if (strcmp(ev->key, "Down") == 0)
      {
         gld->view_rotx -= 5.0;
         return;
      }
-   if ((strcmp(ev->keyname, "Escape") == 0) ||
-       (strcmp(ev->keyname, "Return") == 0))
+   if ((strcmp(ev->key, "Escape") == 0) ||
+       (strcmp(ev->key, "Return") == 0))
      {
         //_on_done(data, obj, event_info);
         return;
@@ -534,14 +576,14 @@ _key_down(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *eve
 }
 
 static void
-_mouse_down(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_mouse_down(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    GLData *gld = evas_object_data_get(obj, "gld");
    gld->mouse_down = 1;
 }
 
 static void
-_mouse_move(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_mouse_move(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Event_Mouse_Move *ev;
    ev = (Evas_Event_Mouse_Move *)event_info;
@@ -559,16 +601,16 @@ _mouse_move(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *e
 }
 
 static void
-_mouse_up(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_mouse_up(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    GLData *gld = evas_object_data_get(obj, "gld");
    gld->mouse_down = 0;
 }
 
 void
-test_glview(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_glview(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   Evas_Object *win, *bx, *bt, *gl;
+   Evas_Object *win, *bx, *bt, *gl, *lb;
    Ecore_Animator *ani;
    GLData *gld = NULL;
 
@@ -578,7 +620,6 @@ test_glview(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
 
    // new window - do the usual and give it a name, title and delete handler
    win = elm_win_util_standard_add("glview", "GLView");
-
    elm_win_autodel_set(win, EINA_TRUE);
 
    bx = elm_box_add(win);
@@ -588,35 +629,70 @@ test_glview(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
 
    // Add a GLView
    gl = elm_glview_add(win);
-   evas_object_size_hint_align_set(gl, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   evas_object_size_hint_weight_set(gl, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   elm_glview_mode_set(gl, ELM_GLVIEW_ALPHA|ELM_GLVIEW_DEPTH);
-   elm_glview_resize_policy_set(gl, ELM_GLVIEW_RESIZE_POLICY_RECREATE);
-   elm_glview_render_policy_set(gl, ELM_GLVIEW_RENDER_POLICY_ALWAYS);
-   elm_glview_init_func_set(gl, _init_gl);
-   elm_glview_del_func_set(gl, _del_gl);
-   elm_glview_resize_func_set(gl, _resize_gl);
-   elm_glview_render_func_set(gl, (Elm_GLView_Func_Cb)_draw_gl);
-   elm_box_pack_end(bx, gl);
-   evas_object_show(gl);
+   if (gl)
+     {
+        evas_object_size_hint_align_set(gl, EVAS_HINT_FILL, EVAS_HINT_FILL);
+        evas_object_size_hint_weight_set(gl, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+        elm_glview_mode_set(gl, 0
+                            | ELM_GLVIEW_ALPHA
+                            | ELM_GLVIEW_DEPTH
+                           );
+        elm_glview_resize_policy_set(gl, ELM_GLVIEW_RESIZE_POLICY_RECREATE);
+        elm_glview_render_policy_set(gl, ELM_GLVIEW_RENDER_POLICY_ALWAYS);
+        elm_glview_init_func_set(gl, _init_gl);
+        elm_glview_del_func_set(gl, _del_gl);
+        elm_glview_resize_func_set(gl, _resize_gl);
+        elm_glview_render_func_set(gl, (Elm_GLView_Func_Cb)_draw_gl);
+        elm_box_pack_end(bx, gl);
+        evas_object_show(gl);
 
-   // Add Mouse/Key Event Callbacks
-   elm_object_focus_set(gl, EINA_TRUE);
-   evas_object_event_callback_add(gl, EVAS_CALLBACK_KEY_DOWN, _key_down, gl);
-   evas_object_event_callback_add(gl, EVAS_CALLBACK_MOUSE_DOWN, _mouse_down, gl);
-   evas_object_event_callback_add(gl, EVAS_CALLBACK_MOUSE_UP, _mouse_up, gl);
-   evas_object_event_callback_add(gl, EVAS_CALLBACK_MOUSE_MOVE, _mouse_move, gl);
+        // Add Mouse/Key Event Callbacks
+        elm_object_focus_set(gl, EINA_TRUE);
+        evas_object_event_callback_add(gl, EVAS_CALLBACK_KEY_DOWN, _key_down, gl);
+        evas_object_event_callback_add(gl, EVAS_CALLBACK_MOUSE_DOWN, _mouse_down, gl);
+        evas_object_event_callback_add(gl, EVAS_CALLBACK_MOUSE_UP, _mouse_up, gl);
+        evas_object_event_callback_add(gl, EVAS_CALLBACK_MOUSE_MOVE, _mouse_move, gl);
 
-   // Animator and other vars
-   ani = ecore_animator_add(_anim, gl);
-   gld->glapi = elm_glview_gl_api_get(gl);
-   evas_object_data_set(gl, "ani", ani);
-   evas_object_data_set(gl, "gld", gld);
-   evas_object_event_callback_add(gl, EVAS_CALLBACK_DEL, _del, gl);
+        // Animator and other vars
+        ani = ecore_animator_add(_anim, gl);
+        gld->glapi = elm_glview_gl_api_get(gl);
+        evas_object_data_set(gl, "ani", ani);
+        evas_object_data_set(gl, "gld", gld);
+        evas_object_event_callback_add(gl, EVAS_CALLBACK_DEL, _del, gl);
 
-   /* add an ok button */
+        bt = elm_button_add(win);
+        elm_object_text_set(bt, "Direct Mode");
+        evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
+        evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
+        elm_box_pack_end(bx, bt);
+        evas_object_show(bt);
+        evas_object_smart_callback_add(bt, "clicked", _on_direct, gl);
+
+        bt = elm_button_add(win);
+        elm_object_text_set(bt, "Indirect Mode");
+        evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
+        evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
+        elm_box_pack_end(bx, bt);
+        evas_object_show(bt);
+        evas_object_smart_callback_add(bt, "clicked", _on_indirect, gl);
+     }
+   else
+     {
+        lb = elm_label_add(bx);
+        elm_object_text_set(lb, "<align=left> GL backend engine is not supported.<br/>"
+                            " 1. Check your back-end engine or<br/>"
+                            " 2. Run elementary_test with engine option or<br/>"
+                            "    ex) $ <b>ELM_ENGINE=gl</b> elementary_test<br/>"
+                            " 3. Change your back-end engine from elementary_config.<br/></align>");
+        evas_object_size_hint_weight_set(lb, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+        evas_object_size_hint_align_set(lb, EVAS_HINT_FILL, EVAS_HINT_FILL);
+        elm_box_pack_end(bx, lb);
+        evas_object_show(lb);
+        free(gld);
+     }
+
    bt = elm_button_add(win);
-   elm_object_text_set(bt, "OK");
+   elm_object_text_set(bt, "Close");
    evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
    evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
    elm_box_pack_end(bx, bt);
@@ -626,4 +702,3 @@ test_glview(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info
    evas_object_resize(win, 320, 480);
    evas_object_show(win);
 }
-#endif

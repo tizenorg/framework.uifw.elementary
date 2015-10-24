@@ -1,8 +1,18 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
+#define ELM_INTERFACE_ATSPI_ACCESSIBLE_PROTECTED
+
 #include <Elementary.h>
 #include "elm_priv.h"
 #include "elm_widget_bg.h"
+#include "elm_widget_layout.h"
 
-EAPI const char ELM_BG_SMART_NAME[] = "elm_bg";
+#define MY_CLASS ELM_BG_CLASS
+
+#define MY_CLASS_NAME "Elm_Bg"
+#define MY_CLASS_NAME_LEGACY "elm_bg"
 
 static const Elm_Layout_Part_Alias_Description _content_aliases[] =
 {
@@ -10,19 +20,15 @@ static const Elm_Layout_Part_Alias_Description _content_aliases[] =
    {NULL, NULL}
 };
 
-EVAS_SMART_SUBCLASS_NEW
-  (ELM_BG_SMART_NAME, _elm_bg, Elm_Bg_Smart_Class, Elm_Layout_Smart_Class,
-  elm_layout_smart_class_get, NULL);
-
-static void
-_elm_bg_smart_sizing_eval(Evas_Object *obj)
+EOLIAN static void
+_elm_bg_elm_layout_sizing_eval(Eo *obj, Elm_Bg_Data *sd)
 {
    Evas_Coord iw = 0, ih = 0, mw = -1, mh = -1;
    Evas_Coord bx = 0, by = 0, bw = 0, bh = 0;
    Evas_Coord fx = 0, fy = 0, fw = 0, fh = 0;
    const char *p;
 
-   ELM_BG_DATA_GET(obj, sd);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    if ((!sd->img) || (!sd->file)) return;
    if (((p = strrchr(sd->file, '.'))) && (!strcasecmp(p, ".edj"))) return;
@@ -33,7 +39,7 @@ _elm_bg_smart_sizing_eval(Evas_Object *obj)
 
    /* grab base object dimensions */
    evas_object_geometry_get
-     (ELM_WIDGET_DATA(sd)->resize_obj, &bx, &by, &bw, &bh);
+     (wd->resize_obj, &bx, &by, &bw, &bh);
 
    switch (sd->option)
      {
@@ -74,112 +80,67 @@ _elm_bg_smart_sizing_eval(Evas_Object *obj)
 
 static void
 _on_resize(void *data,
-           Evas *e __UNUSED__,
-           Evas_Object *obj __UNUSED__,
-           void *event_info __UNUSED__)
+           Evas *e EINA_UNUSED,
+           Evas_Object *obj EINA_UNUSED,
+           void *event_info EINA_UNUSED)
 {
    elm_layout_sizing_eval(data);
 }
 
-static void
-_elm_bg_smart_add(Evas_Object *obj)
+EOLIAN static void
+_elm_bg_evas_object_smart_add(Eo *obj, Elm_Bg_Data *priv)
 {
-   EVAS_SMART_DATA_ALLOC(obj, Elm_Bg_Smart_Data);
 
-   ELM_WIDGET_CLASS(_elm_bg_parent_sc)->base.add(obj);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   elm_widget_sub_object_parent_add(obj);
+   elm_widget_can_focus_set(obj, EINA_FALSE);
+
+   priv->option = ELM_BG_OPTION_SCALE;
+
+   evas_object_event_callback_add(obj, EVAS_CALLBACK_RESIZE, _on_resize, obj);
+
+   if (!elm_layout_theme_set(obj, "bg", "base", elm_widget_style_get(obj)))
+     ERR("Failed to set layout!");
 }
 
-static void
-_elm_bg_smart_set_user(Elm_Bg_Smart_Class *sc)
+EOLIAN static const Elm_Layout_Part_Alias_Description*
+_elm_bg_elm_layout_content_aliases_get(Eo *obj EINA_UNUSED, Elm_Bg_Data *_pd EINA_UNUSED)
 {
-   ELM_WIDGET_CLASS(sc)->base.add = _elm_bg_smart_add;
-
-   ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_bg_smart_sizing_eval;
-
-   ELM_LAYOUT_CLASS(sc)->content_aliases = _content_aliases;
-}
-
-EAPI const Elm_Bg_Smart_Class *
-elm_bg_smart_class_get(void)
-{
-   static Elm_Bg_Smart_Class _sc =
-     ELM_BG_SMART_CLASS_INIT_NAME_VERSION(ELM_BG_SMART_NAME);
-   static const Elm_Bg_Smart_Class *class = NULL;
-
-   if (class)
-     return class;
-
-   _elm_bg_smart_set(&_sc);
-   class = &_sc;
-
-   return class;
+   return _content_aliases;
 }
 
 EAPI Evas_Object *
 elm_bg_add(Evas_Object *parent)
 {
-   Evas_Object *obj;
-
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-
-   obj = elm_widget_add(_elm_bg_smart_class_new(), parent);
-   if (!obj) return NULL;
-
-   if (!elm_widget_sub_object_add(parent, obj))
-     ERR("could not add %p as sub object of %p", obj, parent);
-
-   ELM_BG_DATA_GET_OR_RETURN_VAL(obj, sd, NULL);
-
-   elm_widget_can_focus_set(obj, EINA_FALSE);
-
-   sd->option = ELM_BG_OPTION_SCALE;
-
-   evas_object_event_callback_add(obj, EVAS_CALLBACK_RESIZE, _on_resize, obj);
-
-   elm_layout_theme_set(obj, "bg", "base", elm_widget_style_get(obj));
-
-   //Tizen Only: This should be removed when eo is applied.
-   ELM_WIDGET_DATA_GET(obj, wsd);
-   wsd->on_create = EINA_FALSE;
-
+   Evas_Object *obj = eo_add(MY_CLASS, parent);
    return obj;
 }
 
-static void
-_elm_bg_file_reload(void *data, Evas_Object *obj,
-                    const char *emission __UNUSED__,
-                    const char *source __UNUSED__)
+EOLIAN static void
+_elm_bg_eo_base_constructor(Eo *obj, Elm_Bg_Data *_pd EINA_UNUSED)
 {
-   Evas_Object *bg = data;
-   const char *file;
-   const char *group;
-
-   edje_object_file_get(obj, &file, &group);
-   elm_bg_file_set(bg, file, group);
+   eo_do_super(obj, MY_CLASS, eo_constructor());
+   eo_do(obj,
+         evas_obj_type_set(MY_CLASS_NAME_LEGACY),
+         //TIZEN_ONLY (20150709) imporove object at xy get function
+         elm_interface_atspi_accessible_role_set(ELM_ATSPI_ROLE_REDUNDANT_OBJECT));
+         //
 }
 
-EAPI Eina_Bool
-elm_bg_file_set(Evas_Object *obj,
-                const char *file,
-                const char *group)
+EOLIAN static Eina_Bool
+_elm_bg_efl_file_file_set(Eo *obj, Elm_Bg_Data *sd, const char *file, const char *group)
 {
-   ELM_BG_CHECK(obj) EINA_FALSE;
-   ELM_BG_DATA_GET_OR_RETURN_VAL(obj, sd, EINA_FALSE);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, EINA_FALSE);
 
    const char *p;
-   Eina_Bool ret;
+   Eina_Bool int_ret;
 
-   if (sd->img)
-     {
-        evas_object_del(sd->img);
-        sd->img = NULL;
-     }
+   ELM_SAFE_FREE(sd->img, evas_object_del);
    if (!file)
      {
-        eina_stringshare_del(sd->file);
-        sd->file = NULL;
-        eina_stringshare_del(sd->group);
-        sd->group = NULL;
+        ELM_SAFE_FREE(sd->file, eina_stringshare_del);
+        ELM_SAFE_FREE(sd->group, eina_stringshare_del);
         return EINA_TRUE;
      }
    eina_stringshare_replace(&sd->file, file);
@@ -187,19 +148,15 @@ elm_bg_file_set(Evas_Object *obj,
    if (((p = strrchr(file, '.'))) && (!strcasecmp(p, ".edj")))
      {
         sd->img = edje_object_add
-            (evas_object_evas_get(ELM_WIDGET_DATA(sd)->resize_obj));
-        ret = edje_object_file_set(sd->img, file, group);
-        edje_object_signal_callback_del
-          (sd->img, "edje,change,file", "edje", _elm_bg_file_reload);
-        edje_object_signal_callback_add
-          (sd->img, "edje,change,file", "edje", _elm_bg_file_reload, obj);
+            (evas_object_evas_get(wd->resize_obj));
+        int_ret = edje_object_file_set(sd->img, file, group);
      }
    else
      {
         int err;
 
         sd->img = evas_object_image_add
-            (evas_object_evas_get(ELM_WIDGET_DATA(sd)->resize_obj));
+            (evas_object_evas_get(wd->resize_obj));
         if ((sd->load_opts.w > 0) && (sd->load_opts.h > 0))
           evas_object_image_load_size_set
             (sd->img, sd->load_opts.w, sd->load_opts.h);
@@ -210,51 +167,39 @@ elm_bg_file_set(Evas_Object *obj,
           {
              ERR("Could not load image '%s': %s\n",
                  file, evas_load_error_str(err));
-             ret = EINA_FALSE;
+             int_ret = EINA_FALSE;
           }
         else
-          ret = EINA_TRUE;
+          int_ret = EINA_TRUE;
      }
 
    evas_object_repeat_events_set(sd->img, EINA_TRUE);
 
-   ret &= elm_layout_content_set(obj, "elm.swallow.background", sd->img);
+   int_ret &= elm_layout_content_set(obj, "elm.swallow.background", sd->img);
 
    elm_layout_sizing_eval(obj);
 
-   return ret;
+   return int_ret;
 }
 
-EAPI void
-elm_bg_file_get(const Evas_Object *obj,
-                const char **file,
-                const char **group)
+EOLIAN static void
+_elm_bg_efl_file_file_get(Eo *obj EINA_UNUSED, Elm_Bg_Data *sd, const char **file, const char **group)
 {
-   ELM_BG_CHECK(obj);
-   ELM_BG_DATA_GET_OR_RETURN(obj, sd);
-
    if (file) *file = sd->file;
    if (group) *group = sd->group;
 }
 
-EAPI void
-elm_bg_option_set(Evas_Object *obj,
-                  Elm_Bg_Option option)
+EOLIAN static void
+_elm_bg_option_set(Eo *obj, Elm_Bg_Data *sd, Elm_Bg_Option option)
 {
-   ELM_BG_CHECK(obj);
-   ELM_BG_DATA_GET_OR_RETURN(obj, sd);
-
    sd->option = option;
 
    elm_layout_sizing_eval(obj);
 }
 
-EAPI Elm_Bg_Option
-elm_bg_option_get(const Evas_Object *obj)
+EOLIAN static Elm_Bg_Option
+_elm_bg_option_get(Eo *obj EINA_UNUSED, Elm_Bg_Data *sd)
 {
-   ELM_BG_CHECK(obj) EINA_FALSE;
-   ELM_BG_DATA_GET_OR_RETURN_VAL(obj, sd, ELM_BG_OPTION_LAST);
-
    return sd->option;
 }
 
@@ -265,19 +210,32 @@ elm_bg_color_set(Evas_Object *obj,
                  int b)
 {
    ELM_BG_CHECK(obj);
-   ELM_BG_DATA_GET_OR_RETURN(obj, sd);
+   eo_do(obj, elm_obj_bg_color_set(r, g, b, 255));
+}
+
+EOLIAN static void
+_elm_bg_color_set(Eo *obj, Elm_Bg_Data *sd, int r, int g, int b, int a)
+{
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
+
+   // reset color
+   if ((r == -1) && (g == -1) && (b == -1))
+     {
+        ELM_SAFE_FREE(sd->rect, evas_object_del);
+        return;
+     }
 
    if (!sd->rect)
      {
         sd->rect = evas_object_rectangle_add
-            (evas_object_evas_get(ELM_WIDGET_DATA(sd)->resize_obj));
+            (evas_object_evas_get(wd->resize_obj));
 
         elm_layout_content_set(obj, "elm.swallow.rectangle", sd->rect);
 
         elm_layout_sizing_eval(obj);
      }
 
-   evas_object_color_set(sd->rect, r, g, b, 255);
+   evas_object_color_set(sd->rect, r, g, b, a);
 }
 
 EAPI void
@@ -287,18 +245,18 @@ elm_bg_color_get(const Evas_Object *obj,
                  int *b)
 {
    ELM_BG_CHECK(obj);
-   ELM_BG_DATA_GET_OR_RETURN(obj, sd);
-
-   evas_object_color_get(sd->rect, r, g, b, NULL);
+   eo_do((Eo *) obj, elm_obj_bg_color_get(r, g, b, NULL));
 }
 
-EAPI void
-elm_bg_load_size_set(Evas_Object *obj,
-                     Evas_Coord w,
-                     Evas_Coord h)
+EOLIAN static void
+_elm_bg_color_get(Eo *obj EINA_UNUSED, Elm_Bg_Data *sd, int *r, int *g, int *b, int *a)
 {
-   ELM_BG_CHECK(obj);
-   ELM_BG_DATA_GET_OR_RETURN(obj, sd);
+   evas_object_color_get(sd->rect, r, g, b, a);
+}
+
+EOLIAN static void
+_elm_bg_load_size_set(Eo *obj EINA_UNUSED, Elm_Bg_Data *sd, Evas_Coord w, Evas_Coord h)
+{
    const char *p;
 
    sd->load_opts.w = w;
@@ -308,3 +266,23 @@ elm_bg_load_size_set(Evas_Object *obj,
    if (!(((p = strrchr(sd->file, '.'))) && (!strcasecmp(p, ".edj"))))
      evas_object_image_load_size_set(sd->img, w, h);
 }
+
+static void
+_elm_bg_class_constructor(Eo_Class *klass)
+{
+   evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
+}
+
+EAPI Eina_Bool
+elm_bg_file_set(Eo *obj, const char *file, const char *group)
+{
+   return eo_do((Eo *) obj, efl_file_set(file, group));
+}
+
+EAPI void
+elm_bg_file_get(const Eo *obj, const char **file, const char **group)
+{
+   eo_do((Eo *) obj, efl_file_get(file, group));
+}
+
+#include "elm_bg.eo.c"

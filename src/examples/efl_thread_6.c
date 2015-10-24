@@ -3,6 +3,7 @@
 #include <Elementary.h>
 
 static Evas_Object *win = NULL;
+static Eina_List *threads;
 
 struct info
 {
@@ -13,7 +14,7 @@ struct info
 // BEGIN - code running in my custom thread instance
 //
 static void
-mandel(int *pix, int w, int h)
+mandel(Ecore_Thread *th, int *pix, int w, int h)
 {
    double x, xx, y, cx, cy, cox, coy;
    int iteration, hx, hy, val, r, g, b, rr, gg, bb;
@@ -30,6 +31,8 @@ mandel(int *pix, int w, int h)
    r = rand() % 255; g = rand() % 255; b = rand() % 255;
    for (hy = 0; hy < h; hy++)
      {
+        // every line check if thread has been cancelled to return early
+        if (ecore_thread_check(th)) return;
         for (hx = 0; hx < w; hx++)
           {
              cx = (((float)hx) / ((float)w) - 0.5) / (magnify * 3.0);
@@ -56,7 +59,7 @@ mandel(int *pix, int w, int h)
                      (val  << 24) | (rr << 16) | (gg << 8) | (bb);
                }
              else
-                pix[(hy * w) + hx] = 0xffffffff;
+               pix[(hy * w) + hx] = 0xffffffff;
           }
      }
 }
@@ -67,7 +70,7 @@ th_do(void *data, Ecore_Thread *th)
    struct info *inf = data;
    // CANNOT TOUCH inf->obj here! just inf->pix which is 256x256 @ 32bpp
    // quick and dirty to consume some cpu - do a mandelbrot calc
-   mandel(inf->pix, 256, 256);
+   mandel(th, inf->pix, 256, 256);
 }
 //
 // END - code running in my custom thread instance
@@ -82,6 +85,7 @@ th_end(void *data, Ecore_Thread *th)
    evas_object_show(inf->obj);
    free(inf->pix);
    free(inf);
+   threads = eina_list_remove(threads, th);
 }
 
 static void // if the thread is cancelled - free pix, keep obj tho
@@ -104,7 +108,7 @@ anim(void *data)
 
    // just calculate some position using the pointer value of the object as
    // a seed value to make different objects go into different places over time
-   v = ((int)o) & 0xff;
+   v = ((int)(uintptr_t)o) & 0xff;
    t = ecore_loop_time_get();
    w = 100 + ((v * 100) >> 8);
    h = 100 + ((v * 100) >> 8);
@@ -120,20 +124,14 @@ anim(void *data)
 EAPI_MAIN int
 elm_main(int argc, char **argv)
 {
-   Evas_Object *o, *bg;
+   Evas_Object *o;
+   Ecore_Thread *th;
    int i;
 
-   win = elm_win_add(NULL, "efl-thread-6", ELM_WIN_BASIC);
-   elm_win_title_set(win, "EFL Thread 6");
-   elm_win_autodel_set(win, EINA_TRUE);
    elm_policy_set(ELM_POLICY_QUIT, ELM_POLICY_QUIT_LAST_WINDOW_CLOSED);
-   evas_object_resize(win, 400, 400);
-   evas_object_show(win);
 
-   bg = elm_bg_add(win);
-   evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   elm_win_resize_object_add(win, bg);
-   evas_object_show(bg);
+   win = elm_win_util_standard_add("efl-thread-6", "EFL Thread 6");
+   elm_win_autodel_set(win, EINA_TRUE);
 
    // queue up 64 mandel generation thread jobs
    for (i = 0; i < 64; i++)
@@ -150,15 +148,22 @@ elm_main(int argc, char **argv)
              evas_object_resize(o, 256, 256);
              inf->obj = o;
              inf->pix = malloc(256 * 256 * sizeof(int));
-             ecore_thread_run(th_do, th_end, th_cancel, inf);
+             th = ecore_thread_run(th_do, th_end, th_cancel, inf);
+             threads = eina_list_append(threads, th);
              // bonus - slide the objects around all the time with an
              // animator that ticks off every frame.
              ecore_animator_add(anim, o);
           }
      }
 
+   evas_object_resize(win, 400, 400);
+   evas_object_show(win);
+
    elm_run();
-   elm_shutdown();
+
+   // if some threads are still running - cancel them
+   EINA_LIST_FREE(threads, th) ecore_thread_cancel(th);
+
 
    return 0;
 }

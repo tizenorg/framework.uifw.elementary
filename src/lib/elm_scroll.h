@@ -1,173 +1,210 @@
 /**
  * @defgroup Scrollhints Scrollhints
  * @ingroup elm_infra_group
- * @brief This group provides functions to handle scroll behavior of Elementary
- *        Widgets.
  *
  * Objects when inside a scroller can scroll, but this may not always be
  * desirable in certain situations. This allows an object to hint to itself
- * and its parents to "not scroll" in one of the following 2 ways. If any child object of a
+ * and parents to "not scroll" in one of 2 ways. If any child object of a
  * scroller has pushed a scroll freeze or hold then it affects all parent
  * scrollers until all children have released them.
  *
  * 1. To hold on scrolling. This means just flicking and dragging may no
- * longer scroll, but pressing/dragging near the edge of the scroller
- * still scrolls. This is automatically used by the entry object when
+ * longer scroll, but pressing/dragging near an edge of the scroller will
+ * still scroll. This is automatically used by the entry object when
  * selecting text.
  *
- * 2. To totally freeze scrolling. This means it stops until
+ * 2. To totally freeze scrolling. This means it stops. until
  * popped/released.
  *
  * @{
  */
 
 /**
- * @brief Pushes the scroll hold by @c 1.
- *
- * @details This increments the scroll hold count by one. If it is more than @c 0 it
- *          takes effect on the parents of the indicated object.
+ * @brief Push the scroll hold by 1
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
+ * @remark This increments the scroll hold count by one. If it is more than 0 it will
+ * take effect on the parents of the indicated object.
+ *
  * @param[in] obj The object
+ * @ingroup Scrollhints
  */
 EAPI void      elm_object_scroll_hold_push(Evas_Object *obj);
 
 /**
- * @brief Pops the scroll hold by @c 1.
- *
- * @details This decrements the scroll hold count by one. If it is more than @c 0 it
- *          takes effect on the parents of the indicated object.
+ * @brief Pop the scroll hold by 1
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
+ * @remark This decrements the scroll hold count by one. If it is more than 0 it will
+ * take effect on the parents of the indicated object.
+ *
  * @param[in] obj The object
+ * @ingroup Scrollhints
  */
 EAPI void      elm_object_scroll_hold_pop(Evas_Object *obj);
 
 /**
- * @brief Gets the scroll hold by @c 1.
- *
- * @details This gets the scroll hold count by @c 1.
- *
- * @since 1.7
+ * @brief Get the scroll hold by 1
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
+ * @remark This gets the scroll hold count by one.
+ *
  * @param[in] obj The object
  * @return The scroll hold count
+ * @since 1.7
+ * @ingroup Scrollhints
  */
 EAPI int       elm_object_scroll_hold_get(const Evas_Object *obj);
 
 /**
- * @brief Pushes the scroll freeze by @c 1.
- *
- * @details This increments the scroll freeze count by @c 1. If it is more
- *          than @c 0 it takes effect on the parents of the indicated
- *          object.
+ * @brief Push the scroll freeze by 1
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
+ * @remark This increments the scroll freeze count by one. If it is more
+ * than 0 it will take effect on the parents of the indicated
+ * object.
+ *
  * @param[in] obj The object
+ * @ingroup Scrollhints
  */
 EAPI void      elm_object_scroll_freeze_push(Evas_Object *obj);
 
 /**
- * @brief Pops the scroll freeze by @c 1.
- *
- * @details This decrements the scroll freeze count by @c 1. If it is more
- *          than @c 0 it takes effect on the parents of the indicated
- *          object.
+ * @brief Pop the scroll freeze by 1
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
+ * @remark This decrements the scroll freeze count by one. If it is more
+ * than 0 it will take effect on the parents of the indicated
+ * object.
+ *
  * @param[in] obj The object
+ * @ingroup Scrollhints
  */
 EAPI void      elm_object_scroll_freeze_pop(Evas_Object *obj);
 
 /**
- * @brief Gets the scroll freeze by @c 1.
- *
- * @details This gets the scroll freeze count by @c 1.
- *
- * @since 1.7
+ * @brief Get the scroll freeze by 1
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
+ * @remark This gets the scroll freeze count by one.
+ *
  * @param[in] obj The object
  * @return The scroll freeze count
+ * @since 1.7
+ * @ingroup Scrollhints
  */
 EAPI int       elm_object_scroll_freeze_get(const Evas_Object *obj);
 
 /**
- * @brief Locks the scrolling of the given widget (and thus all the parents).
- *
- * @details This locks the given object from scrolling in the X axis (and implicitly
- *          locks all the parent scrollers too from doing the same).
+ * @brief Lock the scrolling of the given widget (and thus all parents)
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
- * @param obj The object
- * @param lock The lock state (@c 1 == locked, @c 0 == unlocked)
+ * @remark This locks the given object from scrolling in the X axis (and implicitly
+ * also locks all parent scrollers too from doing the same).
+ *
+ * @param[in] obj The object
+ * @param[in] lock The lock state (1 == locked, 0 == unlocked)
+ * @ingroup Scrollhints
  */
 EAPI void      elm_object_scroll_lock_x_set(Evas_Object *obj, Eina_Bool lock);
 
 /**
- * @brief Locks the scrolling of the given widget (and thus all the parents).
- *
- * @details This locks the given object from scrolling in the Y axis (and implicitly
- *          locks all the parent scrollers too from doing the same).
+ * @brief Lock the scrolling of the given widget (and thus all parents)
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
+ * @remark This locks the given object from scrolling in the Y axis (and implicitly
+ * also locks all parent scrollers too from doing the same).
+ *
  * @param[in] obj The object
- * @param[in] lock The lock state (@c 1 == locked, @c 0 == unlocked)
+ * @param[in] lock The lock state (1 == locked, 0 == unlocked)
+ * @ingroup Scrollhints
  */
 EAPI void      elm_object_scroll_lock_y_set(Evas_Object *obj, Eina_Bool lock);
 
 /**
- * @brief Gets the scrolling lock of the given widget.
- *
- * @details This gets the lock for the X axis scrolling.
+ * @brief Get the scrolling lock of the given widget
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
+ * @remark This gets the lock for X axis scrolling.
+ *
  * @param[in] obj The object
- * @return #EINA_TRUE if it is locked, otherwise #EINA_FALSE
+ * @ingroup Scrollhints
  */
 EAPI Eina_Bool elm_object_scroll_lock_x_get(const Evas_Object *obj);
 
 /**
- * @brief Gets the scrolling lock of the given widget.
- *
- * @details This gets the lock for the Y axis scrolling.
+ * @brief Get the scrolling lock of the given widget
  *
  * @if MOBILE @since_tizen 2.3
  * @elseif WEARABLE @since_tizen 2.3.1
  * @endif
  *
+ * @remark This gets the lock for Y axis scrolling.
+ *
  * @param[in] obj The object
- * @return #EINA_TRUE if it is locked, otherwise #EINA_FALSE
+ * @ingroup Scrollhints
  */
 EAPI Eina_Bool elm_object_scroll_lock_y_get(const Evas_Object *obj);
+
+/**
+ * @internal
+ *
+ * Enable item loop feature of the given widget
+ *
+ * If @p enable is @c EINA_TRUE, item selection/focus will loop internally.
+ * This means if arrow keys are pressed at end of scroller's item,
+ * screen is moved to opposite side.
+ *
+ * @param obj The object
+ * @param enable item loop feature (@c EINA_TRUE == enable, @c EINA_FALSE == disable)
+ *
+ * @see elm_object_scroll_item_loop_enabled_get()
+ * @since 1.10
+ * @ingroup Scrollitem
+ */
+EAPI void      elm_object_scroll_item_loop_enabled_set(Evas_Object *obj, Eina_Bool enable);
+
+/**
+ * @internal
+ *
+ * Get the item loop enable status of the given widget
+ *
+ * This gets the item loop enabled status.
+ *
+ * @param obj The object
+ *
+ * @see elm_objecdt_scroll_item_enabled_set()
+ * @since 1.10
+ * @ingroup Scrollitem
+ */
+EAPI Eina_Bool elm_object_scroll_item_loop_enabled_get(const Evas_Object *obj);
 
 /**
  * @}

@@ -1,172 +1,22 @@
 #ifndef ELM_WIDGET_LABEL_H
 #define ELM_WIDGET_LABEL_H
 
-#include "elm_widget_layout.h"
+#include "Elementary.h"
 
-#ifdef HAVE_EIO
-# include <Eio.h>
-#endif
+#include <Eio.h>
 
-/**
- * @internal
- * @addtogroup Widget
- * @{
- *
- * @section elm-label-class The Elementary Label Class
- *
- * Elementary, besides having the @ref Label widget, exposes its
- * foundation -- the Elementary Label Class -- in order to create other
- * widgets which are a label with some more logic on top.
+/* DO NOT USE THIS HEADER UNLESS YOU ARE PREPARED FOR BREAKING OF YOUR
+ * CODE. THIS IS ELEMENTARY'S INTERNAL WIDGET API (for now) AND IS NOT
+ * FINAL. CALL elm_widget_api_check(ELM_INTERNAL_API_VERSION) TO CHECK
+ * IT AT RUNTIME.
  */
 
-/**
- * @def ELM_LABEL_CLASS
- *
- * Use this macro to cast whichever subclass of
- * #Elm_Label_Smart_Class into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_LABEL_CLASS(x) ((Elm_Label_Smart_Class *)x)
-
-/**
- * @def ELM_LABEL_DATA
- *
- * Use this macro to cast whichever subdata of
- * #Elm_Label_Smart_Data into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_LABEL_DATA(x)  ((Elm_Label_Smart_Data *)x)
-
-/**
- * @def ELM_LABEL_SMART_CLASS_VERSION
- *
- * Current version for Elementary label @b base smart class, a value
- * which goes to _Elm_Label_Smart_Class::version.
- *
- * @ingroup Widget
- */
-#define ELM_LABEL_SMART_CLASS_VERSION 1
-
-/**
- * @def ELM_LABEL_SMART_CLASS_INIT
- *
- * Initializer for a whole #Elm_Label_Smart_Class structure, with
- * @c NULL values on its specific fields.
- *
- * @param smart_class_init initializer to use for the "base" field
- * (#Evas_Smart_Class).
- *
- * @see EVAS_SMART_CLASS_INIT_NULL
- * @see EVAS_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_LABEL_SMART_CLASS_INIT_NULL
- * @see ELM_LABEL_SMART_CLASS_INIT_NAME_VERSION
- *
- * @ingroup Widget
- */
-#define ELM_LABEL_SMART_CLASS_INIT(smart_class_init) \
-  {smart_class_init, ELM_LABEL_SMART_CLASS_VERSION}
-
-/**
- * @def ELM_LABEL_SMART_CLASS_INIT_NULL
- *
- * Initializer to zero out a whole #Elm_Label_Smart_Class structure.
- *
- * @see ELM_LABEL_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_LABEL_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_LABEL_SMART_CLASS_INIT_NULL \
-  ELM_LABEL_SMART_CLASS_INIT(EVAS_SMART_CLASS_INIT_NULL)
-
-/**
- * @def ELM_LABEL_SMART_CLASS_INIT_NAME_VERSION
- *
- * Initializer to zero out a whole #Elm_Label_Smart_Class structure and
- * set its name and version.
- *
- * This is similar to #ELM_LABEL_SMART_CLASS_INIT_NULL, but it will
- * also set the version field of #Elm_Label_Smart_Class (base field)
- * to the latest #ELM_LABEL_SMART_CLASS_VERSION and name it to the
- * specific value.
- *
- * It will keep a reference to the name field as a <c>"const char *"</c>,
- * i.e., the name must be available while the structure is
- * used (hint: static or global variable!) and must not be modified.
- *
- * @see ELM_LABEL_SMART_CLASS_INIT_NULL
- * @see ELM_LABEL_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_LABEL_SMART_CLASS_INIT_NAME_VERSION(name) \
-  ELM_LABEL_SMART_CLASS_INIT                          \
-    (ELM_LAYOUT_SMART_CLASS_INIT_NAME_VERSION(name))
-
-/**
- * Elementary label base smart class. This inherits directly from
- * #Elm_Layout_Smart_Class and is meant to build widgets extending the
- * behavior of a label.
- *
- * All of the functions listed on @ref Label namespace will work for
- * objects deriving from #Elm_Label_Smart_Class.
- */
-typedef struct _Elm_Label_Smart_Class
-{
-   Elm_Layout_Smart_Class base;
-
-   int                    version;    /**< Version of this smart class definition */
-} Elm_Label_Smart_Class;
-
-/**
- * Base layout smart data extended with label instance data.
- */
-typedef struct _Elm_Label_Smart_Data Elm_Label_Smart_Data;
-struct _Elm_Label_Smart_Data
-{
-   Elm_Layout_Smart_Data base;
-
-   const char           *format;
-   double                slide_duration;
-   Evas_Coord            lastw;
-   Evas_Coord            wrap_w;
-   Elm_Wrap_Type         linewrap;
-   Elm_Label_Slide_Mode  slide_mode;
-
-   // TIZEN_ONLY(20140628): Add elm_label_anchor_access_provider_* APIs and Support anchor access features.
-   int                   anchor_highlight_pos;
-   Evas_Object          *anchor_highlight_rect;
-   Eina_List            *anchor_access_providers;
-   //
-   // TIZEN_ONLY(140520): Improve performance when *_smart_theme is called.
-   Evas_Object          *tb;
-   Eina_Bool             on_clear : 1;
-   //
-   // TIZEN_ONLY(20140606): Update anchor when textblock geometry is changed.
-   Evas_Coord            tx, ty, tw, th;
-   //
-   // TIZEN_ONLY(131028): Support item, anchor formats
-   Ecore_Timer          *longpress_timer;
-   Eina_List            *anchors;
-   Eina_List            *item_providers;
-   Evas_Coord            down_x, down_y;
-   Eina_Bool             mouse_down_flag : 1;
-   //
-   // TIZEN_ONLY(20140623): Optimize performance for anchor, item.
-   Eina_Bool             anchors_force_update : 1;
-   //
-   Eina_Bool             ellipsis : 1;
-   Eina_Bool             slide_ellipsis : 1;
-};
-
-// TIZEN_ONLY(131028): Support item, anchor formats
+// TIZEN_ONLY(20150526): Support item with image path.
 typedef struct _Sel Sel;
 struct _Sel
 {
    Evas_Textblock_Rectangle rect;
-   Evas_Object *obj_fg, *obj_bg, *obj, *sobj;
+   Evas_Object *obj;
 };
 
 typedef struct _Elm_Label_Anchor_Data Elm_Label_Anchor_Data;
@@ -181,55 +31,62 @@ struct _Elm_Label_Anchor_Data
    Eina_Bool             mouse_down_flag : 1;
    Eina_Bool             item : 1;
 };
-
-typedef struct _Elm_Label_Item_Provider     Elm_Label_Item_Provider;
-struct _Elm_Label_Item_Provider
-{
-   Evas_Object *(*func)(void *data, Evas_Object * entry, const char *item);
-   void        *data;
-};
-
-// TIZEN_ONLY(20140628): Add elm_label_anchor_access_provider_* APIs and Support anchor access features.
-typedef struct _Elm_Label_Anchor_Access_Provider Elm_Label_Anchor_Access_Provider;
-struct _Elm_Label_Anchor_Access_Provider
-{
-   char        *(*func)(void *data, Evas_Object * label, const char *name, const char *text);
-   void        *data;
-};
 //
 
-///////////////////////////
 /**
- * @}
+ * Base layout smart data extended with label instance data.
  */
+typedef struct _Elm_Label_Data Elm_Label_Data;
+struct _Elm_Label_Data
+{
+   const char           *format;
+   double                slide_duration;
+   double                slide_speed;
+   Evas_Coord            lastw; /*<< lastly calculated resize object width.This is used to force the calculation on width changes. */
+   Evas_Coord            wrap_w; /*<< wrap width by pixel for the line wrap support **/
+   Elm_Wrap_Type         linewrap;
+   Elm_Label_Slide_Mode  slide_mode;
 
-EAPI extern const char ELM_LABEL_SMART_NAME[];
-EAPI const Elm_Label_Smart_Class *elm_label_smart_class_get(void);
+   // TIZEN_ONLY(20150526): Support item with image path.
+   Evas_Object          *tb;
+   Eina_List            *anchors;
+   Evas_Coord            tx;
+   Evas_Coord            ty;
+   Evas_Coord            tw;
+   Evas_Coord            th;
+   Eina_Bool             on_clear : 1;
+   Eina_Bool             anchors_force_update : 1;
+   //
+
+   Eina_Bool             ellipsis : 1;
+   Eina_Bool             slide_ellipsis : 1;
+   Eina_Bool             use_slide_speed : 1;
+   Eina_Bool             slide_state : 1; /**< This will be marked as EINA_TRUE after elm_label_slide_go() is called. */
+};
 
 #define ELM_LABEL_DATA_GET(o, sd) \
-  Elm_Label_Smart_Data * sd = evas_object_smart_data_get(o)
+  Elm_Label_Data * sd = eo_data_scope_get(o, ELM_LABEL_CLASS)
 
 #define ELM_LABEL_DATA_GET_OR_RETURN(o, ptr)         \
   ELM_LABEL_DATA_GET(o, ptr);                        \
-  if (!ptr)                                          \
+  if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
-       CRITICAL("No widget data for object %p (%s)", \
-                o, evas_object_type_get(o));         \
+       CRI("No widget data for object %p (%s)",      \
+           o, evas_object_type_get(o));              \
        return;                                       \
     }
 
 #define ELM_LABEL_DATA_GET_OR_RETURN_VAL(o, ptr, val) \
   ELM_LABEL_DATA_GET(o, ptr);                         \
-  if (!ptr)                                           \
+  if (EINA_UNLIKELY(!ptr))                            \
     {                                                 \
-       CRITICAL("No widget data for object %p (%s)",  \
-                o, evas_object_type_get(o));          \
+       CRI("No widget data for object %p (%s)",       \
+           o, evas_object_type_get(o));               \
        return val;                                    \
     }
 
-#define ELM_LABEL_CHECK(obj)                     \
-  if (!obj || !elm_widget_type_check             \
-        ((obj), ELM_LABEL_SMART_NAME, __func__)) \
+#define ELM_LABEL_CHECK(obj)                              \
+  if (EINA_UNLIKELY(!eo_isa((obj), ELM_LABEL_CLASS))) \
     return
 
 #endif

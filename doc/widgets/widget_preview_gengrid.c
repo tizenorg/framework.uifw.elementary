@@ -1,20 +1,20 @@
-#include <Elementary.h>
 #ifdef HAVE_CONFIG_H
 # include "elementary_config.h"
 #else
-# define __UNUSED__
+# define EINA_UNUSED
 #endif
+#include <Elementary.h>
 
 static char *
-_grid_text_get(void        *data __UNUSED__,
-                Evas_Object *obj __UNUSED__,
-                const char  *part __UNUSED__)
+_grid_text_get(void        *data EINA_UNUSED,
+                Evas_Object *obj EINA_UNUSED,
+                const char  *part EINA_UNUSED)
 {
    return strdup("label");
 }
 
 static Evas_Object *
-_grid_content_get(void        *data __UNUSED__,
+_grid_content_get(void        *data EINA_UNUSED,
                Evas_Object *obj,
                const char  *part)
 {

@@ -2,12 +2,12 @@
 # This file is distributed under the same license as the Elementary package.
 # FIRST AUTHOR <tom.hacohen@samsung.com>, 2010.
 #
-#: src/lib/elm_config.c:2101
+#: src/lib/elm_config.c:3174
 msgid ""
 msgstr ""
 "Project-Id-Version: elementary\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2012-09-20 13:50+0900\n"
+"POT-Creation-Date: 2015-02-04 18:11+0900\n"
 "PO-Revision-Date: 2010-12-26 10:05+0200\n"
 "Last-Translator: Shilpa Singh <shilpa.singh@samsung.com>\n"
 "Language-Team: General\n"
@@ -133,18 +133,3 @@ msgstr "جوڑ دیں"
 
 msgid "IDS_COM_BODY_CLIPBOARD"
 msgstr "کلپ بورڈ"
-
-msgid "WDS_ST_OPT_DAY_ABB"
-msgstr "دن"
-
-msgid "WDS_ST_OPT_HRS_ABB"
-msgstr "گھنٹے"
-
-msgid "WDS_ST_OPT_MINS_ABB"
-msgstr "منٹ"
-
-msgid "WDS_ST_OPT_MONTH_ABB"
-msgstr "مہینہ"
-
-msgid "WDS_ST_OPT_YEAR_ABB"
-msgstr "سال"

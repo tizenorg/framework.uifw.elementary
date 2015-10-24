@@ -2,7 +2,6 @@
 # include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 static void
 fill(Evas_Object *win, Eina_Bool do_bg)
@@ -13,8 +12,8 @@ fill(Evas_Object *win, Eina_Bool do_bg)
    if (do_bg)
      {
         bg = elm_bg_add(win);
-        elm_win_resize_object_add(win, bg);
         evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+        elm_win_resize_object_add(win, bg);
         evas_object_show(bg);
      }
 
@@ -49,7 +48,7 @@ fill(Evas_Object *win, Eina_Bool do_bg)
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_HORIZONTAL, 1, 1);
 
    bb = elm_bubble_add(win);
@@ -108,7 +107,7 @@ fill(Evas_Object *win, Eina_Bool do_bg)
    ic = elm_icon_add(win);
    snprintf(buf, sizeof(buf), "%s/images/logo_small.png", elm_app_data_dir_get());
    elm_image_file_set(ic, buf, NULL);
-   elm_image_resizable_set(ic, 0, 0);
+   elm_image_resizable_set(ic, EINA_FALSE, EINA_FALSE);
    evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_HORIZONTAL, 1, 1);
 
    bb = elm_bubble_add(win);
@@ -135,7 +134,7 @@ fill(Evas_Object *win, Eina_Bool do_bg)
 }
 
 static void
-cb_mouse_down(void *data __UNUSED__, Evas *evas __UNUSED__, Evas_Object *obj, void *event_info)
+cb_mouse_down(void *data EINA_UNUSED, Evas *evas EINA_UNUSED, Evas_Object *obj, void *event_info)
 {
    Evas_Event_Mouse_Down *ev = event_info;
 
@@ -143,7 +142,7 @@ cb_mouse_down(void *data __UNUSED__, Evas *evas __UNUSED__, Evas_Object *obj, vo
 }
 
 static void
-cb_mouse_move(void *data, Evas *evas __UNUSED__, Evas_Object *obj, void *event_info)
+cb_mouse_move(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj, void *event_info)
 {
    Evas_Event_Mouse_Move *ev = event_info;
    Evas_Object *orig = data;
@@ -210,7 +209,7 @@ create_handles(Evas_Object *obj)
 }
 
 void
-test_win_inline(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_win_inline(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bg, *win2, *win3;
    char buf[PATH_MAX];
@@ -222,8 +221,8 @@ test_win_inline(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_
    bg = elm_bg_add(win);
    snprintf(buf, sizeof(buf), "%s/images/plant_01.jpg", elm_app_data_dir_get());
    elm_bg_file_set(bg, buf, NULL);
-   elm_win_resize_object_add(win, bg);
    evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, bg);
    evas_object_show(bg);
 
    win2 = elm_win_add(win, "inlined", ELM_WIN_INLINED_IMAGE);
@@ -253,4 +252,3 @@ test_win_inline(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_
    evas_object_resize(win, 400, 400);
    evas_object_show(win);
 }
-#endif

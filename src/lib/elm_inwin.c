@@ -1,12 +1,19 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
+#define ELM_INTERFACE_ATSPI_ACCESSIBLE_PROTECTED
+
 #include <Elementary.h>
+
 #include "elm_priv.h"
 #include "elm_widget_inwin.h"
+#include "elm_widget_layout.h"
 
-EAPI const char ELM_INWIN_SMART_NAME[] = "elm_inwin";
+#define MY_CLASS ELM_INWIN_CLASS
 
-EVAS_SMART_SUBCLASS_NEW
-  (ELM_INWIN_SMART_NAME, _elm_inwin, Elm_Inwin_Smart_Class,
-  Elm_Layout_Smart_Class, elm_layout_smart_class_get, NULL);
+#define MY_CLASS_NAME "Elm_Inwin"
+#define MY_CLASS_NAME_LEGACY "elm_inwin"
 
 static const Elm_Layout_Part_Alias_Description _content_aliases[] =
 {
@@ -14,29 +21,32 @@ static const Elm_Layout_Part_Alias_Description _content_aliases[] =
    {NULL, NULL}
 };
 
-static void
-_elm_inwin_smart_sizing_eval(Evas_Object *obj)
+EOLIAN static void
+_elm_inwin_elm_layout_sizing_eval(Eo *obj, void *_pd EINA_UNUSED)
 {
    Evas_Object *content;
    Evas_Coord minw = -1, minh = -1;
-
-   ELM_INWIN_DATA_GET(obj, sd);
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    content = elm_layout_content_get(obj, NULL);
 
    if (!content) return;
 
    evas_object_size_hint_min_get(content, &minw, &minh);
-   edje_object_size_min_calc(ELM_WIDGET_DATA(sd)->resize_obj, &minw, &minh);
+   edje_object_size_min_calc(wd->resize_obj, &minw, &minh);
 
    evas_object_size_hint_min_set(obj, minw, minh);
    evas_object_size_hint_max_set(obj, -1, -1);
 }
 
-static Eina_Bool
-_elm_inwin_smart_focus_next(const Evas_Object *obj,
-                            Elm_Focus_Direction dir,
-                            Evas_Object **next)
+EOLIAN static Eina_Bool
+_elm_inwin_elm_widget_focus_next_manager_is(Eo *obj EINA_UNUSED, void *_pd EINA_UNUSED)
+{
+   return EINA_TRUE;
+}
+
+EOLIAN static Eina_Bool
+_elm_inwin_elm_widget_focus_next(Eo *obj EINA_UNUSED, void *_pd EINA_UNUSED, Elm_Focus_Direction dir, Evas_Object **next)
 {
    Evas_Object *content;
 
@@ -46,98 +56,81 @@ _elm_inwin_smart_focus_next(const Evas_Object *obj,
    if (content)
      {
         elm_widget_focus_next_get(content, dir, next);
-        if (*next)
-          return EINA_TRUE;
+        if (*next) return EINA_TRUE;
      }
 
    *next = (Evas_Object *)obj;
+
    return EINA_FALSE;
 }
 
-static void
-_elm_inwin_smart_add(Evas_Object *obj)
+EOLIAN static void
+_elm_inwin_evas_object_smart_add(Eo *obj, void *_pd EINA_UNUSED)
 {
-   EVAS_SMART_DATA_ALLOC(obj, Elm_Inwin_Smart_Data);
-
-   ELM_WIDGET_CLASS(_elm_inwin_parent_sc)->base.add(obj);
-}
-
-static void
-_elm_inwin_smart_parent_set(Evas_Object *obj,
-                            Evas_Object *parent)
-{
-   elm_win_resize_object_add(parent, obj);
-
-   elm_layout_sizing_eval(obj);
-}
-
-static void
-_elm_inwin_smart_set_user(Elm_Inwin_Smart_Class *sc)
-{
-   ELM_WIDGET_CLASS(sc)->base.add = _elm_inwin_smart_add;
-
-   ELM_WIDGET_CLASS(sc)->focus_next = _elm_inwin_smart_focus_next;
-   ELM_WIDGET_CLASS(sc)->parent_set = _elm_inwin_smart_parent_set;
-
-   ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_inwin_smart_sizing_eval;
-
-   ELM_LAYOUT_CLASS(sc)->content_aliases = _content_aliases;
-}
-
-EAPI const Elm_Inwin_Smart_Class *
-elm_inwin_smart_class_get(void)
-{
-   static Elm_Inwin_Smart_Class _sc =
-     ELM_INWIN_SMART_CLASS_INIT_NAME_VERSION(ELM_INWIN_SMART_NAME);
-   static const Elm_Inwin_Smart_Class *class = NULL;
-
-   if (class)
-     return class;
-
-   _elm_inwin_smart_set(&_sc);
-   class = &_sc;
-
-   return class;
-}
-
-EAPI Evas_Object *
-elm_win_inwin_add(Evas_Object *parent)
-{
-   Evas_Object *obj;
-
-   if (!parent || !elm_widget_type_check((parent), "elm_win", __func__))
-     return NULL;  /* *has* to have a parent window */
-
-   obj = elm_widget_add(_elm_inwin_smart_class_new(), parent);
-   if (!obj) return NULL;
-
-   if (!elm_widget_sub_object_add(parent, obj))
-     ERR("could not add %p as sub object of %p", obj, parent);
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   elm_widget_sub_object_parent_add(obj);
 
    elm_widget_can_focus_set(obj, EINA_FALSE);
    elm_widget_highlight_ignore_set(obj, EINA_TRUE);
 
    evas_object_size_hint_weight_set(obj, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(obj, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   elm_layout_theme_set(obj, "win", "inwin", elm_object_style_get(obj));
+   if (!elm_layout_theme_set(obj, "win", "inwin", elm_object_style_get(obj)))
+     ERR("Failed to set layout!");
+}
 
-   //Tizen Only: This should be removed when eo is applied.
-   ELM_WIDGET_DATA_GET(obj, wsd);
-   wsd->on_create = EINA_FALSE;
+EOLIAN static void
+_elm_inwin_elm_widget_parent_set(Eo *obj, void *_pd EINA_UNUSED, Evas_Object *parent)
+{
+   elm_win_resize_object_add(parent, obj);
 
+   elm_layout_sizing_eval(obj);
+}
+
+EOLIAN static const Elm_Layout_Part_Alias_Description*
+_elm_inwin_elm_layout_content_aliases_get(Eo *obj EINA_UNUSED, void *_pd EINA_UNUSED)
+{
+   return _content_aliases;
+}
+
+EAPI Evas_Object *
+elm_win_inwin_add(Evas_Object *parent)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
+   Evas_Object *obj = eo_add(MY_CLASS, parent);
    return obj;
 }
 
-EAPI void
-elm_win_inwin_activate(Evas_Object *obj)
+EOLIAN static void
+_elm_inwin_eo_base_constructor(Eo *obj, void *_pd EINA_UNUSED)
 {
-   ELM_INWIN_CHECK(obj);
-   ELM_INWIN_DATA_GET_OR_RETURN(obj, sd);
+   Evas_Object *parent = NULL;
+
+   eo_do(obj, parent = eo_parent_get());
+
+   if (parent && !eo_isa(parent, ELM_WIN_CLASS))
+     {
+        eo_error_set(obj);  /* *has* to have a parent window */
+        return;
+     }
+
+   eo_do_super(obj, MY_CLASS, eo_constructor());
+   eo_do(obj,
+         evas_obj_type_set(MY_CLASS_NAME_LEGACY),
+         elm_interface_atspi_accessible_role_set(ELM_ATSPI_ROLE_GLASS_PANE));
+}
+
+EOLIAN static void
+_elm_inwin_activate(Eo *obj, void *_pd EINA_UNUSED)
+{
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
+
+   if (elm_widget_disabled_get(obj)) return;
 
    evas_object_raise(obj);
    evas_object_show(obj);
    edje_object_signal_emit
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm,action,show", "elm");
+     (wd->resize_obj, "elm,action,show", "elm");
    elm_object_focus_set(obj, EINA_TRUE);
 }
 
@@ -146,25 +139,31 @@ elm_win_inwin_content_set(Evas_Object *obj,
                           Evas_Object *content)
 {
    ELM_INWIN_CHECK(obj);
-   ELM_INWIN_DATA_GET_OR_RETURN(obj, sd);
-
-   ELM_CONTAINER_CLASS(_elm_inwin_parent_sc)->content_set(obj, NULL, content);
+   eo_do(obj, elm_obj_container_content_set(NULL, content));
 }
 
 EAPI Evas_Object *
 elm_win_inwin_content_get(const Evas_Object *obj)
 {
    ELM_INWIN_CHECK(obj) NULL;
-   ELM_INWIN_DATA_GET_OR_RETURN_VAL(obj, sd, NULL);
-
-   return ELM_CONTAINER_CLASS(_elm_inwin_parent_sc)->content_get(obj, NULL);
+   Evas_Object *ret = NULL;
+   eo_do((Eo *)obj, ret = elm_obj_container_content_get(NULL));
+   return ret;
 }
 
 EAPI Evas_Object *
 elm_win_inwin_content_unset(Evas_Object *obj)
 {
    ELM_INWIN_CHECK(obj) NULL;
-   ELM_INWIN_DATA_GET_OR_RETURN_VAL(obj, sd, NULL);
-
-   return ELM_CONTAINER_CLASS(_elm_inwin_parent_sc)->content_unset(obj, NULL);
+   Evas_Object *ret = NULL;
+   eo_do(obj, ret = elm_obj_container_content_unset(NULL));
+   return ret;
 }
+
+static void
+_elm_inwin_class_constructor(Eo_Class *klass)
+{
+   evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
+}
+
+#include "elm_inwin.eo.c"

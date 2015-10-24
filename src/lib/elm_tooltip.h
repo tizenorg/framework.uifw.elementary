@@ -2,40 +2,126 @@
  * @defgroup Tooltips Tooltips
  * @ingroup elm_widget_group
  *
- * @brief The Tooltip is an (internal, for now) smart object used to show a
- *        content in a frame on mouse hover of objects(or widgets), with
- *        tips/information about them.
+ * The Tooltip is an (internal, for now) smart object used to show a
+ * content in a frame on mouse hover of objects(or widgets), with
+ * tips/information about them.
  *
  * @{
  */
 
 /**
- * @MOBILE_ONLY
+ * @brief Possible orient values for tooltip.
  *
- * @brief Called back when a widget's tooltip is activated and needs content.
+ * These values should be used in conjunction to Elm Object Tooltip Orient Set function to
+ * set the position around which the tooltip should appear(relative to its parent)
  *
- * @if MOBILE @since_tizen 2.3
- * @endif
+ * @ingroup Tooltips
+ */
+typedef enum
+{
+   ELM_TOOLTIP_ORIENT_NONE = 0, /**< Default value, Tooltip moves with mouse pointer */
+   ELM_TOOLTIP_ORIENT_TOP_LEFT, /**< Tooltip should appear at the top left of parent */
+   ELM_TOOLTIP_ORIENT_TOP, /**< Tooltip should appear at the top of parent */
+   ELM_TOOLTIP_ORIENT_TOP_RIGHT, /**< Tooltip should appear at the top right of parent */
+   ELM_TOOLTIP_ORIENT_LEFT, /**< Tooltip should appear at the left of parent */
+   ELM_TOOLTIP_ORIENT_CENTER, /**< Tooltip should appear at the center of parent */
+   ELM_TOOLTIP_ORIENT_RIGHT, /**< Tooltip should appear at the right of parent */
+   ELM_TOOLTIP_ORIENT_BOTTOM_LEFT, /**< Tooltip should appear at the bottom left of parent */
+   ELM_TOOLTIP_ORIENT_BOTTOM, /**< Tooltip should appear at the bottom of parent */
+   ELM_TOOLTIP_ORIENT_BOTTOM_RIGHT, /**< Tooltip should appear at the bottom right of parent */
+   ELM_TOOLTIP_ORIENT_LAST /**< Sentinel value, @b don't use */
+ } Elm_Tooltip_Orient;
+
+/**
+ * @internal
  *
- * @param[in] data The user-data given to elm_object_tooltip_content_cb_set()
- * @param[in] obj The owner widget
- * @param[in] tooltip The tooltip object (affix content to this!)
+ * This increments the tooltip movement freeze count by one. If the count
+ * is more than 0, the tooltip position will be fixed.
+ *
+ * @param obj The tooltip's anchor object
+ *
+ * @ingroup Tooltips
+ * @see elm_object_tooltip_move_freeze_pop()
+ * @see elm_object_tooltip_move_freeze_get()
+ * @since 1.9
+ */
+EAPI void elm_object_tooltip_move_freeze_push(Evas_Object *obj);
+
+/**
+ * @internal
+ *
+ * This decrements the tooltip freeze count by one.
+ *
+ * @param obj The tooltip's anchor object
+ *
+ * @ingroup Tooltips
+ * @see elm_object_tooltip_move_freeze_push()
+ * @since 1.9
+ */
+EAPI void elm_object_tooltip_move_freeze_pop(Evas_Object *obj);
+
+/**
+ * @internal
+ *
+ * Get the movement freeze by 1
+ *
+ * This gets the movement freeze count by one.
+ *
+ * @param obj The tooltip's anchor object
+ * @return The movement freeze count
+ *
+ * @ingroup Tooltips
+ * @see elm_object_tooltip_move_freeze_push()
+ * @since 1.9
+ */
+EAPI int elm_object_tooltip_move_freeze_get(const Evas_Object *obj);
+
+/**
+ * @def elm_object_tooltip_orient_set
+ * @since 1.9
+ *
+ * @brief Sets the orientation of the tooltip around the owner region
+ *
+ * Sets the position in which tooltip will appear around its owner. By default,
+ * #ELM_TOOLTIP_ORIENT_NONE is set.
+ *
+ * @param[in] obj owner widget.
+ * @param[in] orient orientation.
+ *
+ * @ingroup Tooltips
+ * @see @ref Elm_Tooltip_Orient for possible values.
+ */
+EAPI void elm_object_tooltip_orient_set(Evas_Object *obj, Elm_Tooltip_Orient orient);
+
+/**
+ * @internal
+ *
+ * @brief Returns the orientation of Tooltip
+ *
+ * @param obj The owner object
+ * @return The orientation of the tooltip
+ *
+ * @ingroup Tooltips
+ * @see elm_object_tooltip_orient_set()
+ * @ref Elm_Tooltip_Orient for possible values.
+ */
+EAPI Elm_Tooltip_Orient elm_object_tooltip_orient_get(const Evas_Object *obj);
+
+/**
+ * Called back when a widget's tooltip is activated and needs content.
+ * @param data user-data given to elm_object_tooltip_content_cb_set()
+ * @param obj owner widget.
+ * @param tooltip The tooltip object (affix content to this!)
  */
 typedef Evas_Object *(*Elm_Tooltip_Content_Cb)(void *data, Evas_Object *obj, Evas_Object *tooltip);
 
 /**
- * @MOBILE_ONLY
- *
- * @brief Called back when a widget's item tooltip is activated and needs content.
- *
- * @if MOBILE @since_tizen 2.3
- * @endif
- *
- * @param[in] data The user-data given to elm_object_tooltip_content_cb_set()
- * @param[in] obj The owner widget
- * @param[in] tooltip The tooltip object (affix content to this!)
- * @param[in] item The context dependent item. As an example, if tooltip was
- *             set on elm_list item, then it is of this type.
+ * Called back when a widget's item tooltip is activated and needs content.
+ * @param data user-data given to elm_object_tooltip_content_cb_set()
+ * @param obj owner widget.
+ * @param tooltip The tooltip object (affix content to this!)
+ * @param item context dependent item. As an example, if tooltip was
+ *        set on elm_list item, then it is of this type.
  */
 typedef Evas_Object *(*Elm_Tooltip_Item_Content_Cb)(void *data, Evas_Object *obj, Evas_Object *tooltip, void *item);
 
@@ -44,15 +130,17 @@ typedef Evas_Object *(*Elm_Tooltip_Item_Content_Cb)(void *data, Evas_Object *obj
  *
  * @brief Force show tooltip of object
  *
- * @details Force show the tooltip and disable hide on mouse_out.
- *          If another content is set as tooltip, the visible tooltip will hididen and
- *          showed again with new content.
- *          This can force show more than one tooltip at a time.
- *
  * @if MOBILE @since_tizen 2.3
  * @endif
  *
  * @param[in] obj Target object
+ *
+ * @remark Force show the tooltip and disable hide on mouse_out.
+ * If another content is set as tooltip, the visible tooltip will be hidden and
+ * showed again with new content.
+ * This can force show more than one tooltip at a time.
+ *
+ * @ingroup Tooltips
  */
 EAPI void        elm_object_tooltip_show(Evas_Object *obj);
 
@@ -61,12 +149,14 @@ EAPI void        elm_object_tooltip_show(Evas_Object *obj);
  *
  * @brief Force hide tooltip of object
  *
- * @details Force hide the tooltip and (re)enable future mouse interations.
- *
  * @if MOBILE @since_tizen 2.3
  * @endif
  *
  * @param[in] obj Target object
+ *
+ * @remark Force hide the tooltip and (re)enable future mouse interations.
+ *
+ * @ingroup Tooltips
  */
 EAPI void        elm_object_tooltip_hide(Evas_Object *obj);
 
@@ -78,8 +168,8 @@ EAPI void        elm_object_tooltip_hide(Evas_Object *obj);
  * @if MOBILE @since_tizen 2.3
  * @endif
  *
- * @param[in] obj The tooltip object
- * @param[in] text The text to be displayed
+ * @param[in] obj The tooltip object.
+ * @param[in] text The text to be displayed.
  *
  * @ingroup Tooltips
  */
@@ -102,13 +192,15 @@ EAPI void        elm_object_tooltip_domain_translatable_text_set(Evas_Object *ob
  *        another callback replaces @p func, the tooltip is unset with
  *        elm_object_tooltip_unset() or the owner object @a obj
  *        dies. This callback receives as the first parameter the
- *        given @a data, and @c event_info is NULL.
+ *        given @a data, and @p event_info is NULL.
  *
- * @details Setup the tooltip to object. The object can have only one tooltip,
- *          so any previous tooltip data is removed. @p func(with @p data) will
- *          be called every time that need show the tooltip and it should
- *          return a valid Evas_Object. This object is then managed fully by
- *          tooltip system and is deleted when the tooltip is gone.
+ * @remark Setup the tooltip to object. The object can have only one tooltip,
+ * so any previous tooltip data is removed. @p func(with @p data) will
+ * be called every time that need show the tooltip and it should
+ * return a valid Evas_Object. This object is then managed fully by
+ * tooltip system and is deleted when the tooltip is gone.
+ *
+ * @ingroup Tooltips
  */
 EAPI void        elm_object_tooltip_content_cb_set(Evas_Object *obj, Elm_Tooltip_Content_Cb func, const void *data, Evas_Smart_Cb del_cb);
 
@@ -122,77 +214,86 @@ EAPI void        elm_object_tooltip_content_cb_set(Evas_Object *obj, Elm_Tooltip
  *
  * @param[in] obj Target object
  *
- * Remove tooltip from object. The callback provided as del_cb to
+ * @remark Remove tooltip from object. The callback provided as del_cb to
  * elm_object_tooltip_content_cb_set() will be called to notify it is
  * not used anymore.
  *
  * @see elm_object_tooltip_content_cb_set()
+ *
+ * @ingroup Tooltips
  */
 EAPI void        elm_object_tooltip_unset(Evas_Object *obj);
 
 /**
  * @MOBILE_ONLY
  *
- * @brief Sets a different style for this object tooltip.
+ * @brief Set a different style for this object tooltip.
  *
  * @if MOBILE @since_tizen 2.3
  * @endif
  *
- * @remarks Before you set a style you should define a tooltip with
- *          elm_object_tooltip_content_cb_set() or
- *          elm_object_tooltip_text_set().
+ * @remark before you set a style you should define a tooltip with
+ *       elm_object_tooltip_content_cb_set() or
+ *       elm_object_tooltip_text_set().
  *
- * @param[in] obj an object with tooltip already set
- * @param[in] style The theme style to use (default, transparent, ...)
+ * @param[in] obj an object with tooltip already set.
+ * @param[in] style the theme style to use (default, transparent, ...)
+ *
+ * @ingroup Tooltips
  */
 EAPI void        elm_object_tooltip_style_set(Evas_Object *obj, const char *style);
 
 /**
  * @MOBILE_ONLY
  *
- * @brief Gets the style for this object tooltip.
+ * @brief Get the style for this object tooltip.
  *
  * @if MOBILE @since_tizen 2.3
  * @endif
  *
- * @param[in] obj An object with tooltip already set
- * @return style The theme style in use, defaults to "default" \n
- *               If the object does not have a tooltip set, then @c NULL is returned.
+ * @param[in] obj an object with tooltip already set.
+ * @return style the theme style in use, defaults to "default". If the
+ *         object does not have a tooltip set, then NULL is returned.
+ *
+ * @ingroup Tooltips
  */
 EAPI const char *elm_object_tooltip_style_get(const Evas_Object *obj);
 
 /**
  * @MOBILE_ONLY
  *
- * @brief Disables size restrictions on an object's tooltip.
- *
- * @details This function allows a tooltip to expand beyond its parent window's canvas.
- *          It will instead be limited only by the size of the display.
+ * @brief Disable size restrictions on an object's tooltip
  *
  * @if MOBILE @since_tizen 2.3
  * @endif
  *
  * @param[in] obj The tooltip's anchor object
- * @param[in] disable If @c EINA_TRUE, size restrictions are disabled,
- *                otherwise @c EINA_FALSE
- * @return  @c EINA_TRUE on success, otherwise @c EINA_FALSE on failure
+ * @param[in] disable If @c EINA_TRUE, size restrictions are disabled
+ * @return @c EINA_FALSE on failure, @c EINA_TRUE on success
+ *
+ * @remark This function allows a tooltip to expand beyond its parent window's canvas.
+ * It will instead be limited only by the size of the display.
+ *
+ * @ingroup Tooltips
  */
 EAPI Eina_Bool   elm_object_tooltip_window_mode_set(Evas_Object *obj, Eina_Bool disable);
 
 /**
  * @MOBILE_ONLY
  *
- * @brief Retrieves size restriction state of an object's tooltip
- * @details This function returns whether a tooltip is allowed to expand beyond
- *          its parent window's canvas.
- *          It will instead be limited only by the size of the display.
+ * @brief Get size restriction state of an object's tooltip
  *
  * @if MOBILE @since_tizen 2.3
  * @endif
  *
  * @param[in] obj The tooltip's anchor object
- * @return @c EINA_TRUE if size restrictions are disabled,
- *         otherwise @c EINA_FALSE
+ * @return If @c EINA_TRUE, size restrictions are disabled
+ *
+ * @remark This function returns whether a tooltip is allowed to expand beyond
+ * its parent window's canvas.
+ * It will instead be limited only by the size of the display.
+ *
+ * @ingroup Tooltips
  */
 EAPI Eina_Bool   elm_object_tooltip_window_mode_get(const Evas_Object *obj);
 

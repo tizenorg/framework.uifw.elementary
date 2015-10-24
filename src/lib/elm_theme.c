@@ -1,38 +1,188 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
 #include <Elementary.h>
+
 #include "elm_priv.h"
 
 static Elm_Theme theme_default =
 {
-   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1
+  { NULL, NULL }, { NULL, NULL }, { NULL, NULL },
+  NULL, NULL, NULL, NULL, NULL, 1, NULL
 };
 
 static Eina_List *themes = NULL;
 
+static Eina_File *
+_elm_theme_find_try(Elm_Theme *th, Eina_File *f, const char *group)
+{
+   if (edje_mmap_group_exists(f, group))
+     {
+        eina_hash_add(th->cache, group, eina_file_dup(f));
+        return f;
+     }
+   return NULL;
+}
+
+static inline void
+_elm_theme_item_finalize(Elm_Theme_Files *files,
+                         const char *item,
+                         Eina_File *f,
+                         Eina_Bool prepend,
+                         Eina_Bool istheme)
+{
+   if (!f) return;
+   if (istheme)
+     {
+        char *version;
+
+        if (!(version = edje_mmap_data_get(f, "version"))) return;
+        if (atoi(version) < 110) // bump this version number when we need to
+          {
+             free(version);
+             return;
+          }
+        free(version);
+     }
+   if (prepend)
+     {
+        files->items = eina_list_prepend(files->items,
+                                         eina_stringshare_add(item));
+        files->handles = eina_list_prepend(files->handles, f);
+     }
+   else
+     {
+        files->items = eina_list_append(files->items,
+                                        eina_stringshare_add(item));
+        files->handles = eina_list_append(files->handles, f);
+     }
+}
+
+static void
+_elm_theme_file_item_add(Elm_Theme_Files *files, const char *item, Eina_Bool prepend, Eina_Bool istheme)
+{
+   Eina_Strbuf *buf = NULL;
+   Eina_File *f = NULL;
+   const char *home;
+
+   home = getenv("HOME") ? getenv("HOME") : "";
+   buf = eina_strbuf_new();
+
+   if ((item[0] == '/') ||
+       ((item[0] == '.') && (item[1] == '/')) ||
+       ((item[0] == '.') && (item[1] == '.') && (item[2] == '/')) ||
+       ((isalpha(item[0])) && (item[1] == ':')))
+     {
+        f = eina_file_open(item, EINA_FALSE);
+        if (!f) goto on_error;
+     }
+   else if (((item[0] == '~') && (item[1] == '/')))
+     {
+        eina_strbuf_append_printf(buf, "%s/%s", home, item + 2);
+
+        f = eina_file_open(eina_strbuf_string_get(buf), EINA_FALSE);
+        if (!f) goto on_error;
+     }
+   else
+     {
+        eina_strbuf_append_printf(buf,
+                                  "%s/"ELEMENTARY_BASE_DIR"/themes/%s.edj",
+                                  home, item);
+        f = eina_file_open(eina_strbuf_string_get(buf), EINA_FALSE);
+        _elm_theme_item_finalize(files, item, f, prepend, istheme);
+
+        eina_strbuf_reset(buf);
+        eina_strbuf_append_printf(buf,
+                                  "%s/themes/%s.edj",
+                                  _elm_data_dir, item);
+        f = eina_file_open(eina_strbuf_string_get(buf), EINA_FALSE);
+        /* Finalize will be done by the common one */
+     }
+
+   _elm_theme_item_finalize(files, item, f, prepend, istheme);
+
+ on_error:
+   if (buf) eina_strbuf_free(buf);
+}
+
+static void
+_elm_theme_file_item_del(Elm_Theme_Files *files, const char *str)
+{
+   Eina_List *l, *ll;
+   Eina_List *l2, *ll2;
+   const char *item;
+
+   str = eina_stringshare_add(str);
+   l2 = files->handles;
+
+   EINA_LIST_FOREACH_SAFE(files->items, l, ll, item)
+     {
+        ll2 = l2->next;
+
+        if (item == str)
+          {
+             eina_file_close(eina_list_data_get(l2));
+             eina_stringshare_del(item);
+
+             files->handles = eina_list_remove_list(files->handles, l2);
+             files->items = eina_list_remove_list(files->items, l);
+          }
+
+        l2 = ll2;
+     }
+
+   eina_stringshare_del(str);
+}
+
+static void
+_elm_theme_file_mmap_del(Elm_Theme_Files *files, const Eina_File *file)
+{
+   Eina_List *l, *ll;
+   Eina_List *l2, *ll2;
+   Eina_File *f;
+
+   l2 = files->items;
+   EINA_LIST_FOREACH_SAFE(files->handles, l, ll, f)
+     {
+        ll2 = l2->next;
+
+        if (f == file)
+          {
+             eina_file_close(f);
+             eina_stringshare_del(eina_list_data_get(l2));
+
+             files->handles = eina_list_remove_list(files->handles, l);
+             files->items = eina_list_remove_list(files->items, l2);
+          }
+
+        l2 = ll2;
+     }
+}
+
+static void
+_elm_theme_file_clean(Elm_Theme_Files *files)
+{
+   const char *item;
+   Eina_File *f;
+
+   EINA_LIST_FREE(files->items, item)
+     eina_stringshare_del(item);
+   EINA_LIST_FREE(files->handles, f)
+     eina_file_close(f);
+}
+
 static void
 _elm_theme_clear(Elm_Theme *th)
 {
-   const char *p;
-   EINA_LIST_FREE(th->themes, p)
-      eina_stringshare_del(p);
-   EINA_LIST_FREE(th->overlay, p)
-      eina_stringshare_del(p);
-   EINA_LIST_FREE(th->extension, p)
-      eina_stringshare_del(p);
-   if (th->cache)
-     {
-        eina_hash_free(th->cache);
-        th->cache = NULL;
-     }
-   if (th->cache_data)
-     {
-        eina_hash_free(th->cache_data);
-        th->cache_data = NULL;
-     }
-   if (th->theme)
-     {
-        eina_stringshare_del(th->theme);
-        th->theme = NULL;
-     }
+   _elm_theme_file_clean(&th->themes);
+   _elm_theme_file_clean(&th->overlay);
+   _elm_theme_file_clean(&th->extension);
+
+   ELM_SAFE_FREE(th->cache, eina_hash_free);
+   ELM_SAFE_FREE(th->cache_data, eina_hash_free);
+   ELM_SAFE_FREE(th->cache_style_load_failed, eina_hash_free);
+   ELM_SAFE_FREE(th->theme, eina_stringshare_del);
    if (th->ref_theme)
      {
         th->ref_theme->referrers =
@@ -42,73 +192,27 @@ _elm_theme_clear(Elm_Theme *th)
      }
 }
 
-static const char *
-_elm_theme_find_try(Elm_Theme *th, const char *f, const char *group)
-{
-   const char *file;
-
-   if (edje_file_group_exists(f, group))
-     {
-        file = eina_stringshare_add(f);
-        if (file)
-          {
-             eina_hash_add(th->cache, group, file);
-             return file;
-          }
-     }
-   return NULL;
-}
-
-static const char *
-_elm_theme_theme_element_try(Elm_Theme *th, const char *home, const char *f, const char *group)
-{
-   char buf[PATH_MAX];
-   const char *file = NULL;
-
-   if ((f[0] == '/') || ((f[0] == '.') && (f[1] == '/')) ||
-       ((f[0] == '.') && (f[1] == '.') && (f[2] == '/')) ||
-       ((isalpha(f[0])) && (f[1] == ':')))
-     return _elm_theme_find_try(th, f, group);
-   else if (((f[0] == '~') && (f[1] == '/')))
-     {
-        snprintf(buf, sizeof(buf), "%s/%s", home, f + 2);
-        return _elm_theme_find_try(th, buf, group);
-     }
-   snprintf(buf, sizeof(buf), "%s/"ELEMENTARY_BASE_DIR"/themes/%s.edj", home, f);
-   file = _elm_theme_find_try(th, buf, group);
-   if (file) return file;
-   snprintf(buf, sizeof(buf), "%s/themes/%s.edj", _elm_data_dir, f);
-   file = _elm_theme_find_try(th, buf, group);
-   return file;
-}
-
-static const char *
+static Eina_File *
 _elm_theme_group_file_find(Elm_Theme *th, const char *group)
 {
    const Eina_List *l;
-   const char *f;
-   static const char *home = NULL;
-   const char *file = eina_hash_find(th->cache, group);
+   Eina_File *file = eina_hash_find(th->cache, group);
 
    if (file) return file;
-   if (!home)
+
+   EINA_LIST_FOREACH(th->overlay.handles, l, file)
      {
-        home = getenv("HOME");
-        if (!home) home = "";
-     }
-   EINA_LIST_FOREACH(th->overlay, l, f)
-     {
-        file = _elm_theme_theme_element_try(th, home, f, group);
+        file = _elm_theme_find_try(th, file, group);
         if (file) return file;
      }
-   EINA_LIST_FOREACH(th->themes, l, f)
+   EINA_LIST_FOREACH(th->themes.handles, l, file)
      {
-        file = _elm_theme_theme_element_try(th, home, f, group);
+        file = _elm_theme_find_try(th, file, group);
         if (file) return file;
      }
-   EINA_LIST_FOREACH(th->extension, l, f)
+   EINA_LIST_FOREACH(th->extension.handles, l, file)
      {
-        file = _elm_theme_theme_element_try(th, home, f, group);
+        file = _elm_theme_find_try(th, file, group);
         if (file) return file;
      }
    if (th->ref_theme) return _elm_theme_group_file_find(th->ref_theme, group);
@@ -116,12 +220,12 @@ _elm_theme_group_file_find(Elm_Theme *th, const char *group)
 }
 
 static const char *
-_elm_theme_find_data_try(Elm_Theme *th, const char *f, const char *key)
+_elm_theme_find_data_try(Elm_Theme *th, const Eina_File *f, const char *key)
 {
    char *data;
    const char *t;
 
-   data = edje_file_data_get(f, key);
+   data = edje_mmap_data_get(f, key);
    t = eina_stringshare_add(data);
    free(data);
    if (t)
@@ -133,119 +237,40 @@ _elm_theme_find_data_try(Elm_Theme *th, const char *f, const char *key)
 }
 
 static const char *
-_elm_theme_theme_data_try(Elm_Theme *th, const char *home, const char *f, const char *key)
-{
-   char buf[PATH_MAX];
-   const char *data = NULL;
-
-   if ((f[0] == '/') || ((f[0] == '.') && (f[1] == '/')) ||
-       ((f[0] == '.') && (f[1] == '.') && (f[2] == '/')) ||
-       ((isalpha(f[0])) && (f[1] == ':')))
-     return _elm_theme_find_data_try(th, f, key);
-   else if (((f[0] == '~') && (f[1] == '/')))
-     {
-        snprintf(buf, sizeof(buf), "%s/%s", home, f + 2);
-        return _elm_theme_find_try(th, buf, key);
-     }
-   snprintf(buf, sizeof(buf), "%s/"ELEMENTARY_BASE_DIR"/themes/%s.edj", home, f);
-   data = _elm_theme_find_data_try(th, buf, key);
-   if (data) return data;
-   snprintf(buf, sizeof(buf), "%s/themes/%s.edj", _elm_data_dir, f);
-   data = _elm_theme_find_data_try(th, buf, key);
-   return data;
-}
-
-static const char *
 _elm_theme_data_find(Elm_Theme *th, const char *key)
 {
    const Eina_List *l;
-   const char *f;
-   static const char *home = NULL;
-   const char *data = eina_hash_find(th->cache_data, key);
+   const Eina_File *f;
 
+   const char *data = eina_hash_find(th->cache_data, key);
    if (data) return data;
-   if (!home)
+
+   EINA_LIST_FOREACH(th->overlay.handles, l, f)
      {
-        home = getenv("HOME");
-        if (!home) home = "";
-     }
-   EINA_LIST_FOREACH(th->overlay, l, f)
-     {
-        data = _elm_theme_theme_data_try(th, home, f, key);
+        data = _elm_theme_find_data_try(th, f, key);
         if (data) return data;
      }
-   EINA_LIST_FOREACH(th->themes, l, f)
+   EINA_LIST_FOREACH(th->themes.handles, l, f)
      {
-        data = _elm_theme_theme_data_try(th, home, f, key);
+        data = _elm_theme_find_data_try(th, f, key);
         if (data) return data;
      }
-   EINA_LIST_FOREACH(th->extension, l, f)
+   EINA_LIST_FOREACH(th->extension.handles, l, f)
      {
-        data = _elm_theme_theme_data_try(th, home, f, key);
+        data = _elm_theme_find_data_try(th, f, key);
         if (data) return data;
      }
    if (th->ref_theme) return _elm_theme_data_find(th->ref_theme, key);
    return NULL;
 }
 
-static void _elm_theme_idler_clean(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__);
-
-static Eina_Bool
-_elm_theme_reload_idler(void *data)
-{
-   Evas_Object *elm = data;
-
-   elm_widget_theme(elm);
-   evas_object_data_del(elm, "elm-theme-reload-idler");
-   evas_object_event_callback_del(elm, EVAS_CALLBACK_DEL, _elm_theme_idler_clean);
-   return EINA_FALSE;
-}
-
-static void
-_elm_theme_idler_clean(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
-{
-   Ecore_Idler *idler;
-
-   idler = evas_object_data_get(obj, "elm-theme-reload-idler");
-   if (idler) ecore_idler_del(idler);
-   evas_object_data_del(obj, "elm-theme-reload-idler");
-}
-
-static void
-_elm_theme_reload(void *data __UNUSED__, Evas_Object *obj,
-                  const char *emission __UNUSED__, const char *source __UNUSED__)
-{
-   Evas_Object *elm;
-
-   elm = evas_object_data_get(obj, "elm-parent");
-   if (elm)
-     {
-        evas_object_event_callback_add(elm, EVAS_CALLBACK_DEL, _elm_theme_idler_clean, NULL);
-        evas_object_data_set(elm, "elm-theme-reload-idler", ecore_idler_add(_elm_theme_reload_idler, elm));
-     }
-}
-
 Eina_Bool
 _elm_theme_object_set(Evas_Object *parent, Evas_Object *o, const char *clas, const char *group, const char *style)
 {
    Elm_Theme *th = NULL;
-   void *test;
 
    if (parent) th = elm_widget_theme_get(parent);
    if (!_elm_theme_set(th, o, clas, group, style)) return EINA_FALSE;
-
-   test = evas_object_data_get(o, "edje,theme,watcher");
-   if (!test)
-     {
-        edje_object_signal_callback_add(o, "edje,change,file", "edje",
-                                        _elm_theme_reload, NULL);
-        evas_object_data_set(o, "edje,theme,watcher", (void*) -1);
-     }
-
-   // TIZEN ONLY: for color class setting //
-   _elm_widget_color_overlay_set(parent, o);
-   _elm_widget_font_overlay_set(parent, o);
-
    return EINA_TRUE;
 }
 
@@ -263,30 +288,50 @@ _elm_theme_object_icon_set(Evas_Object *o,
 Eina_Bool
 _elm_theme_set(Elm_Theme *th, Evas_Object *o, const char *clas, const char *group, const char *style)
 {
-   const char *file;
+   Eina_File *file;
    char buf2[1024];
 
    if ((!clas) || (!group) || (!style)) return EINA_FALSE;
    if (!th) th = &(theme_default);
 
    snprintf(buf2, sizeof(buf2), "elm/%s/%s/%s", clas, group, style);
-   file = _elm_theme_group_file_find(th, buf2);
-   if (file)
+   if (!eina_hash_find(th->cache_style_load_failed, buf2))
      {
-        if (edje_object_file_set(o, file, buf2))
-          return EINA_TRUE;
-        else
-          DBG("could not set theme group '%s' from file '%s': %s",
-              buf2, file, edje_load_error_str(edje_object_load_error_get(o)));
+        file = _elm_theme_group_file_find(th, buf2);
+        if (file)
+          {
+             if (edje_object_mmap_set(o, file, buf2)) return EINA_TRUE;
+             else
+               {
+                  DBG("could not set theme group '%s' from file '%s': %s",
+                      buf2,
+                      eina_file_filename_get(file),
+                      edje_load_error_str(edje_object_load_error_get(o)));
+               }
+          }
+        //style not found, add to the not found list
+        eina_hash_add(th->cache_style_load_failed, buf2, (void *)1);
      }
 
+   //Use the elementary default theme.
    snprintf(buf2, sizeof(buf2), "elm/%s/%s/default", clas, group);
-   file = _elm_theme_group_file_find(th, buf2);
-   if (!file) return EINA_FALSE;
-   if (edje_object_file_set(o, file, buf2)) return EINA_TRUE;
-   DBG("could not set theme group '%s' from file '%s': %s",
-       buf2, file, edje_load_error_str(edje_object_load_error_get(o)));
-
+   if (!eina_hash_find(th->cache_style_load_failed, buf2))
+     {
+        file = _elm_theme_group_file_find(th, buf2);
+        if (file)
+          {
+             if (edje_object_mmap_set(o, file, buf2)) return EINA_TRUE;
+             else
+               {
+                  DBG("could not set theme group '%s' from file '%s': %s",
+                      buf2,
+                      eina_file_filename_get(file),
+                      edje_load_error_str(edje_object_load_error_get(o)));
+               }
+          }
+        //style not found, add to the not found list
+        eina_hash_add(th->cache_style_load_failed, buf2, (void *)1);
+     }
    return EINA_FALSE;
 }
 
@@ -296,7 +341,7 @@ _elm_theme_icon_set(Elm_Theme *th,
                     const char *group,
                     const char *style)
 {
-   const char *file;
+   Eina_File *file;
    char buf2[1024];
    int w, h;
 
@@ -305,7 +350,7 @@ _elm_theme_icon_set(Elm_Theme *th,
    file = _elm_theme_group_file_find(th, buf2);
    if (file)
      {
-        elm_image_file_set(o, file, buf2);
+        elm_image_mmap_set(o, file, buf2);
         elm_image_object_size_get(o, &w, &h);
         if (w > 0) return EINA_TRUE;
      }
@@ -314,7 +359,7 @@ _elm_theme_icon_set(Elm_Theme *th,
 
    if (!file) return EINA_FALSE;
 
-   elm_image_file_set(o, file, buf2);
+   elm_image_mmap_set(o, file, buf2);
    elm_image_object_size_get(o, &w, &h);
 
    return w > 0;
@@ -324,6 +369,7 @@ Eina_Bool
 _elm_theme_parse(Elm_Theme *th, const char *theme)
 {
    Eina_List *names = NULL;
+   Eina_File *f;
    const char *p, *pe;
 
    if (!th) th = &(theme_default);
@@ -341,6 +387,13 @@ _elm_theme_parse(Elm_Theme *th, const char *theme)
                {
                   eina_strbuf_append_char(buf, ':');
                   pe += 2;
+               }
+             else if ((pe[0] == ':') && (pe[1] == '\\'))
+               {
+                  eina_strbuf_append_char(buf, *pe);
+                  pe++;
+                  eina_strbuf_append_char(buf, *pe);
+                  pe++;
                }
              else if ((*pe == ':') || (!*pe))
                { // p -> pe == 'name:'
@@ -372,13 +425,16 @@ _elm_theme_parse(Elm_Theme *th, const char *theme)
         if (p) names = eina_list_append(names, p);
      }
    if (th->cache) eina_hash_free(th->cache);
-   th->cache = eina_hash_string_superfast_new(EINA_FREE_CB(eina_stringshare_del));
+   th->cache = eina_hash_string_superfast_new(EINA_FREE_CB(eina_file_close));
    if (th->cache_data) eina_hash_free(th->cache_data);
    th->cache_data = eina_hash_string_superfast_new(EINA_FREE_CB(eina_stringshare_del));
+   if (th->cache_style_load_failed) eina_hash_free(th->cache_style_load_failed);
+   th->cache_style_load_failed = eina_hash_string_superfast_new(NULL);
+   EINA_LIST_FREE(th->themes.items, p) eina_stringshare_del(p);
+   EINA_LIST_FREE(th->themes.handles, f) eina_file_close(f);
 
-   EINA_LIST_FREE(th->themes, p) eina_stringshare_del(p);
-
-   th->themes = names;
+   EINA_LIST_FREE(names, p)
+     _elm_theme_file_item_add(&th->themes, p, EINA_FALSE, EINA_TRUE);
    return EINA_TRUE;
 }
 
@@ -400,7 +456,7 @@ elm_theme_new(void)
    Elm_Theme *th = calloc(1, sizeof(Elm_Theme));
    if (!th) return NULL;
    th->ref = 1;
-   th->themes = eina_list_append(th->themes, eina_stringshare_add("default"));
+   _elm_theme_file_item_add(&th->themes, "default", EINA_FALSE, EINA_TRUE);
    themes = eina_list_append(themes, th);
    return th;
 }
@@ -418,12 +474,24 @@ elm_theme_free(Elm_Theme *th)
      }
 }
 
+static void
+elm_theme_files_copy(Elm_Theme_Files *dst, Elm_Theme_Files *src)
+{
+   const Eina_List *l;
+   const Eina_File *f;
+   const char *item;
+
+   EINA_LIST_FOREACH(src->items, l, item)
+     dst->items = eina_list_append(dst->items,
+                                   eina_stringshare_ref(item));
+   EINA_LIST_FOREACH(src->handles, l, f)
+     dst->handles = eina_list_append(dst->handles,
+                                     eina_file_dup(f));
+}
+
 EAPI void
 elm_theme_copy(Elm_Theme *th, Elm_Theme *thdst)
 {
-   const Eina_List *l;
-   const char *f;
-
    if (!th) th = &(theme_default);
    if (!thdst) thdst = &(theme_default);
    _elm_theme_clear(thdst);
@@ -434,21 +502,10 @@ elm_theme_copy(Elm_Theme *th, Elm_Theme *thdst)
            eina_list_append(thdst->ref_theme->referrers, thdst);
         thdst->ref_theme->ref++;
      }
-   EINA_LIST_FOREACH(th->overlay, l, f)
-     {
-        const char *s = eina_stringshare_add(f);
-        if (s) thdst->overlay = eina_list_append(thdst->overlay, s);
-     }
-   EINA_LIST_FOREACH(th->themes, l, f)
-     {
-        const char *s = eina_stringshare_add(f);
-        if (s) thdst->themes = eina_list_append(thdst->themes, s);
-     }
-   EINA_LIST_FOREACH(th->extension, l, f)
-     {
-        const char *s = eina_stringshare_add(f);
-        if (s) thdst->extension = eina_list_append(thdst->extension, s);
-     }
+   elm_theme_files_copy(&thdst->overlay, &th->overlay);
+   elm_theme_files_copy(&thdst->themes, &th->themes);
+   elm_theme_files_copy(&thdst->extension, &th->extension);
+
    if (th->theme) thdst->theme = eina_stringshare_add(th->theme);
    elm_theme_flush(thdst);
 }
@@ -485,29 +542,37 @@ elm_theme_default_get(void)
 EAPI void
 elm_theme_overlay_add(Elm_Theme *th, const char *item)
 {
-   const char *f = eina_stringshare_add(item);
-
+   if (!item) return;
    if (!th) th = &(theme_default);
-   if (f) th->overlay = eina_list_prepend(th->overlay, f);
+   _elm_theme_file_item_add(&th->overlay, item, EINA_TRUE, EINA_FALSE);
    elm_theme_flush(th);
 }
 
 EAPI void
 elm_theme_overlay_del(Elm_Theme *th, const char *item)
 {
-   const Eina_List *l;
-   const char *f, *s;
+   if (!item) return;
+   if (!th) th = &(theme_default);
+   _elm_theme_file_item_del(&th->overlay, item);
+   elm_theme_flush(th);
+}
+
+EAPI void
+elm_theme_overlay_mmap_add(Elm_Theme *th, const Eina_File *f)
+{
+   Eina_File *file = eina_file_dup(f);
 
    if (!th) th = &(theme_default);
-   s = eina_stringshare_add(item);
-   EINA_LIST_FOREACH(th->overlay, l, f)
-      if (f == s)
-        {
-           eina_stringshare_del(f);
-           th->overlay = eina_list_remove_list(th->overlay, (Eina_List *)l);
-           break;
-        }
-   eina_stringshare_del(s);
+   _elm_theme_item_finalize(&th->overlay, eina_file_filename_get(file), file, EINA_TRUE, EINA_FALSE);
+   elm_theme_flush(th);
+}
+
+EAPI void
+elm_theme_overlay_mmap_del(Elm_Theme *th, const Eina_File *f)
+{
+   if (!f) return;
+   if (!th) th = &(theme_default);
+   _elm_theme_file_mmap_del(&th->overlay, f);
    elm_theme_flush(th);
 }
 
@@ -515,35 +580,44 @@ EAPI const Eina_List *
 elm_theme_overlay_list_get(const Elm_Theme *th)
 {
    if (!th) th = &(theme_default);
-   return th->overlay;
+   return th->overlay.items;
 }
 
 EAPI void
 elm_theme_extension_add(Elm_Theme *th, const char *item)
 {
-   const char *f = eina_stringshare_add(item);
-
+   if (!item) return;
    if (!th) th = &(theme_default);
-   if (f) th->extension = eina_list_append(th->extension, f);
+   _elm_theme_file_item_add(&th->extension, item, EINA_FALSE, EINA_FALSE);
    elm_theme_flush(th);
 }
 
 EAPI void
 elm_theme_extension_del(Elm_Theme *th, const char *item)
 {
-   const Eina_List *l;
-   const char *f, *s;
-
+   if (!item) return;
    if (!th) th = &(theme_default);
-   s = eina_stringshare_add(item);
-   EINA_LIST_FOREACH(th->extension, l, f)
-      if (f == s)
-        {
-           eina_stringshare_del(f);
-           th->extension = eina_list_remove_list(th->extension, (Eina_List *)l);
-           break;
-        }
-   eina_stringshare_del(s);
+   _elm_theme_file_item_del(&th->extension, item);
+   elm_theme_flush(th);
+}
+
+EAPI void
+elm_theme_extension_mmap_add(Elm_Theme *th, const Eina_File *f)
+{
+   Eina_File *file = eina_file_dup(f);
+
+   if (!f) return;
+   if (!th) th = &(theme_default);
+   _elm_theme_item_finalize(&th->overlay, eina_file_filename_get(file), file, EINA_FALSE, EINA_FALSE);
+   elm_theme_flush(th);
+}
+
+EAPI void
+elm_theme_extension_mmap_del(Elm_Theme *th, const Eina_File *f)
+{
+   if (!f) return;
+   if (!th) th = &(theme_default);
+   _elm_theme_file_mmap_del(&th->extension, f);
    elm_theme_flush(th);
 }
 
@@ -551,7 +625,7 @@ EAPI const Eina_List *
 elm_theme_extension_list_get(const Elm_Theme *th)
 {
    if (!th) th = &(theme_default);
-   return th->extension;
+   return th->extension.items;
 }
 
 EAPI void
@@ -559,11 +633,7 @@ elm_theme_set(Elm_Theme *th, const char *theme)
 {
    if (!th) th = &(theme_default);
    _elm_theme_parse(th, theme);
-   if (th->theme)
-     {
-        eina_stringshare_del(th->theme);
-        th->theme = NULL;
-     }
+   ELM_SAFE_FREE(th->theme, eina_stringshare_del);
    elm_theme_flush(th);
    if (th == &(theme_default))
      eina_stringshare_replace(&_elm_config->theme, theme);
@@ -580,7 +650,7 @@ elm_theme_get(Elm_Theme *th)
         const char *f;
 
         buf = eina_strbuf_new();
-        EINA_LIST_FOREACH(th->themes, l, f)
+        EINA_LIST_FOREACH(th->themes.items, l, f)
           {
              while (*f)
                {
@@ -602,7 +672,7 @@ EAPI const Eina_List *
 elm_theme_list_get(const Elm_Theme *th)
 {
    if (!th) th = &(theme_default);
-   return th->themes;
+   return th->themes.items;
 }
 
 EAPI char *
@@ -659,9 +729,11 @@ elm_theme_flush(Elm_Theme *th)
 {
    if (!th) th = &(theme_default);
    if (th->cache) eina_hash_free(th->cache);
-   th->cache = eina_hash_string_superfast_new(EINA_FREE_CB(eina_stringshare_del));
+   th->cache = eina_hash_string_superfast_new(EINA_FREE_CB(eina_file_close));
    if (th->cache_data) eina_hash_free(th->cache_data);
    th->cache_data = eina_hash_string_superfast_new(EINA_FREE_CB(eina_stringshare_del));
+   if (th->cache_style_load_failed) eina_hash_free(th->cache_style_load_failed);
+   th->cache_style_load_failed = eina_hash_string_superfast_new(NULL);
    _elm_win_rescale(th, EINA_TRUE);
    _elm_ews_wm_rescale(th, EINA_TRUE);
    if (th->referrers)
@@ -707,12 +779,12 @@ elm_theme_name_available_list_new(void)
         snprintf(buf, sizeof(buf), "%s/"ELEMENTARY_BASE_DIR"/themes/%s", home, file);
         if ((!ecore_file_is_dir(buf)) && (ecore_file_size(buf) > 0))
           {
-             s = strrchr(file, '.');
+             s = strchr(file, '.');
              if ((s) && (!strcasecmp(s, ".edj")))
                {
                   th = strdup(file);
                   s = strchr(th, '.');
-                  if (s) *s = 0;
+                  *s = 0;
                   list = eina_list_append(list, th);
                }
           }
@@ -726,14 +798,14 @@ elm_theme_name_available_list_new(void)
         snprintf(buf, sizeof(buf), "%s/themes/%s", _elm_data_dir, file);
         if ((!ecore_file_is_dir(buf)) && (ecore_file_size(buf) > 0))
           {
-             s = strrchr(file, '.');
+             s = strchr(file, '.');
              if ((s) && (!strcasecmp(s, ".edj")))
                {
                   int dupp;
 
                   th = strdup(file);
-                  s = strrchr(th, '.');
-                  if (s) *s = 0;
+                  s = strchr(th, '.');
+                  *s = 0;
                   dupp = 0;
                   EINA_LIST_FOREACH(list, l, s)
                     {
@@ -779,4 +851,107 @@ elm_theme_data_get(Elm_Theme *th, const char *key)
 {
    if (!th) th = &(theme_default);
    return _elm_theme_data_find(th, key);
+}
+
+EAPI const char *
+elm_theme_group_path_find(Elm_Theme *th, const char *group)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(group, NULL);
+   Eina_File *th_file = NULL;
+   if (!th) th = &(theme_default);
+
+   th_file = _elm_theme_group_file_find(th, group);
+   if (th_file)
+     return eina_file_filename_get(th_file);
+   return NULL;
+}
+
+static Eina_List *
+_elm_theme_file_group_base_list(Eina_List *list,
+                                Eina_List *handles,
+                                const char *base, int len)
+{
+   Eina_Stringshare *c, *c2;
+   Eina_List *coll;
+   Eina_List *in, *l, *ll;
+   Eina_File *f;
+
+   EINA_LIST_FOREACH(handles, l, f)
+     {
+        coll = edje_mmap_collection_list(f);
+        EINA_LIST_FOREACH(coll, ll, c)
+          {
+             // if base == start of collection str
+             if (!strncmp(c, base, len))
+               {
+                  // check if already in list
+                  EINA_LIST_FOREACH(list, in, c2)
+                    if (c == c2)
+                      break;
+
+                  // if not already in list append shared str to list
+                  if (!in)
+                    list = eina_list_append(list, eina_stringshare_ref(c));
+               }
+          }
+        edje_mmap_collection_list_free(coll);
+     }
+
+   return list;
+}
+
+EAPI Eina_List *
+elm_theme_group_base_list(Elm_Theme *th, const char *base)
+{
+   Eina_List *list;
+   int len;
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(base, NULL);
+   if (!th) th = &(theme_default);
+
+   // XXX: look results up in a hash for speed
+   len = strlen(base);
+   // go through all possible theme files and find collections that match
+   list = _elm_theme_file_group_base_list(NULL, th->overlay.handles,
+                                          base, len);
+   list = _elm_theme_file_group_base_list(list, th->themes.handles,
+                                          base, len);
+   list = _elm_theme_file_group_base_list(list, th->extension.handles,
+                                          base, len);
+
+   // sort the list nicely at the end
+   list = eina_list_sort(list, 0, EINA_COMPARE_CB(strcmp));
+   // XXX: store results in hash for fast lookup...
+   return list;
+}
+
+EAPI const char *
+elm_theme_system_dir_get(void)
+{
+   static char *path = NULL;
+   char buf[PATH_MAX];
+
+   if (path) return path;
+
+   snprintf(buf, sizeof(buf), "%s/themes", _elm_data_dir);
+   path = strdup(buf);
+
+   return path;
+}
+
+EAPI const char *
+elm_theme_user_dir_get(void)
+{
+   static char *path = NULL;
+   char buf[PATH_MAX];
+
+   if (path) return path;
+
+   char *home = getenv("HOME");
+   if (!home) home = "";
+
+   snprintf(buf, sizeof(buf), "%s/"ELEMENTARY_BASE_DIR"/themes", home);
+   path = strdup(buf);
+
+   return path;
 }

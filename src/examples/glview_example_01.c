@@ -39,7 +39,7 @@ load_shader( GLData *gld, GLenum type, const char *shader_src )
    // Create the shader object
    shader = gl->glCreateShader(type);
    if (shader==0)
-      return 0;
+     return 0;
 
    // Load/Compile shader source
    gl->glShaderSource(shader, 1, &shader_src, NULL);
@@ -95,7 +95,7 @@ init_shaders(GLData *gld)
    // Create the program object
    gld->program = gl->glCreateProgram( );
    if (gld->program==0)
-      return 0;
+     return 0;
 
    gl->glAttachShader(gld->program, gld->vtx_shader);
    gl->glAttachShader(gld->program, gld->fgmt_shader);
@@ -122,8 +122,6 @@ init_shaders(GLData *gld)
    return 1;
 }
 
-
-
 // Callbacks
 // intialize callback that gets called once for intialization
 static void
@@ -131,9 +129,10 @@ _init_gl(Evas_Object *obj)
 {
    GLData *gld = evas_object_data_get(obj, "gld");
    Evas_GL_API *gl = gld->glapi;
-   GLfloat vVertices[] = {  0.0f,  0.5f, 0.0f,
-                           -0.5f, -0.5f, 0.0f,
-                            0.5f, -0.5f, 0.0f };
+   GLfloat vVertices[] = {
+        0.0f,  0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f };
 
    if (!init_shaders(gld))
      {
@@ -181,7 +180,6 @@ _resize_gl(Evas_Object *obj)
    // same as last frame if you want
    gl->glViewport(0, 0, w, h);
 }
-
 
 // draw callback is where all the main GL rendering happens
 static void
@@ -239,29 +237,19 @@ _del(void *data, Evas *evas, Evas_Object *obj, void *event_info)
    ecore_animator_del(ani);
 }
 
-
 EAPI_MAIN int
 elm_main(int argc, char **argv)
 {
-   Evas_Object *win, *bg, *bx, *bt, *gl;
+   Evas_Object *win, *bx, *bt, *gl;
    Ecore_Animator *ani;
    GLData *gld = NULL;
 
    if (!(gld = calloc(1, sizeof(GLData)))) return 1;
 
-   // set the preferred engine to opengl_x11. if it isnt' available it
-   // may use another transparently
-   elm_config_preferred_engine_set("opengl_x11");
-   
-   win = elm_win_add(NULL, "glview simple", ELM_WIN_BASIC);
-   elm_win_title_set(win, "GLView Simple");
-   elm_win_autodel_set(win, EINA_TRUE);
    elm_policy_set(ELM_POLICY_QUIT, ELM_POLICY_QUIT_LAST_WINDOW_CLOSED);
 
-   bg = elm_bg_add(win);
-   elm_win_resize_object_add(win, bg);
-   evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_show(bg);
+   win = elm_win_util_standard_add("glview simple", "GLView Simple");
+   elm_win_autodel_set(win, EINA_TRUE);
 
    bx = elm_box_add(win);
    evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -327,7 +315,6 @@ elm_main(int argc, char **argv)
 
    // run the mainloop and process events and callbacks
    elm_run();
-   elm_shutdown();
 
    return 0;
 }

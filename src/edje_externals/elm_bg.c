@@ -14,7 +14,10 @@ typedef struct _Elm_Params_Bg
      if (!strcmp(STR, CHOICES[i]))                              \
        return i;
 
-static const char *_bg_options[] = {"center", "scale", "stretch", "tile", NULL};
+static const char *_bg_options[] =
+{
+   "center", "scale", "stretch", "tile", NULL
+};
 
 static Elm_Bg_Option
 _bg_option_get(const char *option)
@@ -26,9 +29,9 @@ _bg_option_get(const char *option)
 }
 
 static void
-external_bg_state_set(void *data __UNUSED__, Evas_Object *obj,
+external_bg_state_set(void *data EINA_UNUSED, Evas_Object *obj,
                       const void *from_params, const void *to_params,
-                      float pos __UNUSED__)
+                      float pos EINA_UNUSED)
 {
    const Elm_Params_Bg *p;
    Elm_Bg_Option option;
@@ -49,7 +52,7 @@ external_bg_state_set(void *data __UNUSED__, Evas_Object *obj,
 }
 
 static Eina_Bool
-external_bg_param_set(void *data __UNUSED__, Evas_Object *obj,
+external_bg_param_set(void *data EINA_UNUSED, Evas_Object *obj,
                       const Edje_External_Param *param)
 {
    if ((!strcmp(param->name, "file"))
@@ -73,8 +76,8 @@ external_bg_param_set(void *data __UNUSED__, Evas_Object *obj,
 }
 
 static Eina_Bool
-external_bg_param_get(void *data __UNUSED__,
-                      const Evas_Object *obj __UNUSED__,
+external_bg_param_get(void *data EINA_UNUSED,
+                      const Evas_Object *obj EINA_UNUSED,
                       Edje_External_Param *param)
 {
    if ((!strcmp(param->name, "file"))
@@ -99,7 +102,7 @@ external_bg_param_get(void *data __UNUSED__,
 }
 
 static void *
-external_bg_params_parse(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
+external_bg_params_parse(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
                          const Eina_List *params)
 {
    Elm_Params_Bg *mem;
@@ -122,9 +125,9 @@ external_bg_params_parse(void *data __UNUSED__, Evas_Object *obj __UNUSED__,
 }
 
 static Evas_Object *
-external_bg_content_get(void *data __UNUSED__,
-                        const Evas_Object *obj __UNUSED__,
-                        const char *content __UNUSED__)
+external_bg_content_get(void *data EINA_UNUSED,
+                        const Evas_Object *obj EINA_UNUSED,
+                        const char *content EINA_UNUSED)
 {
    ERR("no content");
    return NULL;
@@ -144,7 +147,8 @@ external_bg_params_free(void *params)
    free(mem);
 }
 
-static Edje_External_Param_Info external_bg_params[] = {
+static Edje_External_Param_Info external_bg_params[] =
+{
    DEFINE_EXTERNAL_COMMON_PARAMS,
    EDJE_EXTERNAL_PARAM_INFO_STRING("file"),
    EDJE_EXTERNAL_PARAM_INFO_STRING("option"),

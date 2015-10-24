@@ -131,17 +131,3 @@ msgstr "ഒട്ടിക്കുക"
 msgid "IDS_COM_BODY_CLIPBOARD"
 msgstr "ക്ലിപ്ബോര്‍ഡ്"
 
-msgid "WDS_ST_OPT_DAY_ABB"
-msgstr "ദിവസം"
-
-msgid "WDS_ST_OPT_HRS_ABB"
-msgstr "മണി."
-
-msgid "WDS_ST_OPT_MINS_ABB"
-msgstr "മിനി."
-
-msgid "WDS_ST_OPT_MONTH_ABB"
-msgstr "മാസം"
-
-msgid "WDS_ST_OPT_YEAR_ABB"
-msgstr "വർഷം"

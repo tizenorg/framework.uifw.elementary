@@ -1,9 +1,14 @@
 #ifndef ELM_WIDGET_POPUP_H
 #define ELM_WIDGET_POPUP_H
 
-#define _TIZEN_
-
+#include "Elementary.h"
 #include "elm_widget_layout.h"
+
+/* DO NOT USE THIS HEADER UNLESS YOU ARE PREPARED FOR BREAKING OF YOUR
+ * CODE. THIS IS ELEMENTARY'S INTERNAL WIDGET API (for now) AND IS NOT
+ * FINAL. CALL elm_widget_api_check(ELM_INTERNAL_API_VERSION) TO CHECK
+ * IT AT RUNTIME.
+ */
 
 /**
  * @internal
@@ -17,107 +22,6 @@
  * widgets which are a popup with some more logic on top.
  */
 
-/**
- * @def ELM_POPUP_CLASS
- *
- * Use this macro to cast whichever subclass of
- * #Elm_Popup_Smart_Class into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_POPUP_CLASS(x) ((Elm_Popup_Smart_Class *)x)
-
-/**
- * @def ELM_POPUP_DATA
- *
- * Use this macro to cast whichever subdata of
- * #Elm_Popup_Smart_Data into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_POPUP_DATA(x)  ((Elm_Popup_Smart_Data *)x)
-
-/**
- * @def ELM_POPUP_SMART_CLASS_VERSION
- *
- * Current version for Elementary popup @b base smart class, a value
- * which goes to _Elm_Popup_Smart_Class::version.
- *
- * @ingroup Widget
- */
-#define ELM_POPUP_SMART_CLASS_VERSION 1
-
-/**
- * @def ELM_POPUP_SMART_CLASS_INIT
- *
- * Initializer for a whole #Elm_Popup_Smart_Class structure, with
- * @c NULL values on its specific fields.
- *
- * @param smart_class_init initializer to use for the "base" field
- * (#Evas_Smart_Class).
- *
- * @see EVAS_SMART_CLASS_INIT_NULL
- * @see EVAS_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_POPUP_SMART_CLASS_INIT_NULL
- * @see ELM_POPUP_SMART_CLASS_INIT_NAME_VERSION
- *
- * @ingroup Widget
- */
-#define ELM_POPUP_SMART_CLASS_INIT(smart_class_init) \
-  {smart_class_init, ELM_POPUP_SMART_CLASS_VERSION}
-
-/**
- * @def ELM_POPUP_SMART_CLASS_INIT_NULL
- *
- * Initializer to zero out a whole #Elm_Popup_Smart_Class structure.
- *
- * @see ELM_POPUP_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_POPUP_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_POPUP_SMART_CLASS_INIT_NULL \
-  ELM_POPUP_SMART_CLASS_INIT(EVAS_SMART_CLASS_INIT_NULL)
-
-/**
- * @def ELM_POPUP_SMART_CLASS_INIT_NAME_VERSION
- *
- * Initializer to zero out a whole #Elm_Popup_Smart_Class structure and
- * set its name and version.
- *
- * This is similar to #ELM_POPUP_SMART_CLASS_INIT_NULL, but it will
- * also set the version field of #Elm_Popup_Smart_Class (base field)
- * to the latest #ELM_POPUP_SMART_CLASS_VERSION and name it to the
- * specific value.
- *
- * It will keep a reference to the name field as a <c>"const char *"</c>,
- * i.e., the name must be available while the structure is
- * used (hint: static or global variable!) and must not be modified.
- *
- * @see ELM_POPUP_SMART_CLASS_INIT_NULL
- * @see ELM_POPUP_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_POPUP_SMART_CLASS_INIT_NAME_VERSION(name) \
-  ELM_POPUP_SMART_CLASS_INIT                          \
-    (ELM_LAYOUT_SMART_CLASS_INIT_NAME_VERSION(name))
-
-/**
- * Elementary popup base smart class. This inherits directly from
- * #Elm_Layout_Smart_Class and is meant to build widgets extending the
- * behavior of a popup.
- *
- * All of the functions listed on @ref Popup namespace will work for
- * objects deriving from #Elm_Popup_Smart_Class.
- */
-typedef struct _Elm_Popup_Smart_Class
-{
-   Elm_Layout_Smart_Class base;
-
-   int                    version;    /**< Version of this smart class definition */
-} Elm_Popup_Smart_Class;
-
 #define ELM_POPUP_ACTION_BUTTON_MAX 3
 
 typedef struct _Action_Area_Data Action_Area_Data;
@@ -125,11 +29,9 @@ typedef struct _Action_Area_Data Action_Area_Data;
 /**
  * Base layout smart data extended with popup instance data.
  */
-typedef struct _Elm_Popup_Smart_Data Elm_Popup_Smart_Data;
-struct _Elm_Popup_Smart_Data
+typedef struct _Elm_Popup_Data Elm_Popup_Data;
+struct _Elm_Popup_Data
 {
-   Elm_Layout_Smart_Data base;
-
    Evas_Object          *notify;
    Evas_Object          *main_layout;
    Evas_Object          *title_icon;
@@ -141,38 +43,47 @@ struct _Elm_Popup_Smart_Data
    Evas_Object          *spacer;
    Evas_Object          *scr;
    Evas_Object          *content;
-
-   Eina_List            *items, *focused;
+   Evas_Object          *parent;
+   Eina_List            *items;
    const char           *title_text;
+   //TIZEN_ONLY(20150128): add subtitle text code of popup
    const char           *subtitle_text;
+   //
    Action_Area_Data     *buttons[ELM_POPUP_ACTION_BUTTON_MAX];
    Elm_Wrap_Type         content_text_wrap_type;
-   unsigned int          button_count;
+   unsigned int          last_button_number;
+   Evas_Coord            max_sc_w;
    Evas_Coord            max_sc_h;
+   //TIZEN_ONLY(20150806): support scrollable content
+   //FIXME: genlist only now, it should be changed to support other scrollable.
+   Evas_Coord            min_scrollable_content_h;
+   //
 
-   Eina_Bool             on_hold;
-   Eina_Bool             allow_eval : 1;
+   //TIZEN_ONLY(20150827): add display mode configure to check compress mode
+   Evas_Display_Mode     dispmode;
+   //
+
    Eina_Bool             visible : 1;
-   Eina_Bool             no_shift : 1;
-   Eina_Bool             was_selected: 1;
-   Eina_Bool             access_first : 1;
-   int                   orientation;
+   Eina_Bool             scr_size_recalc : 1;
+   //TIZEN_ONLY(20150305): add a allow eval flag not to call another sizing eval during sizing eval
+   Eina_Bool             allow_eval : 1;
+   //
+
+   //TIZEN_ONLY(20150806): support scrollable content
+   //FIXME: genlist only now, it should be changed to support other scrollable.
+   Eina_Bool             scrollable_content : 1;
+   //
 };
 
-typedef struct _Elm_Popup_Item Elm_Popup_Item;
-struct _Elm_Popup_Item
+typedef struct _Elm_Popup_Item_Data Elm_Popup_Item_Data;
+struct _Elm_Popup_Item_Data
 {
-   Elm_Widget_Item base;
+   Elm_Widget_Item_Data *base;
 
    const char     *label;
    Evas_Object    *icon;
    Evas_Smart_Cb   func;
    Eina_Bool       disabled : 1;
-   Eina_Bool       selected : 1;
-   Ecore_Timer                          *highlight_timer;
-#ifdef _TIZEN_
-   Eina_Bool       bottom_line : 1;
-#endif
 };
 
 struct _Action_Area_Data
@@ -186,43 +97,40 @@ struct _Action_Area_Data
  * @}
  */
 
-EAPI extern const char ELM_POPUP_SMART_NAME[];
-EAPI const Elm_Popup_Smart_Class *elm_popup_smart_class_get(void);
-
 #define ELM_POPUP_DATA_GET(o, sd) \
-  Elm_Popup_Smart_Data * sd = evas_object_smart_data_get(o)
+  Elm_Popup_Data * sd = eo_data_scope_get(o, ELM_POPUP_CLASS)
 
 #define ELM_POPUP_DATA_GET_OR_RETURN(o, ptr)         \
   ELM_POPUP_DATA_GET(o, ptr);                        \
-  if (!ptr)                                          \
+  if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
-       CRITICAL("No widget data for object %p (%s)", \
-                o, evas_object_type_get(o));         \
+       CRI("No widget data for object %p (%s)",      \
+           o, evas_object_type_get(o));              \
        return;                                       \
     }
 
 #define ELM_POPUP_DATA_GET_OR_RETURN_VAL(o, ptr, val) \
   ELM_POPUP_DATA_GET(o, ptr);                         \
-  if (!ptr)                                           \
+  if (EINA_UNLIKELY(!ptr))                            \
     {                                                 \
-       CRITICAL("No widget data for object %p (%s)",  \
-                o, evas_object_type_get(o));          \
+       CRI("No widget data for object %p (%s)",       \
+           o, evas_object_type_get(o));               \
        return val;                                    \
     }
 
-#define ELM_POPUP_CHECK(obj)                     \
-  if (!obj || !elm_widget_type_check             \
-        ((obj), ELM_POPUP_SMART_NAME, __func__)) \
+#define ELM_POPUP_CHECK(obj)                              \
+  if (EINA_UNLIKELY(!eo_isa((obj), ELM_POPUP_CLASS))) \
     return
 
 #define ELM_POPUP_ITEM_CHECK(it)                            \
-  ELM_WIDGET_ITEM_CHECK_OR_RETURN((Elm_Widget_Item *)it, ); \
-  ELM_POPUP_CHECK(it->base.widget);
+  ELM_WIDGET_ITEM_CHECK_OR_RETURN(it->base, ); \
+  ELM_POPUP_CHECK(it->base->widget);
 
 #define ELM_POPUP_ITEM_CHECK_OR_RETURN(it, ...)                        \
-  ELM_WIDGET_ITEM_CHECK_OR_RETURN((Elm_Widget_Item *)it, __VA_ARGS__); \
-  ELM_POPUP_CHECK(it->base.widget) __VA_ARGS__;
+  ELM_WIDGET_ITEM_CHECK_OR_RETURN(it->base, __VA_ARGS__); \
+  ELM_POPUP_CHECK(it->base->widget) __VA_ARGS__;
 
-#undef _TIZEN_
+#define ELM_POPUP_ITEM_DATA_GET(o, sd) \
+  Elm_Popup_Item_Data* sd = eo_data_scope_get(o, ELM_POPUP_ITEM_CLASS)
 
 #endif

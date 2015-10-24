@@ -1,10 +1,19 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
+#define ELM_INTERFACE_ATSPI_ACCESSIBLE_PROTECTED
+#define ELM_INTERFACE_ATSPI_WIDGET_ACTION_PROTECTED
+
 #include <Elementary.h>
 #include "elm_priv.h"
 #include "elm_widget_check.h"
+#include "elm_widget_layout.h"
 
-#define _TIZEN_
+#define MY_CLASS ELM_CHECK_CLASS
 
-EAPI const char ELM_CHECK_SMART_NAME[] = "elm_check";
+#define MY_CLASS_NAME "Elm_Check"
+#define MY_CLASS_NAME_LEGACY "elm_check"
 
 static const Elm_Layout_Part_Alias_Description _content_aliases[] =
 {
@@ -25,12 +34,19 @@ static const char SIG_CHANGED[] = "changed";
 /* smart callbacks coming from elm check objects: */
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
    {SIG_CHANGED, ""},
+   {SIG_WIDGET_LANG_CHANGED, ""}, /**< handled by elm_widget */
+   {SIG_WIDGET_ACCESS_CHANGED, ""}, /**< handled by elm_widget */
+   {SIG_LAYOUT_FOCUSED, ""}, /**< handled by elm_layout */
+   {SIG_LAYOUT_UNFOCUSED, ""}, /**< handled by elm_layout */
    {NULL, NULL}
 };
 
-EVAS_SMART_SUBCLASS_NEW
-  (ELM_CHECK_SMART_NAME, _elm_check, Elm_Check_Smart_Class,
-  Elm_Layout_Smart_Class, elm_layout_smart_class_get, _smart_callbacks);
+static Eina_Bool _key_action_activate(Evas_Object *obj, const char *params);
+
+static const Elm_Action key_actions[] = {
+   {"activate", _key_action_activate},
+   {NULL, NULL}
+};
 
 static void
 _activate(Evas_Object *obj)
@@ -41,28 +57,33 @@ _activate(Evas_Object *obj)
    if (sd->statep) *sd->statep = sd->state;
    if (sd->state)
      {
+        // FIXME: to do animation during state change , we need different signal
+        // so that we can distinguish between state change by user or state change
+        // by calling state_change() api. Keep both the signal for backward compatibility
+        // and remove "elm,state,check,on" signal emission when we can break ABI.
+        elm_layout_signal_emit(obj, "elm,activate,check,on", "elm");
         elm_layout_signal_emit(obj, "elm,state,check,on", "elm");
         if (_elm_config->access_mode != ELM_ACCESS_MODE_OFF)
-          {
-             if (!(strcmp(elm_widget_style_get(obj),"on&off")))
-               _elm_access_say(obj,E_("On"), EINA_FALSE);
-             else
-               _elm_access_say(obj, E_("Tick"), EINA_FALSE); //TIZEN ONLY (2013.12.04): TTS UI
-          }
+             _elm_access_say(E_("State: On"));
      }
    else
      {
+        // FIXME: to do animation during state change , we need different signal
+        // so that we can distinguish between state change by user or state change
+        // by calling state_change() api. Keep both the signal for backward compatibility
+        // and remove "elm,state,check,off" signal emission when we can break ABI.
+        elm_layout_signal_emit(obj, "elm,activate,check,off", "elm");
         elm_layout_signal_emit(obj, "elm,state,check,off", "elm");
         if (_elm_config->access_mode != ELM_ACCESS_MODE_OFF)
-          {
-             if (!(strcmp(elm_widget_style_get(obj),"on&off")))
-               _elm_access_say(obj,E_("Off"), EINA_FALSE);
-             else
-               _elm_access_say(obj, E_("Untick"), EINA_FALSE); //TIZEN ONLY (2013.12.04): TTS UI
-          }
+             _elm_access_say(E_("State: Off"));
      }
 
    evas_object_smart_callback_call(obj, SIG_CHANGED, NULL);
+
+   if (_elm_config->atspi_mode)
+       elm_interface_atspi_accessible_state_changed_signal_emit(obj,
+                                                                ELM_ATSPI_STATE_CHECKED,
+                                                                sd->state);
 }
 
 /* FIXME: replicated from elm_layout just because check's icon spot
@@ -71,132 +92,157 @@ _activate(Evas_Object *obj)
 static void
 _icon_signal_emit(Evas_Object *obj)
 {
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
    char buf[64];
 
    snprintf(buf, sizeof(buf), "elm,state,icon,%s",
             elm_layout_content_get(obj, "icon") ? "visible" : "hidden");
 
    elm_layout_signal_emit(obj, buf, "elm");
+   edje_object_message_signal_process(wd->resize_obj);
+}
+
+EOLIAN static Elm_Atspi_State_Set
+_elm_check_elm_interface_atspi_accessible_state_set_get(Eo *obj, Elm_Check_Data *_pd EINA_UNUSED)
+{
+   Elm_Atspi_State_Set states = 0;
+
+   eo_do_super(obj, ELM_CHECK_CLASS, states = elm_interface_atspi_accessible_state_set_get());
+
+   if (elm_check_state_get(obj))
+       STATE_TYPE_SET(states, ELM_ATSPI_STATE_CHECKED);
+
+   return states;
 }
 
 /* FIXME: replicated from elm_layout just because check's icon spot
  * is elm.swallow.content, not elm.swallow.icon. Fix that whenever we
  * can changed the theme API */
-static Eina_Bool
-_elm_check_smart_sub_object_del(Evas_Object *obj,
-                                 Evas_Object *sobj)
+EOLIAN static Eina_Bool
+_elm_check_elm_widget_sub_object_del(Eo *obj, Elm_Check_Data *_pd EINA_UNUSED, Evas_Object *sobj)
 {
-   if (!ELM_WIDGET_CLASS(_elm_check_parent_sc)->sub_object_del(obj, sobj))
-     return EINA_FALSE;
+   Eina_Bool int_ret = EINA_FALSE;
+
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_sub_object_del(sobj));
+   if (!int_ret) return EINA_FALSE;
 
    _icon_signal_emit(obj);
+
+   eo_do(obj, elm_obj_layout_sizing_eval());
 
    return EINA_TRUE;
 }
 
-static Eina_Bool
-_elm_check_smart_activate(Evas_Object *obj, Elm_Activate act)
+EOLIAN static Eina_Bool
+_elm_check_elm_widget_activate(Eo *obj EINA_UNUSED, Elm_Check_Data *_pd EINA_UNUSED, Elm_Activate act)
 {
-   if (act != ELM_ACTIVATE_DEFAULT) return EINA_FALSE;
    if (elm_widget_disabled_get(obj)) return EINA_FALSE;
+   if (act != ELM_ACTIVATE_DEFAULT) return EINA_FALSE;
 
    _activate(obj);
 
    return EINA_TRUE;
 }
 
+// TIZEN ONLY (20150811): Fix late update of disabled state in setting-location app.
+EOLIAN static Eina_Bool
+_elm_check_elm_widget_disable(Eo *obj, Elm_Check_Data *sd EINA_UNUSED)
+{
+   Eina_Bool int_ret = EINA_FALSE;
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, EINA_FALSE);
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_disable());
+   if (!int_ret) return EINA_FALSE;
+   edje_object_message_signal_process(wd->resize_obj);
+   return EINA_TRUE;
+}
+//
+
 /* FIXME: replicated from elm_layout just because check's icon spot
  * is elm.swallow.content, not elm.swallow.icon. Fix that whenever we
  * can changed the theme API */
-static Eina_Bool
-_elm_check_smart_content_set(Evas_Object *obj,
-                              const char *part,
-                              Evas_Object *content)
+EOLIAN static Eina_Bool
+_elm_check_elm_container_content_set(Eo *obj, Elm_Check_Data *_pd EINA_UNUSED, const char *part, Evas_Object *content)
 {
-   if (!ELM_CONTAINER_CLASS(_elm_check_parent_sc)->content_set
-         (obj, part, content))
-     return EINA_FALSE;
+   Eina_Bool int_ret = EINA_FALSE;
+
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_container_content_set(part, content));
+   if (!int_ret) return EINA_FALSE;
 
    _icon_signal_emit(obj);
+
+   eo_do(obj, elm_obj_layout_sizing_eval());
 
    return EINA_TRUE;
 }
 
-static void
-_elm_check_smart_sizing_eval(Evas_Object *obj)
+EOLIAN static void
+_elm_check_elm_layout_sizing_eval(Eo *obj, Elm_Check_Data *_pd EINA_UNUSED)
 {
-   Evas_Coord minw = -1, minh = -1, maxw = -1, maxh = -1;
-
-   ELM_CHECK_DATA_GET(obj, sd);
+   Evas_Coord minw = -1, minh = -1;
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    elm_coords_finger_size_adjust(1, &minw, 1, &minh);
    edje_object_size_min_restricted_calc
-     (ELM_WIDGET_DATA(sd)->resize_obj, &minw, &minh, minw, minh);
+     (wd->resize_obj, &minw, &minh, minw, minh);
    elm_coords_finger_size_adjust(1, &minw, 1, &minh);
    evas_object_size_hint_min_set(obj, minw, minh);
-   evas_object_size_hint_max_set(obj, maxw, maxh);
+   evas_object_size_hint_max_set(obj, -1, -1);
 }
 
 static Eina_Bool
-_elm_check_smart_event(Evas_Object *obj,
-                       Evas_Object *src __UNUSED__,
-                       Evas_Callback_Type type,
-                       void *event_info)
+_key_action_activate(Evas_Object *obj, const char *params EINA_UNUSED)
 {
-   Evas_Event_Key_Down *ev = event_info;
-
-   // TIZEN ONLY(20131221) : When access mode, focused ui is disabled.
-   if (_elm_config->access_mode) return EINA_FALSE;
-
-   if (elm_widget_disabled_get(obj)) return EINA_FALSE;
-
-   if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
-
-   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
-
-   if ((strcmp(ev->keyname, "Return")) &&
-       (strcmp(ev->keyname, "KP_Enter")))
-     return EINA_FALSE;
-
    _activate(obj);
-   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
-
    return EINA_TRUE;
 }
 
-static Eina_Bool
-_elm_check_smart_theme(Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_check_elm_widget_event(Eo *obj, Elm_Check_Data *_pd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
 {
-   ELM_CHECK_DATA_GET(obj, sd);
+   (void) src;
+   Evas_Event_Key_Down *ev = event_info;
 
-   if (!ELM_WIDGET_CLASS(_elm_check_parent_sc)->theme(obj)) return EINA_FALSE;
+   if (type != EVAS_CALLBACK_KEY_DOWN) return EINA_FALSE;
+   if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return EINA_FALSE;
 
-   if (!(strcmp(elm_widget_style_get(obj),"on&off")))
-     _elm_access_text_set
-       (_elm_access_object_get(obj), ELM_ACCESS_TYPE, E_("On/Off button"));
+   if (!_elm_config_key_binding_call(obj, ev, key_actions))
+     return EINA_FALSE;
+
+   ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
+   return EINA_TRUE;
+}
+
+EOLIAN static Eina_Bool
+_elm_check_elm_widget_theme_apply(Eo *obj, Elm_Check_Data *sd)
+{
+   Eina_Bool int_ret = EINA_FALSE;
+
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, EINA_FALSE);
+
+   eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_theme_apply());
+   if (!int_ret) return EINA_FALSE;
+
    if (!sd->state) elm_layout_signal_emit(obj, "elm,state,check,off", "elm");
    else elm_layout_signal_emit(obj, "elm,state,check,on", "elm");
 
-   edje_object_message_signal_process(ELM_WIDGET_DATA(sd)->resize_obj);
+   edje_object_message_signal_process(wd->resize_obj);
 
    /* FIXME: replicated from elm_layout just because check's icon spot
     * is elm.swallow.content, not elm.swallow.icon. Fix that whenever
     * we can changed the theme API */
    _icon_signal_emit(obj);
 
-   elm_layout_sizing_eval(obj);
+   eo_do(obj, elm_obj_layout_sizing_eval());
+
+#ifdef TIZEN_VECTOR_UX
+   tizen_vg_check_set(obj);
+#endif
 
    return EINA_TRUE;
 }
 
 static char *
-_access_type_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__)
-{
-   return strdup(E_("Check"));
-}
-
-static char *
-_access_info_cb(void *data __UNUSED__, Evas_Object *obj)
+_access_info_cb(void *data EINA_UNUSED, Evas_Object *obj)
 {
    const char *txt = elm_widget_access_info_get(obj);
 
@@ -209,28 +255,43 @@ _access_info_cb(void *data __UNUSED__, Evas_Object *obj)
 static char *
 _access_state_cb(void *data, Evas_Object *obj)
 {
-   Elm_Check_Smart_Data *sd = data;
+   Elm_Check_Data *sd = eo_data_scope_get(data, MY_CLASS);
+   const char *on_text, *off_text;
 
    if (elm_widget_disabled_get(obj))
-     return strdup(E_("Disabled"));
+     return strdup(E_("State: Disabled"));
    if (sd->state)
      {
-        if (!(strcmp(elm_widget_style_get(obj),"on&off")))
-          return strdup(E_("On"));
+        on_text = elm_layout_text_get(data, "on");
+
+        if (on_text)
+          {
+             char buf[1024];
+
+             snprintf(buf, sizeof(buf), "%s: %s", E_("State"), on_text);
+             return strdup(buf);
+          }
         else
-          return strdup(E_("Tick")); //TIZEN ONLY (2013.12.04): TTS UI
+          return strdup(E_("State: On"));
      }
-   if (!(strcmp(elm_widget_style_get(obj),"on&off")))
-     return strdup(E_("Off"));
-   else
-     return strdup(E_("Untick")); //TIZEN ONLY (2013.12.04): TTS UI
+
+   off_text = elm_layout_text_get(data, "off");
+
+   if (off_text)
+     {
+        char buf[1024];
+
+        snprintf(buf, sizeof(buf), "%s: %s", E_("State"), off_text);
+        return strdup(buf);
+     }
+   return strdup(E_("State: Off"));
 }
 
 static void
 _on_check_off(void *data,
-              Evas_Object *o __UNUSED__,
-              const char *emission __UNUSED__,
-              const char *source __UNUSED__)
+              Evas_Object *o EINA_UNUSED,
+              const char *emission EINA_UNUSED,
+              const char *source EINA_UNUSED)
 {
    Evas_Object *obj = data;
 
@@ -241,13 +302,18 @@ _on_check_off(void *data,
 
    elm_layout_signal_emit(obj, "elm,state,check,off", "elm");
    evas_object_smart_callback_call(data, SIG_CHANGED, NULL);
+
+   if (_elm_config->atspi_mode)
+       elm_interface_atspi_accessible_state_changed_signal_emit(data,
+                                                                ELM_ATSPI_STATE_CHECKED,
+                                                                sd->state);
 }
 
 static void
 _on_check_on(void *data,
-             Evas_Object *o __UNUSED__,
-             const char *emission __UNUSED__,
-             const char *source __UNUSED__)
+             Evas_Object *o EINA_UNUSED,
+             const char *emission EINA_UNUSED,
+             const char *source EINA_UNUSED)
 {
    Evas_Object *obj = data;
 
@@ -257,179 +323,93 @@ _on_check_on(void *data,
    if (sd->statep) *sd->statep = sd->state;
    elm_layout_signal_emit(obj, "elm,state,check,on", "elm");
    evas_object_smart_callback_call(data, SIG_CHANGED, NULL);
+
+   if (_elm_config->atspi_mode)
+       elm_interface_atspi_accessible_state_changed_signal_emit(data,
+                                                                ELM_ATSPI_STATE_CHECKED,
+                                                                sd->state);
 }
 
 static void
 _on_check_toggle(void *data,
-                 Evas_Object *o __UNUSED__,
-                 const char *emission __UNUSED__,
-                 const char *source __UNUSED__)
+                 Evas_Object *o EINA_UNUSED,
+                 const char *emission EINA_UNUSED,
+                 const char *source EINA_UNUSED)
 {
    _activate(data);
 }
 
-//***************** TIZEN Only
-static void
-_touch_mouse_out_cb(void *data __UNUSED__,
-                    Evas_Object *obj,
-                    void *event_info __UNUSED__)
+EOLIAN static void
+_elm_check_evas_object_smart_add(Eo *obj, Elm_Check_Data *_pd EINA_UNUSED)
 {
-   if (elm_widget_disabled_get(obj)) return;
-   elm_layout_signal_emit(obj, "elm,action,unpressed", "elm");
-}
-//****************************
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-#ifdef _TIZEN_
-static void _check_drag_start(void *data,
-                              Evas_Object *o __UNUSED__,
-                              const char *emission __UNUSED__,
-                              const char *source __UNUSED__)
-{
-   Evas_Object *obj = data;
+   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   elm_widget_sub_object_parent_add(obj);
 
-   elm_widget_scroll_freeze_push(obj);
-}
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm,action,check,on", "*",
+     _on_check_on, obj);
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm,action,check,off", "*",
+     _on_check_off, obj);
+   edje_object_signal_callback_add
+     (wd->resize_obj, "elm,action,check,toggle", "*",
+     _on_check_toggle, obj);
 
-static void _check_drag_stop(void *data,
-                             Evas_Object *o __UNUSED__,
-                             const char *emission __UNUSED__,
-                             const char *source __UNUSED__)
-{
-   Evas_Object *obj = data;
+   _elm_access_object_register(obj, wd->resize_obj);
+   _elm_access_text_set
+     (_elm_access_info_get(obj), ELM_ACCESS_TYPE, E_("Check"));
+   _elm_access_callback_set
+     (_elm_access_info_get(obj), ELM_ACCESS_INFO, _access_info_cb, obj);
+   _elm_access_callback_set
+     (_elm_access_info_get(obj), ELM_ACCESS_STATE, _access_state_cb, obj);
 
-   elm_widget_scroll_freeze_pop(obj);
-}
-#endif
+   elm_widget_can_focus_set(obj, EINA_TRUE);
 
-static void
-_elm_check_smart_add(Evas_Object *obj)
-{
-   EVAS_SMART_DATA_ALLOC(obj, Elm_Check_Smart_Data);
+   if (!elm_layout_theme_set(obj, "check", "base", elm_widget_style_get(obj)))
+     ERR("Failed to set layout!");
 
-   ELM_WIDGET_CLASS(_elm_check_parent_sc)->base.add(obj);
+   elm_layout_sizing_eval(obj);
 }
 
-#ifdef _TIZEN_
-static void
-_elm_check_smart_del(Evas_Object *obj)
+EOLIAN static const Elm_Layout_Part_Alias_Description*
+_elm_check_elm_layout_content_aliases_get(Eo *obj EINA_UNUSED, Elm_Check_Data *_pd EINA_UNUSED)
 {
-
-   if (0 != elm_widget_scroll_freeze_get(obj))
-     elm_widget_scroll_freeze_pop(obj);
-
-   ELM_WIDGET_CLASS(_elm_check_parent_sc)->base.del(obj);
-}
-#endif
-
-static void
-_elm_check_smart_set_user(Elm_Check_Smart_Class *sc)
-{
-   ELM_WIDGET_CLASS(sc)->base.add = _elm_check_smart_add;
-
-   #ifdef _TIZEN_
-   ELM_WIDGET_CLASS(sc)->base.del = _elm_check_smart_del;
-   #endif
-
-   ELM_WIDGET_CLASS(sc)->theme = _elm_check_smart_theme;
-   ELM_WIDGET_CLASS(sc)->event = _elm_check_smart_event;
-   ELM_WIDGET_CLASS(sc)->sub_object_del = _elm_check_smart_sub_object_del;
-   ELM_WIDGET_CLASS(sc)->activate = _elm_check_smart_activate;
-
-   /* not a 'focus chain manager' */
-   ELM_WIDGET_CLASS(sc)->focus_next = NULL;
-   ELM_WIDGET_CLASS(sc)->focus_direction_manager_is = NULL;
-   ELM_WIDGET_CLASS(sc)->focus_direction = NULL;
-
-   ELM_CONTAINER_CLASS(sc)->content_set = _elm_check_smart_content_set;
-
-   ELM_LAYOUT_CLASS(sc)->sizing_eval = _elm_check_smart_sizing_eval;
-
-   ELM_LAYOUT_CLASS(sc)->content_aliases = _content_aliases;
-   ELM_LAYOUT_CLASS(sc)->text_aliases = _text_aliases;
+   return _content_aliases;
 }
 
-EAPI const Elm_Check_Smart_Class *
-elm_check_smart_class_get(void)
+EOLIAN static const Elm_Layout_Part_Alias_Description*
+_elm_check_elm_layout_text_aliases_get(Eo *obj EINA_UNUSED, Elm_Check_Data *_pd EINA_UNUSED)
 {
-   static Elm_Check_Smart_Class _sc =
-     ELM_CHECK_SMART_CLASS_INIT_NAME_VERSION(ELM_CHECK_SMART_NAME);
-   static const Elm_Check_Smart_Class *class = NULL;
-   Evas_Smart_Class *esc = (Evas_Smart_Class *)&_sc;
-
-   if (class)
-     return class;
-
-   _elm_check_smart_set(&_sc);
-   esc->callbacks = _smart_callbacks;
-   class = &_sc;
-
-   return class;
+   return _text_aliases;
 }
 
 EAPI Evas_Object *
 elm_check_add(Evas_Object *parent)
 {
-   Evas_Object *obj;
-
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-
-   obj = elm_widget_add(_elm_check_smart_class_new(), parent);
-   if (!obj) return NULL;
-
-   if (!elm_widget_sub_object_add(parent, obj))
-     ERR("could not add %p as sub object of %p", obj, parent);
-
-   ELM_CHECK_DATA_GET(obj, sd);
-
-   edje_object_signal_callback_add
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm,action,check,on", "",
-     _on_check_on, obj);
-   edje_object_signal_callback_add
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm,action,check,off", "",
-     _on_check_off, obj);
-   edje_object_signal_callback_add
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm,action,check,toggle", "",
-     _on_check_toggle, obj);
-
-   #ifdef _TIZEN_
-   edje_object_signal_callback_add
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm,action,check,drag,start", "",
-     _check_drag_start, obj);
-   edje_object_signal_callback_add
-     (ELM_WIDGET_DATA(sd)->resize_obj, "elm,action,check,drag,stop", "",
-     _check_drag_stop, obj);
-   #endif
-
-//***************** TIZEN Only
-   evas_object_smart_callback_add(obj, "touch,mouse,out", _touch_mouse_out_cb, NULL);
-//****************************
-
-   _elm_access_object_register(obj, ELM_WIDGET_DATA(sd)->resize_obj);
-   _elm_access_callback_set
-     (_elm_access_object_get(obj), ELM_ACCESS_TYPE, _access_type_cb, NULL);
-   _elm_access_callback_set
-     (_elm_access_object_get(obj), ELM_ACCESS_INFO, _access_info_cb, sd);
-   _elm_access_callback_set
-     (_elm_access_object_get(obj), ELM_ACCESS_STATE, _access_state_cb, sd);
-
-   elm_widget_can_focus_set(obj, EINA_TRUE);
-
-   elm_layout_theme_set(obj, "check", "base", elm_widget_style_get(obj));
-   elm_layout_sizing_eval(obj);
-
-   //Tizen Only: This should be removed when eo is applied.
-   ELM_WIDGET_DATA_GET(obj, wsd);
-   wsd->on_create = EINA_FALSE;
-
+   Evas_Object *obj = eo_add(MY_CLASS, parent);
    return obj;
 }
 
-EAPI void
-elm_check_state_set(Evas_Object *obj,
-                    Eina_Bool state)
+EOLIAN static void
+_elm_check_eo_base_constructor(Eo *obj, Elm_Check_Data *_pd EINA_UNUSED)
 {
-   ELM_CHECK_CHECK(obj);
-   ELM_CHECK_DATA_GET(obj, sd);
+   eo_do_super(obj, MY_CLASS, eo_constructor());
+   eo_do(obj,
+         evas_obj_type_set(MY_CLASS_NAME_LEGACY),
+         evas_obj_smart_callbacks_descriptions_set(_smart_callbacks),
+         elm_interface_atspi_accessible_role_set(ELM_ATSPI_ROLE_CHECK_BOX));
+#ifdef TIZEN_VECTOR_UX
+   tizen_vg_check_set(obj);
+#endif
+}
+
+EOLIAN static void
+_elm_check_state_set(Eo *obj, Elm_Check_Data *sd, Eina_Bool state)
+{
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    if (state != sd->state)
      {
@@ -441,25 +421,21 @@ elm_check_state_set(Evas_Object *obj,
           elm_layout_signal_emit(obj, "elm,state,check,off", "elm");
      }
 
-   edje_object_message_signal_process(ELM_WIDGET_DATA(sd)->resize_obj);
+   edje_object_message_signal_process(wd->resize_obj);
+#ifdef TIZEN_VECTOR_UX
+   tizen_vg_check_state_set(obj);
+#endif
 }
 
-EAPI Eina_Bool
-elm_check_state_get(const Evas_Object *obj)
+EOLIAN static Eina_Bool
+_elm_check_state_get(Eo *obj EINA_UNUSED, Elm_Check_Data *sd)
 {
-   ELM_CHECK_CHECK(obj) EINA_FALSE;
-   ELM_CHECK_DATA_GET(obj, sd);
-
    return sd->state;
 }
 
-EAPI void
-elm_check_state_pointer_set(Evas_Object *obj,
-                            Eina_Bool *statep)
+EOLIAN static void
+_elm_check_state_pointer_set(Eo *obj, Elm_Check_Data *sd, Eina_Bool *statep)
 {
-   ELM_CHECK_CHECK(obj);
-   ELM_CHECK_DATA_GET(obj, sd);
-
    if (statep)
      {
         sd->statep = statep;
@@ -476,4 +452,32 @@ elm_check_state_pointer_set(Evas_Object *obj,
      sd->statep = NULL;
 }
 
-#undef _TIZEN_
+EOLIAN static Eina_Bool
+_elm_check_elm_widget_focus_next_manager_is(Eo *obj EINA_UNUSED, Elm_Check_Data *_pd EINA_UNUSED)
+{
+   return EINA_FALSE;
+}
+
+EOLIAN static Eina_Bool
+_elm_check_elm_widget_focus_direction_manager_is(Eo *obj EINA_UNUSED, Elm_Check_Data *_pd EINA_UNUSED)
+{
+   return EINA_FALSE;
+}
+
+EOLIAN const Elm_Atspi_Action *
+_elm_check_elm_interface_atspi_widget_action_elm_actions_get(Eo *obj EINA_UNUSED, Elm_Check_Data *pd EINA_UNUSED)
+{
+   static Elm_Atspi_Action atspi_action[] = {
+          { "activate", "activate", NULL, _key_action_activate },
+          { NULL, NULL, NULL, NULL }
+   };
+   return &atspi_action[0];
+}
+
+static void
+_elm_check_class_constructor(Eo_Class *klass)
+{
+   evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
+}
+
+#include "elm_check.eo.c"

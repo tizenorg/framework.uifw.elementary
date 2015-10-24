@@ -2,25 +2,24 @@
 #include "elementary_config.h"
 #endif
 #include <Elementary.h>
-#ifndef ELM_LIB_QUICKLAUNCH
 
 /* A simple test, just displaying datetime in its default format */
 
 static void
-_changed_cb(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_changed_cb(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    printf("Datetime value is changed\n");
 }
 
 void
-test_datetime(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+test_datetime(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bx, *datetime;
    time_t t;
    struct tm time1;
 
    win = elm_win_util_standard_add("datetime", "DateTime");
-   elm_win_autodel_set(win, 1);
+   elm_win_autodel_set(win, EINA_TRUE);
 
    bx = elm_box_add(win);
    evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -45,6 +44,7 @@ test_datetime(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_in
    elm_datetime_field_visible_set(datetime, ELM_DATETIME_MONTH, EINA_FALSE);
    elm_datetime_field_visible_set(datetime, ELM_DATETIME_DATE, EINA_FALSE);
    elm_box_pack_end(bx, datetime);
+   elm_object_disabled_set(datetime, EINA_TRUE);
    evas_object_show(datetime);
 
    datetime = elm_datetime_add(bx);
@@ -72,4 +72,3 @@ test_datetime(void *data __UNUSED__, Evas_Object *obj __UNUSED__, void *event_in
 
    evas_object_show(win);
 }
-#endif

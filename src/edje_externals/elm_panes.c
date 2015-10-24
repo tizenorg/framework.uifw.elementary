@@ -1,7 +1,6 @@
 #include "private.h"
 #include <assert.h>
 
-
 typedef struct _Elm_Params_Panes Elm_Params_Panes;
 
 struct _Elm_Params_Panes {
@@ -16,9 +15,9 @@ struct _Elm_Params_Panes {
    Eina_Bool fixed;
 };
 
-static void external_panes_state_set(void *data __UNUSED__,
+static void external_panes_state_set(void *data EINA_UNUSED,
       Evas_Object *obj, const void *from_params,
-      const void *to_params, float pos __UNUSED__)
+      const void *to_params, float pos EINA_UNUSED)
 {
    const Elm_Params_Panes *p;
 
@@ -42,7 +41,7 @@ static void external_panes_state_set(void *data __UNUSED__,
      elm_panes_fixed_set(obj, p->fixed);
 }
 
-static Eina_Bool external_panes_param_set(void *data __UNUSED__,
+static Eina_Bool external_panes_param_set(void *data EINA_UNUSED,
       Evas_Object *obj, const Edje_External_Param *param)
 {
    if ((!strcmp(param->name, "content left"))
@@ -89,7 +88,7 @@ static Eina_Bool external_panes_param_set(void *data __UNUSED__,
 }
 
 static Eina_Bool
-external_panes_param_get(void *data __UNUSED__, const Evas_Object *obj,
+external_panes_param_get(void *data EINA_UNUSED, const Evas_Object *obj,
                          Edje_External_Param *param)
 {
    if (!strcmp(param->name, "content left"))
@@ -128,7 +127,7 @@ external_panes_param_get(void *data __UNUSED__, const Evas_Object *obj,
 }
 
 static void *
-external_panes_params_parse(void *data __UNUSED__, Evas_Object *obj,
+external_panes_params_parse(void *data EINA_UNUSED, Evas_Object *obj,
                             const Eina_List *params)
 {
    Elm_Params_Panes *mem;
@@ -166,7 +165,7 @@ external_panes_params_parse(void *data __UNUSED__, Evas_Object *obj,
 }
 
 static Evas_Object *
-external_panes_content_get(void *data __UNUSED__, const Evas_Object *obj,
+external_panes_content_get(void *data EINA_UNUSED, const Evas_Object *obj,
                            const char *content)
 {
    if (!strcmp(content, "left"))
@@ -195,4 +194,4 @@ static Edje_External_Param_Info external_panes_params[] = {
 };
 
 DEFINE_EXTERNAL_ICON_ADD(panes, "panes");
-DEFINE_EXTERNAL_TYPE_SIMPLE(panes, "panes");
+DEFINE_EXTERNAL_TYPE_SIMPLE(panes, "Panes");

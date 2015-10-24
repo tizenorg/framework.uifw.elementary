@@ -1,0 +1,260 @@
+mixin Elm_Interface_Atspi_Accessible ()
+{
+   eo_prefix: elm_interface_atspi_accessible;
+   legacy_prefix: elm_atspi_accessible;
+   data: null;
+   properties {
+      localized_role_name @protected {
+         get {
+            /*@ Gets an localized string describing accessible object role name. */
+         }
+         values {
+            const(char)* localized_name;
+         }
+      }
+      name {
+         get {
+            /*@
+              @brief Gets an accessible name of the object.
+              @since_tizen 2.4
+
+              @return Newly allocated string with object accessible name
+              Should be free by a user
+
+              @ingroup Accessibility */
+         }
+         set {
+            /*@
+              @brief Sets an accessible name of the object. This string should be short,
+              human-readable name identyfing gui element.
+              @since_tizen 2.4
+
+              Example of good accessible name for icon-only button closing the
+              application might be: "exit" or "quit".
+
+              @remark Function parameter will not be modified or referenced afterwards.
+
+              @ingroup Accessibility */
+         }
+         values {
+            char* name; /*@ accessible name */
+         }
+      }
+      relation_set @protected {
+         get {
+            /*@ Gets an all relations between accessible object and other accessible
+             * objects.
+            elements Should be free by a user. */
+         }
+         values {
+         //TIZEN_ONLY(20150709) : atspi relations api
+            Elm_Atspi_Relation_Set relations;
+         }
+         ////////////////////////
+      }
+      role {
+         get {
+            /*@
+              @brief Gets the role of the object in accessibility domain.
+
+              @since_tizen 2.4
+
+              @return Acccessible role of the object in accessibility domain
+
+              @ingroup Accessibility */
+         }
+         set {
+            /*@
+              @brief Sets role of the object in accessibility domain. Role describes
+              a class of gui elements that provides same functionality. Role list is
+              predefined.
+
+              @since_tizen 2.4
+
+              @ingroup Accessibility */
+         }
+         values {
+            Elm_Atspi_Role role; /* accessibile role */
+         }
+      }
+      children @protected {
+         get {
+            /*@ Gets object's accessible children. */
+         }
+         values {
+            list *children;
+         }
+      }
+      role_name @protected {
+         get {
+            /*@ Gets human-readable string indentifying object accessibility
+            role. */
+         }
+         values {
+            const(char)* role_name;
+         }
+      }
+      attributes @protected {
+         get {
+            /*@ Gets key-value pairs indentifying object extra
+            attributes. Must be free by a user. */
+         }
+         values {
+            list *attributes;
+         }
+      }
+      index_in_parent @protected {
+         get {
+            /*@ Gets index of the child in parent's children list. */
+         }
+         values {
+            int idx;
+         }
+      }
+      description {
+         get {
+            /*@
+              @brief Gets contextual information about object.
+
+              @since_tizen 2.4
+
+              @return Statically allocated string with contextual information
+
+              @ingroup Accessibility */
+         }
+         set {
+            /*@
+              @brief Sets contextual information about object.
+              Description contrary to "name" property contain more verbose
+              information about object. Property may contain description of
+              functionality which given element provides in application.
+
+              Example of good accessible description for icon-only button closing the
+              application might be: "Close the application".
+
+              @since_tizen 2.4
+
+              @ingroup Accessibility */
+         }
+         values {
+            const(char)* description; /* accessible descritpion */
+         }
+      }
+      parent @protected {
+         get {
+            /*@ Gets object accessible parent. */
+         }
+         set {
+            /*@ Sets object accessible parent. */
+         }
+         values {
+            Elm_Interface_Atspi_Accessible *parent;
+         }
+      }
+      state_set @protected {
+         get {
+            /*@ Gets set describing object accessible states. */
+         }
+         values {
+            Elm_Atspi_State_Set states;
+         }
+      }
+      //TIZEN_ONLY(20150731) : add i18n support for name and description
+      translation_domain {
+         get {
+            /*@
+              @brief Gets the translation domain of "name" and "description"
+              properties.
+
+              @since_tizen 2.4
+
+              @return Translation domain of "name" and "description"
+
+              @ingroup Accessibility */
+         }
+         set {
+            /*@
+              @brief Sets the translation domain of "name" and "description"
+              properties.
+
+              Translation domain should be set if application wants to support i18n
+              for accessibily "name" and "descriptions" properties.
+
+              When translation domain is set values of "name" and "description"
+              properties will be translated with dgettext function using
+              current translation domain as "domainname" and values of properties as
+              "msgid" parameter.
+
+              @remark It is up to application developer to ensure that
+              translation files are properly binded to translation domain with
+              bindtextdomain function when accessibility is enabled.
+
+              @since_tizen 2.4
+
+              @ingroup Accessibility */
+         }
+         values {
+            const(char) *domain; /* translation domain */
+         }
+      }
+      ///
+   }
+   //TIZEN_ONLY(20150709) : atspi relations api
+   methods {
+      relationship_append {
+         /*@
+           @brief Defines the relationship between two accessible objects.
+
+           Adds unique relation between source object and relation_object of a
+           given type.
+
+           Relationships can be queried by Assistive Technology clients to
+           provide customized feedback, improving overall user experience.
+
+           @remark relationship_append API is asymmetric, which means that
+           appending, for example, relation ELM_ATSPI_RELATION_FLOWS_TO from object A to B,
+           do NOT append relation ELM_ATSPI_RELATION_FLOWS_FROM from object B to
+           object A.
+
+           @return EINA_TRUE is relationship was successfully appended, EINA_FALSE
+           otherwise
+
+           @since_tizen 2.4
+
+           @ingroup Accessibility */
+         return: bool;
+         params {
+            @in Elm_Atspi_Relation_Type type;
+            @in const(Elm_Interface_Atspi_Accessible) *relation_object;
+         }
+      }
+      relationship_remove {
+         /*@
+           @brief Removes the relationship between two accessible objects.
+
+           @since_tizen 2.4
+
+           @ingroup Accessibility */
+         params {
+            @in Elm_Atspi_Relation_Type type;
+            @in const(Elm_Interface_Atspi_Accessible) *relation_object;
+         }
+      }
+   }
+   //////////////////////////
+   events {
+      property,changed: const(char)*;
+      children,changed: Elm_Atspi_Event_Children_Changed_Data;
+      state,changed: Elm_Atspi_Event_State_Changed_Data;
+      visible,data,changed;
+      active,descendant,changed;
+   }
+   //TIZEN_ONLY(20150709) : atspi relations api
+   implements {
+      @virtual .relationship_append;
+      @virtual .relationship_remove;
+      @virtual .translation_domain.get;
+      @virtual .translation_domain.set;
+   }
+   //////////
+}

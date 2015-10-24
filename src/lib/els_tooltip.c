@@ -1,4 +1,9 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
 #include <Elementary.h>
+
 #include "elm_priv.h"
 
 #ifdef ISCOMFITOR
@@ -17,7 +22,7 @@ static const char _tooltip_key[] = "_elm_tooltip";
     {                                                   \
        if (!(obj))                                      \
          {                                              \
-            CRITICAL("Null pointer: " #obj);            \
+            CRI("Null pointer: " #obj);            \
             return __VA_ARGS__;                         \
          }                                              \
        tt = evas_object_data_get((obj), _tooltip_key);  \
@@ -51,6 +56,9 @@ struct _Elm_Tooltip
      {
         double                x, y;
      } rel_pos;
+   Elm_Tooltip_Orient       orient; /** orientation for tooltip */
+   int                      move_freeze;
+
    double                   hide_timeout; /* from theme */
    Eina_Bool                visible_lock:1;
    Eina_Bool                changed_style:1;
@@ -67,14 +75,14 @@ static void _elm_tooltip_hide(Elm_Tooltip *tt);
 static void _elm_tooltip_data_clean(Elm_Tooltip *tt);
 
 static void
-_elm_tooltip_content_changed_hints_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_elm_tooltip_content_changed_hints_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    _elm_tooltip_reconfigure_job_start(data);
    TTDBG("HINTS CHANGED\n");
 }
 
 static void
-_elm_tooltip_content_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_elm_tooltip_content_del_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Elm_Tooltip *tt = data;
    tt->content = NULL;
@@ -83,7 +91,7 @@ _elm_tooltip_content_del_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __U
 }
 
 static void
-_elm_tooltip_obj_move_cb(void *data, Evas *e  __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info  __UNUSED__)
+_elm_tooltip_obj_move_cb(void *data, Evas *e  EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info  EINA_UNUSED)
 {
    Elm_Tooltip *tt = data;
    _elm_tooltip_reconfigure_job_start(tt);
@@ -91,7 +99,7 @@ _elm_tooltip_obj_move_cb(void *data, Evas *e  __UNUSED__, Evas_Object *obj __UNU
 }
 
 static void
-_elm_tooltip_obj_resize_cb(void *data, Evas *e  __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info  __UNUSED__)
+_elm_tooltip_obj_resize_cb(void *data, Evas *e  EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info  EINA_UNUSED)
 {
    Elm_Tooltip *tt = data;
    _elm_tooltip_reconfigure_job_start(tt);
@@ -99,8 +107,12 @@ _elm_tooltip_obj_resize_cb(void *data, Evas *e  __UNUSED__, Evas_Object *obj __U
 }
 
 static void
-_elm_tooltip_obj_mouse_move_cb(Elm_Tooltip *tt, Evas *e  __UNUSED__, Evas_Object *obj __UNUSED__, Evas_Event_Mouse_Move *ev)
+_elm_tooltip_obj_mouse_move_cb(void *data, Evas *e  EINA_UNUSED,
+                               Evas_Object *obj EINA_UNUSED, void *event_info)
 {
+   Elm_Tooltip *tt = data;
+   Evas_Event_Mouse_Move *ev = event_info;
+
    if (tt->mouse_x || tt->mouse_y)
      {
         if ((abs(ev->cur.output.x - tt->mouse_x) < 3) &&
@@ -150,9 +162,17 @@ _elm_tooltip_show(Elm_Tooltip *tt)
      (tt->eventarea, EVAS_CALLBACK_MOVE, _elm_tooltip_obj_move_cb, tt);
    evas_object_event_callback_add
      (tt->eventarea, EVAS_CALLBACK_RESIZE, _elm_tooltip_obj_resize_cb, tt);
-   evas_object_event_callback_add
-     (tt->eventarea, EVAS_CALLBACK_MOUSE_MOVE, (Evas_Object_Event_Cb)_elm_tooltip_obj_mouse_move_cb, tt);
 
+   if (tt->move_freeze == 0)
+     {
+      //No movement of tooltip upon mouse move if orientation set
+      if ((tt->orient <= ELM_TOOLTIP_ORIENT_NONE) || (tt->orient >= ELM_TOOLTIP_ORIENT_LAST))
+        {
+           evas_object_event_callback_add(tt->eventarea,
+                                          EVAS_CALLBACK_MOUSE_MOVE,
+                                          _elm_tooltip_obj_mouse_move_cb, tt);
+        }
+     }
    tt->changed_style = EINA_TRUE;
    _elm_tooltip_reconfigure_job_start(tt);
 }
@@ -170,10 +190,8 @@ _elm_tooltip_content_del(Elm_Tooltip *tt)
      (tt->content, EVAS_CALLBACK_DEL,
       _elm_tooltip_content_del_cb, tt);
    evas_object_hide(tt->content);
-   evas_object_del(tt->content);
-   tt->content = NULL;
+   ELM_SAFE_FREE(tt->content, evas_object_del);
 }
-
 
 static void
 _elm_tooltip_hide(Elm_Tooltip *tt)
@@ -215,15 +233,13 @@ _elm_tooltip_reconfigure_job(void *data)
 static void
 _elm_tooltip_reconfigure_job_stop(Elm_Tooltip *tt)
 {
-   if (!tt->reconfigure_job) return;
-   ecore_job_del(tt->reconfigure_job);
-   tt->reconfigure_job = NULL;
+   ELM_SAFE_FREE(tt->reconfigure_job, ecore_job_del);
 }
 
 static void
 _elm_tooltip_reconfigure_job_start(Elm_Tooltip *tt)
 {
-   if (tt->reconfigure_job) ecore_job_del(tt->reconfigure_job);
+   ecore_job_del(tt->reconfigure_job);
    tt->reconfigure_job = ecore_job_add(_elm_tooltip_reconfigure_job, tt);
 }
 
@@ -255,8 +271,8 @@ _elm_tooltip_hide_anim_stop(Elm_Tooltip *tt)
    if (!tt->hide_timer) return;
    if (tt->tooltip)
      edje_object_signal_emit(tt->tooltip, "elm,action,show", "elm");
-   ecore_timer_del(tt->hide_timer);
-   tt->hide_timer = NULL;
+
+   ELM_SAFE_FREE(tt->hide_timer, ecore_timer_del);
 }
 
 static void
@@ -309,13 +325,6 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
                   evas_object_hide(tt->tt_win);
                   elm_win_alpha_set(tt->tt_win, EINA_FALSE);
                }
-#ifdef HAVE_ELEMENTARY_X
-             Ecore_X_Window win;
-             win = elm_win_xwindow_get(tt->tt_win);
-             if (win)
-               ecore_x_window_shape_input_rectangle_set(win, 0, 0, 0, 0);
-#endif
-             evas_object_show(tt->tt_win);
           }
 
         str = edje_object_data_get(tt->tooltip, "pad_x");
@@ -358,8 +367,6 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
              tt->tooltip = NULL;
              return;
           }
-        evas_object_show(tt->content);
-        evas_object_layer_set(tt->content, ELM_OBJECT_LAYER_TOOLTIP);
         evas_object_pass_events_set(tt->content, EINA_TRUE);
         edje_object_part_swallow
           (tt->tooltip, "elm.swallow.content", tt->content);
@@ -368,6 +375,8 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
         evas_object_event_callback_add(tt->content, EVAS_CALLBACK_DEL,
            _elm_tooltip_content_del_cb, tt);
 
+        /* tooltip has to use layer tooltip */
+        evas_object_layer_set(tt->tooltip, ELM_OBJECT_LAYER_TOOLTIP);
      }
    TTDBG("*******RECALC\n");
    evas_object_size_hint_min_get(tt->content, &ominw, &ominh);
@@ -376,14 +385,31 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
    if (eminw && (ominw < eminw)) ominw = eminw;
    if (eminh && (ominh < eminh)) ominh = eminh;
 
-   if (ominw < 1) ominw = 10; /* at least it is noticeable */
-   if (ominh < 1) ominh = 10; /* at least it is noticeable */
+   if ((ominw < 1) || (ominh < 1))
+     {
+        evas_object_move(tt->tt_win ? : tt->tooltip, -9999, -9999);
+        evas_object_resize(tt->tt_win ? : tt->tooltip, 1, 1);
+        TTDBG("FAKE: tx=%d,ty=%d,tw=%d,th=%d\n", -9999, -9999, 1, 1);
+        evas_object_show(tt->tooltip);
+        if (tt->tt_win) evas_object_show(tt->tt_win);
+        _elm_tooltip_reconfigure_job_start(tt);
+        return;
+     }
 
    edje_object_size_min_restricted_calc(tt->tooltip, &tw, &th, ominw, ominh);
    TTDBG("TTSIZE:  tw=%d,th=%d,ominw=%d,ominh=%d\n", tw, th, ominw, ominh);
 
    if (tt->tt_win)
-     elm_win_screen_size_get(elm_object_top_widget_get(tt->owner), NULL, NULL, &cw, &ch);
+     {
+#ifdef HAVE_ELEMENTARY_X
+        Evas_Object *win = elm_widget_top_get(tt->owner);
+        Ecore_X_Window xwin = elm_win_xwindow_get(win);
+        if (xwin)
+          ecore_x_window_size_get(ecore_x_window_root_get(xwin), &cw, &ch);
+#endif
+        if (!cw)
+          elm_win_screen_size_get(elm_widget_top_get(tt->owner), NULL, NULL, &cw, &ch);
+     }
    if (!cw)
      evas_output_size_get(tt->tt_evas ?: tt->evas, &cw, &ch);
    TTDBG("SCREEN:  cw=%d,ch=%d\n", cw, ch);
@@ -394,7 +420,7 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
    if (tt->tt_win)
      {
         int x, y;
-        Evas_Object *win = elm_object_top_widget_get(tt->owner);
+        Evas_Object *win = elm_widget_top_get(tt->owner);
 #ifdef HAVE_ELEMENTARY_X
         Ecore_X_Window xwin = elm_win_xwindow_get(win);
         if (xwin)
@@ -427,22 +453,52 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
         TTDBG("INIT (INTERPRETED)\n");
      }
    TTDBG("ADJUST (POINTER):  tx=%d,ty=%d\n", tx, ty);
-   if (tx < 0)
+   if ((tx < 0) || (tx + tw > cw))
      {
-        /* if we're offscreen, try to flip over the Y axis */
-        if (abs((tx + 2 * tw) - cw) < abs(tx))
-          tx += tw;
+        if (tx < 0)
+          {
+             /* if we're offscreen to the left, try to flip over the Y axis */
+             if (abs((tx + 2 * tw) - cw) < abs(tx))
+               tx += tw;
+             else
+               tx = 0;
+          }
+        else if (tx + tw > cw)
+          {
+             int test_x = tx - tw;
+
+             /* if we're offscreen to the right, try to flip over the Y axis */
+             if ((test_x >= 0) || (tx + tw - cw > abs(test_x)))
+               tx -= tw;
+             else
+               tx = cw - tw;
+          }
      }
    else if ((tx > px) && (px > tw))
      {
         if (tx + tw < cw)
           tx += tw;
      }
-   if (ty < 0)
+   if ((ty < 0) || (ty + th > ch))
      {
-        /* if we're offscreen, try to flip over the X axis */
-        if (abs((ty + 2 * th) - ch) < abs(ty))
-          ty += th;
+        if (ty < 0)
+          {
+             /* if we're offscreen to the top, try to flip over the X axis */
+             if (abs((ty + 2 * th) - ch) < abs(ty))
+               ty += th;
+             else
+               ty = 0;
+          }
+        else if (ty + th > ch)
+          {
+             int test_y = ty - th;
+
+             /* if we're offscreen to the bottom, try to flip over the X axis */
+             if ((test_y >= 0) || (ty + th - ch > abs(test_y)))
+               ty -= th;
+             else
+               ty = ch - th;
+          }
      }
    else if ((ty > py) && (py > th))
      {
@@ -475,6 +531,26 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
    else if (ty < 0) ty -= tt->pad.by;
    else if (ty > ch) ty += tt->pad.by;
    TTDBG("PAD (BORDER):  tx=%d,ty=%d\n", tx, ty);
+   if (tt->tt_win)
+     {
+#define INSIDE(x, y, xx, yy, ww, hh) \
+  (((x) < ((xx) + (ww))) && ((y) < ((yy) + (hh))) && ((x) >= (xx)) && ((y) >= (yy)))
+        /* attempt to ensure no overlap with pointer */
+        if (INSIDE(px, py, tx, ty, tw, th))
+          {
+             int ax, ay;
+
+             ax = tt->pad.x ?: 1;
+             ay = tt->pad.y ?: 1;
+             if (!INSIDE(px, py, tx, ty + (py - ty) + ay, tw, th))
+               ty += py - ty + ay;
+             else if (!INSIDE(px, py, tx + (px - tx) + ax, ty, tw, th))
+               tx += px - tx + ax;
+             else if (!INSIDE(px, py, tx + (px - tx) + ax, ty + (py - ty) + ay, tw, th))
+               tx += px - tx + ax, ty += py - ty + ay;
+          }
+#undef INSIDE
+     }
    if (((tx < 0) && (tw < cw)) || ((ty < 0) && (th < ch)))
      {
         TTDBG("POSITIONING FAILED! THIS IS A BUG SOMEWHERE!\n");
@@ -504,6 +580,60 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
 
         msg = alloca(sizeof(Edje_Message_Float_Set) + sizeof(double));
         msg->count = 2;
+        //Orient calculations if orient set
+        switch (tt->orient)
+          {
+           case ELM_TOOLTIP_ORIENT_TOP_LEFT:
+             evas_object_move(tt->tooltip, ox - tw, oy - th);
+             rel_x = 1.1;
+             rel_y = 1.1;
+             break;
+           case ELM_TOOLTIP_ORIENT_TOP:
+             evas_object_move(tt->tooltip, ox + ((ow - tw) / 2), oy - th);
+             rel_x = 0.5;
+             rel_y = 1.1;
+             break;
+           case ELM_TOOLTIP_ORIENT_TOP_RIGHT:
+             evas_object_move(tt->tooltip, ox + ow, oy - th);
+             rel_x = -1.1;
+             rel_y = 1.1;
+             break;
+           case ELM_TOOLTIP_ORIENT_LEFT:
+             evas_object_move(tt->tooltip, ox - tw, oy + ((oh - th) / 2));
+             rel_x = 1.1;
+             rel_y = 0.5;
+             break;
+           case ELM_TOOLTIP_ORIENT_CENTER:
+             evas_object_move(tt->tooltip, ox + ((ow - tw) / 2), oy + ((oh - th) / 2));
+             rel_x = 0.5;
+             rel_y = 0.5;
+             break;
+           case ELM_TOOLTIP_ORIENT_RIGHT:
+             evas_object_move(tt->tooltip, ox + ow, oy + ((oh - th) / 2));
+             rel_x = -1.1;
+             rel_y = 0.5;
+             break;
+           case ELM_TOOLTIP_ORIENT_BOTTOM_LEFT:
+             evas_object_move(tt->tooltip, ox - tw, oy + oh);
+             rel_x = 1.1;
+             rel_y = -1.1;
+             break;
+           case ELM_TOOLTIP_ORIENT_BOTTOM:
+             evas_object_move(tt->tooltip, ox + ((ow - tw) / 2), oy + oh);
+             rel_x = 0.5;
+             rel_y = -1.1;
+             break;
+           case ELM_TOOLTIP_ORIENT_BOTTOM_RIGHT:
+             evas_object_move(tt->tooltip, ox + ow, oy + oh);
+             rel_x = -1.1;
+             rel_y = -1.1;
+             break;
+           default:
+             { /*Do Nothing!!*/
+             }
+          };
+        evas_object_show(tt->tooltip);
+
         msg->val[0] = rel_x;
         msg->val[1] = rel_y;
         tt->rel_pos.x = rel_x;
@@ -512,14 +642,14 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
         edje_object_message_send(tt->tooltip, EDJE_MESSAGE_FLOAT_SET, 1, msg);
      }
 #undef FDIF
+   if (tt->tt_win) evas_object_show(tt->tt_win);
 }
 
 static void
 _elm_tooltip_show_timer_stop(Elm_Tooltip *tt)
 {
    if (!tt->show_timer) return;
-   ecore_timer_del(tt->show_timer);
-   tt->show_timer = NULL;
+   ELM_SAFE_FREE(tt->show_timer, ecore_timer_del);
 }
 
 static Eina_Bool
@@ -532,7 +662,7 @@ _elm_tooltip_timer_show_cb(void *data)
 }
 
 static void
-_elm_tooltip_obj_mouse_in_cb(void *data, Evas *e  __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info  __UNUSED__)
+_elm_tooltip_obj_mouse_in_cb(void *data, Evas *e  EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info  EINA_UNUSED)
 {
    Elm_Tooltip *tt = data;
 
@@ -545,7 +675,7 @@ _elm_tooltip_obj_mouse_in_cb(void *data, Evas *e  __UNUSED__, Evas_Object *obj _
 }
 
 static void
-_elm_tooltip_obj_mouse_out_cb(Elm_Tooltip *tt, Evas *e  __UNUSED__, Evas_Object *obj __UNUSED__, Evas_Event_Mouse_Out *event __UNUSED__)
+_elm_tooltip_obj_mouse_out_cb(Elm_Tooltip *tt, Evas *e  EINA_UNUSED, Evas_Object *obj EINA_UNUSED, Evas_Event_Mouse_Out *event EINA_UNUSED)
 {
    if (tt->visible_lock) return;
 
@@ -558,7 +688,7 @@ _elm_tooltip_obj_mouse_out_cb(Elm_Tooltip *tt, Evas *e  __UNUSED__, Evas_Object 
    TTDBG("MOUSE OUT\n");
 }
 
-static void _elm_tooltip_obj_free_cb(void *data, Evas *e  __UNUSED__, Evas_Object *obj, void *event_info  __UNUSED__);
+static void _elm_tooltip_obj_free_cb(void *data, Evas *e  EINA_UNUSED, Evas_Object *obj, void *event_info  EINA_UNUSED);
 
 static void
 _elm_tooltip_unset(Elm_Tooltip *tt)
@@ -592,7 +722,7 @@ _elm_tooltip_unset(Elm_Tooltip *tt)
 }
 
 static void
-_elm_tooltip_obj_free_cb(void *data, Evas *e  __UNUSED__, Evas_Object *obj, void *event_info  __UNUSED__)
+_elm_tooltip_obj_free_cb(void *data, Evas *e  EINA_UNUSED, Evas_Object *obj, void *event_info  EINA_UNUSED)
 {
    Elm_Tooltip *tt = data;
    if (tt->eventarea == obj) tt->eventarea = NULL;
@@ -600,37 +730,53 @@ _elm_tooltip_obj_free_cb(void *data, Evas *e  __UNUSED__, Evas_Object *obj, void
    _elm_tooltip_unset(tt);
 }
 
+static void
+_tooltip_label_style_set(Evas_Object *obj, Evas_Object *label)
+{
+   ELM_TOOLTIP_GET_OR_RETURN(tt, obj);
+   char buf[100] = {0};
+   const char *style = tt->style ? tt->style : "default";
+
+   sprintf(buf, "tooltip/%s", style);
+   if (!elm_object_style_set(label, buf))
+     {
+        WRN("Failed to set tooltip label style: %s, reverting to old style",
+            buf);
+        elm_object_style_set(label, "tooltip"); //XXX: remove it in EFL 2.0
+     }
+}
+
 static Evas_Object *
-_elm_tooltip_label_create(void *data, Evas_Object *obj __UNUSED__, Evas_Object *tooltip)
+_elm_tooltip_label_create(void *data, Evas_Object *obj EINA_UNUSED, Evas_Object *tooltip)
 {
    Evas_Object *label = elm_label_add(tooltip);
    if (!label)
      return NULL;
-   elm_object_style_set(label, "tooltip");
+   _tooltip_label_style_set(obj, label);
    elm_object_text_set(label, data);
    return label;
 }
 
 static Evas_Object *
-_elm_tooltip_trans_label_create(void *data, Evas_Object *obj __UNUSED__, Evas_Object *tooltip)
+_elm_tooltip_trans_label_create(void *data, Evas_Object *obj EINA_UNUSED, Evas_Object *tooltip)
 {
    Evas_Object *label = elm_label_add(tooltip);
    const char **text = data;
    if (!label)
      return NULL;
-   elm_object_style_set(label, "tooltip");
+   _tooltip_label_style_set(obj, label);
    elm_object_domain_translatable_text_set(label, text[0], text[1]);
    return label;
 }
 
 static void
-_elm_tooltip_label_del_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_elm_tooltip_label_del_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    eina_stringshare_del(data);
 }
 
 static void
-_elm_tooltip_trans_label_del_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_elm_tooltip_trans_label_del_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    const char **text = data;
    eina_stringshare_del(text[0]);
@@ -649,6 +795,53 @@ _elm_tooltip_data_clean(Elm_Tooltip *tt)
    tt->del_cb = NULL;
 }
 
+EAPI void
+elm_object_tooltip_move_freeze_push(Evas_Object *obj)
+{
+   ELM_TOOLTIP_GET_OR_RETURN(tt, obj);
+
+   tt->move_freeze++;
+}
+
+EAPI void
+elm_object_tooltip_move_freeze_pop(Evas_Object *obj)
+{
+   ELM_TOOLTIP_GET_OR_RETURN(tt, obj);
+
+   tt->move_freeze--;
+   if (tt->move_freeze < 0) tt->move_freeze = 0;
+}
+
+EAPI int
+elm_object_tooltip_move_freeze_get(const Evas_Object *obj)
+{
+   ELM_TOOLTIP_GET_OR_RETURN(tt, obj, 0);
+
+   return tt->move_freeze;
+}
+
+EAPI void
+elm_object_tooltip_orient_set(Evas_Object *obj, Elm_Tooltip_Orient orient)
+{
+   ELM_TOOLTIP_GET_OR_RETURN(tt, obj);
+
+   if ((orient > ELM_TOOLTIP_ORIENT_NONE) && (orient < ELM_TOOLTIP_ORIENT_LAST))
+     tt->orient = orient;
+   else
+     tt->orient = ELM_TOOLTIP_ORIENT_NONE;
+}
+
+EAPI Elm_Tooltip_Orient
+elm_object_tooltip_orient_get(const Evas_Object *obj)
+{
+   ELM_TOOLTIP_GET_OR_RETURN(tt, obj, ELM_TOOLTIP_ORIENT_NONE);
+
+   Elm_Tooltip_Orient orient = ELM_TOOLTIP_ORIENT_NONE;
+
+   orient = tt->orient;
+   return orient;
+}
+
 /**
  * Notify tooltip should recalculate its theme.
  * @internal
@@ -660,7 +853,6 @@ elm_tooltip_theme(Elm_Tooltip *tt)
    tt->changed_style = EINA_TRUE;
    _elm_tooltip_reconfigure_job_start(tt);
 }
-
 
 /**
  * Set the content to be shown in the tooltip object for specific event area.
@@ -770,18 +962,6 @@ elm_object_sub_tooltip_content_cb_set(Evas_Object *eventarea, Evas_Object *owner
    if (del_cb) del_cb((void *)data, owner, NULL);
 }
 
-/**
- * Force show tooltip of object
- *
- * @param obj Target object
- *
- * Force show the tooltip and disable hide on mouse_out.
- * If another content is set as tooltip, the visible tooltip will hididen and
- * showed again with new content.
- * This can force show more than one tooltip at a time.
- *
- * @ingroup Tooltips
- */
 EAPI void
 elm_object_tooltip_show(Evas_Object *obj)
 {
@@ -790,15 +970,6 @@ elm_object_tooltip_show(Evas_Object *obj)
    _elm_tooltip_show(tt);
 }
 
-/**
- * Force hide tooltip of object
- *
- * @param obj Target object
- *
- * Force hide the tooltip and (re)enable future mouse interations.
- *
- * @ingroup Tooltips
- */
 EAPI void
 elm_object_tooltip_hide(Evas_Object *obj)
 {
@@ -807,18 +978,6 @@ elm_object_tooltip_hide(Evas_Object *obj)
    _elm_tooltip_hide_anim_start(tt);
 }
 
-/**
- * Set the text to be shown in the tooltip object
- *
- * @param obj Target object
- * @param text The text to set in the content
- *
- * Setup the text as tooltip to object. The object can have only one tooltip,
- * so any previous tooltip data is removed.
- * This method call internaly the elm_tooltip_content_cb_set().
- *
- * @ingroup Tooltips
- */
 EAPI void
 elm_object_tooltip_text_set(Evas_Object *obj, const char *text)
 {
@@ -830,8 +989,6 @@ elm_object_tooltip_text_set(Evas_Object *obj, const char *text)
      (obj, _elm_tooltip_label_create, text, _elm_tooltip_label_del_cb);
 }
 
-/**
- */
 EAPI void
 elm_object_tooltip_domain_translatable_text_set(Evas_Object *obj, const char *domain, const char *text)
 {
@@ -848,45 +1005,12 @@ elm_object_tooltip_domain_translatable_text_set(Evas_Object *obj, const char *do
       _elm_tooltip_trans_label_del_cb);
 }
 
-/**
- * Set the content to be shown in the tooltip object
- *
- * Setup the tooltip to object. The object can have only one tooltip,
- * so any previous tooltip data is removed. @p func(with @p data) will
- * be called every time that need show the tooltip and it should
- * return a valid Evas_Object. This object is then managed fully by
- * tooltip system and is deleted when the tooltip is gone.
- *
- * @param obj the object being attached a tooltip.
- * @param func the function used to create the tooltip contents.
- * @param data what to provide to @a func as callback data/context.
- * @param del_cb called when data is not needed anymore, either when
- *        another callback replaces @p func, the tooltip is unset with
- *        elm_object_tooltip_unset() or the owner object @a obj
- *        dies. This callback receives as the first parameter the
- *        given @a data, and @c event_info is NULL.
- *
- * @ingroup Tooltips
- */
 EAPI void
 elm_object_tooltip_content_cb_set(Evas_Object *obj, Elm_Tooltip_Content_Cb func, const void *data, Evas_Smart_Cb del_cb)
 {
    elm_object_sub_tooltip_content_cb_set(obj, obj, func, data, del_cb);
 }
 
-/**
- * Unset tooltip from object
- *
- * @param obj Target object
- *
- * Remove tooltip from object. The callback provided as del_cb to
- * elm_object_tooltip_content_cb_set() will be called to notify it is
- * not used anymore.
- *
- * @see elm_object_tooltip_content_cb_set()
- *
- * @ingroup Tooltips
- */
 EAPI void
 elm_object_tooltip_unset(Evas_Object *obj)
 {
@@ -894,16 +1018,6 @@ elm_object_tooltip_unset(Evas_Object *obj)
    _elm_tooltip_unset(tt);
 }
 
-/**
- * Sets a different style for this object tooltip.
- *
- * @note before you set a style you should define a tooltip with
- *       elm_object_tooltip_content_cb_set() or
- *       elm_object_tooltip_text_set().
- *
- * @param obj an object with tooltip already set.
- * @param style the theme style to use (default, transparent, ...)
- */
 EAPI void
 elm_object_tooltip_style_set(Evas_Object *obj, const char *style)
 {
@@ -912,13 +1026,6 @@ elm_object_tooltip_style_set(Evas_Object *obj, const char *style)
    elm_tooltip_theme(tt);
 }
 
-/**
- * Get the style for this object tooltip.
- *
- * @param obj an object with tooltip already set.
- * @return style the theme style in use, defaults to "default". If the
- *         object does not have a tooltip set, then NULL is returned.
- */
 EAPI const char *
 elm_object_tooltip_style_get(const Evas_Object *obj)
 {
@@ -926,15 +1033,6 @@ elm_object_tooltip_style_get(const Evas_Object *obj)
    return tt->style ? tt->style : "default";
 }
 
-/**
- * @brief Disable size restrictions on an object's tooltip
- * @param obj The tooltip's anchor object
- * @param disable If EINA_TRUE, size restrictions are disabled
- * @return EINA_FALSE on failure, EINA_TRUE on success
- *
- * This function allows a tooltip to expand beyond its parent window's canvas.
- * It will instead be limited only by the size of the display.
- */
 EAPI Eina_Bool
 elm_object_tooltip_window_mode_set(Evas_Object *obj, Eina_Bool disable)
 {
@@ -942,15 +1040,6 @@ elm_object_tooltip_window_mode_set(Evas_Object *obj, Eina_Bool disable)
    return tt->free_size = disable;
 }
 
-/**
- * @brief Retrieve size restriction state of an object's tooltip
- * @param obj The tooltip's anchor object
- * @return If EINA_TRUE, size restrictions are disabled
- *
- * This function returns whether a tooltip is allowed to expand beyond
- * its parent window's canvas.
- * It will instead be limited only by the size of the display.
- */
 EAPI Eina_Bool
 elm_object_tooltip_window_mode_get(const Evas_Object *obj)
 {

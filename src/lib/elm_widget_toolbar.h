@@ -2,7 +2,12 @@
 #define ELM_WIDGET_TOOLBAR_H
 
 #include "elm_interface_scrollable.h"
-#include "els_box.h"
+
+/* DO NOT USE THIS HEADER UNLESS YOU ARE PREPARED FOR BREAKING OF YOUR
+ * CODE. THIS IS ELEMENTARY'S INTERNAL WIDGET API (for now) AND IS NOT
+ * FINAL. CALL elm_widget_api_check(ELM_INTERNAL_API_VERSION) TO CHECK
+ * IT AT RUNTIME.
+ */
 
 /**
  * @internal
@@ -16,127 +21,27 @@
  * widgets which are a toolbar with some more logic on top.
  */
 
-/**
- * @def ELM_TOOLBAR_CLASS
- *
- * Use this macro to cast whichever subclass of
- * #Elm_Toolbar_Smart_Class into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_TOOLBAR_CLASS(x) ((Elm_Toolbar_Smart_Class *)x)
-
-/**
- * @def ELM_TOOLBAR_DATA
- *
- * Use this macro to cast whichever subdata of
- * #Elm_Toolbar_Smart_Data into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_TOOLBAR_DATA(x)  ((Elm_Toolbar_Smart_Data *)x)
-
-/**
- * @def ELM_TOOLBAR_SMART_CLASS_VERSION
- *
- * Current version for Elementary toolbar @b base smart class, a value
- * which goes to _Elm_Toolbar_Smart_Class::version.
- *
- * @ingroup Widget
- */
-#define ELM_TOOLBAR_SMART_CLASS_VERSION 1
-
-/**
- * @def ELM_TOOLBAR_SMART_CLASS_INIT
- *
- * Initializer for a whole #Elm_Toolbar_Smart_Class structure, with
- * @c NULL values on its specific fields.
- *
- * @param smart_class_init initializer to use for the "base" field
- * (#Evas_Smart_Class).
- *
- * @see EVAS_SMART_CLASS_INIT_NULL
- * @see EVAS_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_TOOLBAR_SMART_CLASS_INIT_NULL
- * @see ELM_TOOLBAR_SMART_CLASS_INIT_NAME_VERSION
- *
- * @ingroup Widget
- */
-#define ELM_TOOLBAR_SMART_CLASS_INIT(smart_class_init) \
-  {smart_class_init, ELM_TOOLBAR_SMART_CLASS_VERSION}
-
-/**
- * @def ELM_TOOLBAR_SMART_CLASS_INIT_NULL
- *
- * Initializer to zero out a whole #Elm_Toolbar_Smart_Class structure.
- *
- * @see ELM_TOOLBAR_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_TOOLBAR_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_TOOLBAR_SMART_CLASS_INIT_NULL \
-  ELM_TOOLBAR_SMART_CLASS_INIT(EVAS_SMART_CLASS_INIT_NULL)
-
-/**
- * @def ELM_TOOLBAR_SMART_CLASS_INIT_NAME_VERSION
- *
- * Initializer to zero out a whole #Elm_Toolbar_Smart_Class structure and
- * set its name and version.
- *
- * This is similar to #ELM_TOOLBAR_SMART_CLASS_INIT_NULL, but it will
- * also set the version field of #Elm_Toolbar_Smart_Class (base field)
- * to the latest #ELM_TOOLBAR_SMART_CLASS_VERSION and name it to the
- * specific value.
- *
- * It will keep a reference to the name field as a <c>"const char *"</c>,
- * i.e., the name must be available while the structure is
- * used (hint: static or global variable!) and must not be modified.
- *
- * @see ELM_TOOLBAR_SMART_CLASS_INIT_NULL
- * @see ELM_TOOLBAR_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_TOOLBAR_SMART_CLASS_INIT_NAME_VERSION(name) \
-  ELM_TOOLBAR_SMART_CLASS_INIT(ELM_WIDGET_SMART_CLASS_INIT_NAME_VERSION(name))
-
-/**
- * Elementary toolbar base smart class. This inherits directly from
- * #Elm_Widget_Smart_Class and is meant to build widgets extending the
- * behavior of a toolbar.
- *
- * All of the functions listed on @ref Toolbar namespace will work for
- * objects deriving from #Elm_Toolbar_Smart_Class.
- */
-typedef struct _Elm_Toolbar_Smart_Class
-{
-   Elm_Widget_Smart_Class base;
-
-   int                    version; /**< Version of this smart class definition */
-} Elm_Toolbar_Smart_Class;
-
-typedef struct _Elm_Toolbar_Item Elm_Toolbar_Item;
+typedef struct _Elm_Toolbar_Item_Data Elm_Toolbar_Item_Data;
 
 /**
  * Base widget smart data extended with toolbar instance data.
  */
-typedef struct _Elm_Toolbar_Smart_Data Elm_Toolbar_Smart_Data;
-struct _Elm_Toolbar_Smart_Data
+typedef struct _Elm_Toolbar_Data Elm_Toolbar_Data;
+struct _Elm_Toolbar_Data
 {
-   Elm_Widget_Smart_Data                 base; /* base widget smart data as
-                                                * first member obligatory, as
-                                                * we're inheriting from it */
-
    Evas_Object                          *hit_rect;
-   const Elm_Scrollable_Smart_Interface *s_iface;
 
    Evas_Object                          *bx, *more, *bx_more, *bx_more2;
    Evas_Object                          *menu_parent;
    Eina_Inlist                          *items;
-   Elm_Toolbar_Item                     *more_item;
-   Elm_Toolbar_Item                     *selected_item, *highlighted_item;
-   Elm_Toolbar_Item                     *reorder_empty, *reorder_item;
+   Elm_Toolbar_Item_Data                *more_item;
+   Elm_Object_Item                      *selected_item; /**< a selected item by mouse click, return key, api, and etc. */
+   // TIZEN_ONLY(20150815): Properly unselect the last item which is selected by order.
+   Elm_Object_Item                      *auto_selected_last_item; /**< a selected item by order. */
+   //
+   Elm_Object_Item                      *focused_item; /**< a focused item by keypad arrow or mouse. This is set to NULL if widget looses focus. */
+   Elm_Object_Item                      *last_focused_item; /**< This records the last focused item when widget looses focus. This is required to set the focus on last focused item when widgets gets focus. */
+   Elm_Toolbar_Item_Data                *reorder_empty, *reorder_item;
    Elm_Toolbar_Shrink_Mode               shrink_mode;
    Elm_Icon_Lookup_Order                 lookup_order;
    int                                   theme_icon_size, priv_icon_size,
@@ -152,15 +57,15 @@ struct _Elm_Toolbar_Smart_Data
    Eina_Bool                             vertical : 1;
    Eina_Bool                             long_press : 1;
    Eina_Bool                             homogeneous : 1;
-   Eina_Bool                             on_deletion : 1;
+   Eina_Bool                             delete_me : 1;
    Eina_Bool                             reorder_mode : 1;
    Eina_Bool                             transverse_expanded : 1;
-   Eina_Bool                             mouse_down : 1;
+   Eina_Bool                             mouse_down : 1; /**< a flag that mouse is down on the toolbar at the moment. This flag is set to true on mouse and reset to false on mouse up. */
 };
 
-struct _Elm_Toolbar_Item
+struct _Elm_Toolbar_Item_Data
 {
-   ELM_WIDGET_ITEM;
+   Elm_Widget_Item_Data     *base;
    EINA_INLIST;
 
    const char   *label;
@@ -172,7 +77,7 @@ struct _Elm_Toolbar_Item
    Evas_Object  *proxy;
    Evas_Smart_Cb func;
    Elm_Transit  *trans;
-   Elm_Toolbar_Item *reorder_to;
+   Elm_Toolbar_Item_Data *reorder_to;
    struct
    {
       int       priority;
@@ -186,10 +91,6 @@ struct _Elm_Toolbar_Item
    Eina_Bool     selected : 1;
    Eina_Bool     menu : 1;
    Eina_Bool     on_move : 1;
-
-   //******************** TIZEN Only
-   Eina_Bool     pressed : 1;
-   //****************************
 };
 
 struct _Elm_Toolbar_Item_State
@@ -205,47 +106,44 @@ struct _Elm_Toolbar_Item_State
  * @}
  */
 
-EAPI extern const char ELM_TOOLBAR_SMART_NAME[];
-EAPI const Elm_Toolbar_Smart_Class
-*elm_toolbar_smart_class_get(void);
-
 #define ELM_TOOLBAR_DATA_GET(o, sd) \
-  Elm_Toolbar_Smart_Data * sd = evas_object_smart_data_get(o)
+  Elm_Toolbar_Data * sd = eo_data_scope_get(o, ELM_TOOLBAR_CLASS)
 
 #define ELM_TOOLBAR_DATA_GET_OR_RETURN(o, ptr)       \
   ELM_TOOLBAR_DATA_GET(o, ptr);                      \
-  if (!ptr)                                          \
+  if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
-       CRITICAL("No widget data for object %p (%s)", \
-                o, evas_object_type_get(o));         \
+       CRI("No widget data for object %p (%s)",      \
+           o, evas_object_type_get(o));              \
        return;                                       \
     }
 
 #define ELM_TOOLBAR_DATA_GET_OR_RETURN_VAL(o, ptr, val) \
   ELM_TOOLBAR_DATA_GET(o, ptr);                         \
-  if (!ptr)                                             \
+  if (EINA_UNLIKELY(!ptr))                              \
     {                                                   \
-       CRITICAL("No widget data for object %p (%s)",    \
-                o, evas_object_type_get(o));            \
+       CRI("No widget data for object %p (%s)",         \
+           o, evas_object_type_get(o));                 \
        return val;                                      \
     }
 
-#define ELM_TOOLBAR_CHECK(obj)                                          \
-  if (!obj || !elm_widget_type_check((obj),                             \
-                                     ELM_TOOLBAR_SMART_NAME, __func__)) \
+#define ELM_TOOLBAR_CHECK(obj)                              \
+  if (EINA_UNLIKELY(!eo_isa((obj), ELM_TOOLBAR_CLASS))) \
     return
 
 #define ELM_TOOLBAR_ITEM_CHECK(it)                          \
-  ELM_WIDGET_ITEM_CHECK_OR_RETURN((Elm_Widget_Item *)it, ); \
-  ELM_TOOLBAR_CHECK(it->base.widget);
+  ELM_WIDGET_ITEM_CHECK_OR_RETURN(it->base, ); \
+  ELM_TOOLBAR_CHECK(it->base->widget);
 
 #define ELM_TOOLBAR_ITEM_CHECK_OR_RETURN(it, ...)                      \
-  ELM_WIDGET_ITEM_CHECK_OR_RETURN((Elm_Widget_Item *)it, __VA_ARGS__); \
-  ELM_TOOLBAR_CHECK(it->base.widget) __VA_ARGS__;
+  ELM_WIDGET_ITEM_CHECK_OR_RETURN(it->base, __VA_ARGS__); \
+  ELM_TOOLBAR_CHECK(it->base->widget) __VA_ARGS__;
 
 #define ELM_TOOLBAR_ITEM_CHECK_OR_GOTO(it, label)              \
-  ELM_WIDGET_ITEM_CHECK_OR_GOTO((Elm_Widget_Item *)it, label); \
-  if (!it->base.widget || !elm_widget_type_check               \
-        ((it->base.widget), ELM_TOOLBAR_SMART_NAME, __func__)) goto label;
+  ELM_WIDGET_ITEM_CHECK_OR_GOTO(it->base, label); \
+  if (!it->base->widget || !eo_isa ((it->base->widget), ELM_TOOLBAR_CLASS)) goto label;
+
+#define ELM_TOOLBAR_ITEM_DATA_GET(o, sd) \
+  Elm_Toolbar_Item_Data *sd = eo_data_scope_get(o, ELM_TOOLBAR_ITEM_CLASS)
 
 #endif

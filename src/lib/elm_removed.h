@@ -12,8 +12,6 @@
 #error "do not include this"
 
 /**
- * @image html img/widget/toggle/preview-00.png
- * @image latex img/widget/toggle/preview-00.eps
  *
  * @brief A toggle is a slider which can be used to toggle between
  * two values.  It has two states: on and off.
@@ -44,6 +42,7 @@
 
 /**
  * @internal
+ *
  * @brief Add a toggle to @p parent.
  *
  * @param parent The parent object
@@ -54,6 +53,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_toggle_add(Evas_Object *parent);
 
 /**
  * @internal
+ *
  * @brief Sets the label to be displayed with the toggle.
  *
  * @param obj The toggle object
@@ -65,7 +65,8 @@ EINA_DEPRECATED EAPI void         elm_toggle_label_set(Evas_Object *obj, const c
 
 /**
  * @internal
- * @brief Gets the label of the toggle
+ *
+ * @brief Get the label of the toggle
  *
  * @param obj  toggle object
  * @return The label of the toggle
@@ -76,6 +77,7 @@ EINA_DEPRECATED EAPI const char  *elm_toggle_label_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Set the icon used for the toggle
  *
  * @param obj The toggle object
@@ -91,6 +93,7 @@ EINA_DEPRECATED EAPI void         elm_toggle_icon_set(Evas_Object *obj, Evas_Obj
 
 /**
  * @internal
+ *
  * @brief Get the icon used for the toggle
  *
  * @param obj The toggle object
@@ -104,6 +107,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_toggle_icon_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Unset the icon used for the toggle
  *
  * @param obj The toggle object
@@ -117,6 +121,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_toggle_icon_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Sets the labels to be associated with the on and off states of the toggle.
  *
  * @param obj The toggle object
@@ -130,7 +135,8 @@ EINA_DEPRECATED EAPI void         elm_toggle_states_labels_set(Evas_Object *obj,
 
 /**
  * @internal
- * @brief Gets the labels associated with the on and off states of the
+ *
+ * @brief Get the labels associated with the on and off states of the
  * toggle.
  *
  * @param obj The toggle object
@@ -144,6 +150,7 @@ EINA_DEPRECATED EAPI void         elm_toggle_states_labels_get(const Evas_Object
 
 /**
  * @internal
+ *
  * @brief Sets the state of the toggle to @p state.
  *
  * @param obj The toggle object
@@ -155,7 +162,8 @@ EINA_DEPRECATED EAPI void         elm_toggle_state_set(Evas_Object *obj, Eina_Bo
 
 /**
  * @internal
- * @brief Gets the state of the toggle to @p state.
+ *
+ * @brief Get the state of the toggle to @p state.
  *
  * @param obj The toggle object
  * @return The state of @p obj
@@ -166,6 +174,7 @@ EINA_DEPRECATED EAPI Eina_Bool    elm_toggle_state_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Sets the state pointer of the toggle to @p statep.
  *
  * @param obj The toggle object
@@ -176,11 +185,8 @@ EINA_DEPRECATED EAPI Eina_Bool    elm_toggle_state_get(const Evas_Object *obj);
 EINA_DEPRECATED EAPI void         elm_toggle_state_pointer_set(Evas_Object *obj, Eina_Bool *statep);
 
 /**
- * @}
- */
-
-/**
  * @internal
+ *
  * @brief Get Elementary's rendering engine in use.
  *
  * @return The rendering engine's name
@@ -196,6 +202,7 @@ EINA_DEPRECATED EAPI const char *elm_engine_current_get(void);
 
 /**
  * @internal
+ *
  * Set the configured finger size for all applications on the display
  *
  * This sets the globally configured finger size in pixels for all
@@ -203,12 +210,13 @@ EINA_DEPRECATED EAPI const char *elm_engine_current_get(void);
  *
  * @param size The finger size
  * @ingroup Fingers
- * @deprecated Use elm_finger_size_set() and elm_config_all_flush()
+ * @deprecated Use elm_config_finger_size_set() and elm_config_all_flush()
  */
 EINA_DEPRECATED EAPI void       elm_finger_size_all_set(Evas_Coord size);
 
 /**
  * @internal
+ *
  * Set the global scaling factor for all applications on the display
  *
  * This sets the globally configured scaling factor that is applied to all
@@ -221,6 +229,7 @@ EINA_DEPRECATED EAPI void   elm_scale_all_set(double scale);
 
 /**
  * @internal
+ *
  * Apply the changes made with elm_font_overlay_set() and
  * elm_font_overlay_unset() on all Elementary application windows.
  *
@@ -233,6 +242,7 @@ EINA_DEPRECATED EAPI void             elm_font_overlay_all_apply(void);
 
 /**
  * @internal
+ *
  * Set the configured cache flush interval time for all applications on the
  * display
  *
@@ -247,6 +257,7 @@ EINA_DEPRECATED EAPI void      elm_cache_flush_interval_all_set(int size);
 
 /**
  * @internal
+ *
  * Set the configured cache flush enabled state for all applications on the
  * display
  *
@@ -261,6 +272,7 @@ EINA_DEPRECATED EAPI void      elm_cache_flush_enabled_all_set(Eina_Bool enabled
 
 /**
  * @internal
+ *
  * Set the configured font cache size for all applications on the
  * display
  *
@@ -275,6 +287,7 @@ EINA_DEPRECATED EAPI void      elm_font_cache_all_set(int size);
 
 /**
  * @internal
+ *
  * Set the configured image cache size for all applications on the
  * display
  *
@@ -289,6 +302,7 @@ EINA_DEPRECATED EAPI void      elm_image_cache_all_set(int size);
 
 /**
  * @internal
+ *
  * Set the configured edje file cache size for all applications on the
  * display
  *
@@ -303,6 +317,7 @@ EINA_DEPRECATED EAPI void      elm_edje_file_cache_all_set(int size);
 
 /**
  * @internal
+ *
  * Set the configured edje collections (groups) cache size for all
  * applications on the display
  *
@@ -317,6 +332,7 @@ EINA_DEPRECATED EAPI void      elm_edje_collection_cache_all_set(int size);
 
 /**
  * @internal
+ *
  * Set Elementary's profile.
  *
  * This sets the global profile that is applied to all Elementary
@@ -331,6 +347,7 @@ EINA_DEPRECATED EAPI void        elm_profile_all_set(const char *profile);
 
 /**
  * @internal
+ *
  * Set whether scrollers should bounce when they reach their
  * viewport's edge during a scroll, for all Elementary application
  * windows.
@@ -345,6 +362,7 @@ EINA_DEPRECATED EAPI void         elm_scroll_bounce_enabled_all_set(Eina_Bool en
 
 /**
  * @internal
+ *
  * Set the amount of inertia a scroller will impose at bounce
  * animations, for all Elementary application windows.
  *
@@ -358,6 +376,7 @@ EINA_DEPRECATED EAPI void         elm_scroll_bounce_friction_all_set(double fric
 
 /**
  * @internal
+ *
  * Set the amount of inertia a <b>paged</b> scroller will impose at
  * page fitting animations, for all Elementary application windows.
  *
@@ -372,6 +391,7 @@ EINA_DEPRECATED EAPI void         elm_scroll_page_scroll_friction_all_set(double
 
 /**
  * @internal
+ *
  * Set the amount of inertia a scroller will impose at region bring
  * animations, for all Elementary application windows.
  *
@@ -386,6 +406,7 @@ EINA_DEPRECATED EAPI void         elm_scroll_bring_in_scroll_friction_all_set(do
 
 /**
  * @internal
+ *
  * Set the amount of inertia scrollers will impose at animations
  * triggered by Elementary widgets' zooming API, for all Elementary
  * application windows.
@@ -400,6 +421,7 @@ EINA_DEPRECATED EAPI void         elm_scroll_zoom_friction_all_set(double fricti
 
 /**
  * @internal
+ *
  * Set whether scrollers should be draggable from any point in their
  * views, for all Elementary application windows.
  *
@@ -415,6 +437,8 @@ EINA_DEPRECATED EAPI void         elm_scroll_thumbscroll_enabled_all_set(Eina_Bo
 
 /**
  * @internal
+ *
+
  * Set the number of pixels one should travel while dragging a
  * scroller's view to actually trigger scrolling, for all Elementary
  * application windows.
@@ -431,6 +455,7 @@ EINA_DEPRECATED EAPI void         elm_scroll_thumbscroll_threshold_all_set(unsig
 
 /**
  * @internal
+ *
  * Set the minimum speed of mouse cursor movement which will trigger
  * list self scrolling animation after a mouse up event
  * (pixels/second), for all Elementary application windows.
@@ -447,6 +472,7 @@ EINA_DEPRECATED EAPI void         elm_scroll_thumbscroll_momentum_threshold_all_
 
 /**
  * @internal
+ *
  * Set the amount of inertia a scroller will impose at self scrolling
  * animations, for all Elementary application windows.
  *
@@ -462,6 +488,7 @@ EINA_DEPRECATED EAPI void         elm_scroll_thumbscroll_friction_all_set(double
 
 /**
  * @internal
+ *
  * Set the amount of lag between your actual mouse cursor dragging
  * movement and a scroller's view movement itself, while pushing it
  * into bounce state manually, for all Elementary application windows.
@@ -481,6 +508,7 @@ EINA_DEPRECATED EAPI void         elm_scroll_thumbscroll_border_friction_all_set
 
 /**
  * @internal
+ *
  * Set the sensitivity amount which is be multiplied by the length of
  * mouse dragging, for all Elementary application windows.
  *
@@ -522,20 +550,7 @@ EINA_DEPRECATED EAPI Evas_Object  *elm_gen_item_widget_get(const Elm_Gen_Item *i
 
 /**
  * @internal
- * Get the widget object's handle which contains a given item
  *
- * @param it The Elementary object item
- * @return The widget object
- *
- * @note This returns the widget object itself that an item belongs to.
- * @note Every elm_object_item supports this API
- * @deprecated Use elm_object_item_widget_get() instead
- * @ingroup General
- */
-EINA_DEPRECATED EAPI Evas_Object                 *elm_object_item_object_get(const Elm_Object_Item *it);
-
-/**
- * @internal
  * Set the text to show in the anchorblock
  *
  * Sets the text of the anchorblock to @p text. This text can include markup
@@ -555,9 +570,10 @@ EINA_DEPRECATED EAPI void        elm_anchorblock_text_set(Evas_Object *obj, cons
 
 /**
  * @internal
+ *
  * Get the markup text set for the anchorblock
  *
- * Retrieves the text set on the anchorblock, with markup tags included.
+ * Gets the text set on the anchorblock, with markup tags included.
  *
  * @param obj The anchorblock object
  * @return The markup text set or @c NULL if nothing was set or an error
@@ -568,6 +584,7 @@ EINA_DEPRECATED EAPI const char *elm_anchorblock_text_get(const Evas_Object *obj
 
 /**
  * @internal
+ *
  * Set the text to show in the anchorview
  *
  * Sets the text of the anchorview to @p text. This text can include markup
@@ -587,9 +604,10 @@ EINA_DEPRECATED EAPI void        elm_anchorview_text_set(Evas_Object *obj, const
 
 /**
  * @internal
+ *
  * Get the markup text set for the anchorview
  *
- * Retrieves the text set on the anchorview, with markup tags included.
+ * Gets the text set on the anchorview, with markup tags included.
  *
  * @param obj The anchorview object
  * @return The markup text set or @c NULL if nothing was set or an error
@@ -600,6 +618,7 @@ EINA_DEPRECATED EAPI const char *elm_anchorview_text_get(const Evas_Object *obj)
 
 /**
  * @internal
+ *
  * @brief Get the ctxpopup item's disabled/enabled state.
  *
  * @param it Ctxpopup item to be enabled/disabled
@@ -614,6 +633,7 @@ EINA_DEPRECATED EAPI Eina_Bool                    elm_ctxpopup_item_disabled_get
 
 /**
  * @internal
+ *
  * @brief Set the ctxpopup item's state as disabled or enabled.
  *
  * @param it Ctxpopup item to be enabled/disabled
@@ -628,6 +648,7 @@ EINA_DEPRECATED EAPI void         elm_ctxpopup_item_disabled_set(Elm_Object_Item
 
 /**
  * @internal
+ *
  * @brief Get the icon object for the given ctxpopup item.
  *
  * @param it Ctxpopup item
@@ -645,6 +666,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_ctxpopup_item_icon_get(const Elm_Object_It
 
 /**
  * @internal
+ *
  * @brief Sets the side icon associated with the ctxpopup item
  *
  * @param it Ctxpopup item
@@ -664,6 +686,7 @@ EINA_DEPRECATED EAPI void         elm_ctxpopup_item_icon_set(Elm_Object_Item *it
 
 /**
  * @internal
+ *
  * @brief Get the label for the given ctxpopup item.
  *
  * @param it Ctxpopup item
@@ -681,6 +704,7 @@ EINA_DEPRECATED EAPI const char  *elm_ctxpopup_item_label_get(const Elm_Object_I
 
 /**
  * @internal
+ *
  * @brief (Re)set the label on the given ctxpopup item.
  *
  * @param it Ctxpopup item
@@ -694,6 +718,7 @@ EINA_DEPRECATED EAPI void         elm_ctxpopup_item_label_set(Elm_Object_Item *i
 
 /**
  * @internal
+ *
  * @brief Set an elm widget as the content of the ctxpopup.
  *
  * @param obj Ctxpopup object
@@ -714,6 +739,7 @@ EINA_DEPRECATED EAPI void         elm_ctxpopup_content_set(Evas_Object *obj, Eva
 
 /**
  * @internal
+ *
  * @brief Unset the ctxpopup content
  *
  * @param obj Ctxpopup object
@@ -733,6 +759,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_ctxpopup_content_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Delete the given item in a ctxpopup object.
  *
  * @param it Ctxpopup item to be deleted
@@ -746,6 +773,7 @@ EINA_DEPRECATED EAPI void                         elm_ctxpopup_item_del(Elm_Obje
 
 /**
  * @internal
+ *
  * Set the label for a given file selector button widget
  *
  * @param obj The file selector button widget
@@ -757,6 +785,7 @@ EINA_DEPRECATED EAPI void        elm_fileselector_button_label_set(Evas_Object *
 
 /**
  * @internal
+ *
  * Get the label set for a given file selector button widget
  *
  * @param obj The file selector button widget
@@ -768,6 +797,7 @@ EINA_DEPRECATED EAPI const char *elm_fileselector_button_label_get(const Evas_Ob
 
 /**
  * @internal
+ *
  * Set the icon on a given file selector button widget
  *
  * @param obj The file selector button widget
@@ -784,6 +814,7 @@ EINA_DEPRECATED EAPI void                        elm_fileselector_button_icon_se
 
 /**
  * @internal
+ *
  * Get the icon set for a given file selector button widget
  *
  * @param obj The file selector button widget
@@ -797,6 +828,7 @@ EINA_DEPRECATED EAPI Evas_Object                *elm_fileselector_button_icon_ge
 
 /**
  * @internal
+ *
  * Unset the icon used in a given file selector button widget
  *
  * @param obj The file selector button widget
@@ -813,6 +845,7 @@ EINA_DEPRECATED EAPI Evas_Object                *elm_fileselector_button_icon_un
 
 /**
  * @internal
+ *
  * Set the label for a given file selector entry widget's button
  *
  * @param obj The file selector entry widget
@@ -825,6 +858,7 @@ EINA_DEPRECATED EAPI void        elm_fileselector_entry_button_label_set(Evas_Ob
 
 /**
  * @internal
+ *
  * Get the label set for a given file selector entry widget's button
  *
  * @param obj The file selector entry widget
@@ -836,6 +870,7 @@ EINA_DEPRECATED EAPI const char *elm_fileselector_entry_button_label_get(const E
 
 /**
  * @internal
+ *
  * Set the icon on a given file selector entry widget's button
  *
  * @param obj The file selector entry widget
@@ -852,6 +887,7 @@ EINA_DEPRECATED EAPI void                        elm_fileselector_entry_button_i
 
 /**
  * @internal
+ *
  * Get the icon set for a given file selector entry widget's button
  *
  * @param obj The file selector entry widget
@@ -865,6 +901,7 @@ EINA_DEPRECATED EAPI Evas_Object                *elm_fileselector_entry_button_i
 
 /**
  * @internal
+ *
  * Unset the icon used in a given file selector entry widget's
  * button
  *
@@ -882,6 +919,7 @@ EINA_DEPRECATED EAPI Evas_Object                *elm_fileselector_entry_button_i
 
 /**
  * @internal
+ *
  * @brief Sets the content of the hover object and the direction in which it
  * will pop out.
  *
@@ -916,6 +954,7 @@ EINA_DEPRECATED EAPI void         elm_hover_content_set(Evas_Object *obj, const 
 
 /**
  * @internal
+ *
  * @brief Get the content of the hover object, in a given direction.
  *
  * Return the content object which was set for this widget in the
@@ -932,6 +971,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_hover_content_get(const Evas_Object *obj, 
 
 /**
  * @internal
+ *
  * @brief Unset the content of the hover object, in a given direction.
  *
  * Unparent and return the content object set at @p swallow direction.
@@ -947,6 +987,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_hover_content_unset(Evas_Object *obj, cons
 
 /**
  * @internal
+ *
  * @brief Set the hoversel button label
  *
  * @param obj The hoversel object
@@ -961,6 +1002,7 @@ EINA_DEPRECATED EAPI void         elm_hoversel_label_set(Evas_Object *obj, const
 
 /**
  * @internal
+ *
  * @brief Get the hoversel button label
  *
  * @param obj The hoversel object
@@ -972,6 +1014,7 @@ EINA_DEPRECATED EAPI const char  *elm_hoversel_label_get(const Evas_Object *obj)
 
 /**
  * @internal
+ *
  * @brief Set the icon of the hoversel button
  *
  * @param obj The hoversel object
@@ -989,6 +1032,7 @@ EINA_DEPRECATED EAPI void         elm_hoversel_icon_set(Evas_Object *obj, Evas_O
 
 /**
  * @internal
+ *
  * @brief Get the icon of the hoversel button
  *
  * @param obj The hoversel object
@@ -1004,6 +1048,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_hoversel_icon_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Get and unparent the icon of the hoversel button
  *
  * @param obj The hoversel object
@@ -1020,6 +1065,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_hoversel_icon_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief This returns the data pointer supplied with elm_hoversel_item_add()
  * that will be passed to associated function callbacks.
  *
@@ -1033,6 +1079,7 @@ EINA_DEPRECATED EAPI void        *elm_hoversel_item_data_get(const Elm_Object_It
 
 /**
  * @internal
+ *
  * @brief This returns the label text of the given hoversel item.
  *
  * @param it The item to get the label
@@ -1045,6 +1092,7 @@ EINA_DEPRECATED EAPI const char  *elm_hoversel_item_label_get(const Elm_Object_I
 
 /**
  * @internal
+ *
  * @brief Set the function to be called when an item from the hoversel is
  * freed.
  *
@@ -1063,6 +1111,7 @@ EINA_DEPRECATED EAPI void                         elm_hoversel_item_del_cb_set(E
 
 /**
  * @internal
+ *
  * @brief Delete an item from the hoversel
  *
  * @param it The item to delete
@@ -1077,6 +1126,7 @@ EINA_DEPRECATED EAPI void                         elm_hoversel_item_del(Elm_Obje
 
 /**
  * @internal
+ *
  * Set actionslider labels.
  *
  * @param obj The actionslider object
@@ -1089,6 +1139,7 @@ EINA_DEPRECATED EAPI void        elm_actionslider_labels_set(Evas_Object *obj, c
 
 /**
  * @internal
+ *
  * Get actionslider labels.
  *
  * @param obj The actionslider object
@@ -1101,6 +1152,7 @@ EINA_DEPRECATED EAPI void        elm_actionslider_labels_get(const Evas_Object *
 
 /**
  * @internal
+ *
  * Set the label used on the indicator.
  *
  * @param obj The actionslider object
@@ -1111,6 +1163,7 @@ EINA_DEPRECATED EAPI void        elm_actionslider_indicator_label_set(Evas_Objec
 
 /**
  * @internal
+ *
  * Get the label used on the indicator object.
  *
  * @param obj The actionslider object
@@ -1121,6 +1174,7 @@ EINA_DEPRECATED EAPI const char *elm_actionslider_indicator_label_get(Evas_Objec
 
 /**
  * @internal
+ *
  * Set the overlay object used for the background object.
  *
  * @param obj The bg object
@@ -1140,6 +1194,7 @@ EINA_DEPRECATED EAPI void         elm_bg_overlay_set(Evas_Object *obj, Evas_Obje
 
 /**
  * @internal
+ *
  * Get the overlay object used for the background object.
  *
  * @param obj The bg object
@@ -1155,6 +1210,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_bg_overlay_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Get the overlay object used for the background object.
  *
  * @param obj The bg object
@@ -1171,6 +1227,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_bg_overlay_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set the label of the bubble
  *
  * @param obj The bubble object
@@ -1184,6 +1241,7 @@ EINA_DEPRECATED EAPI void         elm_bubble_label_set(Evas_Object *obj, const c
 
 /**
  * @internal
+ *
  * Get the label of the bubble
  *
  * @param obj The bubble object
@@ -1196,6 +1254,7 @@ EINA_DEPRECATED EAPI const char  *elm_bubble_label_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set the info of the bubble
  *
  * @param obj The bubble object
@@ -1209,6 +1268,7 @@ EINA_DEPRECATED EAPI void         elm_bubble_info_set(Evas_Object *obj, const ch
 
 /**
  * @internal
+ *
  * Get the info of the bubble
  *
  * @param obj The bubble object
@@ -1222,6 +1282,7 @@ EINA_DEPRECATED EAPI const char  *elm_bubble_info_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set the content to be shown in the bubble
  *
  * Once the content object is set, a previously set one will be deleted.
@@ -1240,6 +1301,7 @@ EINA_DEPRECATED EAPI void         elm_bubble_content_set(Evas_Object *obj, Evas_
 
 /**
  * @internal
+ *
  * Get the content shown in the bubble
  *
  * Return the content object which is set for this widget.
@@ -1254,6 +1316,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_bubble_content_get(const Evas_Object *obj)
 
 /**
  * @internal
+ *
  * Unset the content shown in the bubble
  *
  * Unparent and return the content object which was set for this widget.
@@ -1268,6 +1331,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_bubble_content_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set the icon of the bubble
  *
  * Once the icon object is set, a previously set one will be deleted.
@@ -1284,6 +1348,7 @@ EINA_DEPRECATED EAPI void         elm_bubble_icon_set(Evas_Object *obj, Evas_Obj
 
 /**
  * @internal
+ *
  * Get the icon of the bubble
  *
  * @param obj The bubble object
@@ -1298,6 +1363,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_bubble_icon_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Unset the icon of the bubble
  *
  * Unparent and return the icon object which was set for this widget.
@@ -1313,6 +1379,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_bubble_icon_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set the label used in the button
  *
  * The passed @p label can be NULL to clean any existing text in it and
@@ -1326,6 +1393,7 @@ EINA_DEPRECATED EAPI void         elm_button_label_set(Evas_Object *obj, const c
 
 /**
  * @internal
+ *
  * Get the label set for the button
  *
  * The string returned is an internal pointer and should not be freed or
@@ -1342,6 +1410,7 @@ EINA_DEPRECATED EAPI const char  *elm_button_label_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set the icon used for the button
  *
  * Setting a new icon will delete any other that was previously set, making
@@ -1356,6 +1425,7 @@ EINA_DEPRECATED EAPI void         elm_button_icon_set(Evas_Object *obj, Evas_Obj
 
 /**
  * @internal
+ *
  * Get the icon used for the button
  *
  * Return the icon object which is set for this widget. If the button is
@@ -1371,6 +1441,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_button_icon_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Remove the icon set without deleting it and return the object
  *
  * This function drops the reference the button holds of the icon object
@@ -1386,6 +1457,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_button_icon_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set a day text color to the same that represents Saturdays.
  *
  * @param obj The calendar object.
@@ -1407,6 +1479,7 @@ EINA_DEPRECATED EAPI void elm_calendar_text_saturday_color_set(Evas_Object *obj,
 
 /**
  * @internal
+ *
  * Set a day text color to the same that represents Sundays.
  *
  * @param obj The calendar object.
@@ -1428,6 +1501,7 @@ EINA_DEPRECATED EAPI void elm_calendar_text_sunday_color_set(Evas_Object *obj, i
 
 /**
  * @internal
+ *
  * Set a day text color to the same that represents Weekdays.
  *
  * @param obj The calendar object
@@ -1459,6 +1533,7 @@ EINA_DEPRECATED EAPI void elm_calendar_text_weekday_color_set(Evas_Object *obj, 
 
 /**
  * @internal
+ *
  * @brief Set the text label of the check object
  *
  * @param obj The check object
@@ -1470,6 +1545,7 @@ EINA_DEPRECATED EAPI void         elm_check_label_set(Evas_Object *obj, const ch
 
 /**
  * @internal
+ *
  * @brief Get the text label of the check object
  *
  * @param obj The check object
@@ -1481,6 +1557,7 @@ EINA_DEPRECATED EAPI const char  *elm_check_label_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Set the icon object of the check object
  *
  * @param obj The check object
@@ -1497,6 +1574,7 @@ EINA_DEPRECATED EAPI void         elm_check_icon_set(Evas_Object *obj, Evas_Obje
 
 /**
  * @internal
+ *
  * @brief Get the icon object of the check object
  *
  * @param obj The check object
@@ -1509,6 +1587,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_check_icon_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Unset the icon used for the check object
  *
  * @param obj The check object
@@ -1523,6 +1602,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_check_icon_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Set the text label of the check object
  *
  * @param obj The check object
@@ -1534,6 +1614,7 @@ EINA_DEPRECATED EAPI void         elm_check_label_set(Evas_Object *obj, const ch
 
 /**
  * @internal
+ *
  * @brief Get the text label of the check object
  *
  * @param obj The check object
@@ -1545,6 +1626,7 @@ EINA_DEPRECATED EAPI const char  *elm_check_label_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Set the icon object of the check object
  *
  * @param obj The check object
@@ -1561,6 +1643,7 @@ EINA_DEPRECATED EAPI void         elm_check_icon_set(Evas_Object *obj, Evas_Obje
 
 /**
  * @internal
+ *
  * @brief Get the icon object of the check object
  *
  * @param obj The check object
@@ -1573,6 +1656,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_check_icon_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Unset the icon used for the check object
  *
  * @param obj The check object
@@ -1591,6 +1675,7 @@ EINA_DEPRECATED EAPI void         elm_check_states_labels_get(const Evas_Object 
 
 /**
  * @internal
+ *
  * Set the content of the conformant widget.
  *
  * @param obj The conformant object.
@@ -1616,6 +1701,7 @@ EINA_DEPRECATED EAPI void         elm_conformant_content_set(Evas_Object *obj, E
 
 /**
  * @internal
+ *
  * Get the content of the conformant widget.
  *
  * @param obj The conformant object.
@@ -1636,6 +1722,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_conformant_content_get(const Evas_Object *
 
 /**
  * @internal
+ *
  * Unset the content of the conformant widget.
  *
  * @param obj The conformant object.
@@ -1653,6 +1740,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_conformant_content_unset(Evas_Object *obj)
 
 /**
  * @internal
+ *
  * Get the side labels max length.
  *
  * @deprecated use elm_diskselector_side_label_length_get() instead:
@@ -1667,6 +1755,7 @@ EINA_DEPRECATED EAPI int    elm_diskselector_side_label_lenght_get(const Evas_Ob
 
 /**
  * @internal
+ *
  * Set the side labels max length.
  *
  * @deprecated use elm_diskselector_side_label_length_set() instead:
@@ -1680,6 +1769,7 @@ EINA_DEPRECATED EAPI void   elm_diskselector_side_label_lenght_set(Evas_Object *
 
 /**
  * @internal
+ *
  * Get the data associated to the item.
  *
  * @param it The diskselector item
@@ -1698,6 +1788,7 @@ EINA_DEPRECATED EAPI void                  *elm_diskselector_item_data_get(const
 
 /**
  * @internal
+ *
  * Set the icon associated to the item.
  *
  * @param it The diskselector item
@@ -1725,6 +1816,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_icon_set(Elm_O
 
 /**
  * @internal
+ *
  * Get the icon associated to the item.
  *
  * @param it The diskselector item
@@ -1745,6 +1837,7 @@ EAPI Evas_Object           *elm_diskselector_item_icon_get(const Elm_Object_Item
 
 /**
  * @internal
+ *
  * Set the label of item.
  *
  * @param it The item of diskselector.
@@ -1782,6 +1875,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_label_set(Elm_
 
 /**
  * @internal
+ *
  * Get the label of item.
  *
  * @param it The item of diskselector.
@@ -1802,6 +1896,7 @@ EINA_DEPRECATED EAPI const char            *elm_diskselector_item_label_get(cons
 
 /**
  * @internal
+ *
  * Set the function called when a diskselector item is freed.
  *
  * @param it The item to set the callback on
@@ -1823,6 +1918,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_del_cb_set(Elm
 
 /**
  * @internal
+ *
  * Delete them item from the diskselector.
  *
  * @param it The item of diskselector to be deleted.
@@ -1840,6 +1936,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_del(Elm_Object
 
 /**
  * @internal
+ *
  * Set the text to be shown in the diskselector item.
  *
  * @param it Target item
@@ -1857,6 +1954,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_tooltip_text_s
 
 /**
  * @internal
+ *
  * Set the content to be shown in the tooltip item.
  *
  * Setup the tooltip to item. The item can have only one tooltip,
@@ -1872,7 +1970,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_tooltip_text_s
  *        another callback replaces @p func, the tooltip is unset with
  *        elm_diskselector_item_tooltip_unset() or the owner @a item
  *        dies. This callback receives as the first parameter the
- *        given @a data, and @c event_info is the item.
+ *        given @a data, and @p event_info is the item.
  *
  * @deprecated Use elm_object_item_tooltip_content_cb_set() instead
  * @see elm_object_tooltip_content_cb_set() for more details.
@@ -1883,6 +1981,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_tooltip_conten
 
 /**
  * @internal
+ *
  * Unset tooltip from item.
  *
  * @param it diskselector item to remove previously set tooltip.
@@ -1901,6 +2000,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_tooltip_unset(
 
 /**
  * @internal
+ *
  * Sets a different style for this item tooltip.
  *
  * @note before you set a style you should define a tooltip with
@@ -1919,6 +2019,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_tooltip_style_
 
 /**
  * @internal
+ *
  * Get the style for this item tooltip.
  *
  * @param it diskselector item with tooltip already set.
@@ -1935,6 +2036,7 @@ EINA_DEPRECATED EAPI const char            *elm_diskselector_item_tooltip_style_
 
 /**
  * @internal
+ *
  * Set the cursor to be shown when mouse is over the diskselector item
  *
  * @param it Target item
@@ -1949,6 +2051,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_cursor_set(Elm
 
 /**
  * @internal
+ *
  * Get the cursor to be shown when mouse is over the diskselector item
  *
  * @param it diskselector item with cursor already set.
@@ -1964,6 +2067,7 @@ EINA_DEPRECATED EAPI const char            *elm_diskselector_item_cursor_get(con
 
 /**
  * @internal
+ *
  * Unset the cursor to be shown when mouse is over the diskselector item
  *
  * @param it Target item
@@ -1978,6 +2082,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_cursor_unset(E
 
 /**
  * @internal
+ *
  * Sets a different style for this item cursor.
  *
  * @note before you set a style you should define a cursor with
@@ -1995,6 +2100,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_cursor_style_s
 
 /**
  * @internal
+ *
  * Get the style for this item cursor.
  *
  * @param it diskselector item with cursor already set.
@@ -2011,6 +2117,7 @@ EINA_DEPRECATED EAPI const char            *elm_diskselector_item_cursor_style_g
 
 /**
  * @internal
+ *
  * Set if the cursor set should be searched on the theme or should use
  * the provided by the engine, only.
  *
@@ -2032,6 +2139,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_item_cursor_engine_
 
 /**
  * @internal
+ *
  * Get the cursor engine only usage for this item cursor.
  *
  * @param it widget item with cursor already set.
@@ -2051,6 +2159,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_factory_content_get(const Evas_Object *obj
 
 /**
  * @internal
+ *
  * Get the label of a given flip selector widget's item.
  *
  * @param it The item to get label from
@@ -2065,6 +2174,7 @@ EINA_DEPRECATED EAPI const char *elm_flipselector_item_label_get(const Elm_Objec
 
 /**
  * @internal
+ *
  * Set the label of a given flip selector widget's item.
  *
  * @param it The item to set label on
@@ -2079,6 +2189,7 @@ EINA_DEPRECATED EAPI void        elm_flipselector_item_label_set(Elm_Object_Item
 
 /**
  * @internal
+ *
  * Delete a given item from a flip selector widget.
  *
  * @param it The item to delete
@@ -2090,6 +2201,7 @@ EINA_DEPRECATED EAPI void       elm_flipselector_item_del(Elm_Object_Item *it);
 
 /**
  * @internal
+ *
  * Set the interval on time updates for a user mouse button hold
  * on a flip selector widget.
  *
@@ -2120,6 +2232,7 @@ EINA_DEPRECATED EAPI void                        elm_flipselector_interval_set(E
 
 /**
  * @internal
+ *
  * Get the interval on time updates for an user mouse button hold
  * on a flip selector widget.
  *
@@ -2135,6 +2248,7 @@ EINA_DEPRECATED EAPI double                      elm_flipselector_interval_get(c
 
 /**
  * @internal
+ *
  * Make a given Elementary object the focused one.
  *
  * @param obj The Elementary object to make focused.
@@ -2152,6 +2266,7 @@ EINA_DEPRECATED EAPI void elm_object_focus(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Give focus to next object in object tree.
  *
  * Give focus to next object in focus chain of one object sub-tree.
@@ -2169,6 +2284,7 @@ EINA_DEPRECATED EAPI void                 elm_object_focus_cycle(Evas_Object *ob
 
 /**
  * @internal
+ *
  * Remove the focus from an Elementary object
  *
  * @param obj The Elementary to take focus from
@@ -2185,6 +2301,7 @@ EINA_DEPRECATED EAPI void elm_object_unfocus(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Give focus to near object in one direction.
  *
  * Give focus to near object in direction of one object.
@@ -2201,6 +2318,7 @@ EINA_DEPRECATED EAPI void                 elm_object_focus_direction_go(Evas_Obj
 
 /**
  * @internal
+ *
  * @brief Set the frame label
  *
  * @param obj The frame object
@@ -2212,6 +2330,7 @@ EINA_DEPRECATED EAPI void         elm_frame_label_set(Evas_Object *obj, const ch
 
 /**
  * @internal
+ *
  * @brief Get the frame label
  *
  * @param obj The frame object
@@ -2224,6 +2343,7 @@ EINA_DEPRECATED EAPI const char  *elm_frame_label_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Set the content of the frame widget
  *
  * Once the content object is set, a previously set one will be deleted.
@@ -2239,6 +2359,7 @@ EINA_DEPRECATED EAPI void         elm_frame_content_set(Evas_Object *obj, Evas_O
 
 /**
  * @internal
+ *
  * @brief Get the content of the frame widget
  *
  * Return the content object which is set for this widget
@@ -2252,6 +2373,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_frame_content_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Unset the content of the frame widget
  *
  * Unparent and return the content object which was set for this widget
@@ -2268,6 +2390,7 @@ EINA_DEPRECATED EAPI Elm_List_Mode elm_genlist_horizontal_mode_get(const Evas_Ob
 EINA_DEPRECATED EAPI void          elm_genlist_item_icons_orphan(Elm_Object_Item *it);
 /**
  * @internal
+ *
  * This sets the horizontal stretching mode.
  *
  * @param obj The genlist object
@@ -2290,7 +2413,8 @@ EINA_DEPRECATED EAPI void                          elm_genlist_horizontal_set(Ev
 
 /**
  * @internal
- * Gets the horizontal stretching mode.
+ *
+ * Get the horizontal stretching mode.
  *
  * @param obj The genlist object
  * @return The mode to use
@@ -2305,6 +2429,7 @@ EINA_DEPRECATED EAPI Elm_List_Mode                 elm_genlist_horizontal_get(co
 
 /**
  * @internal
+ *
  * Return the data associated to a given genlist item
  *
  * @param it The genlist item.
@@ -2323,6 +2448,7 @@ EINA_DEPRECATED EAPI void                         *elm_genlist_item_data_get(con
 
 /**
  * @internal
+ *
  * Set the data associated to a given genlist item
  *
  * @param it The genlist item
@@ -2343,6 +2469,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_item_data_set(Elm
 
 /**
  * @internal
+ *
  * Set whether a given genlist item is disabled or not.
  *
  * @param it The item
@@ -2361,6 +2488,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_item_disabled_set
 
 /**
  * @internal
+ *
  * Get whether a given genlist item is disabled or not.
  *
  * @param it The item
@@ -2376,6 +2504,7 @@ EINA_DEPRECATED EAPI Eina_Bool                     elm_genlist_item_disabled_get
 
 /**
  * @internal
+ *
  * Remove a genlist item from the its parent, deleting it.
  *
  * @param it The item to be removed.
@@ -2391,6 +2520,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_item_del(Elm_Obje
 
 /**
  * @internal
+ *
  * Get the genlist object's handle which contains a given genlist
  * item
  *
@@ -2406,6 +2536,7 @@ EINA_DEPRECATED EAPI Evas_Object                  *elm_genlist_item_genlist_get(
 
 /**
  * @internal
+ *
  * Get the mode item style of items in the genlist
  * @param obj The genlist object
  * @return The mode item style string, or NULL if none is specified
@@ -2421,6 +2552,7 @@ EINA_DEPRECATED EAPI const char                   *elm_genlist_mode_item_style_g
 
 /**
  * @internal
+ *
  * Set the mode item style of items in the genlist
  * @param obj The genlist object
  * @param style The mode item style string, or NULL if none is desired
@@ -2436,6 +2568,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_mode_item_style_s
 
 /**
  * @internal
+ *
  * Get the Item's Flags
  *
  * @param it The genlist item
@@ -2451,6 +2584,7 @@ EINA_DEPRECATED EAPI Elm_Genlist_Item_Type        elm_genlist_item_flags_get(con
 
 /**
  * @internal
+ *
  * Tells genlist to "orphan" contents fetched by the item class
  *
  * @param it The item
@@ -2470,6 +2604,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_item_contents_orp
 
 /**
  * @internal
+ *
  * Return the data associated with a given index widget item
  *
  * @param item The index widget item handle
@@ -2483,6 +2618,7 @@ EINA_DEPRECATED EAPI void *elm_index_item_data_get(const Elm_Object_Item *item);
 
 /**
  * @internal
+ *
  * Set the data associated with a given index widget item
  *
  * @param it The index widget item handle
@@ -2499,12 +2635,13 @@ EINA_DEPRECATED EAPI void  elm_index_item_data_set(Elm_Object_Item *it, const vo
 
 /**
  * @internal
+ *
  * Set the function to be called when a given index widget item is freed.
  *
  * @param it The item to set the callback on
  * @param func The function to call on the item's deletion
  *
- * When called, @p func will have both @c data and @c event_info
+ * When called, @p func will have both @c data and @p event_info
  * arguments with the @p it item's data value and, naturally, the
  * @c obj argument with a handle to the parent index widget.
  *
@@ -2514,6 +2651,7 @@ EINA_DEPRECATED EAPI void                  elm_index_item_del_cb_set(Elm_Object_
 
 /**
  * @internal
+ *
  * Remove an item from a given index widget, <b>to be referenced by
  * it's data value</b>.
  *
@@ -2529,6 +2667,7 @@ EINA_DEPRECATED EAPI void                  elm_index_item_del(Evas_Object *obj, 
 
 /**
  * @internal
+ *
 * @brief Set the label on the label object
  *
  * @param obj The label object
@@ -2539,6 +2678,7 @@ EINA_DEPRECATED EAPI void        elm_label_label_set(Evas_Object *obj, const cha
 
 /**
  * @internal
+ *
  * @brief Get the label used on the label object
  *
  * @param obj The label object
@@ -2547,91 +2687,9 @@ EINA_DEPRECATED EAPI void        elm_label_label_set(Evas_Object *obj, const cha
  */
 EINA_DEPRECATED EAPI const char *elm_label_label_get(const Evas_Object *obj);
 
-
 /**
  * @internal
- * Set the layout content.
  *
- * @param obj The layout object
- * @param swallow The swallow part name in the edje file
- * @param content The child that will be added in this layout object
- * @return @c EINA_TRUE on success, @c EINA_FALSE otherwise
- *
- * Once the content object is set, a previously set one will be deleted.
- * If you want to keep that old content object, use the
- * elm_object_part_content_unset() function.
- *
- * @note In an Edje theme, the part used as a content container is called @c
- * SWALLOW. This is why the parameter name is called @p swallow, but it is
- * expected to be a part name just like the second parameter of
- * elm_layout_box_append().
- *
- * @see elm_layout_box_append()
- * @see elm_object_part_content_get()
- * @see elm_object_part_content_unset()
- * @see @ref secBox
- * @deprecated use elm_object_part_content_set() instead
- *
- */
-EINA_DEPRECATED EAPI Eina_Bool    elm_layout_content_set(Evas_Object *obj, const char *swallow, Evas_Object *content);
-
-/**
- * @internal
- * Get the child object in the given content part.
- *
- * @param obj The layout object
- * @param swallow The SWALLOW part to get its content
- *
- * @return The swallowed object or NULL if none or an error occurred
- *
- * @deprecated use elm_object_part_content_get() instead
- *
- */
-EINA_DEPRECATED EAPI Evas_Object *elm_layout_content_get(const Evas_Object *obj, const char *swallow);
-
-/**
- * @internal
- * Unset the layout content.
- *
- * @param obj The layout object
- * @param swallow The swallow part name in the edje file
- * @return The content that was being used
- *
- * Unparent and return the content object which was set for this part.
- *
- * @deprecated use elm_object_part_content_unset() instead
- *
- */
-EINA_DEPRECATED EAPI Evas_Object *elm_layout_content_unset(Evas_Object *obj, const char *swallow);
-
-/**
- * @internal
- * Set the text of the given part
- *
- * @param obj The layout object
- * @param part The TEXT part where to set the text
- * @param text The text to set
- * @return @c EINA_TRUE on success, @c EINA_FALSE otherwise
- *
- * @deprecated use elm_object_part_text_set() instead.
- */
-EINA_DEPRECATED EAPI Eina_Bool    elm_layout_text_set(Evas_Object *obj, const char *part, const char *text);
-
-/**
- * @internal
- * Get the text set in the given part
- *
- * @param obj The layout object
- * @param part The TEXT part to retrieve the text off
- *
- * @return The text set in @p part
- *
- * @deprecated use elm_object_part_text_get() instead.
- */
-EINA_DEPRECATED EAPI const char  *elm_layout_text_get(const Evas_Object *obj, const char *part);
-
-/**
- * @internal
  * @def elm_layout_label_set
  * Convenience macro to set the label in a layout that follows the
  * Elementary naming convention for its parts.
@@ -2643,6 +2701,7 @@ EINA_DEPRECATED EAPI const char  *elm_layout_text_get(const Evas_Object *obj, co
 
 /**
  * @internal
+ *
  * @def elm_layout_label_get
  * Convenience macro to get the label in a layout that follows the
  * Elementary naming convention for its parts.
@@ -2657,6 +2716,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_list_item_base_get(const Elm_Object_Item *
 
 /**
  * @internal
+ *
  * Set the content of the mapbuf.
  *
  * @param obj The mapbuf object.
@@ -2675,6 +2735,7 @@ EINA_DEPRECATED EAPI void         elm_mapbuf_content_set(Evas_Object *obj, Evas_
 
 /**
  * @internal
+ *
  * Get the content of the mapbuf.
  *
  * @param obj The mapbuf object.
@@ -2691,6 +2752,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_mapbuf_content_get(const Evas_Object *obj)
 
 /**
  * @internal
+ *
  * Unset the content of the mapbuf.
  *
  * @param obj The mapbuf object.
@@ -2707,6 +2769,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_mapbuf_content_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Set the label of a menu item
  *
  * @param it The menu item object.
@@ -2721,6 +2784,7 @@ EINA_DEPRECATED EAPI void         elm_menu_item_label_set(Elm_Object_Item *it, c
 
 /**
  * @internal
+ *
  * @brief Get the label of a menu item
  *
  * @param it The menu item object.
@@ -2731,6 +2795,7 @@ EINA_DEPRECATED EAPI const char  *elm_menu_item_label_get(const Elm_Object_Item 
 
 /**
  * @internal
+ *
  * @brief Set the content object of a menu item
  *
  * @param it The menu item object
@@ -2746,6 +2811,7 @@ EINA_DEPRECATED EAPI Eina_Bool    elm_menu_item_object_content_set(Elm_Object_It
 
 /**
  * @internal
+ *
  * @brief Get the content object of a menu item
  *
  * @param it The menu item object
@@ -2762,6 +2828,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_menu_item_object_content_get(const Elm_Obj
 
 /**
  * @internal
+ *
  * @brief Set the disabled state of @p item.
  *
  * @param it The menu item object.
@@ -2772,6 +2839,7 @@ EINA_DEPRECATED EAPI void         elm_menu_item_disabled_set(Elm_Object_Item *it
 
 /**
  * @internal
+ *
  * @brief Get the disabled state of @p item.
  *
  * @param it The menu item object.
@@ -2784,6 +2852,7 @@ EINA_DEPRECATED EAPI Eina_Bool    elm_menu_item_disabled_get(const Elm_Object_It
 
 /**
  * @internal
+ *
  * @brief Returns the data associated with menu item @p item.
  *
  * @param it The item
@@ -2797,6 +2866,7 @@ EINA_DEPRECATED EAPI void        *elm_menu_item_data_get(const Elm_Object_Item *
 
 /**
  * @internal
+ *
  * @brief Set the function called when a menu item is deleted.
  *
  * @param it The item to set the callback on
@@ -2810,6 +2880,7 @@ EINA_DEPRECATED EAPI void                         elm_menu_item_del_cb_set(Elm_O
 
 /**
  * @internal
+ *
  * @brief Sets the data to be associated with menu item @p item.
  *
  * @param it The item
@@ -2821,6 +2892,7 @@ EINA_DEPRECATED EAPI void         elm_menu_item_data_set(Elm_Object_Item *it, co
 
 /**
  * @internal
+ *
  * @brief Deletes an item from the menu.
  *
  * @param it The item to delete.
@@ -2832,6 +2904,7 @@ EINA_DEPRECATED EAPI void                         elm_menu_item_del(Elm_Object_I
 
 /**
  * @internal
+ *
  * @brief @brief Return a menu item's owner menu
  *
  * @param it The menu item
@@ -2844,6 +2917,7 @@ EINA_DEPRECATED EAPI Evas_Object                 *elm_menu_item_menu_get(const E
 
 /**
  * @internal
+ *
  * @brief Set the icon of a menu item to the standard icon with name @p icon
  *
  * @param it The menu item object.
@@ -2856,6 +2930,7 @@ EINA_DEPRECATED EAPI void                         elm_menu_item_object_icon_name
 
 /**
  * @internal
+ *
  * @brief Get the string representation from the icon of a menu item
  *
  * @param it The menu item object.
@@ -2868,6 +2943,7 @@ EINA_DEPRECATED EAPI const char                  *elm_menu_item_object_icon_name
 
 /**
  * @internal
+ *
  * @brief Set the content of the notify widget
  *
  * @param obj The notify object
@@ -2884,6 +2960,7 @@ EINA_DEPRECATED EAPI void         elm_notify_content_set(Evas_Object *obj, Evas_
 
 /**
  * @internal
+ *
  * @brief Unset the content of the notify widget
  *
  * @param obj The notify object
@@ -2899,6 +2976,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_notify_content_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Return the content of the notify widget
  *
  * @param obj The notify object
@@ -2912,6 +2990,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_notify_content_get(const Evas_Object *obj)
 
 /**
  * @internal
+ *
  * Set a label of an object
  *
  * @param obj The Elementary object
@@ -2925,6 +3004,7 @@ EINA_DEPRECATED EAPI void         elm_object_text_part_set(Evas_Object *obj, con
 
 /**
  * @internal
+ *
  * Get a label of an object
  *
  * @param obj The Elementary object
@@ -2938,6 +3018,7 @@ EINA_DEPRECATED EAPI const char  *elm_object_text_part_get(const Evas_Object *ob
 
 /**
  * @internal
+ *
  * Set a content of an object
  *
  * @param obj The Elementary object
@@ -2951,6 +3032,7 @@ EINA_DEPRECATED EAPI void         elm_object_content_part_set(Evas_Object *obj, 
 
 /**
  * @internal
+ *
  * Get a content of an object
  *
  * @param obj The Elementary object
@@ -2964,6 +3046,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_object_content_part_get(const Evas_Object 
 
 /**
  * @internal
+ *
  * Unset a content of an object
  *
  * @param obj The Elementary object
@@ -2976,6 +3059,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_object_content_part_unset(Evas_Object *obj
 
 /**
  * @internal
+ *
  * Set a content of an object item
  *
  * @param it The Elementary object item
@@ -2989,6 +3073,7 @@ EINA_DEPRECATED EAPI void         elm_object_item_content_part_set(Elm_Object_It
 
 /**
  * @internal
+ *
  * Get a content of an object item
  *
  * @param it The Elementary object item
@@ -3002,6 +3087,7 @@ EINA_DEPRECATED EAPI Evas_Object                 *elm_object_item_content_part_g
 
 /**
  * @internal
+ *
  * Unset a content of an object item
  *
  * @param it The Elementary object item
@@ -3014,6 +3100,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_object_item_content_part_unset(Elm_Object_
 
 /**
  * @internal
+ *
  * Get a label of an object item
  *
  * @param it The Elementary object item
@@ -3027,6 +3114,7 @@ EINA_DEPRECATED EAPI const char  *elm_object_item_text_part_get(const Elm_Object
 
 /**
  * @internal
+ *
  * Set a label of an object item
  *
  * @param it The Elementary object item
@@ -3040,6 +3128,7 @@ EINA_DEPRECATED EAPI void         elm_object_item_text_part_set(Elm_Object_Item 
 
 /**
  * @internal
+ *
  * @brief Set the content of the panel.
  *
  * @param obj The panel object
@@ -3056,6 +3145,7 @@ EINA_DEPRECATED EAPI void         elm_panel_content_set(Evas_Object *obj, Evas_O
 
 /**
  * @internal
+ *
  * @brief Get the content of the panel.
  *
  * @param obj The panel object
@@ -3072,6 +3162,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_panel_content_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Unset the content of the panel.
  *
  * @param obj The panel object
@@ -3088,6 +3179,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_panel_content_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set the left content of the panes widget.
  *
  * @param obj The panes object.
@@ -3110,6 +3202,7 @@ EINA_DEPRECATED EAPI void         elm_panes_content_left_set(Evas_Object *obj, E
 
 /**
  * @internal
+ *
  * Set the right content of the panes widget.
  *
  * @param obj The panes object.
@@ -3132,6 +3225,7 @@ EINA_DEPRECATED EAPI void         elm_panes_content_right_set(Evas_Object *obj, 
 
 /**
  * @internal
+ *
  * Get the left content of the panes.
  *
  * @param obj The panes object.
@@ -3148,6 +3242,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_panes_content_left_get(const Evas_Object *
 
 /**
  * @internal
+ *
  * Get the right content of the panes.
  *
  * @param obj The panes object
@@ -3164,6 +3259,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_panes_content_right_get(const Evas_Object 
 
 /**
  * @internal
+ *
  * Unset the left content used for the panes.
  *
  * @param obj The panes object.
@@ -3181,6 +3277,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_panes_content_left_unset(Evas_Object *obj)
 
 /**
  * @internal
+ *
  * Unset the right content used for the panes.
  *
  * @param obj The panes object.
@@ -3198,6 +3295,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_panes_content_left_unset(Evas_Object *obj)
 EINA_DEPRECATED EAPI Evas_Object *elm_panes_content_right_unset(Evas_Object *obj);
 /**
  * @internal
+ *
  * Set the label of a given progress bar widget
  *
  * @param obj The progress bar object
@@ -3209,6 +3307,7 @@ EINA_DEPRECATED EAPI void         elm_progressbar_label_set(Evas_Object *obj, co
 
 /**
  * @internal
+ *
  * Get the label of a given progress bar widget
  *
  * @param obj The progressbar object
@@ -3220,6 +3319,7 @@ EINA_DEPRECATED EAPI const char  *elm_progressbar_label_get(const Evas_Object *o
 
 /**
  * @internal
+ *
  * Set the icon object of a given progress bar widget
  *
  * @param obj The progress bar object
@@ -3239,7 +3339,8 @@ EINA_DEPRECATED EAPI void         elm_progressbar_icon_set(Evas_Object *obj, Eva
 
 /**
  * @internal
- * Retrieve the icon object set for a given progress bar widget
+ *
+ * Get the icon object set for a given progress bar widget
  *
  * @param obj The progress bar object
  * @return The icon object's handle, if @p obj had one set, or @c NULL,
@@ -3253,6 +3354,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_progressbar_icon_get(const Evas_Object *ob
 
 /**
  * @internal
+ *
  * Unset an icon set on a given progress bar widget
  *
  * @param obj The progress bar object
@@ -3270,6 +3372,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_progressbar_icon_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Set the text label of the radio object
  *
  * @param obj The radio object
@@ -3281,6 +3384,7 @@ EINA_DEPRECATED EAPI void         elm_radio_label_set(Evas_Object *obj, const ch
 
 /**
  * @internal
+ *
  * @brief Get the text label of the radio object
  *
  * @param obj The radio object
@@ -3292,6 +3396,7 @@ EINA_DEPRECATED EAPI const char  *elm_radio_label_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Set the icon object of the radio object
  *
  * @param obj The radio object
@@ -3308,6 +3413,7 @@ EINA_DEPRECATED EAPI void         elm_radio_icon_set(Evas_Object *obj, Evas_Obje
 
 /**
  * @internal
+ *
  * @brief Get the icon object of the radio object
  *
  * @param obj The radio object
@@ -3322,6 +3428,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_radio_icon_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * @brief Unset the icon used for the radio object
  *
  * @param obj The radio object
@@ -3337,6 +3444,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_radio_icon_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set the label of a given slider widget
  *
  * @param obj The progress bar object
@@ -3348,6 +3456,7 @@ EINA_DEPRECATED EAPI void         elm_slider_label_set(Evas_Object *obj, const c
 
 /**
  * @internal
+ *
  * Get the label of a given slider widget
  *
  * @param obj The progressbar object
@@ -3359,6 +3468,7 @@ EINA_DEPRECATED EAPI const char  *elm_slider_label_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set the icon object of the slider object.
  *
  * @param obj The slider object.
@@ -3380,6 +3490,7 @@ EINA_DEPRECATED EAPI void         elm_slider_icon_set(Evas_Object *obj, Evas_Obj
 
 /**
  * @internal
+ *
  * Unset an icon set on a given slider widget.
  *
  * @param obj The slider object.
@@ -3401,7 +3512,8 @@ EINA_DEPRECATED EAPI Evas_Object *elm_slider_icon_unset(Evas_Object *obj);
 
 /**
  * @internal
- * Retrieve the icon object set for a given slider widget.
+ *
+ * Get the icon object set for a given slider widget.
  *
  * @param obj The slider object.
  * @return The icon object's handle, if @p obj had one set, or @c NULL,
@@ -3420,6 +3532,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_slider_icon_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set the end object of the slider object.
  *
  * @param obj The slider object.
@@ -3442,6 +3555,7 @@ EINA_DEPRECATED EAPI void         elm_slider_end_set(Evas_Object *obj, Evas_Obje
 
 /**
  * @internal
+ *
  * Unset an end object set on a given slider widget.
  *
  * @param obj The slider object.
@@ -3465,7 +3579,8 @@ EINA_DEPRECATED EAPI Evas_Object *elm_slider_end_unset(Evas_Object *obj);
 
 /**
  * @internal
- * Retrieve the end object set for a given slider widget.
+ *
+ * Get the end object set for a given slider widget.
  *
  * @param obj The slider object.
  * @return The end object's handle, if @p obj had one set, or @c NULL,
@@ -3486,6 +3601,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_slider_end_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Return the data associated with a given slideshow item
  *
  * @param it The slideshow item
@@ -3497,6 +3613,7 @@ EINA_DEPRECATED EAPI void *elm_slideshow_item_data_get(const Elm_Object_Item *it
 
 /**
  * @internal
+ *
  * Delete a given item from a slideshow widget.
  *
  * @param it The slideshow item
@@ -3507,6 +3624,7 @@ EINA_DEPRECATED EAPI void                  elm_slideshow_item_del(Elm_Object_Ite
 
 /**
  * @internal
+ *
  * Display a given slideshow widget's item, programmatically.
  *
  * @param it The item to display on @p obj's viewport
@@ -3521,6 +3639,7 @@ EINA_DEPRECATED EAPI void                  elm_slideshow_show(Elm_Object_Item *i
 
 /**
  * @internal
+ *
  * Get the toolbar object from an item.
  *
  * @param it The item.
@@ -3528,12 +3647,13 @@ EINA_DEPRECATED EAPI void                  elm_slideshow_show(Elm_Object_Item *i
  *
  * This returns the toolbar object itself that an item belongs to.
  *
- * @deprecated use elm_object_item_object_get() instead.
+ * @deprecated use elm_object_item_widget_get() instead.
  */
 EINA_DEPRECATED EAPI Evas_Object *elm_toolbar_item_toolbar_get(const Elm_Object_Item *it);
 
 /**
  * @internal
+ *
  * Get the label of item.
  *
  * @param it The item of toolbar.
@@ -3554,6 +3674,7 @@ EINA_DEPRECATED EAPI const char  *elm_toolbar_item_label_get(const Elm_Object_It
 
 /**
  * @internal
+ *
  * Set the label of item.
  *
  * @param it The item of toolbar.
@@ -3575,6 +3696,7 @@ EINA_DEPRECATED EAPI void         elm_toolbar_item_label_set(Elm_Object_Item *it
 
 /**
  * @internal
+ *
  * Return the data associated with a given toolbar widget item.
  *
  * @param it The toolbar widget item handle.
@@ -3588,6 +3710,7 @@ EINA_DEPRECATED EAPI void        *elm_toolbar_item_data_get(const Elm_Object_Ite
 
 /**
  * @internal
+ *
  * Set the data associated with a given toolbar widget item.
  *
  * @param it The toolbar widget item handle
@@ -3604,6 +3727,7 @@ EINA_DEPRECATED EAPI void         elm_toolbar_item_data_set(Elm_Object_Item *it,
 
 /**
  * @internal
+ *
  * Get a value whether toolbar item is disabled or not.
  *
  * @param it The item.
@@ -3617,6 +3741,7 @@ EINA_DEPRECATED EAPI Eina_Bool    elm_toolbar_item_disabled_get(const Elm_Object
 
 /**
  * @internal
+ *
  * Sets the disabled/enabled state of a toolbar item.
  *
  * @param it The item.
@@ -3633,6 +3758,7 @@ EINA_DEPRECATED EAPI void         elm_toolbar_item_disabled_set(Elm_Object_Item 
 
 /**
  * @internal
+ *
  * Change a toolbar's orientation
  * @param obj The toolbar object
  * @param vertical If @c EINA_TRUE, the toolbar is vertical
@@ -3643,6 +3769,7 @@ EINA_DEPRECATED EAPI void         elm_toolbar_orientation_set(Evas_Object *obj, 
 
 /**
  * @internal
+ *
  * Get a toolbar's orientation
  * @param obj The toolbar object
  * @return If @c EINA_TRUE, the toolbar is vertical
@@ -3653,6 +3780,7 @@ EINA_DEPRECATED EAPI Eina_Bool    elm_toolbar_orientation_get(const Evas_Object 
 
 /**
  * @internal
+ *
  * Set the function called when a toolbar item is freed.
  *
  * @param it The item to set the callback on.
@@ -3672,6 +3800,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_item_del_cb_set(El
 
 /**
  * @internal
+ *
  * Delete them item from the toolbar.
  *
  * @param it The item of toolbar to be deleted.
@@ -3684,6 +3813,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_item_del(Elm_Objec
 
 /**
  * @internal
+ *
  * Set the content to be shown in the tooltip item.
  *
  * Setup the tooltip to item. The item can have only one tooltip,
@@ -3699,7 +3829,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_item_del(Elm_Objec
  *        another callback replaces @a func, the tooltip is unset with
  *        elm_toolbar_item_tooltip_unset() or the owner @a item
  *        dies. This callback receives as the first parameter the
- *        given @a data, and @c event_info is the item.
+ *        given @a data, and @p event_info is the item.
  *
  * @deprecated Use elm_object_item_tooltip_content_cb_set() instead
  * @see elm_object_tooltip_content_cb_set() for more details.
@@ -3709,6 +3839,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_item_tooltip_conte
 
 /**
  * @internal
+ *
  * Unset tooltip from item.
  *
  * @param it toolbar item to remove previously set tooltip.
@@ -3726,6 +3857,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_item_tooltip_unset
 
 /**
  * @internal
+ *
  * Sets a different style for this item tooltip.
  *
  * @note before you set a style you should define a tooltip with
@@ -3743,6 +3875,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_item_tooltip_style
 
 /**
  * @internal
+ *
  * Get the style for this item tooltip.
  *
  * @param it toolbar item with tooltip already set.
@@ -3758,6 +3891,7 @@ EINA_DEPRECATED EAPI const char                  *elm_toolbar_item_tooltip_style
 
 /**
  * @internal
+ *
  * Set the type of mouse pointer/cursor decoration to be shown,
  * when the mouse pointer is over the given toolbar widget item
  *
@@ -3784,6 +3918,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_item_cursor_set(El
 
 /**
  * @internal
+ *
  * Get the type of mouse pointer/cursor decoration set to be shown,
  * when the mouse pointer is over the given toolbar widget item
  *
@@ -3802,6 +3937,7 @@ EINA_DEPRECATED EAPI const char                  *elm_toolbar_item_cursor_get(co
 
 /**
  * @internal
+ *
  * Unset any custom mouse pointer/cursor decoration set to be
  * shown, when the mouse pointer is over the given toolbar widget
  * item, thus making it show the @b default cursor again.
@@ -3821,6 +3957,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_item_cursor_unset(
 
 /**
  * @internal
+ *
  * Set a different @b style for a given custom cursor set for a
  * toolbar item.
  *
@@ -3848,6 +3985,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_item_cursor_style_
 
 /**
  * @internal
+ *
  * Get the current @b style set for a given toolbar item's custom
  * cursor
  *
@@ -3864,6 +4002,7 @@ EINA_DEPRECATED EAPI const char                  *elm_toolbar_item_cursor_style_
 
 /**
  * @internal
+ *
  * Set if the (custom)cursor for a given toolbar item should be
  * searched in its theme, also, or should only rely on the
  * rendering engine.
@@ -3886,6 +4025,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_item_cursor_engine
 
 /**
  * @internal
+ *
  * Get if the (custom) cursor for a given toolbar item is being
  * searched in its theme, also, or is only relying on the rendering
  * engine.
@@ -3904,6 +4044,7 @@ EINA_DEPRECATED EAPI Eina_Bool                    elm_toolbar_item_cursor_engine
 
 /**
  * @internal
+ *
  * @brief Link a Elm_Payer with an Elm_Video object.
  *
  * @param player the Elm_Player object.
@@ -3922,6 +4063,7 @@ EINA_DEPRECATED EAPI void elm_player_video_set(Evas_Object *player, Evas_Object 
 
 /**
  * @internal
+ *
  * Set the label of item.
  *
  * @param it The item of segment control.
@@ -3944,6 +4086,7 @@ EINA_DEPRECATED EAPI void              elm_segment_control_item_label_set(Elm_Ob
 
 /**
  * @internal
+ *
  * Set the icon associated to the item.
  *
  * @param it The segment control item.
@@ -3970,6 +4113,7 @@ EINA_DEPRECATED EAPI void              elm_segment_control_item_icon_set(Elm_Obj
 
 /**
  * @internal
+ *
  * Remove a segment control item from its parent, deleting it.
  *
  * @param it The item to be removed.
@@ -3983,6 +4127,7 @@ EINA_DEPRECATED EAPI void              elm_segment_control_item_del(Elm_Object_I
 
 /**
  * @internal
+ *
  * Get the label
  *
  * @param obj The multibuttonentry object
@@ -3995,6 +4140,7 @@ EINA_DEPRECATED EAPI const char                *elm_multibuttonentry_label_get(c
 
 /**
  * @internal
+ *
  * Set the label
  *
  * @param obj The multibuttonentry object
@@ -4007,6 +4153,7 @@ EINA_DEPRECATED EAPI void                       elm_multibuttonentry_label_set(E
 
 /**
  * @internal
+ *
  * Get the label of a given item
  *
  * @param it The item
@@ -4019,6 +4166,7 @@ EINA_DEPRECATED EAPI const char                *elm_multibuttonentry_item_label_
 
 /**
  * @internal
+ *
  * Set the label of a given item
  *
  * @param it The item
@@ -4030,6 +4178,7 @@ EINA_DEPRECATED EAPI void                       elm_multibuttonentry_item_label_
 
 /**
  * @internal
+ *
  * Delete a given item
  *
  * @param it The item
@@ -4041,6 +4190,7 @@ EINA_DEPRECATED EAPI void                       elm_multibuttonentry_item_del(El
 
 /**
  * @internal
+ *
  * @brief Delete the given item instantly.
  *
  * @param it The naviframe item
@@ -4057,6 +4207,7 @@ EINA_DEPRECATED EAPI void             elm_naviframe_item_del(Elm_Object_Item *it
 
 /**
  * @internal
+ *
  * Sets the disabled/enabled state of a list item.
  *
  * @param it The item.
@@ -4074,6 +4225,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_disabled_set(Elm
 
 /**
  * @internal
+ *
  * Get a value whether list item is disabled or not.
  *
  * @param it The item.
@@ -4088,6 +4240,7 @@ EINA_DEPRECATED EAPI Eina_Bool                    elm_list_item_disabled_get(con
 
 /**
  * @internal
+ *
  * @brief Disable size restrictions on an object's tooltip
  * @param it The tooltip's anchor object
  * @param disable If EINA_TRUE, size restrictions are disabled
@@ -4103,7 +4256,8 @@ EINA_DEPRECATED EAPI Eina_Bool                    elm_list_item_tooltip_window_m
 
 /**
  * @internal
- * @brief Retrieve size restriction state of an object's tooltip
+ *
+ * @brief Get size restriction state of an object's tooltip
  * @param obj The tooltip's anchor object
  * @return If EINA_TRUE, size restrictions are disabled
  *
@@ -4118,6 +4272,7 @@ EINA_DEPRECATED EAPI Eina_Bool                    elm_list_item_tooltip_window_m
 
 /**
  * @internal
+ *
  * Set the function called when a list item is freed.
  *
  * @param it The item to set the callback on
@@ -4138,6 +4293,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_del_cb_set(Elm_O
 
 /**
  * @internal
+ *
  * Get the data associated to the item.
  *
  * @param it The list item
@@ -4156,6 +4312,7 @@ EINA_DEPRECATED EAPI void                        *elm_list_item_data_get(const E
 
 /**
  * @internal
+ *
  * Get the left side icon associated to the item.
  *
  * @param it The list item
@@ -4176,6 +4333,7 @@ EINA_DEPRECATED EAPI Evas_Object                 *elm_list_item_icon_get(const E
 
 /**
  * @internal
+ *
  * Set the left side icon associated to the item.
  *
  * @param it The list item
@@ -4202,6 +4360,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_icon_set(Elm_Obj
 
 /**
  * @internal
+ *
  * Get the right side icon associated to the item.
  *
  * @param it The list item
@@ -4222,6 +4381,7 @@ EINA_DEPRECATED EAPI Evas_Object                 *elm_list_item_end_get(const El
 
 /**
  * @internal
+ *
  * Set the right side icon associated to the item.
  *
  * @param it The list item
@@ -4248,6 +4408,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_end_set(Elm_Obje
 
 /**
  * @internal
+ *
  * Get the label of item.
  *
  * @param it The item of list.
@@ -4267,6 +4428,7 @@ EINA_DEPRECATED EAPI const char                  *elm_list_item_label_get(const 
 
 /**
  * @internal
+ *
  * Set the label of item.
  *
  * @param it The item of list.
@@ -4288,6 +4450,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_label_set(Elm_Ob
 
 /**
  * @internal
+ *
  * Set the text to be shown in a given list item's tooltips.
  *
  * @param it Target item.
@@ -4305,6 +4468,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_tooltip_text_set
 
 /**
  * @internal
+ *
  * Set the content to be shown in the tooltip item.
  *
  * Setup the tooltip to item. The item can have only one tooltip,
@@ -4320,7 +4484,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_tooltip_text_set
  *        another callback replaces @a func, the tooltip is unset with
  *        elm_list_item_tooltip_unset() or the owner @a item
  *        dies. This callback receives as the first parameter the
- *        given @a data, and @c event_info is the item.
+ *        given @a data, and @p event_info is the item.
  *
  * @deprecated Use elm_object_item_tooltip_content_cb_set() instead
  *
@@ -4331,6 +4495,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_tooltip_content_
 
 /**
  * @internal
+ *
  * Unset tooltip from item.
  *
  * @param it list item to remove previously set tooltip.
@@ -4348,6 +4513,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_tooltip_unset(El
 
 /**
  * @internal
+ *
  * Sets a different style for this item tooltip.
  *
  * @note before you set a style you should define a tooltip with
@@ -4366,6 +4532,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_tooltip_style_se
 
 /**
  * @internal
+ *
  * Get the style for this item tooltip.
  *
  * @param it list item with tooltip already set.
@@ -4382,6 +4549,7 @@ EINA_DEPRECATED EAPI const char                  *elm_list_item_tooltip_style_ge
 
 /**
  * @internal
+ *
  * Set the type of mouse pointer/cursor decoration to be shown,
  * when the mouse pointer is over the given list widget item
  *
@@ -4405,7 +4573,9 @@ EINA_DEPRECATED EAPI const char                  *elm_list_item_tooltip_style_ge
  */
 EINA_DEPRECATED EAPI void                         elm_list_item_cursor_set(Elm_Object_Item *it, const char *cursor);
 
-/*
+/**
+ * @internal
+ *
  * Get the type of mouse pointer/cursor decoration set to be shown,
  * when the mouse pointer is over the given list widget item
  *
@@ -4423,6 +4593,7 @@ EINA_DEPRECATED EAPI const char                  *elm_list_item_cursor_get(const
 
 /**
  * @internal
+ *
  * Unset any custom mouse pointer/cursor decoration set to be
  * shown, when the mouse pointer is over the given list widget
  * item, thus making it show the @b default cursor again.
@@ -4441,6 +4612,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_cursor_unset(Elm
 
 /**
  * @internal
+ *
  * Set a different @b style for a given custom cursor set for a
  * list item.
  *
@@ -4467,6 +4639,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_cursor_style_set
 
 /**
  * @internal
+ *
  * Get the current @b style set for a given list item's custom
  * cursor
  *
@@ -4482,6 +4655,7 @@ EINA_DEPRECATED EAPI const char                  *elm_list_item_cursor_style_get
 
 /**
  * @internal
+ *
  * Get if the (custom) cursor for a given list item is being
  * searched in its theme, also, or is only relying on the rendering
  * engine.
@@ -4499,6 +4673,7 @@ EINA_DEPRECATED EAPI Eina_Bool                    elm_list_item_cursor_engine_on
 
 /**
  * @internal
+ *
  * Delete the item from the list.
  *
  * @param it The item of list to be deleted.
@@ -4517,6 +4692,7 @@ EINA_DEPRECATED EAPI void                         elm_list_item_del(Elm_Object_I
 
 /**
  * @internal
+ *
  * This sets a widget to be displayed to the left of a scrolled entry.
  *
  * @param obj The scrolled entry object
@@ -4534,7 +4710,8 @@ EINA_DEPRECATED EAPI void               elm_entry_icon_set(Evas_Object *obj, Eva
 
 /**
  * @internal
- * Gets the leftmost widget of the scrolled entry. This object is
+ *
+ * Get the leftmost widget of the scrolled entry. This object is
  * owned by the scrolled entry and should not be modified.
  *
  * @param obj The scrolled entry object
@@ -4546,6 +4723,7 @@ EINA_DEPRECATED EAPI Evas_Object       *elm_entry_icon_get(const Evas_Object *ob
 
 /**
  * @internal
+ *
  * Unset the leftmost widget of the scrolled entry, unparenting and
  * returning it.
  *
@@ -4560,6 +4738,7 @@ EINA_DEPRECATED EAPI Evas_Object       *elm_entry_icon_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * This sets a widget to be displayed to the end of a scrolled entry.
  *
  * @param obj The scrolled entry object
@@ -4577,7 +4756,8 @@ EINA_DEPRECATED EAPI void               elm_entry_end_set(Evas_Object *obj, Evas
 
 /**
  * @internal
- * Gets the endmost widget of the scrolled entry. This object is owned
+ *
+ * Get the endmost widget of the scrolled entry. This object is owned
  * by the scrolled entry and should not be modified.
  *
  * @param obj The scrolled entry object
@@ -4589,6 +4769,7 @@ EINA_DEPRECATED EAPI Evas_Object       *elm_entry_end_get(const Evas_Object *obj
 
 /**
  * @internal
+ *
  * Unset the endmost widget of the scrolled entry, unparenting and
  * returning it.
  *
@@ -4603,6 +4784,7 @@ EINA_DEPRECATED EAPI Evas_Object       *elm_entry_end_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set route service to be used. By default used source is
  * #ELM_MAP_ROUTE_SOURCE_YOURS.
  *
@@ -4620,6 +4802,7 @@ typedef enum
 
 /**
  * @internal
+ *
  * Convert a pixel coordinate into a rotated pixel coordinate.
  *
  * @param obj The map object.
@@ -4637,6 +4820,7 @@ EINA_DEPRECATED EAPI void                  elm_map_utils_rotate_coord(const Evas
 
 /**
  * @internal
+ *
  * Convert canvas coordinates into a geographic coordinate
  * (longitude, latitude).
  *
@@ -4657,6 +4841,7 @@ EINA_DEPRECATED EAPI void                  elm_map_canvas_to_geo_convert(const E
 
 /**
  * @internal
+ *
  * Get the current geographic coordinates of the map.
  *
  * @param obj The map object.
@@ -4675,6 +4860,7 @@ EINA_DEPRECATED EAPI void                  elm_map_geo_region_get(const Evas_Obj
 
 /**
  * @internal
+ *
  * Animatedly bring in given coordinates to the center of the map.
  *
  * @param obj The map object.
@@ -4695,6 +4881,7 @@ EINA_DEPRECATED EAPI void                  elm_map_geo_region_bring_in(Evas_Obje
 
 /**
  * @internal
+ *
  * Show the given coordinates at the center of the map, @b immediately.
  *
  * @param obj The map object.
@@ -4714,6 +4901,7 @@ EINA_DEPRECATED EAPI void                  elm_map_geo_region_show(Evas_Object *
 
 /**
  * @internal
+ *
  * Set the minimum zoom of the source.
  *
  * @param obj The map object.
@@ -4727,6 +4915,7 @@ EINA_DEPRECATED EAPI void                  elm_map_source_zoom_min_set(Evas_Obje
 
 /**
  * @internal
+ *
  * Get the minimum zoom of the source.
  *
  * @param obj The map object.
@@ -4740,6 +4929,7 @@ EINA_DEPRECATED EAPI int                   elm_map_source_zoom_min_get(const Eva
 
 /**
  * @internal
+ *
  * Set the maximum zoom of the source.
  *
  * @param obj The map object.
@@ -4753,6 +4943,7 @@ EINA_DEPRECATED EAPI void                  elm_map_source_zoom_max_set(Evas_Obje
 
 /**
  * @internal
+ *
  * Get the maximum zoom of the source.
  *
  * @param obj The map object.
@@ -4767,6 +4958,7 @@ EINA_DEPRECATED EAPI int                   elm_map_source_zoom_max_get(const Eva
 
 /**
  * @internal
+ *
  * Get the list of available sources.
  *
  * @param obj The map object.
@@ -4791,6 +4983,7 @@ EINA_DEPRECATED EAPI const char          **elm_map_source_names_get(const Evas_O
 
 /**
  * @internal
+ *
  * Set the source of the map.
  *
  * @param obj The map object.
@@ -4816,6 +5009,7 @@ EINA_DEPRECATED EAPI void                  elm_map_source_name_set(Evas_Object *
 
 /**
  * @internal
+ *
  * Get the name of currently used source.
  *
  * @param obj The map object.
@@ -4829,6 +5023,7 @@ EINA_DEPRECATED EAPI const char           *elm_map_source_name_get(const Evas_Ob
 
 /**
  * @internal
+ *
  * Set the source of the route service to be used by the map.
  *
  * @param obj The map object.
@@ -4855,6 +5050,7 @@ EINA_DEPRECATED EAPI void                  elm_map_route_source_set(Evas_Object 
 
 /**
  * @internal
+ *
  * Get the current route source.
  *
  * @param obj The map object.
@@ -4868,6 +5064,7 @@ EINA_DEPRECATED EAPI Elm_Map_Route_Sources elm_map_route_source_get(const Evas_O
 
 /**
  * @internal
+ *
  * Set the maximum numbers of markers' content to be displayed in a group.
  *
  * @param obj The map object.
@@ -4895,6 +5092,7 @@ EINA_DEPRECATED EAPI void                  elm_map_max_marker_per_group_set(Evas
 
 /**
  * @internal
+ *
  * Set to show markers during zoom level changes or not.
  *
  * @param obj The map object.
@@ -4925,6 +5123,7 @@ EINA_DEPRECATED EAPI void                  elm_map_paused_markers_set(Evas_Objec
 
 /**
  * @internal
+ *
  * Get a value whether markers will be displayed on zoom level changes or not
  *
  * @param obj The map object.
@@ -4941,6 +5140,7 @@ EINA_DEPRECATED EAPI Eina_Bool             elm_map_paused_markers_get(const Evas
 
 /**
  * @internal
+ *
  * Close all the bubbles opened by the user.
  *
  * @param obj The map object.
@@ -4957,6 +5157,7 @@ EINA_DEPRECATED EAPI void                  elm_map_bubbles_close(Evas_Object *ob
 
 /**
  * @internal
+ *
  * Set the marker's style of a group class.
  *
  * @param clas The group class.
@@ -4979,6 +5180,7 @@ EINA_DEPRECATED EAPI void                  elm_map_group_class_style_set(Elm_Map
 
 /**
  * @internal
+ *
  * Set the icon callback function of a group class.
  *
  * @param clas The group class.
@@ -4996,6 +5198,7 @@ EINA_DEPRECATED EAPI void                  elm_map_group_class_icon_cb_set(Elm_M
 
 /**
  * @internal
+ *
  * Set the data associated to the group class.
  *
  * @param clas The group class.
@@ -5017,6 +5220,7 @@ EINA_DEPRECATED EAPI void                  elm_map_group_class_data_set(Elm_Map_
 
 /**
  * @internal
+ *
  * Set the minimum zoom from where the markers are displayed.
  *
  * @param clas The group class.
@@ -5034,6 +5238,7 @@ EINA_DEPRECATED EAPI void                  elm_map_group_class_zoom_displayed_se
 
 /**
  * @internal
+ *
  * Set the zoom from where the markers are no more grouped.
  *
  * @param clas The group class.
@@ -5051,6 +5256,7 @@ EINA_DEPRECATED EAPI void                  elm_map_group_class_zoom_grouped_set(
 
 /**
  * @internal
+ *
  * Set if the markers associated to the group class @p clas are hidden or not.
  *
  * @param clas The group class.
@@ -5067,6 +5273,7 @@ EINA_DEPRECATED EAPI void                  elm_map_group_class_hide_set(Evas_Obj
 
 /**
  * @internal
+ *
  * Set the marker's style of a marker class.
  *
  * @param clas The marker class.
@@ -5089,6 +5296,7 @@ EINA_DEPRECATED EAPI void                  elm_map_marker_class_style_set(Elm_Ma
 
 /**
  * @internal
+ *
  * Set the icon callback function of a marker class.
  *
  * @param clas The marker class.
@@ -5106,6 +5314,7 @@ EINA_DEPRECATED EAPI void                  elm_map_marker_class_icon_cb_set(Elm_
 
 /**
  * @internal
+ *
  * Set the bubble content callback function of a marker class.
  *
  * @param clas The marker class.
@@ -5128,6 +5337,7 @@ EINA_DEPRECATED EAPI void                  elm_map_marker_class_get_cb_set(Elm_M
 
 /**
  * @internal
+ *
  * Set the callback function used to delete bubble content of a marker class.
  *
  * @param clas The marker class.
@@ -5155,6 +5365,7 @@ EINA_DEPRECATED EAPI void                  elm_map_marker_class_del_cb_set(Elm_M
 
 /**
  * @internal
+ *
  * Set the route color.
  *
  * @param route The route object.
@@ -5184,6 +5395,7 @@ EINA_DEPRECATED EAPI void                  elm_map_route_color_set(Elm_Map_Route
 
 /**
  * @internal
+ *
  * Get the route color.
  *
  * @param route The route object.
@@ -5200,6 +5412,7 @@ EINA_DEPRECATED EAPI void                  elm_map_route_color_get(const Elm_Map
 
 /**
  * @internal
+ *
  * Remove a name from the map.
  *
  * @param name The name to remove.
@@ -5216,6 +5429,7 @@ EINA_DEPRECATED EAPI void                  elm_map_name_remove(Elm_Map_Name *nam
 
 /**
  * @internal
+ *
  * Get the gengrid object's handle which contains a given gengrid item
  *
  * @param it The item to fetch the container from
@@ -5229,6 +5443,7 @@ EINA_DEPRECATED EAPI Evas_Object                  *elm_gengrid_item_gengrid_get(
 
 /**
  * @internal
+ *
  * Return the data associated to a given gengrid item
  *
  * @param it The gengrid item.
@@ -5245,6 +5460,7 @@ EINA_DEPRECATED EAPI void                         *elm_gengrid_item_data_get(con
 
 /**
  * @internal
+ *
  * Set the data associated with a given gengrid item
  *
  * @param it The gengrid item
@@ -5265,6 +5481,7 @@ EINA_DEPRECATED EAPI void                          elm_gengrid_item_data_set(Elm
 
 /**
  * @internal
+ *
  * Set whether a given gengrid item is disabled or not.
  *
  * @param it The gengrid item
@@ -5282,6 +5499,7 @@ EINA_DEPRECATED EAPI void                          elm_gengrid_item_disabled_set
 
 /**
  * @internal
+ *
  * Get whether a given gengrid item is disabled or not.
  *
  * @param it The gengrid item
@@ -5296,6 +5514,7 @@ EINA_DEPRECATED EAPI Eina_Bool                     elm_gengrid_item_disabled_get
 
 /**
  * @internal
+ *
  * Remove a gengrid item from its parent, deleting it.
  *
  * @param it The item to be removed.
@@ -5310,6 +5529,7 @@ EINA_DEPRECATED EAPI void                          elm_gengrid_item_del(Elm_Obje
 
 /**
  * @internal
+ *
  * Update the item class of a gengrid item.
  *
  * This sets another class of the item, changing the way that it is
@@ -5325,6 +5545,7 @@ EINA_DEPRECATED EAPI void                          elm_gengrid_item_item_class_s
 
 /**
  * @internal
+ *
  * Insert an item in a gengrid widget using a user-defined sort function.
  *
  * @param obj The gengrid object.
@@ -5350,6 +5571,7 @@ EINA_DEPRECATED EAPI Elm_Object_Item             *elm_gengrid_item_direct_sorted
 
 /**
  * @internal
+ *
  * Append a filter function for text inserted in the entry
  *
  * Append the given callback to the list. This functions will be called
@@ -5369,6 +5591,7 @@ EINA_DEPRECATED EAPI void               elm_entry_text_filter_append(Evas_Object
 
 /**
  * @internal
+ *
  * Prepend a filter function for text inserted in the entry
  *
  * Prepend the given callback to the list. See elm_entry_text_filter_append()
@@ -5383,6 +5606,7 @@ EINA_DEPRECATED EAPI void               elm_entry_text_filter_prepend(Evas_Objec
 
 /**
  * @internal
+ *
  * Remove a filter from the list
  *
  * Removes the given callback from the filter list. See
@@ -5397,6 +5621,7 @@ EINA_DEPRECATED EAPI void               elm_entry_text_filter_remove(Evas_Object
 
 /**
  * @internal
+ *
  * @brief Set the front content of the flip widget.
  *
  * @param obj The flip object
@@ -5412,6 +5637,7 @@ EINA_DEPRECATED EAPI void                 elm_flip_content_front_set(Evas_Object
 
 /**
  * @internal
+ *
  * @brief Set the back content of the flip widget.
  *
  * @param obj The flip object
@@ -5427,6 +5653,7 @@ EINA_DEPRECATED EAPI void                 elm_flip_content_back_set(Evas_Object 
 
 /**
  * @internal
+ *
  * @brief Get the front content used for the flip
  *
  * @param obj The flip object
@@ -5440,6 +5667,7 @@ EINA_DEPRECATED EAPI Evas_Object         *elm_flip_content_front_get(const Evas_
 
 /**
  * @internal
+ *
  * @brief Get the back content used for the flip
  *
  * @param obj The flip object
@@ -5453,6 +5681,7 @@ EINA_DEPRECATED EAPI Evas_Object         *elm_flip_content_back_get(const Evas_O
 
 /**
  * @internal
+ *
  * @brief Unset the front content used for the flip
  *
  * @param obj The flip object
@@ -5466,6 +5695,7 @@ EINA_DEPRECATED EAPI Evas_Object         *elm_flip_content_front_unset(Evas_Obje
 
 /**
  * @internal
+ *
  * @brief Unset the back content used for the flip
  *
  * @param obj The flip object
@@ -5479,6 +5709,7 @@ EINA_DEPRECATED EAPI Evas_Object         *elm_flip_content_back_unset(Evas_Objec
 
 /**
  * @internal
+ *
  * @brief Get flip front visibility state
  *
  * @param obj The flip object
@@ -5491,6 +5722,7 @@ EINA_DEPRECATED EAPI Eina_Bool            elm_flip_front_get(const Evas_Object *
 
 /**
  * @internal
+ *
  * @brief Set the font size on the label object.
  *
  * @param obj The label object
@@ -5504,6 +5736,7 @@ EINA_DEPRECATED EAPI void                        elm_label_fontsize_set(Evas_Obj
 
 /**
  * @internal
+ *
  * @brief Set the text color on the label object
  *
  * @param obj The label object
@@ -5520,6 +5753,7 @@ EINA_DEPRECATED EAPI void                        elm_label_text_color_set(Evas_O
 
 /**
  * @internal
+ *
  * @brief Set the text align on the label object
  *
  * @param obj The label object
@@ -5533,6 +5767,7 @@ EINA_DEPRECATED EAPI void                        elm_label_text_align_set(Evas_O
 
 /**
  * @internal
+ *
  * @brief Set background color of the label
  *
  * @param obj The label object
@@ -5549,6 +5784,7 @@ EINA_DEPRECATED EAPI void                        elm_label_background_color_set(
 
 /**
  * @internal
+ *
  * @brief Set wrap height of the label
  *
  * @param obj The label object
@@ -5563,6 +5799,7 @@ EINA_DEPRECATED EAPI void                        elm_label_wrap_height_set(Evas_
 
 /**
  * @internal
+ *
  * @brief get wrap width of the label
  *
  * @param obj The label object
@@ -5573,6 +5810,7 @@ EINA_DEPRECATED EAPI Evas_Coord                  elm_label_wrap_height_get(const
 
 /**
  * @internal
+ *
  * @brief Flush all caches.
  *
  * Frees all data that was in cache and is not currently being used to reduce
@@ -5592,6 +5830,7 @@ EINA_DEPRECATED EAPI void      elm_all_flush(void);
 
 /**
  * @internal
+ *
  * @brief Define the uri that will be the video source.
  *
  * @param video The video object to define the file for.
@@ -5609,6 +5848,7 @@ EINA_DEPRECATED EAPI void                 elm_video_uri_set(Evas_Object *video, 
 
 /**
  * @internal
+ *
  * @brief Get the region of the image that is currently shown
  *
  * @param obj
@@ -5623,6 +5863,7 @@ EINA_DEPRECATED EAPI void                   elm_photocam_region_get(const Evas_O
 
 /**
  * @internal
+ *
  * @brief Set the gesture state for photocam.
  *
  * @param obj The photocam object
@@ -5637,6 +5878,7 @@ EINA_DEPRECATED EAPI void		    elm_photocam_gesture_set(Evas_Object *obj, Eina_B
 
 /**
  * @internal
+ *
  * @brief Get the gesture state for photocam.
  *
  * @param obj The photocam object
@@ -5661,6 +5903,7 @@ EINA_DEPRECATED EAPI double       elm_route_lat_max_get(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Get the duration after which tooltip will be shown.
  *
  * @return Duration after which tooltip will be shown.
@@ -5670,6 +5913,7 @@ EINA_DEPRECATED EAPI double      elm_tooltip_delay_get(void);
 
 /**
  * @internal
+ *
  * Set the duration after which tooltip will be shown.
  *
  * @return EINA_TRUE if value is set.
@@ -5679,6 +5923,7 @@ EINA_DEPRECATED EAPI Eina_Bool   elm_tooltip_delay_set(double delay);
 
 /**
  * @internal
+ *
  * Set the corner of the bubble
  *
  * @param obj The bubble object.
@@ -5691,6 +5936,7 @@ EINA_DEPRECATED EAPI void elm_bubble_corner_set(Evas_Object *obj, const char *co
 
 /**
  * @internal
+ *
  * Get the corner of the bubble
  *
  * @param obj The bubble object.
@@ -5702,6 +5948,7 @@ EINA_DEPRECATED EAPI const char *elm_bubble_corner_get(const Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Enable or disable day selection
  *
  * @param obj The calendar object.
@@ -5714,6 +5961,7 @@ EINA_DEPRECATED EAPI void                 elm_calendar_day_selection_enabled_set
 
 /**
  * @internal
+ *
  * Get a value whether day selection is enabled or not.
  *
  * @param obj The calendar object.
@@ -5726,12 +5974,14 @@ EINA_DEPRECATED EAPI Eina_Bool            elm_calendar_day_selection_enabled_get
 
 /**
  * @internal
+ *
  * @deprecated Use Elm_Calendar_Mark_Repeat_Type instead.
  */
 typedef _Elm_Calendar_Mark_Repeat_Type Elm_Calendar_Mark_Repeat EINA_DEPRECATED;
 
 /**
  * @internal
+ *
  * Get the configured font cache size
  *
  * This gets the globally configured font cache size, in bytes.
@@ -5743,6 +5993,7 @@ EINA_DEPRECATED EAPI int       elm_font_cache_get(void);
 
 /**
  * @internal
+ *
  * Set the configured font cache size
  *
  * This sets the globally configured font cache size, in bytes
@@ -5754,6 +6005,7 @@ EINA_DEPRECATED EAPI void      elm_font_cache_set(int size);
 
 /**
  * @internal
+ *
  * Get the configured image cache size
  *
  * This gets the globally configured image cache size, in bytes
@@ -5765,6 +6017,7 @@ EINA_DEPRECATED EAPI int       elm_cache_image_cache_size_get(void);
 
 /**
  * @internal
+ *
  * Set the configured image cache size
  *
  * This sets the globally configured image cache size, in bytes
@@ -5777,6 +6030,7 @@ EINA_DEPRECATED EAPI void      elm_image_cache_set(int size);
 
 /**
  * @internal
+ *
  * Get the configured edje file cache size.
  *
  * This gets the globally configured edje file cache size, in number
@@ -5789,6 +6043,7 @@ EINA_DEPRECATED EAPI int       elm_edje_file_cache_get(void);
 
 /**
  * @internal
+ *
  * Set the configured edje file cache size
  *
  * This sets the globally configured edje file cache size, in number
@@ -5801,6 +6056,7 @@ EINA_DEPRECATED EAPI void      elm_edje_file_cache_set(int size);
 
 /**
  * @internal
+ *
  * Get the configured edje collections (groups) cache size.
  *
  * This gets the globally configured edje collections cache size, in
@@ -5813,6 +6069,7 @@ EINA_DEPRECATED EAPI int       elm_edje_collection_cache_get(void);
 
 /**
  * @internal
+ *
  * Set the configured edje collections (groups) cache size
  *
  * This sets the globally configured edje collections cache size, in
@@ -5825,7 +6082,8 @@ EINA_DEPRECATED EAPI void      elm_edje_collection_cache_set(int size);
 
 /**
  * @internal
- * Gets whether browsing history is enabled for the given object
+ *
+ * Get whether browsing history is enabled for the given object
  *
  * @param obj The web object
  *
@@ -5837,6 +6095,7 @@ EINA_DEPRECATED EAPI Eina_Bool         elm_web_history_enable_get(const Evas_Obj
 
 /**
  * @internal
+ *
  * Enables or disables the browsing history
  *
  * @param obj The web object
@@ -5849,6 +6108,7 @@ EINA_DEPRECATED EAPI void              elm_web_history_enable_set(Evas_Object *o
 
 /**
  * @internal
+ *
  * @brief Add an object swallowed in an item at the end of the given menu
  * widget
  *
@@ -5866,6 +6126,7 @@ EINA_DEPRECATED EAPI Elm_Object_Item             *elm_menu_item_add_object(Evas_
 
 /**
  * @internal
+ *
  * @brief Sets whether events should be passed to by a click outside
  * its area.
  *
@@ -5882,6 +6143,7 @@ EINA_DEPRECATED EAPI void                         elm_notify_repeat_events_set(E
 
 /**
  * @internal
+ *
  * @brief Return true if events are repeat below the notify object
  * @param obj the notify object
  *
@@ -5892,6 +6154,7 @@ EINA_DEPRECATED EAPI Eina_Bool                    elm_notify_repeat_events_get(c
 
 /**
  * @internal
+ *
  * Set if the cursor set should be searched on the theme or should use
  * the provided by the engine, only.
  *
@@ -5905,6 +6168,7 @@ EINA_DEPRECATED EAPI void        elm_object_cursor_engine_only_set(Evas_Object *
 
 /**
  * @internal
+ *
  * Get the cursor engine only usage for this object cursor.
  *
  * @param obj an object with cursor already set.
@@ -5919,6 +6183,7 @@ EINA_DEPRECATED EAPI Eina_Bool   elm_object_cursor_engine_only_get(const Evas_Ob
 
 /**
  * @internal
+ *
  * Go to a given items level on a index widget
  *
  * @param obj The index object
@@ -5930,6 +6195,7 @@ EINA_DEPRECATED EAPI void                  elm_index_item_go(Evas_Object *obj, i
 
 /**
  * @internal
+ *
  * Enable or disable auto hiding feature for a given index widget.
  *
  * @param obj The index object
@@ -5943,6 +6209,7 @@ EINA_DEPRECATED EAPI void                  elm_index_active_set(Evas_Object *obj
 
 /**
  * @internal
+ *
  * Get whether auto hiding feature is enabled or not for a given index widget.
  *
  * @param obj The index object
@@ -5956,6 +6223,7 @@ EINA_DEPRECATED EAPI Eina_Bool             elm_index_active_get(const Evas_Objec
 
 /**
  * @internal
+ *
  * Append a new item, on a given index widget, <b>after the item
  * having @p relative as data</b>.
  *
@@ -5981,6 +6249,7 @@ EINA_DEPRECATED EAPI Elm_Object_Item      *elm_index_item_append_relative(Evas_O
 
 /**
  * @internal
+ *
  * Prepend a new item, on a given index widget, <b>after the item
  * having @p relative as data</b>.
  *
@@ -6006,6 +6275,7 @@ EINA_DEPRECATED EAPI Elm_Object_Item      *elm_index_item_prepend_relative(Evas_
 
 /**
  * @internal
+ *
  * Set the transparency state of a window.
  *
  * Use elm_win_alpha_set() instead.
@@ -6020,6 +6290,7 @@ EINA_DEPRECATED EAPI void                  elm_win_transparent_set(Evas_Object *
 
 /**
  * @internal
+ *
  * Get the transparency state of a window.
  *
  * @param obj The window object
@@ -6032,6 +6303,7 @@ EINA_DEPRECATED EAPI Eina_Bool             elm_win_transparent_get(const Evas_Ob
 
 /**
  * @internal
+ *
  * Set the theme for all elementary using applications on the current display
  *
  * @param theme The name of the theme to use. Format same as the ELM_THEME
@@ -6042,6 +6314,7 @@ EINA_DEPRECATED EAPI void             elm_theme_all_set(const char *theme);
 
 /**
  * @internal
+ *
  * Returns the Evas_Object that represents the content area.
  *
  * @param obj The conformant object.
@@ -6052,6 +6325,7 @@ EINA_DEPRECATED EAPI Evas_Object                 *elm_conformant_content_area_ge
 
 /**
  * @internal
+ *
  * Set if the object is (up/down) resizable.
  *
  * @param obj The image object
@@ -6072,6 +6346,7 @@ EINA_DEPRECATED EAPI void             elm_image_scale_set(Evas_Object *obj, Eina
 
 /**
  * @internal
+ *
  * Get if the object is (up/down) resizable.
  *
  * @param obj The image object
@@ -6086,6 +6361,7 @@ EINA_DEPRECATED EAPI void             elm_image_scale_get(const Evas_Object *obj
 
 /**
  * @internal
+ *
  * Set if the object is (up/down) resizable.
  *
  * @param obj The icon object
@@ -6106,6 +6382,7 @@ EINA_DEPRECATED EAPI void                  elm_icon_scale_set(Evas_Object *obj, 
 
 /**
  * @internal
+ *
  * Get if the object is (up/down) resizable.
  *
  * @param obj The icon object
@@ -6120,6 +6397,7 @@ EINA_DEPRECATED EAPI void                  elm_icon_scale_get(const Evas_Object 
 
 /**
  * @internal
+ *
  * Enable or disable preloading of the icon
  *
  * @param obj The icon object
@@ -6130,6 +6408,7 @@ EINA_DEPRECATED EAPI void                  elm_icon_preload_set(Evas_Object *obj
 
 /**
  * @internal
+ *
  * Returns the last selected item, for a given index widget.
  *
  * @param obj The index object.
@@ -6142,6 +6421,7 @@ EINA_DEPRECATED EAPI Elm_Object_Item      *elm_index_item_selected_get(const Eva
 
 /**
  * @internal
+ *
  * Get the value of shrink_mode state.
  *
  * @deprecated elm_multibuttonentry_expanded_get()
@@ -6150,6 +6430,7 @@ EINA_DEPRECATED EAPI int                        elm_multibuttonentry_shrink_mode
 
 /**
  * @internal
+ *
  * Set/Unset the multibuttonentry to shrink mode state of single line
  *
  * @deprecated elm_multibuttonentry_expanded_set()
@@ -6158,6 +6439,7 @@ EINA_DEPRECATED EAPI void                       elm_multibuttonentry_shrink_mode
 
 /**
  * @internal
+ *
  * Get the guide text
  *
  * @param obj The multibuttonentry object
@@ -6169,6 +6451,7 @@ EINA_DEPRECATED EAPI const char                *elm_multibuttonentry_guide_text_
 
 /**
  * @internal
+ *
  * Set the guide text
  *
  * @param obj The multibuttonentry object
@@ -6180,6 +6463,7 @@ EINA_DEPRECATED EAPI void                       elm_multibuttonentry_guide_text_
 
 /**
  * @internal
+ *
  * Make the elementary object and its children to be unfocusable
  * (or focusable).
  *
@@ -6203,6 +6487,7 @@ EINA_DEPRECATED EAPI void                 elm_object_tree_unfocusable_set(Evas_O
 
 /**
  * @internal
+ *
  * Get whether an Elementary object and its children are unfocusable or not.
  *
  * @param obj The Elementary object to get the information from
@@ -6217,6 +6502,7 @@ EINA_DEPRECATED EAPI Eina_Bool            elm_object_tree_unfocusable_get(const 
 
 /**
  * @internal
+ *
  * Animatedly bring in, to the visible are of a genlist, a given
  * item on it.
  *
@@ -6226,6 +6512,7 @@ EINA_DEPRECATED EAPI void elm_genlist_item_top_bring_in(Elm_Object_Item *it);
 
 /**
  * @internal
+ *
  * Animatedly bring in, to the visible are of a genlist, a given
  * item on it.
  *
@@ -6235,6 +6522,7 @@ EINA_DEPRECATED EAPI void elm_genlist_item_middle_bring_in(Elm_Object_Item *it);
 
 /**
  * @internal
+ *
  * Show the portion of a genlist's internal list containing a given
  * item, immediately.
  *
@@ -6247,6 +6535,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_item_top_show(Elm
 
 /**
  * @internal
+ *
  * Show the portion of a genlist's internal list containing a given
  * item, immediately.
  *
@@ -6259,6 +6548,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_item_middle_show(
 
 /**
  * @internal
+ *
  * Enable or disable round mode.
  *
  * @param obj The diskselector object.
@@ -6277,6 +6567,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_round_set(Evas_Obje
 
 /**
  * @internal
+ *
  * Set whether items on a given gengrid widget are to get their
  * selection callbacks issued for @b every subsequent selection
  * click on them or just for the first click.
@@ -6299,6 +6590,7 @@ EINA_DEPRECATED EAPI void                          elm_gengrid_always_select_mod
 
 /**
  * @internal
+ *
  * Get whether items on a given gengrid widget have their selection
  * callbacks issued for @b every subsequent selection click on them
  * or just for the first click.
@@ -6314,6 +6606,7 @@ EINA_DEPRECATED EAPI Eina_Bool                     elm_gengrid_always_select_mod
 
 /**
  * @internal
+ *
  * Set whether items on a given gengrid widget can be selected or not.
  *
  * @param obj The gengrid object
@@ -6332,6 +6625,7 @@ EINA_DEPRECATED EAPI void                          elm_gengrid_no_select_mode_se
 
 /**
  * @internal
+ *
  * Get whether items on a given gengrid widget can be selected or
  * not.
  *
@@ -6346,6 +6640,7 @@ EINA_DEPRECATED EAPI Eina_Bool                     elm_gengrid_no_select_mode_ge
 
 /**
  * @internal
+ *
  * Get the side labels max length.
  *
  * @see elm_diskselector_side_text_max_length_set() for details.
@@ -6360,6 +6655,7 @@ EINA_DEPRECATED EAPI int                    elm_diskselector_side_label_length_g
 
 /**
  * @internal
+ *
  * Set the side labels max length.
  *
  * @param obj The diskselector object.
@@ -6388,6 +6684,7 @@ EINA_DEPRECATED EAPI void                   elm_diskselector_side_label_length_s
 
 /**
  * @internal
+ *
  * Set whether the toolbar should always have an item selected.
  *
  * @param obj The toolbar object.
@@ -6408,6 +6705,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_always_select_mode
 
 /**
  * @internal
+ *
  * Get whether the toolbar should always have an item selected.
  *
  * @param obj The toolbar object.
@@ -6422,6 +6720,7 @@ EINA_DEPRECATED EAPI Eina_Bool                    elm_toolbar_always_select_mode
 
 /**
  * @internal
+ *
  * Set whether the toolbar items' should be selected by the user or not.
  *
  * @param obj The toolbar object.
@@ -6442,6 +6741,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_no_select_mode_set
 
 /**
  * @internal
+ *
  * Set whether the toolbar items' should be selected by the user or not.
  *
  * @param obj The toolbar object.
@@ -6454,7 +6754,9 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_no_select_mode_set
  */
 EINA_DEPRECATED EAPI Eina_Bool                    elm_toolbar_no_select_mode_get(const Evas_Object *obj);
 
-/*
+/**
+ * @internal
+ *
  * Set the interval on time updates for a user mouse button hold
  * on clock widgets' time edition.
  *
@@ -6483,6 +6785,7 @@ EINA_DEPRECATED EAPI void              elm_clock_interval_set(Evas_Object *obj, 
 
 /**
  * @internal
+ *
  * Get the interval on time updates for a user mouse button hold
  * on clock widgets' time edition.
  *
@@ -6495,6 +6798,7 @@ EINA_DEPRECATED EAPI double            elm_clock_interval_get(const Evas_Object 
 
 /**
  * @internal
+ *
  * Set what digits of the given clock widget should be editable
  * when in edition mode.
  *
@@ -6512,7 +6816,8 @@ EINA_DEPRECATED EAPI void              elm_clock_digit_edit_set(Evas_Object *obj
 
 /**
  * @internal
- * Retrieve what digits of the given clock widget should be
+ *
+ * Get what digits of the given clock widget should be
  * editable when in edition mode.
  *
  * @param obj The clock object
@@ -6523,7 +6828,9 @@ EINA_DEPRECATED EAPI void              elm_clock_digit_edit_set(Evas_Object *obj
  */
 EINA_DEPRECATED EAPI Elm_Clock_Edit_Mode elm_clock_digit_edit_get(const Evas_Object *obj);
 
-/*
+/**
+ * @internal
+ *
  * Queries whether it's possible to go back in history
  *
  * @param obj The web object
@@ -6536,6 +6843,7 @@ EINA_DEPRECATED EAPI Eina_Bool         elm_web_backward_possible(Evas_Object *ob
 
 /**
  * @internal
+ *
  * Queries whether it's possible to go forward in history
  *
  * @param obj The web object
@@ -6549,6 +6857,7 @@ EINA_DEPRECATED EAPI Eina_Bool         elm_web_forward_possible(Evas_Object *obj
 
 /**
  * @internal
+ *
  * Queries whether it's possible to jump the given number of steps
  *
  * @deprecated elm_web_navigate_possible_get();
@@ -6558,6 +6867,7 @@ EINA_DEPRECATED EAPI Eina_Bool         elm_web_navigate_possible(Evas_Object *ob
 
 /**
  * @internal
+ *
  * @brief Set the content of the scroller widget (the object to be scrolled around).
  *
  * @param obj The scroller object
@@ -6572,6 +6882,7 @@ EINA_DEPRECATED EAPI void         elm_scroller_content_set(Evas_Object *obj, Eva
 
 /**
  * @internal
+ *
  * @brief Get the content of the scroller widget
  *
  * @param obj The slider object
@@ -6586,6 +6897,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_scroller_content_get(const Evas_Object *ob
 
 /**
  * @internal
+ *
  * @brief Unset the content of the scroller widget
  *
  * @param obj The slider object
@@ -6600,6 +6912,7 @@ EINA_DEPRECATED EAPI Evas_Object *elm_scroller_content_unset(Evas_Object *obj);
 
 /**
  * @internal
+ *
  * Set the shrink state of toolbar @p obj.
  *
  * @param obj The toolbar object.
@@ -6617,6 +6930,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_mode_shrink_set(Ev
 
 /**
  * @internal
+ *
  * Get the shrink mode of toolbar @p obj.
  *
  * @param obj The toolbar object.
@@ -6630,6 +6944,7 @@ EINA_DEPRECATED EAPI Elm_Toolbar_Shrink_Mode      elm_toolbar_mode_shrink_get(co
 
 /**
  * @internal
+ *
  * Set the text to be shown in a given toolbar item's tooltips.
  *
  * @param it toolbar item.
@@ -6647,6 +6962,7 @@ EINA_DEPRECATED EAPI void                         elm_toolbar_item_tooltip_text_
 
 /**
  * @internal
+ *
  * Enable or disable always select mode on the list object.
  *
  * @param obj The list object
@@ -6670,6 +6986,7 @@ EINA_DEPRECATED EAPI void                         elm_list_always_select_mode_se
 
 /**
  * @internal
+ *
  * Get a value whether always select mode is enabled or not, meaning that
  * an item will always call its callback function, even if already selected.
  *
@@ -6686,6 +7003,7 @@ EINA_DEPRECATED EAPI Eina_Bool                    elm_list_always_select_mode_ge
 
 /**
  * @internal
+ *
  * Get the real Evas object created to implement the view of a
  * given genlist item
  *
@@ -6709,6 +7027,7 @@ EINA_DEPRECATED EAPI const Evas_Object            *elm_genlist_item_object_get(c
 
 /**
  * @internal
+ *
  * Set the always select mode.
  *
  * @param obj The genlist object
@@ -6729,6 +7048,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_always_select_mod
 
 /**
  * @internal
+ *
  * Get the always select mode.
  *
  * @param obj The genlist object
@@ -6742,6 +7062,7 @@ EINA_DEPRECATED EAPI Eina_Bool                     elm_genlist_always_select_mod
 
 /**
  * @internal
+ *
  * Enable/disable the no select mode.
  *
  * @param obj The genlist object
@@ -6758,7 +7079,8 @@ EINA_DEPRECATED EAPI void                          elm_genlist_no_select_mode_se
 
 /**
  * @internal
- * Gets whether the no select mode is enabled.
+ *
+ * Get whether the no select mode is enabled.
  *
  * @param obj The genlist object
  * @return The no select mode
@@ -6769,7 +7091,9 @@ EINA_DEPRECATED EAPI void                          elm_genlist_no_select_mode_se
  */
 EINA_DEPRECATED EAPI Eina_Bool                     elm_genlist_no_select_mode_get(const Evas_Object *obj);
 
-/*
+/**
+ * @internal
+ *
  * Enable/disable compress mode.
  *
  * @param obj The genlist object
@@ -6788,6 +7112,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_compress_mode_set
 
 /**
  * @internal
+ *
  * Sets the display only state of an item.
  *
  * @param it The item
@@ -6809,6 +7134,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_item_display_only
 
 /**
  * @internal
+ *
  * Get the display only state of an item
  *
  * @param it The item
@@ -6823,6 +7149,7 @@ EINA_DEPRECATED EAPI Eina_Bool                     elm_genlist_item_display_only
 
 /**
  * @internal
+ *
  * Get whether the compress mode is enabled.
  *
  * @param obj The genlist object
@@ -6835,6 +7162,7 @@ EINA_DEPRECATED EAPI Eina_Bool                     elm_genlist_compress_mode_get
 
 /**
  * @internal
+ *
  * Enable/disable height-for-width mode.
  *
  * @param obj The genlist object
@@ -6861,6 +7189,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_height_for_width_
 
 /**
  * @internal
+ *
  * Get whether the height-for-width mode is enabled.
  *
  * @param obj The genlist object
@@ -6873,6 +7202,7 @@ EINA_DEPRECATED EAPI Eina_Bool                     elm_genlist_height_for_width_
 
 /**
  * @internal
+ *
  * Activate a genlist mode on an item
  *
  * @param it The genlist item
@@ -6913,6 +7243,7 @@ EINA_DEPRECATED EAPI void                          elm_genlist_item_mode_set(Elm
 
 /**
  * @internal
+ *
  * Get the last (or current) genlist mode used.
  *
  * @param obj The genlist object
@@ -6926,6 +7257,7 @@ EINA_DEPRECATED EAPI const char                   *elm_genlist_mode_type_get(con
 
 /**
  * @internal
+ *
  * Get active genlist mode item
  *
  * @param obj The genlist object
@@ -6941,6 +7273,7 @@ EINA_DEPRECATED EAPI const Elm_Object_Item       *elm_genlist_mode_item_get(cons
 
 /**
  * @internal
+ *
  * Set Genlist edit mode
  *
  * This sets Genlist edit mode.
@@ -6955,6 +7288,7 @@ EINA_DEPRECATED EAPI void               elm_genlist_edit_mode_set(Evas_Object *o
 
 /**
  * @internal
+ *
  * Get Genlist edit mode
  *
  * @param obj The genlist object
@@ -6968,4 +7302,3 @@ EINA_DEPRECATED EAPI Eina_Bool          elm_genlist_edit_mode_get(const Evas_Obj
 /**
  * @}
  */
-

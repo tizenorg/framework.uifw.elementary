@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
 #include "Elementary.h"
 #include "private.h"
 
@@ -28,7 +32,8 @@ external_elm_shutdown(void)
 }
 
 static void
-_external_obj_del(void *data __UNUSED__, Evas *evas __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_external_obj_del(void *data EINA_UNUSED, Evas *evas EINA_UNUSED,
+                  Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    evas_object_event_callback_del(obj, EVAS_CALLBACK_DEL,
                                   _external_obj_del);
@@ -36,11 +41,15 @@ _external_obj_del(void *data __UNUSED__, Evas *evas __UNUSED__, Evas_Object *obj
 }
 
 void
-external_signal(void *data __UNUSED__, Evas_Object *obj, const char *sig, const char *source)
+external_signal(void *data EINA_UNUSED, Evas_Object *obj, const char *sig,
+                const char *source)
 {
    char *_signal = strdup(sig);
    char *p = _signal;
    Evas_Object *content;
+   Edje_External_Type *type;
+
+   if (!p) goto on_error;
 
    while ((*p!='\0') && (*p!=']'))
      p++;
@@ -49,30 +58,36 @@ external_signal(void *data __UNUSED__, Evas_Object *obj, const char *sig, const 
    if ((*p=='\0') || (*(p+1)!=':'))
      {
         ERR("Invalid External Signal received: '%s' '%s'", sig, source);
-        free(_signal);
-        return ;
+        goto on_error;
      }
 
    *p = '\0';
    p+=2; //jump ']' and ':'
 
-   Edje_External_Type *type = evas_object_data_get(obj, "Edje_External_Type");
+   type = evas_object_data_get(obj, "Edje_External_Type");
+   if (!type)
+     {
+        ERR("no external type for object %p", obj);
+        goto on_error;
+     }
    if (!type->content_get)
      {
         ERR("external type '%s' from module '%s' does not provide content_get()",
             type->module_name, type->module);
-        free(_signal);
-        return ;
+        goto on_error;
      }
 
    content = type->content_get(type->data, obj, _signal);
-   free(_signal);
    if (content)
      edje_object_signal_emit(content, sig + (p - _signal), source);
+
+on_error:
+   free(_signal);
+   return;
 }
 
 const char *
-external_translate(void *data __UNUSED__, const char *orig)
+external_translate(void *data EINA_UNUSED, const char *orig)
 {
    // in future, mark all params as translatable and use dgettext()
    // with "elementary" text domain here.
@@ -86,14 +101,17 @@ typedef struct {
 } Elm_External_Signals_Proxy_Context;
 
 static void
-_external_signal_proxy_free_cb(void *data, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_external_signal_proxy_free_cb(void *data, Evas *e EINA_UNUSED,
+                               Evas_Object *obj EINA_UNUSED,
+                               void *event_info EINA_UNUSED)
 {
    Elm_External_Signals_Proxy_Context *ctxt = data;
    free(ctxt);
 }
 
 static void
-_external_signal_proxy_cb(void *data, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_external_signal_proxy_cb(void *data, Evas_Object *obj EINA_UNUSED,
+                          void *event_info EINA_UNUSED)
 {
    Elm_External_Signals_Proxy_Context *ctxt = data;
    // TODO: Is it worth to check Evas_Smart_Cb_Description and do something
@@ -102,7 +120,8 @@ _external_signal_proxy_cb(void *data, Evas_Object *obj __UNUSED__, void *event_i
 }
 
 Eina_Bool
-external_common_param_get(void *data __UNUSED__, const Evas_Object *obj, Edje_External_Param *param)
+external_common_param_get(void *data EINA_UNUSED, const Evas_Object *obj,
+                          Edje_External_Param *param)
 {
    if (!strcmp(param->name, "style"))
      {
@@ -124,7 +143,8 @@ external_common_param_get(void *data __UNUSED__, const Evas_Object *obj, Edje_Ex
 }
 
 Eina_Bool
-external_common_param_set(void *data __UNUSED__, Evas_Object *obj, const Edje_External_Param *param)
+external_common_param_set(void *data EINA_UNUSED, Evas_Object *obj,
+                          const Edje_External_Param *param)
 {
    if (!strcmp(param->name, "style"))
      {
@@ -164,29 +184,31 @@ external_signals_proxy(Evas_Object *obj, Evas_Object *edje, const char *part_nam
 
    for (; cls_count > 0; cls_count--,  cls_descs++, ctxt++)
      {
-	const Evas_Smart_Cb_Description *d = *cls_descs;
-	ctxt->emission = d->name;
-	ctxt->source = part_name;
-	ctxt->edje = edje;
-	evas_object_smart_callback_add
-	  (obj, d->name, _external_signal_proxy_cb, ctxt);
+        const Evas_Smart_Cb_Description *d = *cls_descs;
+        ctxt->emission = d->name;
+        ctxt->source = part_name;
+        ctxt->edje = edje;
+        evas_object_smart_callback_add
+           (obj, d->name, _external_signal_proxy_cb, ctxt);
      }
 
    for (; inst_count > 0; inst_count--,  inst_descs++, ctxt++)
      {
-	const Evas_Smart_Cb_Description *d = *inst_descs;
-	ctxt->emission = d->name;
-	ctxt->source = part_name;
-	ctxt->edje = edje;
-	evas_object_smart_callback_add
-	  (obj, d->name, _external_signal_proxy_cb, ctxt);
+        const Evas_Smart_Cb_Description *d = *inst_descs;
+        ctxt->emission = d->name;
+        ctxt->source = part_name;
+        ctxt->edje = edje;
+        evas_object_smart_callback_add
+           (obj, d->name, _external_signal_proxy_cb, ctxt);
      }
    evas_object_event_callback_add(obj, EVAS_CALLBACK_DEL,
                                   _external_obj_del, NULL);
 }
 
 void
-external_common_params_parse(void *mem, void *data __UNUSED__, Evas_Object *obj __UNUSED__, const Eina_List *params)
+external_common_params_parse(void *mem, void *data EINA_UNUSED,
+                             Evas_Object *obj EINA_UNUSED,
+                             const Eina_List *params)
 {
    Elm_Params *p;
    const Eina_List *l;
@@ -206,7 +228,9 @@ external_common_params_parse(void *mem, void *data __UNUSED__, Evas_Object *obj 
 }
 
 void
-external_common_state_set(void *data __UNUSED__, Evas_Object *obj, const void *from_params, const void *to_params, float pos __UNUSED__)
+external_common_state_set(void *data EINA_UNUSED, Evas_Object *obj,
+                          const void *from_params, const void *to_params,
+                          float pos EINA_UNUSED)
 {
    const Elm_Params *p;
    if (to_params) p = to_params;
@@ -248,14 +272,16 @@ external_common_param_icon_get(Evas_Object *obj, const Edje_External_Param *p)
 }
 
 void
-external_common_icon_param_parse(Evas_Object **icon, Evas_Object *obj, const Eina_List *params)
+external_common_icon_param_parse(Evas_Object **icon, Evas_Object *obj,
+                                 const Eina_List *params)
 {
    Edje_External_Param *p = edje_external_param_find(params, "icon");
    *icon = external_common_param_icon_get(obj, p);
 }
 
 Evas_Object *
-external_common_param_edje_object_get(Evas_Object *obj, const Edje_External_Param *p)
+external_common_param_edje_object_get(Evas_Object *obj,
+                                      const Edje_External_Param *p)
 {
    Evas_Object *edje, *parent_widget, *ret;
    const char *file;
@@ -295,16 +321,17 @@ external_common_params_free(void *params)
 static Edje_External_Type_Info elm_external_types[] =
 {
 #define DEFINE_TYPE(type_name)              \
-  {"elm/"#type_name, &external_##type_name##_type},
+  { "elm/"#type_name, &external_##type_name##_type },
 #include "modules.inc"
 #undef DEFINE_TYPE
-   {NULL, NULL}
+   { NULL, NULL }
 };
 
 static Eina_Bool
 elm_mod_init(void)
 {
-   _elm_ext_log_dom = eina_log_domain_register("elm-externals", EINA_COLOR_LIGHTBLUE);
+   _elm_ext_log_dom = eina_log_domain_register("elm-externals",
+                                               EINA_COLOR_LIGHTBLUE);
    edje_external_type_array_register(elm_external_types);
    return EINA_TRUE;
 }

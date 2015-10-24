@@ -2,12 +2,14 @@
 #define ELM_WIDGET_WEB_H
 
 #ifdef HAVE_ELEMENTARY_WEB
-#ifdef USE_WEBKIT2
 #include <EWebKit2.h>
-#else
-#include <EWebKit.h>
 #endif
-#endif
+
+/* DO NOT USE THIS HEADER UNLESS YOU ARE PREPARED FOR BREAKING OF YOUR
+ * CODE. THIS IS ELEMENTARY'S INTERNAL WIDGET API (for now) AND IS NOT
+ * FINAL. CALL elm_widget_api_check(ELM_INTERNAL_API_VERSION) TO CHECK
+ * IT AT RUNTIME.
+ */
 
 /**
  * @internal
@@ -22,115 +24,12 @@
  */
 
 /**
- * @def ELM_WEB_CLASS
- *
- * Use this macro to cast whichever subclass of
- * #Elm_Web_Smart_Class into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_WEB_CLASS(x) ((Elm_Web_Smart_Class *) x)
-
-/**
- * @def ELM_WEB_DATA
- *
- * Use this macro to cast whichever subdata of
- * #Elm_Web_Smart_Data into it, so to access its fields.
- *
- * @ingroup Widget
- */
-#define ELM_WEB_DATA(x) ((Elm_Web_Smart_Data *) x)
-
-/**
- * @def ELM_WEB_SMART_CLASS_VERSION
- *
- * Current version for Elementary web @b base smart class, a value
- * which goes to _Elm_Web_Smart_Class::version.
- *
- * @ingroup Widget
- */
-#define ELM_WEB_SMART_CLASS_VERSION 1
-
-/**
- * @def ELM_WEB_SMART_CLASS_INIT
- *
- * Initializer for a whole #Elm_Web_Smart_Class structure, with
- * @c NULL values on its specific fields.
- *
- * @param smart_class_init initializer to use for the "base" field
- * (#Evas_Smart_Class).
- *
- * @see EVAS_SMART_CLASS_INIT_NULL
- * @see EVAS_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_WEB_SMART_CLASS_INIT_NULL
- * @see ELM_WEB_SMART_CLASS_INIT_NAME_VERSION
- *
- * @ingroup Widget
- */
-#define ELM_WEB_SMART_CLASS_INIT(smart_class_init)                        \
-  {smart_class_init, ELM_WEB_SMART_CLASS_VERSION}
-
-/**
- * @def ELM_WEB_SMART_CLASS_INIT_NULL
- *
- * Initializer to zero out a whole #Elm_Web_Smart_Class structure.
- *
- * @see ELM_WEB_SMART_CLASS_INIT_NAME_VERSION
- * @see ELM_WEB_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_WEB_SMART_CLASS_INIT_NULL \
-  ELM_WEB_SMART_CLASS_INIT(EVAS_SMART_CLASS_INIT_NULL)
-
-/**
- * @def ELM_WEB_SMART_CLASS_INIT_NAME_VERSION
- *
- * Initializer to zero out a whole #Elm_Web_Smart_Class structure and
- * set its name and version.
- *
- * This is similar to #ELM_WEB_SMART_CLASS_INIT_NULL, but it will
- * also set the version field of #Elm_Web_Smart_Class (base field)
- * to the latest #ELM_WEB_SMART_CLASS_VERSION and name it to the
- * specific value.
- *
- * It will keep a reference to the name field as a <c>"const char *"</c>,
- * i.e., the name must be available while the structure is
- * used (hint: static or global variable!) and must not be modified.
- *
- * @see ELM_WEB_SMART_CLASS_INIT_NULL
- * @see ELM_WEB_SMART_CLASS_INIT
- *
- * @ingroup Widget
- */
-#define ELM_WEB_SMART_CLASS_INIT_NAME_VERSION(name) \
-  ELM_WEB_SMART_CLASS_INIT(ELM_WIDGET_SMART_CLASS_INIT_NAME_VERSION(name))
-
-/**
- * Elementary web base smart class. This inherits directly from
- * #Elm_Widget_Smart_Class and is meant to build widgets extending the
- * behavior of a web.
- *
- * All of the functions listed on @ref Web namespace will work for
- * objects deriving from #Elm_Web_Smart_Class.
- */
-typedef struct _Elm_Web_Smart_Class
-{
-   Elm_Widget_Smart_Class base;
-
-   int                    version; /**< Version of this smart class definition */
-} Elm_Web_Smart_Class;
-
-/**
  * Base widget smart data extended with web instance data.
  */
-typedef struct _Elm_Web_Smart_Data Elm_Web_Smart_Data;
-struct _Elm_Web_Smart_Data
+typedef struct _Elm_Web_Data Elm_Web_Data;
+struct _Elm_Web_Data
 {
-   Elm_Widget_Smart_Data base;    /* base widget smart data as
-                                   * first member obligatory, as
-                                   * we're inheriting from it */
-
+   Evas_Object *obj;
 #ifdef HAVE_ELEMENTARY_WEB
    struct
    {
@@ -226,32 +125,29 @@ struct _View_Smart_Data
  * @}
  */
 
-EAPI extern const char ELM_WEB_SMART_NAME[];
-EAPI const Elm_Web_Smart_Class *elm_web_smart_class_get(void);
-
 #define ELM_WEB_DATA_GET(o, sd) \
-  Elm_Web_Smart_Data * sd = evas_object_smart_data_get(o)
+  Elm_Web_Data * sd = eo_data_scope_get(o, ELM_WEB_CLASS)
 
 #define ELM_WEB_DATA_GET_OR_RETURN(o, ptr)           \
   ELM_WEB_DATA_GET(o, ptr);                          \
-  if (!ptr)                                          \
+  if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
-       CRITICAL("No widget data for object %p (%s)", \
-                o, evas_object_type_get(o));         \
+       CRI("No widget data for object %p (%s)",      \
+           o, evas_object_type_get(o));              \
        return;                                       \
     }
 
 #define ELM_WEB_DATA_GET_OR_RETURN_VAL(o, ptr, val)  \
   ELM_WEB_DATA_GET(o, ptr);                          \
-  if (!ptr)                                          \
+  if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
-       CRITICAL("No widget data for object %p (%s)", \
-                o, evas_object_type_get(o));         \
+       CRI("No widget data for object %p (%s)",      \
+           o, evas_object_type_get(o));              \
        return val;                                   \
     }
 
-#define ELM_WEB_CHECK(obj)                                                 \
-  if (!obj || !elm_widget_type_check((obj), ELM_WEB_SMART_NAME, __func__)) \
+#define ELM_WEB_CHECK(obj)                              \
+  if (EINA_UNLIKELY(!eo_isa((obj), ELM_WEB_CLASS))) \
     return
 
 #endif

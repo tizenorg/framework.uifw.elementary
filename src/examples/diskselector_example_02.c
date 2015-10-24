@@ -14,11 +14,11 @@
 static int counter = 3;
 
 static void
-_on_done(void        *data,
-         Evas_Object *obj,
-         void        *event_info)
+_ds_selected_cb(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
+                void *event_info)
 {
-   elm_exit();
+   Elm_Object_Item *it = event_info;
+   printf("Selected Item %s\n", elm_object_item_text_get(it));
 }
 
 static void
@@ -93,10 +93,11 @@ _add_data_cb(void *data, Evas_Object *obj, void *event_info)
    snprintf(content, 32, "Item content %i", counter);
    snprintf(label, sizeof(label), "Item %i", counter++);
    ds_it = elm_diskselector_item_append(ds, label, NULL, _sel_data_cb, content);
-   if (!ds_it) {
-     printf("Error adding item\n");
-     return;
-   }
+   if (!ds_it)
+     {
+        printf("Error adding item\n");
+        return;
+     }
    elm_object_item_del_cb_set(ds_it, _free_data);
 }
 
@@ -192,16 +193,12 @@ _select_prev_cb(void *data, Evas_Object *obj, void *event_info)
 EAPI_MAIN int
 elm_main(int argc, char **argv)
 {
-   Evas_Object *win, *bg, *bx, *hbx, *ds, *bt;
+   Evas_Object *win, *bx, *hbx, *ds, *bt;
 
-   win = elm_win_add(NULL, "diskselector", ELM_WIN_BASIC);
-   elm_win_title_set(win, "Diskselector Items Example");
-   evas_object_smart_callback_add(win, "delete,request", _on_done, NULL);
+   elm_policy_set(ELM_POLICY_QUIT, ELM_POLICY_QUIT_LAST_WINDOW_CLOSED);
 
-   bg = elm_bg_add(win);
-   elm_win_resize_object_add(win, bg);
-   evas_object_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_show(bg);
+   win = elm_win_util_standard_add("diskselector", "Diskselector Items Example");
+   elm_win_autodel_set(win, EINA_TRUE);
 
    bx = elm_box_add(win);
    evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -211,6 +208,7 @@ elm_main(int argc, char **argv)
    ds = elm_diskselector_add(win);
    evas_object_size_hint_weight_set(ds, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(ds, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   evas_object_smart_callback_add(ds, "selected", _ds_selected_cb, NULL);
    elm_box_pack_end(bx, ds);
    evas_object_show(ds);
 
@@ -342,7 +340,6 @@ elm_main(int argc, char **argv)
    evas_object_show(win);
 
    elm_run();
-   elm_shutdown();
 
    return 0;
 }

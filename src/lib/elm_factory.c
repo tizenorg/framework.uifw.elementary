@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+# include "elementary_config.h"
+#endif
+
 #include <Elementary.h>
 #include "elm_priv.h"
 
@@ -22,10 +26,10 @@ static Eina_Bool _focus_next_hook(const Evas_Object *obj, Elm_Focus_Direction di
 static void _sizing_eval(Evas_Object *obj);
 static void _eval(Evas_Object *obj);
 static void _changed(Evas_Object *obj);
-static void _move(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__);
-static void _resize(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__);
-static void _child_change(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__);
-static void _child_del(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__);
+static void _move(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED);
+static void _resize(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED);
+static void _child_change(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED);
+static void _child_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED);
 static void _content_set_hook(Evas_Object *obj, const char *part, Evas_Object *content);
 static Evas_Object *_content_get_hook(const Evas_Object *obj, const char *part);
 static Evas_Object *_content_unset_hook(Evas_Object *obj, const char *part);
@@ -59,7 +63,7 @@ _del_hook(Evas_Object *obj)
         wd->content = NULL;
         evas_object_del(o);
         fac--;
-//        printf("FAC-- = %i\n", fac);
+//        DBG("FAC-- = %i", fac);
      }
    free(wd);
 }
@@ -96,7 +100,7 @@ _sizing_eval(Evas_Object *obj)
         evas_object_size_hint_min_set(obj, minw, minh);
      }
    evas_object_size_hint_max_set(obj, maxw, maxh);
-//   printf("FAC SZ: %i %i | %i %i\n", minw, minh, maxw, maxh);
+//   DBG("FAC SZ: %i %i | %i %i", minw, minh, maxw, maxh);
 }
 
 static void
@@ -125,7 +129,7 @@ _eval(Evas_Object *obj)
      {
         if (!wd->content)
           {
-//             printf("                 + %i %i %ix%i <> %i %i %ix%i\n", x, y, w, h, cvx, cvy, cvw, cvh);
+//             DBG("                 + %i %i %ix%i <> %i %i %ix%i", x, y, w, h, cvx, cvy, cvw, cvh);
              evas_object_smart_callback_call(obj, SIG_REALIZE, NULL);
              if (wd->content)
                {
@@ -167,7 +171,7 @@ _changed(Evas_Object *obj)
 }
 
 static void
-_move(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_move(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Widget_Data *wd = elm_widget_data_get(obj);
    if (!wd) return;
@@ -176,7 +180,7 @@ _move(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_i
 }
 
 static void
-_resize(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_resize(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Widget_Data *wd = elm_widget_data_get(obj);
    if (!wd) return;
@@ -185,7 +189,7 @@ _resize(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj, void *event
 }
 
 static void
-_child_change(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj __UNUSED__, void *event_info __UNUSED__)
+_child_change(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Widget_Data *wd = elm_widget_data_get(data);
    if (!wd) return;
@@ -195,7 +199,7 @@ _child_change(void *data __UNUSED__, Evas *e __UNUSED__, Evas_Object *obj __UNUS
 }
 
 static void
-_child_del(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
+_child_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *fobj = data;
    Widget_Data *wd = elm_widget_data_get(fobj);
@@ -209,7 +213,7 @@ _child_del(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __
                                        _child_del, obj);
    wd->content = NULL;
    fac--;
-//   printf("FAC-- = %i\n", fac);
+//   DBG("FAC-- = %i", fac);
 }
 
 static Evas_Object *
@@ -232,7 +236,7 @@ _content_unset_hook(Evas_Object *obj, const char *part)
                                        _child_del, obj);
    wd->content = NULL;
    fac--;
-//         printf("FAC-- = %i\n", fac);
+//         DBG("FAC-- = %i", fac);
    return content;
 }
 
@@ -249,7 +253,7 @@ _content_set_hook(Evas_Object *obj, const char *part, Evas_Object *content)
    if (wd->content == content) return;
 
    prev_content = _content_unset_hook(obj, part);
-   if (prev_content) evas_object_del(prev_content);
+   evas_object_del(prev_content);
 
    wd->content = content;
    if (!content) return;
@@ -303,10 +307,6 @@ elm_factory_add(Evas_Object *parent)
 
    wd->obj = obj;
    wd->last_calc_count = -1;
-
-   //Tizen Only: This should be removed when eo is applied.
-   wd->on_create = EINA_FALSE;
-
    return obj;
 }
 
