@@ -1005,7 +1005,7 @@ _access_widget_item_register(Elm_Gen_Item *it)
         _elm_access_widget_item_register(it->base);
      }
 
-   ai = _elm_access_info_get(eo_do(EO_OBJ(it), elm_wdg_item_access_object_get()));
+   ai = _elm_access_object_get(eo_do(EO_OBJ(it), elm_wdg_item_access_object_get()));
    _elm_access_callback_set(ai, ELM_ACCESS_INFO, _access_info_cb, it);
    _elm_access_callback_set(ai, ELM_ACCESS_STATE, _access_state_cb, it);
    _elm_access_activate_callback_set(ai, _access_activate_cb, it);
@@ -1551,11 +1551,6 @@ _item_realize(Elm_Gen_Item *it,
         GL_IT(it)->calc_done = EINA_FALSE;
         GL_IT(it)->block->calc_done = EINA_FALSE;
         sd->calc_done = EINA_FALSE;
-     }
-   if (sd->atspi_item_to_highlight == it)
-     {
-        sd->atspi_item_to_highlight = NULL;
-        elm_object_accessibility_highlight_set(VIEW(it), EINA_TRUE);
      }
 }
 
@@ -2473,7 +2468,7 @@ static void _item_focused(Elm_Gen_Item *it, Elm_Genlist_Item_Scrollto_Type type)
    sd->focused_item = it;
    evas_object_smart_callback_call(WIDGET(it), SIG_ITEM_FOCUSED, EO_OBJ(it));
    if (_elm_config->atspi_mode)
-     eo_do(WIDGET(it), eo_event_callback_call(ELM_INTERFACE_ATSPI_ACCESSIBLE_EVENT_ACTIVE_DESCENDANT_CHANGED, EO_OBJ(it)));
+     elm_interface_atspi_accessible_state_changed_signal_emit(EO_OBJ(it), ELM_ATSPI_STATE_FOCUSED, EINA_TRUE);
 }
 
 #ifndef ELM_FEATURE_WEARABLE
@@ -2481,6 +2476,7 @@ static Eina_Bool
 _banded_item_highlight_anim(void *data, double pos)
 {
    Elm_Gen_Item *it = data;
+   Elm_Genlist_Data *sd = it->item->wsd;
    double frame = pos;
    double v[4] = {0.25, 0.46, 0.45, 1.00};
 
@@ -2564,7 +2560,7 @@ _item_highlight(Elm_Gen_Item *it)
 //****************************
    evas_object_smart_callback_call(WIDGET(it), SIG_HIGHLIGHTED, EO_OBJ(it));
    if (_elm_config->atspi_mode)
-     eo_do(WIDGET(it), eo_event_callback_call(ELM_INTERFACE_ATSPI_ACCESSIBLE_EVENT_ACTIVE_DESCENDANT_CHANGED, EO_OBJ(it)));
+     elm_interface_atspi_accessible_state_changed_signal_emit(EO_OBJ(it), ELM_ATSPI_STATE_FOCUSED, EINA_FALSE);
 }
 
 static void
@@ -4482,7 +4478,7 @@ _queue_idle_enter(void *data)
 
 static void
 _item_queue(Elm_Gen_Item *it,
-            Eina_Compare_Cb cb EINA_UNUSED)
+            Eina_Compare_Cb cb)
 {
    if (GL_IT(it)->queued) return;
 
@@ -4506,6 +4502,7 @@ static void
 _item_queue_direct(Elm_Gen_Item *it,
                    Eina_Compare_Cb cb)
 {
+   Evas_Coord vw, vh;
    Elm_Genlist_Data *sd = GL_IT(it)->wsd;
 
    // Processing items within viewport if items already exist.
@@ -5518,6 +5515,8 @@ _item_free(Elm_Gen_Item *it)
    if (sd->processed_sizes < 0) sd->processed_sizes = 0;
 
    eo_do(EO_OBJ(it), elm_wdg_item_pre_notify_del());
+   if (it->itc->func.del)
+     it->itc->func.del((void *)WIDGET_ITEM_DATA_GET(EO_OBJ(it)), WIDGET(it));
    if (it->tooltip.del_cb)
      it->tooltip.del_cb((void *)it->tooltip.data, WIDGET(it), it);
 
@@ -5605,10 +5604,6 @@ _item_free(Elm_Gen_Item *it)
    sd->item_count--;
 
    _item_unrealize(it, EINA_FALSE);
-
-   if (it->itc->func.del)
-     it->itc->func.del((void *)WIDGET_ITEM_DATA_GET(EO_OBJ(it)), WIDGET(it));
-
    elm_genlist_item_class_unref((Elm_Genlist_Item_Class *)it->itc);
    free(GL_IT(it));
    GL_IT(it) = NULL;
@@ -6510,7 +6505,7 @@ _elm_genlist_item_expanded_set(Eo *eo_item EINA_UNUSED, Elm_Gen_Item *it, Eina_B
           edje_object_signal_emit(VIEW(it), SIGNAL_EXPANDED, "elm");
         evas_object_smart_callback_call(WIDGET(it), SIG_EXPANDED, EO_OBJ(it));
         if (_elm_config->atspi_mode)
-          eo_do(WIDGET(it), eo_event_callback_call(ELM_INTERFACE_ATSPI_ACCESSIBLE_EVENT_ACTIVE_DESCENDANT_CHANGED, eo_item));
+          elm_interface_atspi_accessible_state_changed_signal_emit(eo_item, ELM_ATSPI_STATE_EXPANDED, EINA_TRUE);
      }
    else
      {
@@ -6518,7 +6513,7 @@ _elm_genlist_item_expanded_set(Eo *eo_item EINA_UNUSED, Elm_Gen_Item *it, Eina_B
           edje_object_signal_emit(VIEW(it), SIGNAL_CONTRACTED, "elm");
         evas_object_smart_callback_call(WIDGET(it), SIG_CONTRACTED, EO_OBJ(it));
         if (_elm_config->atspi_mode)
-          eo_do(WIDGET(it), eo_event_callback_call(ELM_INTERFACE_ATSPI_ACCESSIBLE_EVENT_ACTIVE_DESCENDANT_CHANGED, eo_item));
+          elm_interface_atspi_accessible_state_changed_signal_emit(eo_item, ELM_ATSPI_STATE_EXPANDED, EINA_FALSE);
      }
 }
 
@@ -7577,13 +7572,8 @@ EOLIAN static Eina_Bool
 _elm_genlist_item_elm_interface_atspi_component_highlight_grab(Eo *eo_it, Elm_Gen_Item *it)
 {
    elm_genlist_item_show(eo_it, ELM_GENLIST_ITEM_SCROLLTO_IN);
-   ELM_GENLIST_DATA_GET(WIDGET(it), sd);
 
-   if (VIEW(it))
-        elm_object_accessibility_highlight_set(VIEW(it), EINA_TRUE);
-   else
-       sd->atspi_item_to_highlight = it;//it will be highlighted when realized
-
+   elm_object_accessibility_highlight_set(VIEW(it), EINA_TRUE);
 ///TIZEN_ONLY(20170717) : expose highlight information on atspi
    eo_do(WIDGET(it), eo_event_callback_call(ELM_INTERFACE_ATSPI_ACCESSIBLE_EVENT_ACTIVE_DESCENDANT_CHANGED, eo_it));
 ///
@@ -7592,11 +7582,8 @@ _elm_genlist_item_elm_interface_atspi_component_highlight_grab(Eo *eo_it, Elm_Ge
 }
 
 EOLIAN static Eina_Bool
-_elm_genlist_item_elm_interface_atspi_component_highlight_clear(Eo *eo_it, Elm_Gen_Item *it)
+_elm_genlist_item_elm_interface_atspi_component_highlight_clear(Eo *eo_it EINA_UNUSED, Elm_Gen_Item *it)
 {
-   ELM_GENLIST_DATA_GET(WIDGET(it), sd);
-   if (sd->atspi_item_to_highlight == it)
-       sd->atspi_item_to_highlight = NULL;
    elm_object_accessibility_highlight_set(VIEW(it), EINA_FALSE);
 ///TIZEN_ONLY(20170717) : expose highlight information on atspi
    eo_do(WIDGET(it), eo_event_callback_call(ELM_INTERFACE_ATSPI_ACCESSIBLE_EVENT_ACTIVE_DESCENDANT_CHANGED, eo_it));

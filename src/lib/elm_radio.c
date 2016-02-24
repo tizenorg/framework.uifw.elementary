@@ -49,9 +49,6 @@ static void
 _state_set(Evas_Object *obj, Eina_Bool state, Eina_Bool activate)
 {
    ELM_RADIO_DATA_GET(obj, sd);
-   //TIZEN_ONLY(20150925): Fix for the state change visual change skips one frame.
-   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
-   //
 
    if (state != sd->state)
      {
@@ -83,15 +80,6 @@ _state_set(Evas_Object *obj, Eina_Bool state, Eina_Bool activate)
              else
                elm_interface_atspi_accessible_state_changed_signal_emit(obj, ELM_ATSPI_STATE_CHECKED, EINA_FALSE);
           }
-        //TIZEN_ONLY(20150925): Fix for the state change visual change skips one frame.
-        //                      as edje signal emit is asyn force one more message_signal
-        //                      to make sure state change related visual change occurs in
-        //                      the same frame.
-        edje_object_message_signal_process(wd->resize_obj);
-        //
-        #ifdef TIZEN_VECTOR_UX
-            tizen_vg_radio_state_set(obj);
-        #endif
      }
 }
 
@@ -242,7 +230,7 @@ _elm_radio_elm_widget_theme_apply(Eo *obj, Elm_Radio_Data *sd)
 }
 
 EOLIAN static Eina_Bool
-_elm_radio_elm_widget_disable(Eo *obj, Elm_Radio_Data *sd EINA_UNUSED)
+_elm_radio_elm_widget_disable(Eo *obj, Elm_Radio_Data *sd)
 {
    Eina_Bool int_ret = EINA_FALSE;
    eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_disable());

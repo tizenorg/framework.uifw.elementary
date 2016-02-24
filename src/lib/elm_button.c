@@ -112,19 +112,6 @@ _icon_signal_emit(Evas_Object *obj)
    eo_do(obj, elm_obj_layout_sizing_eval());
 }
 
-EOLIAN static Elm_Atspi_State_Set
-_elm_button_elm_interface_atspi_accessible_state_set_get(Eo *obj, Elm_Button_Data *_pd EINA_UNUSED)
-{
-   Elm_Atspi_State_Set states = 0;
-
-   eo_do_super(obj, ELM_BUTTON_CLASS, states = elm_interface_atspi_accessible_state_set_get());
-
-   if (_pd->atspi_state)
-       STATE_TYPE_SET(states, ELM_ATSPI_STATE_CHECKED);
-
-   return states;
-}
-
 /* FIXME: replicated from elm_layout just because button's icon spot
  * is elm.swallow.content, not elm.swallow.icon. Fix that whenever we
  * can changed the theme API */
@@ -135,10 +122,11 @@ _elm_button_elm_widget_theme_apply(Eo *obj, Elm_Button_Data *_pd EINA_UNUSED)
 
    eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_theme_apply());
    if (!int_ret) return EINA_FALSE;
-   _icon_signal_emit(obj);
 
 #ifdef TIZEN_VECTOR_UX
    tizen_vg_button_set(obj);
+#else
+   _icon_signal_emit(obj);
 #endif
 
    return EINA_TRUE;

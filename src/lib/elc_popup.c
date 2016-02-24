@@ -382,6 +382,7 @@ EOLIAN static Eina_Bool
 _elm_popup_elm_widget_theme_apply(Eo *obj, Elm_Popup_Data *sd)
 {
    Elm_Popup_Item_Data *it;
+   unsigned int i = 0;
    Eina_List *elist;
    char buf[1024], style[1024];
 
@@ -1276,7 +1277,7 @@ _title_icon_set(Evas_Object *obj,
 //TIZEN_ONLY(20150806): support scrollable content
 //FIXME: genlist only now, it should be changed to support other scrollable.
 static void
-_scrollable_content_loaded_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
+_scrollable_content_loaded_cb(void *data, Evas_Object *obj, void *event_info)
 {
    ELM_POPUP_DATA_GET(data, sd);
 

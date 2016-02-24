@@ -5569,10 +5569,36 @@ elm_win_window_id_get(const Evas_Object *obj)
    return ret;
 }
 
+static Eina_Bool
+_on_atspi_bus_connected(void *data EINA_UNUSED, Eo *obj EINA_UNUSED, const Eo_Event_Description *event EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   Evas_Object *win;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(_elm_win_list, l, win)
+     {
+        /**
+         * Reemit accessibility events when AT-SPI2 connection is begin
+         * established. This assures that Assistive Technology clients will
+         * recieve all org.a11y.window events and could keep track of active
+         * windows whithin system.
+         */
+        eo_do(win, eo_event_callback_call(ELM_INTERFACE_ATSPI_WINDOW_EVENT_WINDOW_CREATED, NULL));
+        if (elm_win_focus_get(win))
+           eo_do(win, eo_event_callback_call(ELM_INTERFACE_ATSPI_WINDOW_EVENT_WINDOW_ACTIVATED, NULL));
+        else
+           eo_do(win, eo_event_callback_call(ELM_INTERFACE_ATSPI_WINDOW_EVENT_WINDOW_DEACTIVATED, NULL));
+     }
+   return EINA_TRUE;
+}
+
 EOLIAN static void
 _elm_win_class_constructor(Eo_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
+   Eo *bridge = _elm_atspi_bridge_get();
+   if (_elm_config->atspi_mode)
+      eo_do(bridge, eo_event_callback_add(ELM_ATSPI_BRIDGE_EVENT_CONNECTED, _on_atspi_bus_connected, NULL));
 }
 
 EOLIAN static Eo*

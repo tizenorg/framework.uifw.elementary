@@ -319,6 +319,8 @@ elm_init(int    argc,
    system_handlers[0] = ecore_event_handler_add(ECORE_EVENT_MEMORY_STATE, _sys_memory_changed, NULL);
    system_handlers[1] = ecore_event_handler_add(ECORE_EVENT_LOCALE_CHANGED, _sys_lang_changed, NULL);
    _accessibility_currently_highlighted_obj = NULL;
+   if (_elm_config->atspi_mode != ELM_ATSPI_MODE_OFF)
+     _elm_atspi_bridge_init();
 
    return _elm_init_count;
 }
@@ -337,6 +339,7 @@ elm_shutdown(void)
    ecore_event_handler_del(system_handlers[1]);
 
    _elm_win_shutdown();
+   _elm_atspi_bridge_shutdown();
 
    while (_elm_win_deferred_free) ecore_main_loop_iterate();
 
@@ -1098,15 +1101,12 @@ elm_quicklaunch_exe_path_get(const char *exe, const char *cwd)
 EAPI void
 elm_run(void)
 {
-   if (_elm_config->atspi_mode != ELM_ATSPI_MODE_OFF)
-     _elm_atspi_bridge_init();
    ecore_main_loop_begin();
 }
 
 EAPI void
 elm_exit(void)
 {
-   _elm_atspi_bridge_shutdown();
    ecore_main_loop_quit();
 
    if (elm_policy_get(ELM_POLICY_EXIT) == ELM_POLICY_EXIT_WINDOWS_DEL)

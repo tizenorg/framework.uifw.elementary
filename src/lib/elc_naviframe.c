@@ -430,6 +430,7 @@ _access_info_cb(void *data, Evas_Object *obj EINA_UNUSED)
 	   eina_strbuf_append_printf(buf, ", %s, %s", subtitle_text, subtitle);
    }
 
+end:
    ret = eina_strbuf_string_steal(buf);
    eina_strbuf_free(buf);
    return ret;
@@ -1733,10 +1734,9 @@ _elm_naviframe_item_pop(Eo *obj, Elm_Naviframe_Data *sd)
                      Since the item is not popped or deleted here, the deleted
                      callback of the auto pushed button should be restored. */
                   if (it->auto_pushed_btn)
-                    evas_object_smart_callback_add(it->auto_pushed_btn,
-                                                   SIG_CLICKED,
-                                                   _on_item_back_btn_clicked,
-                                                   obj);
+                    eo_do(it->auto_pushed_btn, eo_event_callback_add
+                          (EVAS_CLICKABLE_INTERFACE_EVENT_CLICKED,
+                           _on_item_back_btn_clicked, obj));
                   it->popping = EINA_FALSE;
                }
              evas_object_unref(obj);

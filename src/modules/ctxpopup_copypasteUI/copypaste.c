@@ -389,7 +389,7 @@ _ctxpopup_position(Evas_Object *obj EINA_UNUSED)
    Evas_Coord ex, ey;
    Evas_Coord sx, sy, sw, sh;
    Evas_Coord x, y, w;
-   int gap = 35; //in GUI
+   int gap = 12; //in GUI
    Elm_Ctxpopup_Direction dir = ELM_CTXPOPUP_DIRECTION_UNKNOWN;
 
    evas_object_geometry_get(ext_mod->ent, &ex, &ey, NULL, NULL);
@@ -541,41 +541,7 @@ _ctxpopup_position(Evas_Object *obj EINA_UNUSED)
              if (sx < vx) x = vx;
              if (sy < vy)
                {
-                  LOG("start of selection is behind viewport");
-                  if (ehy + ehh < vy + vh) //end handler is showing
-                    {
-                       y = ehy + ehh;
-                       if (x2 > vx + vw) x2 = vx + vw;
-                       w = x2 - x;
-                       elm_ctxpopup_direction_priority_set(ext_mod->popup,
-                                                           ELM_CTXPOPUP_DIRECTION_DOWN,
-                                                           ELM_CTXPOPUP_DIRECTION_UP,
-                                                           ELM_CTXPOPUP_DIRECTION_LEFT,
-                                                           ELM_CTXPOPUP_DIRECTION_RIGHT);
-                       evas_object_move(ext_mod->popup, x + w/2, y);
-                       LOG("move: %d %d", x + w/2, y);
-                       GET_CTX_AVAI_DIR();
-                       if (dir == ELM_CTXPOPUP_DIRECTION_DOWN)
-                         {
-                            LOG("show down");
-                            return;
-                         }
-                       else
-                         {
-                            elm_ctxpopup_direction_priority_set(ext_mod->popup,
-                                                                ELM_CTXPOPUP_DIRECTION_UP,
-                                                                ELM_CTXPOPUP_DIRECTION_DOWN,
-                                                                ELM_CTXPOPUP_DIRECTION_LEFT,
-                                                                ELM_CTXPOPUP_DIRECTION_RIGHT);
-                            y = vy + (vh / 2);
-                            LOG("show middle of sel: %d %d", x, y);
-                         }
-                    }
-                  else
-                    {
-                       y = vy + (vh / 2);
-                       LOG("show middle of sel: %d %d", x, y);
-                    }
+                  y = vy + (vh / 2); //case: start of selection is behind the viewport
                }
              else
                {
@@ -639,9 +605,7 @@ _ctxpopup_position(Evas_Object *obj EINA_UNUSED)
                          }
                     }
                   else
-                    {
-                       y = sy;
-                    }
+                    y = sy;
                }
              if (x2 > ww) x2 = ww;
              if (y2 > wh) y2 = wh;
@@ -1698,14 +1662,4 @@ obj_update_popup_pos(Evas_Object *obj)
    elm_entry_extension_module_data_get(obj, ext_mod);
    LOG("call _ctxpopup_position");
    _ctxpopup_position(obj);
-}
-
-EAPI Eina_Bool
-obj_popup_showing_get(Evas_Object *obj)
-{
-   if ((!obj) || (!ext_mod) || (obj != ext_mod->caller))
-     return EINA_FALSE;
-   if (!ext_mod->popup)
-     return EINA_FALSE;
-   return evas_object_visible_get(ext_mod->popup);
 }

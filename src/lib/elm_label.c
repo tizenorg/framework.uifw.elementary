@@ -282,7 +282,7 @@ static void
 _elm_label_anchors_update(Evas_Object *obj)
 {
    Evas_Coord x, y, w, h;
-   Eina_List *l, *ll, *range = NULL;
+   Eina_List *l, *ll, *range;
    Evas_Object *tb;
    Evas_Object *smart, *clip;
    Elm_Label_Anchor_Data *an;
@@ -396,7 +396,7 @@ _elm_label_anchors_update(Evas_Object *obj)
 }
 
 static void
-_textblock_del_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+_textblock_del_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
 {
    _elm_label_anchors_clear(data, EINA_FALSE);
 }

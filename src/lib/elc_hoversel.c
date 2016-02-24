@@ -119,7 +119,7 @@ _elm_hoversel_elm_widget_theme_apply(Eo *obj, Elm_Hoversel_Data *sd)
 }
 
 static void
-_on_hover_clicked(void *data EINA_UNUSED,
+_on_hover_clicked(void *data,
                   Evas_Object *obj EINA_UNUSED,
                   void *event_info EINA_UNUSED)
 {
@@ -768,7 +768,7 @@ _elm_hoversel_hover_begin(Eo *obj, Elm_Hoversel_Data *sd)
 }
 
 EOLIAN static void
-_elm_hoversel_hover_end(Eo *obj EINA_UNUSED, Elm_Hoversel_Data *sd)
+_elm_hoversel_hover_end(Eo *obj, Elm_Hoversel_Data *sd)
 {
    if (!sd->hover) return;
 

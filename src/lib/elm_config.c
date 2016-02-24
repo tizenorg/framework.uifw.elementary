@@ -126,18 +126,20 @@ static void        _color_overlays_cancel(void);
 static Ecore_Event_Handler *_prop_change_handler = NULL;
 static Ecore_Timer *_prop_change_delay_timer = NULL;
 static Ecore_X_Window _config_win = 0;
-#define ATOM_COUNT 3
+#define ATOM_COUNT 4
 static Ecore_X_Atom _atom[ATOM_COUNT];
 static Ecore_X_Atom _atom_config = 0;
 static const char *_atom_names[ATOM_COUNT] =
 {
    "ELM_PROFILE",
    "ELM_CONFIG",
-   "ELM_CONFIG_WIN"
+   "ELM_CONFIG_WIN",
+   "ELM_CONFIG_ITEM"
 };
-#define ATOM_E_PROFILE    0
-#define ATOM_E_CONFIG     1
-#define ATOM_E_CONFIG_WIN 2
+#define ATOM_E_PROFILE      0
+#define ATOM_E_CONFIG       1
+#define ATOM_E_CONFIG_WIN   2
+#define ATOM_E_CONFIG_ITEM  3
 
 static Eina_Bool _prop_config_get(void);
 static void      _prop_config_set(void);
@@ -282,6 +284,34 @@ _prop_change_delay_cb(void *data EINA_UNUSED)
    return ECORE_CALLBACK_CANCEL;
 }
 
+
+// Tizen Only(20150910)
+// if you want that add to config_value, add to item.
+static Eina_Bool
+_prop_change_delay_item_cb(void *data EINA_UNUSED)
+{
+    int mode = 0;
+    char *s, *token;
+    s = ecore_x_window_prop_string_get(_config_win, _atom[ATOM_E_CONFIG_ITEM]);
+
+    if (s)
+      {
+        token = strtok(s, "=");
+        token = strtok(NULL, "=");
+        mode = atoi(token);
+
+        if (!strcmp(s,"ELM_ACCESS_MODE"))
+          {
+            _elm_config->access_mode = mode;
+
+            if (_elm_config->access_mode)  _elm_win_access(_elm_config->access_mode);
+            else _elm_access_shutdown();
+          }
+      }
+    return EINA_FALSE;
+}
+//
+
 static Eina_Bool
 _prop_change(void *data  EINA_UNUSED,
              int ev_type EINA_UNUSED,
@@ -302,6 +332,13 @@ _prop_change(void *data  EINA_UNUSED,
              ecore_timer_del(_prop_change_delay_timer);
              _prop_change_delay_timer = ecore_timer_add(0.1, _prop_change_delay_cb, NULL);
           }
+        // Tizen Only(20150910)
+        // if you want that add to config_value, add to item.
+        else if (event->atom == _atom[ATOM_E_CONFIG_ITEM])
+          {
+            _prop_change_delay_timer = ecore_timer_add(0.1, _prop_change_delay_item_cb, NULL);
+          }
+        //
      }
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -2231,7 +2268,7 @@ _env_get(void)
    s = getenv("ELM_MAGNIFIER_SCALE");
    if (s) _elm_config->magnifier_scale = _elm_atof(s);
    s = getenv("ELM_ATSPI_MODE");
-   if (s) _elm_config->atspi_mode = !!atoi(s);
+   if (s) _elm_config->atspi_mode = ELM_ATSPI_MODE_ON;
 
    s = getenv("ELM_TRANSITION_DURATION_FACTOR");
    if (s) _elm_config->transition_duration_factor = atof(s);
@@ -3279,6 +3316,29 @@ elm_config_all_flush(void)
      }
 #endif
 }
+
+
+// Tizen Only(20150910)
+// if you want that add to config_value, add to item.
+EAPI void
+elm_config_item_flush(const char* config_item)
+{
+#ifdef HAVE_ELEMENTARY_X
+    char buf[512];
+    Eina_Bool config_changed = EINA_FALSE;
+
+    if (config_item)
+      {
+        if (!strcmp(config_item,"ELM_ACCESS_MODE"))
+          {
+            snprintf(buf, sizeof(buf), "%s=%d", config_item, _elm_config->access_mode);
+            config_changed = EINA_TRUE;
+          }
+        if (config_changed) ecore_x_window_prop_string_set(_config_win, _atom[ATOM_E_CONFIG_ITEM], buf);
+      }
+#endif
+}
+//
 
 static void
 _translation_init()

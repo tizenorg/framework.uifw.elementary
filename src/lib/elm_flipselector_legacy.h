@@ -2,8 +2,6 @@
  * @brief Add a new flip selector widget to the given parent Elementary
  * (container) widget
  *
- * @since_tizen 2.4
- *
  * @param parent The parent object
  * @return a new flip selector widget handle or @c NULL, on errors
  *

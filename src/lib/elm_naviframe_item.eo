@@ -7,10 +7,6 @@ class Elm_Naviframe_Item(Elm_Widget_Item)
                  /*@
                   Get an item style
 
-                  @if MOBILE @since_tizen 2.3
-                  @elseif WEARABLE @since_tizen 2.3.1
-                  @endif
-
                   @see also elm_naviframe_item_style_set()
 
                   @ingroup Naviframe
@@ -19,10 +15,6 @@ class Elm_Naviframe_Item(Elm_Widget_Item)
              set {
                  /*@
                   Set an item style
-
-                  @if MOBILE @since_tizen 2.3
-                  @elseif WEARABLE @since_tizen 2.3.1
-                  @endif
 
                   The following styles are available for this item:
                   @li @c "default"
@@ -43,10 +35,6 @@ class Elm_Naviframe_Item(Elm_Widget_Item)
              Pop the top item and delete the items between the top and the above
              one on the given item.
 
-             @if MOBILE @since_tizen 2.3
-             @elseif WEARABLE @since_tizen 2.3.1
-             @endif
-
              The items between the top and the given item will be deleted first,
              and then the top item will be popped at last.
 
@@ -57,10 +45,6 @@ class Elm_Naviframe_Item(Elm_Widget_Item)
             /*@
              Get a value whether title area is enabled or not.
 
-             @if MOBILE @since_tizen 2.3
-             @elseif WEARABLE @since_tizen 2.3.1
-             @endif
-
              @see also elm_naviframe_item_title_enabled_set()
 
              @ingroup Naviframe
@@ -70,10 +54,6 @@ class Elm_Naviframe_Item(Elm_Widget_Item)
       title_enabled_set {
             /*@
              Enable/Disable the title area with transition effect
-
-             @if MOBILE @since_tizen 2.3
-             @elseif WEARABLE @since_tizen 2.3.1
-             @endif
 
              When the title area is disabled, then the controls would be hidden so as
              to expand the content area to full-size.
@@ -107,10 +87,6 @@ class Elm_Naviframe_Item(Elm_Widget_Item)
             /*@
              Set a function to be called when @c it of the naviframe is going to be
              popped.
-
-             @if MOBILE @since_tizen 2.3
-             @elseif WEARABLE @since_tizen 2.3.1
-             @endif
 
              @param func the callback function.
 

@@ -254,11 +254,10 @@ class Elm_Gengrid_Item(Elm_Widget_Item)
            }
            all_contents_unset{
                 /*@
-                 @MOBILE_ONLY
-
                  @brief Unset all contents fetched by the item class
 
                  @if MOBILE @since_tizen 2.4
+                 @elseif WEARABLE @since_tizen 2.4
                  @endif
 
                  @remark This instructs gengrid to release references to contents in the item,
@@ -277,8 +276,6 @@ class Elm_Gengrid_Item(Elm_Widget_Item)
                  @MOBILE_ONLY
 
                  @brief Update the contents of a given gengrid item
-
-                 @since_tizen 2.3
 
                  @remark This updates an item by calling all the item class functions
                  again to get the contents, texts and states. Use this when the

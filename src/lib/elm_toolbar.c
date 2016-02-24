@@ -383,6 +383,9 @@ _resize_job(void *data)
    Elm_Toolbar_Item_Data *it;
    Eina_List *list;
    Eina_Bool more;
+   Evas_Object *o = NULL; // TIZEN ONLY
+   Eina_List *l = NULL; // TIZEN ONLY
+   int count; //TIZEN ONLY
 
    ELM_TOOLBAR_DATA_GET(obj, sd);
 
@@ -589,6 +592,66 @@ _resize_job(void *data)
      }
 
    evas_object_resize(sd->bx, w, h);
+
+//// TIZEN ONLY
+   list = evas_object_box_children_get(sd->bx);
+   count = eina_list_count(list);
+   EINA_LIST_FOREACH(list, l, o)
+     {
+        if (o == eina_list_nth(list, 0))
+          {
+             elm_layout_signal_emit(o, "elm,order,first,item", "elm");
+             if (eina_list_count(list) == 1)
+               {
+                  elm_layout_signal_emit(o, "elm,order,last,item", "elm");
+                  // TIZEN_ONLY(20150815): Properly unselect the last item which is selected by order.
+                  it = evas_object_data_get(o, "item");
+
+                  if (it && (sd->selected_item != EO_OBJ(it)) &&
+                      (sd->auto_selected_last_item != EO_OBJ(it)))
+                    {
+                       if (sd->auto_selected_last_item &&
+                           sd->auto_selected_last_item != sd->selected_item)
+                         {
+                            ELM_TOOLBAR_ITEM_DATA_GET(sd->auto_selected_last_item, it2);
+
+                            _item_unselect(it2);
+                         }
+
+                       sd->auto_selected_last_item = EO_OBJ(it);
+                    }
+                  //
+               }
+          }
+        else if (o == eina_list_nth(list, count-1))
+          {
+             elm_layout_signal_emit(o, "elm,order,last,item", "elm");
+
+             // TIZEN_ONLY(20150815): Properly unselect the last item which is selected by order.
+             it = evas_object_data_get(o, "item");
+
+             if (it && (sd->selected_item != EO_OBJ(it)) &&
+                 (sd->auto_selected_last_item != EO_OBJ(it)))
+               {
+                  if (sd->auto_selected_last_item &&
+                      sd->auto_selected_last_item != sd->selected_item)
+                    {
+                       ELM_TOOLBAR_ITEM_DATA_GET(sd->auto_selected_last_item, it2);
+
+                       _item_unselect(it2);
+                    }
+
+                  sd->auto_selected_last_item = EO_OBJ(it);
+               }
+             //
+          }
+        else
+          {
+             elm_layout_signal_emit(o, "elm,order,default,item", "elm");
+          }
+     }
+   eina_list_free(list);
+//
 
 // Remove the first or last separator since it is not necessary
    list = evas_object_box_children_get(sd->bx_more);
@@ -1103,8 +1166,6 @@ _item_select(Elm_Toolbar_Item_Data *it)
 
    if (eo_do(EO_OBJ(it), elm_wdg_item_disabled_get()) || (it->separator) || (it->object))
      return;
-   if ((sd->shrink_mode == ELM_TOOLBAR_SHRINK_EXPAND) && (!sd->more_item))
-     return;
    sel = it->selected;
 
    if ((sd->select_mode != ELM_OBJECT_SELECT_MODE_NONE) &&
@@ -1207,111 +1268,6 @@ _item_select(Elm_Toolbar_Item_Data *it)
    evas_object_smart_callback_call(obj, SIG_SELECTED, EO_OBJ(it));
 }
 
-// TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-/* When new is EINA_TRUE, It should be called after the new it is added
- * to the box of toolbar widget. */
-static void
-_elm_toolbar_item_order_signal_emit(Elm_Toolbar_Data *sd,
-                                    Elm_Toolbar_Item_Data *it,
-                                    Eina_List *prev_list,
-                                    Eina_Bool new)
-{
-   Elm_Toolbar_Item_Data *first_it = NULL, *last_it = NULL;
-   Evas_Object *first_it_view = NULL, *last_it_view = NULL;
-   Elm_Toolbar_Item_Data *prev_first_it = NULL, *prev_last_it = NULL;
-   Evas_Object *prev_first_it_view = NULL, *prev_last_it_view = NULL;
-   Eina_List *list;
-
-   list = evas_object_box_children_get(sd->bx);
-
-   if (!list) return;
-
-   if (prev_list)
-     {
-        prev_first_it_view = eina_list_data_get(prev_list);
-        prev_last_it_view = eina_list_data_get(eina_list_last(prev_list));
-        prev_first_it = evas_object_data_get(prev_first_it_view, "item");
-        prev_last_it = evas_object_data_get(prev_last_it_view, "item");
-     }
-
-   first_it_view = eina_list_data_get(list);
-   last_it_view = eina_list_data_get(eina_list_last(list));
-   first_it = evas_object_data_get(first_it_view, "item");
-   last_it = evas_object_data_get(last_it_view, "item");
-
-   if (prev_first_it)
-     {
-        if ((prev_first_it != first_it) && (prev_first_it != last_it))
-          elm_layout_signal_emit(VIEW(prev_first_it), "elm,order,default,item", "elm");
-        else if (prev_first_it == last_it)
-          elm_layout_signal_emit(VIEW(prev_first_it), "elm,order,last,item", "elm");
-     }
-
-   if (prev_last_it)
-     {
-        if ((prev_last_it != last_it) && (prev_last_it != first_it))
-          elm_layout_signal_emit(VIEW(prev_last_it), "elm,order,default,item", "elm");
-        else if (prev_last_it == first_it)
-          elm_layout_signal_emit(VIEW(prev_last_it), "elm,order,first,item", "elm");
-     }
-
-   if (it)
-     {
-        if (new)
-          {
-             if (first_it == last_it)
-               {
-                  elm_layout_signal_emit(VIEW(it), "elm,order,first,item", "elm");
-                  elm_layout_signal_emit(VIEW(it), "elm,order,last,item", "elm");
-               }
-             else if (it == first_it)
-               {
-                  elm_layout_signal_emit(VIEW(it), "elm,order,first,item", "elm");
-               }
-             else if (it == last_it)
-               {
-                  elm_layout_signal_emit(VIEW(it), "elm,order,last,item", "elm");
-               }
-          }
-        else if (first_it != last_it)
-          {
-             if (it == first_it)
-               {
-                  Eina_List *next_l = eina_list_next(list);
-                  first_it_view = eina_list_data_get(next_l);
-                  first_it = evas_object_data_get(first_it_view, "item");
-
-                  elm_layout_signal_emit(first_it_view, "elm,order,first,item", "elm");
-               }
-             else if (it == last_it)
-               {
-                  Eina_List *prev_l = eina_list_prev(eina_list_last(list));
-                  last_it_view = eina_list_data_get(prev_l);
-                  last_it = evas_object_data_get(last_it_view, "item");
-
-                  elm_layout_signal_emit(last_it_view, "elm,order,last,item", "elm");
-               }
-          }
-     }
-
-   if ((sd->selected_item != EO_OBJ(last_it)) &&
-       (sd->auto_selected_last_item != EO_OBJ(last_it)))
-     {
-        if (sd->auto_selected_last_item &&
-            sd->auto_selected_last_item != sd->selected_item)
-          {
-             ELM_TOOLBAR_ITEM_DATA_GET(sd->auto_selected_last_item, it2);
-
-             _item_unselect(it2);
-          }
-
-        sd->auto_selected_last_item = EO_OBJ(last_it);
-     }
-
-   eina_list_free(list);
-}
-//
-
 static void
 _item_del(Elm_Toolbar_Item_Data *it)
 {
@@ -1319,10 +1275,6 @@ _item_del(Elm_Toolbar_Item_Data *it)
    ELM_TOOLBAR_DATA_GET(WIDGET(it), sd);
 
    _item_unselect(it);
-
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   _elm_toolbar_item_order_signal_emit(sd, it, NULL, EINA_FALSE);
-   //
 
    EINA_LIST_FREE(it->states, it_state)
      {
@@ -1389,7 +1341,7 @@ _item_theme_hook(Evas_Object *obj,
                  double scale,
                  int icon_size)
 {
-   Evas_Coord mw, mh;
+   Evas_Coord mw, mh, minw, minh;
    Evas_Object *view = VIEW(it);
    const char *style;
 
@@ -1908,6 +1860,10 @@ _select_cb(void *data,
            const char *source EINA_UNUSED)
 {
    Elm_Toolbar_Item_Data *it = data;
+
+   // TIZEN_ONLY(20150819): Fix to give a focus to item in mouse clicked event.
+   ELM_TOOLBAR_DATA_GET(WIDGET(it), sd);
+   //
 
    if ((_elm_config->access_mode == ELM_ACCESS_MODE_OFF) ||
        (_elm_access_2nd_click_timeout(VIEW(it))))
@@ -2554,7 +2510,7 @@ _elm_toolbar_item_eo_base_constructor(Eo *eo_it, Elm_Toolbar_Item_Data *it)
 
 // TIZEN_ONLY(20150828): Send a signal when item is resized.
 static void
-_item_resized_cb(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+_item_resized_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
 {
    elm_layout_signal_emit(obj, "elm,state,resized", "elm");
    edje_object_message_signal_process(elm_layout_edje_get(obj));
@@ -3219,29 +3175,16 @@ _elm_toolbar_item_append(Eo *obj, Elm_Toolbar_Data *sd, const char *icon, const 
 {
    Elm_Toolbar_Item_Data *it;
    double scale;
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   Eina_List *prev_list;
-   //
 
    it = _item_new(obj, icon, label, func, data);
    if (!it) return NULL;
    scale = elm_widget_scale_get(obj);
-
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   prev_list = evas_object_box_children_get(sd->bx);
-   //
 
    sd->items = eina_inlist_append(sd->items, EINA_INLIST_GET(it));
    evas_object_box_append(sd->bx, VIEW(it));
    evas_object_show(VIEW(it));
 
    _item_theme_hook(obj, it, scale, sd->icon_size);
-
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   _elm_toolbar_item_order_signal_emit(sd, it, prev_list, EINA_TRUE);
-   eina_list_free(prev_list);
-   //
-
    _sizing_eval(obj);
    sd->item_count++;
 
@@ -3253,28 +3196,15 @@ _elm_toolbar_item_prepend(Eo *obj, Elm_Toolbar_Data *sd, const char *icon, const
 {
    Elm_Toolbar_Item_Data *it;
    double scale;
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   Eina_List *prev_list;
-   //
 
    it = _item_new(obj, icon, label, func, data);
    if (!it) return NULL;
    scale = elm_widget_scale_get(obj);
 
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   prev_list = evas_object_box_children_get(sd->bx);
-   //
-
    sd->items = eina_inlist_prepend(sd->items, EINA_INLIST_GET(it));
    evas_object_box_prepend(sd->bx, VIEW(it));
    evas_object_show(VIEW(it));
    _item_theme_hook(obj, it, scale, sd->icon_size);
-
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   _elm_toolbar_item_order_signal_emit(sd, it, prev_list, EINA_TRUE);
-   eina_list_free(prev_list);
-   //
-
    _sizing_eval(obj);
    sd->item_count++;
 
@@ -3286,9 +3216,6 @@ _elm_toolbar_item_insert_before(Eo *obj, Elm_Toolbar_Data *sd, Elm_Object_Item *
 {
    Elm_Toolbar_Item_Data *it;
    double scale;
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   Eina_List *prev_list;
-   //
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(eo_before, NULL);
    ELM_TOOLBAR_ITEM_DATA_GET(eo_before, _before);
@@ -3298,20 +3225,10 @@ _elm_toolbar_item_insert_before(Eo *obj, Elm_Toolbar_Data *sd, Elm_Object_Item *
    if (!it) return NULL;
    scale = elm_widget_scale_get(obj);
 
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   prev_list = evas_object_box_children_get(sd->bx);
-   //
-
    sd->items = eina_inlist_prepend_relative
        (sd->items, EINA_INLIST_GET(it), EINA_INLIST_GET(_before));
    evas_object_box_insert_before(sd->bx, VIEW(it), VIEW(_before));
    _item_theme_hook(obj, it, scale, sd->icon_size);
-
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   _elm_toolbar_item_order_signal_emit(sd, it, prev_list, EINA_TRUE);
-   eina_list_free(prev_list);
-   //
-
    _sizing_eval(obj);
    sd->item_count++;
 
@@ -3323,9 +3240,6 @@ _elm_toolbar_item_insert_after(Eo *obj, Elm_Toolbar_Data *sd, Elm_Object_Item *e
 {
    Elm_Toolbar_Item_Data *it;
    double scale;
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   Eina_List *prev_list;
-   //
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(eo_after, NULL);
    ELM_TOOLBAR_ITEM_DATA_GET(eo_after, _after);
@@ -3335,20 +3249,10 @@ _elm_toolbar_item_insert_after(Eo *obj, Elm_Toolbar_Data *sd, Elm_Object_Item *e
    if (!it) return NULL;
    scale = elm_widget_scale_get(obj);
 
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   prev_list = evas_object_box_children_get(sd->bx);
-   //
-
    sd->items = eina_inlist_append_relative
        (sd->items, EINA_INLIST_GET(it), EINA_INLIST_GET(_after));
    evas_object_box_insert_after(sd->bx, VIEW(it), VIEW(_after));
    _item_theme_hook(obj, it, scale, sd->icon_size);
-
-   // TIZEN_ONLY(20151002): Send order signals when item is added to toolbar.
-   _elm_toolbar_item_order_signal_emit(sd, it, prev_list, EINA_TRUE);
-   eina_list_free(prev_list);
-   //
-
    _sizing_eval(obj);
    sd->item_count++;
 
@@ -4017,12 +3921,14 @@ _elm_toolbar_select_mode_set(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd, Elm_Obje
      return;
 
    if (sd->select_mode == mode) return;
-   sd->select_mode = mode;
 
    if ((mode == ELM_OBJECT_SELECT_MODE_ALWAYS) &&
        (sd->select_mode != ELM_OBJECT_SELECT_MODE_ALWAYS) &&
        sd->items)
      _item_select(ELM_TOOLBAR_ITEM_FROM_INLIST(sd->items));
+
+   if (sd->select_mode != mode)
+     sd->select_mode = mode;
 }
 
 EOLIAN static Elm_Object_Select_Mode

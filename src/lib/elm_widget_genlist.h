@@ -207,7 +207,6 @@ struct _Elm_Genlist_Data
    Eina_Bool                             is_access : 1;
    Elm_Gen_Item                         *highlighted_item;
    Evas_Coord                            viewport_w, viewport_h;
-   Elm_Gen_Item                         *atspi_item_to_highlight;
 };
 
 typedef struct _Item_Block Item_Block;

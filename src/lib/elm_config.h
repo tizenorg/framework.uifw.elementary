@@ -59,6 +59,12 @@ EAPI void      elm_config_reload(void);
  */
 EAPI void      elm_config_all_flush(void);
 
+// Tizen Only(20150910)
+// if you want that add to config_value, add to item.
+EAPI void      elm_config_item_flush(const char* config_item);
+//
+
+
 /**
  * @}
  */
@@ -1770,7 +1776,7 @@ EAPI void       elm_config_cache_edje_collection_cache_size_set(int size);
  * engines to use vsync display if possible.
  *
  * @return If vsync is enabled
- * 
+ *
  * @since 1.11
  */
 EAPI Eina_Bool  elm_config_vsync_get(void);

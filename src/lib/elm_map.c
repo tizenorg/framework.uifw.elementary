@@ -1283,9 +1283,6 @@ _scroll_cb(Evas_Object *obj,
    else
      evas_object_smart_callback_call
        (sd->obj, SIG_SCROLL_DRAG_START, NULL);
-   //TIZEN_ONLY(20150921): Block longpress event when scroll.
-   ELM_SAFE_FREE(sd->long_timer, ecore_timer_del);
-   //
    sd->scr_timer = ecore_timer_add(0.25, _scr_timeout_cb, obj);
    evas_object_smart_callback_call(sd->obj, SIG_SCROLL, NULL);
 }
@@ -3291,9 +3288,6 @@ _pinch_zoom_start_cb(void *data,
    EINA_SAFETY_ON_NULL_RETURN_VAL(data, EVAS_EVENT_FLAG_NONE);
 
    sd->pinch_zoom = sd->zoom_detail;
-   //TIZEN_ONLY(20150921): Block longpress event when pinch zoom.
-   ELM_SAFE_FREE(sd->long_timer, ecore_timer_del);
-   //
 
    return EVAS_EVENT_FLAG_NONE;
 }
@@ -3312,9 +3306,6 @@ _pinch_zoom_cb(void *data,
 
         _zoom_do(sd, sd->pinch_zoom + ei->zoom - 1);
      }
-   //TIZEN_ONLY(20150921): Block longpress event when pinch zoom.
-   ELM_SAFE_FREE(sd->long_timer, ecore_timer_del);
-   //
 
    return EVAS_EVENT_FLAG_NONE;
 }
@@ -3340,9 +3331,6 @@ _pinch_rotate_cb(void *data,
 
         evas_object_smart_changed(sd->pan_obj);
      }
-   //TIZEN_ONLY(20150921): Block longpress event when pinch_rotate.
-   ELM_SAFE_FREE(sd->long_timer, ecore_timer_del);
-   //
 
    return EVAS_EVENT_FLAG_NONE;
 }

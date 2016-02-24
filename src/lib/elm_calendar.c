@@ -41,18 +41,15 @@ _current_region_date_string_get(const char *format, struct tm *tm)
 #ifndef HAVE_ELEMENTARY_WIN32
    char *p, *locale;
    char buf[128] = {0, };
-   UDateFormat *dt_formatter = NULL;
+   time_t time_val;
+   UDateFormat *dt_formatter;
    UErrorCode status = U_ZERO_ERROR;
    UChar pattern[128] = {0, };
    UChar str[128] = {0, };
-   UChar weekday[128] = {0, };
-   UChar ufield[128] = {0, };
-   UChar custom_skeleton[128] = {0, };
    UDate date;
    UDateTimePatternGenerator *pattern_generator;
-   UCalendar *calendar = NULL;
+   UChar custom_skeleton[128] = {0, };
    char *skeleton = "MMMM y";
-   int32_t pos = 0;
 
    //Current locale get form evn.
    locale = getenv("LC_TIME");
@@ -82,50 +79,13 @@ _current_region_date_string_get(const char *format, struct tm *tm)
                             best_pattern_capacity, &status);
    }
 
+   //Get the time integer value for value parsing.
+   time_val = (time_t)mktime(tm);
+   date = (UDate)time_val * 1000;
+
    //Open a new UDateFormat for formatting and parsing date.
    dt_formatter = udat_open(UDAT_IGNORE, UDAT_IGNORE, locale,
                             NULL, -1, pattern, -1, &status);
-   if (!dt_formatter)
-     return NULL;
-
-   if (!strcmp(format, "%a"))
-     {
-        udat_getSymbols(dt_formatter, UDAT_SHORT_WEEKDAYS, (tm->tm_mday - 3),
-                        weekday, sizeof(weekday), &status);
-        u_austrcpy(buf, weekday);
-        udat_close(dt_formatter);
-
-        return strdup(buf);
-     }
-   else
-     {
-        if (pattern[0] == 'M')
-          {
-             snprintf(buf, sizeof(buf), "%d %d", tm->tm_mon + 1, tm->tm_year + 1900);
-             u_uastrcpy(ufield, buf);
-          }
-        else
-          {
-             snprintf(buf, sizeof(buf), "%d %d", tm->tm_year + 1900, tm->tm_mon + 1);
-             u_uastrcpy(ufield, buf);
-          }
-     }
-
-   //Open a UCalendar.
-   //A UCalendar may be used to convert a millisecond value to a year, month, and day.
-   calendar = ucal_open(NULL, -1, locale, UCAL_GREGORIAN, &status);
-   if (!calendar)
-     {
-        udat_close(dt_formatter);
-        return NULL;
-     }
-   ucal_clear(calendar);
-
-   //Parse a string into an date/time using a UDateFormat.
-   udat_parseCalendar(dt_formatter, calendar, ufield, sizeof(ufield), &pos, &status);
-   date = ucal_getMillis(calendar, &status);
-   ucal_close(calendar);
-
    udat_format(dt_formatter, date, str, sizeof(str), NULL, &status);
    u_austrcpy(buf, str);
    udat_close(dt_formatter);
@@ -545,10 +505,7 @@ _access_calendar_register(Evas_Object *obj)
 static void
 _populate(Evas_Object *obj)
 {
-   //TIZEN_ONLY(20150923): wday recalc when first day of week changed.
-   //int maxdays, prev_month_maxdays, day, mon, yr, i;
-   int maxdays, adjusted_wday, prev_month_maxdays, day, mon, yr, i;
-   //
+   int maxdays, prev_month_maxdays, day, mon, yr, i;
    Elm_Calendar_Mark *mark;
    char part[12], day_s[3];
    struct tm first_day;
@@ -714,18 +671,8 @@ _populate(Evas_Object *obj)
                day = mtime->tm_mday;
              else
                break;
-
-             //TIZEN_ONLY(20150923): wday recalc when first day of week changed.
-             adjusted_wday = (mtime->tm_wday - sd->first_week_day);
-             if (adjusted_wday < 0)
-               adjusted_wday = ELM_DAY_LAST + adjusted_wday;
-             //
-
              for (; day <= maxdays; day++)
-               //TIZEN_ONLY(20150923): wday recalc when first day of week changed.
-               //if (mtime->tm_wday == _weekday_get(sd->first_day_it, day))
-               if (adjusted_wday == _weekday_get(sd->first_day_it, day))
-               //
+               if (mtime->tm_wday == _weekday_get(sd->first_day_it, day))
                  _cit_mark(obj, day + sd->first_day_it - 1,
                            mark->mark_type);
              break;
@@ -1390,11 +1337,11 @@ _elm_calendar_evas_object_smart_add(Eo *obj, Elm_Calendar_Data *priv)
 
    // TIZEN_ONLY(20150909): Register smart callbacks for calendar buttons.
    elm_button_autorepeat_set(priv->left_button, EINA_TRUE);
-   elm_button_autorepeat_initial_timeout_set(priv->left_button, 0.5);
-   elm_button_autorepeat_gap_timeout_set(priv->left_button, 0.2);
+   elm_button_autorepeat_initial_timeout_set(priv->left_button, 0.0);
+   elm_button_autorepeat_gap_timeout_set(priv->left_button, 0.1);
    elm_button_autorepeat_set(priv->right_button, EINA_TRUE);
-   elm_button_autorepeat_initial_timeout_set(priv->right_button, 0.5);
-   elm_button_autorepeat_gap_timeout_set(priv->right_button, 0.2);
+   elm_button_autorepeat_initial_timeout_set(priv->right_button, 0.0);
+   elm_button_autorepeat_gap_timeout_set(priv->right_button, 0.1);
    evas_object_smart_callback_add(priv->left_button, "clicked", _button_month_dec_start_click, obj);
    evas_object_smart_callback_add(priv->left_button, "repeated", _button_month_dec_start, obj);
    evas_object_smart_callback_add(priv->right_button, "clicked", _button_month_inc_start_click, obj);

@@ -9,7 +9,6 @@
 #include "elm_widget.h"
 #include "elm_widget_spinner.h"
 #include "elm_widget_datetime.h"
-#include "elm_widget_button.h"
 
 #define DATETIME_FIELD_COUNT    6
 #define FIELD_FORMAT_LEN        3
@@ -177,13 +176,13 @@ _spinner_special_value_set(Evas_Object *obj, Elm_Datetime_Field_Type field_type,
    char *p, *locale;
    char buf[BUFF_SIZE] = {0, };
    int32_t pos;
-   UDateFormat *dt_formatter = NULL;
+   UDateFormat *dt_formatter;
    UErrorCode status = U_ZERO_ERROR;
    UDate date;
    UChar pattern[BUFF_SIZE] = {0, };
    UChar str[BUFF_SIZE] = {0, };
    UChar ufield[BUFF_SIZE] = {0, };
-   UCalendar *calendar = NULL;
+   UCalendar *calendar;
 
    //Current locale get form env.
    locale = getenv("LC_TIME");
@@ -263,8 +262,6 @@ _spinner_special_value_set(Evas_Object *obj, Elm_Datetime_Field_Type field_type,
 
    //Open a new UDateFormat for formatting and parsing dates and times.
    dt_formatter = udat_open(UDAT_IGNORE, UDAT_IGNORE, locale, NULL, -1, pattern, -1, &status);
-   if (!dt_formatter) return;
-
    snprintf(buf, sizeof(buf), "%d", val);
    u_uastrcpy(ufield, buf);
    pos = 0;
@@ -272,11 +269,6 @@ _spinner_special_value_set(Evas_Object *obj, Elm_Datetime_Field_Type field_type,
    //Open a UCalendar.
    //A UCalendar may be used to convert a millisecond value to a year, month, and day.
    calendar = ucal_open(NULL, -1, locale, UCAL_GREGORIAN, &status);
-   if (!calendar)
-     {
-        udat_close(dt_formatter);
-        return;
-     }
    ucal_clear(calendar);
 
    //Parse a string into an date/time using a UDateFormat.
@@ -309,22 +301,15 @@ field_value_display(Elm_Datetime_Module_Data *module_data, Evas_Object *obj)
 
    if(field_type == ELM_DATETIME_AMPM)
      {
-       Elm_Button_Data *am_sd = eo_data_scope_get(layout_mod->am_button, ELM_BUTTON_CLASS);
-       Elm_Button_Data *pm_sd = eo_data_scope_get(layout_mod->pm_button, ELM_BUTTON_CLASS);
-
         if ((tim.tm_hour >= 0) && (tim.tm_hour < 12))
           {
              elm_layout_signal_emit(layout_mod->am_button, "elm,action,button,selected", "elm");
-             am_sd->atspi_state = EINA_TRUE;
              elm_layout_signal_emit(layout_mod->pm_button, "elm,action,button,unselected", "elm");
-             pm_sd->atspi_state = EINA_FALSE;
           }
         else
           {
              elm_layout_signal_emit(layout_mod->am_button, "elm,action,button,unselected", "elm");
-             am_sd->atspi_state = EINA_FALSE;
              elm_layout_signal_emit(layout_mod->pm_button, "elm,action,button,selected", "elm");
-             pm_sd->atspi_state = EINA_TRUE;
           }
      }
    else if (field_type == ELM_DATETIME_MONTH)
@@ -398,9 +383,6 @@ field_create(Elm_Datetime_Module_Data *module_data, Elm_Datetime_Field_Type  fie
         evas_object_smart_callback_add(layout_mod->pm_button, "clicked", _ampm_clicked_cb, layout_mod);
         evas_object_show(layout_mod->pm_button);
         elm_box_pack_end(layout_mod->ampm_box, layout_mod->pm_button);
-
-        elm_atspi_accessible_role_set(layout_mod->am_button, ELM_ATSPI_ROLE_CHECK_BOX);
-        elm_atspi_accessible_role_set(layout_mod->pm_button, ELM_ATSPI_ROLE_CHECK_BOX);
      }
    else
      {

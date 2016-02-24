@@ -428,16 +428,6 @@ ELM_DIRENT_H_DEF="#undef"
 AC_CHECK_HEADER([dirent.h], [ELM_DIRENT_H_DEF="#define"])
 AC_SUBST([ELM_DIRENT_H_DEF])
 
-### TIZEN_ONLY(20150112): NOT FIXED : Please remove edbus >= 1.6.99
-### TIZEN_ONLY(20150921): Support disable edbus for Tizen SDK Tools.
-###
-if test "x${want_edbus}" = "xyes"; then
-    ELM_EDBUS_H_DEF="#define"
-else
-    ELM_EDBUS_H_DEF="#undef"
-fi
-AC_SUBST([ELM_EDBUS_H_DEF])
-
 AC_CHECK_HEADER([sys/mman.h], [have_mman="yes"], [have_mman="no"])
 if test "x${have_mman}" = "xyes"; then
    AC_DEFINE([HAVE_MMAN_H], [1], [Have sys/mman.h header file])

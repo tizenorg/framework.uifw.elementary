@@ -785,7 +785,7 @@ _elm_scroll_scroll_bar_size_adjust(Elm_Scrollable_Smart_Interface_Data *sid)
    sid->size_adjust_recurse++;
    if ((sid->content) || (sid->extern_pan))
      {
-        Evas_Coord x, y, w, h, mx = 0, my = 0, vw = 0, vh = 0,
+        Evas_Coord x, y, w, h, mx = 0, my = 0, vw = 0, vh = 0, px, py,
                    minx = 0, miny = 0;
         double vx, vy, size;
 
@@ -908,7 +908,7 @@ _elm_scroll_scroll_bar_size_adjust(Elm_Scrollable_Smart_Interface_Data *sid)
 
 //TIZEN_ONLY(20150909) : Use the specific bar_chagnged_bar_pos_adjust func only for gengrid.
 EOLIAN static void
-_elm_interface_scrollable_bar_changed_bar_pos_adjust(Eo *obj EINA_UNUSED, Elm_Scrollable_Smart_Interface_Data *sid, Evas_Coord *x, Evas_Coord *y)
+_elm_interface_scrollable_bar_changed_bar_pos_adjust(Eo *obj, Elm_Scrollable_Smart_Interface_Data *sid, Evas_Coord *x, Evas_Coord *y)
 {
    Evas_Coord mx, my, minx, miny, px, py;
    double vx, vy;

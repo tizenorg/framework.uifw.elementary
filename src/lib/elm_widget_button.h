@@ -35,8 +35,6 @@ typedef struct _Elm_Button_Data
 
    Eina_Bool             autorepeat : 1; /**< Whether auto-repetition of clicks is enabled or not (bound to _Elm_Button_Smart_Class::admits_autorepeat) */
    Eina_Bool             repeating : 1; /**< Whether auto-repetition is going on */
-   //TIZEN_ONLY(20150923) : Reading am/pm button as selected or not selected.
-   Eina_Bool             atspi_state; /**< Used in Datetime am/pm button to describe, whether is selected or unselected */
 } Elm_Button_Data;
 
 /**

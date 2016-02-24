@@ -9,6 +9,15 @@
  * IT AT RUNTIME.
  */
 
+typedef struct _Async_Open_Data Async_Open_Data;
+typedef enum
+  {
+     ELM_IMAGE_PRELOAD_ENABLED,
+     ELM_IMAGE_PRELOADING,
+     ELM_IMAGE_PRELOADED,
+     ELM_IMAGE_PRELOAD_DISABLED
+  } Elm_Image_Preload_Status;
+
 /**
  * @internal
  * @addtogroup Widget
@@ -62,10 +71,11 @@ struct _Elm_Image_Data
       Ecore_Thread      *th;
    } async;
 
+   Elm_Image_Preload_Status preload_status;
+
    Eina_Bool             aspect_fixed : 1;
    Eina_Bool             fill_inside : 1;
    Eina_Bool             resize_down : 1;
-   Eina_Bool             preloading : 1;
    Eina_Bool             resize_up : 1;
    Eina_Bool             no_scale : 1;
    Eina_Bool             smooth : 1;

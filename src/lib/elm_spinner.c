@@ -53,24 +53,6 @@ static const Elm_Action key_actions[] = {
    {NULL, NULL}
 };
 
-static Eina_Bool
-_is_label_format_integer(const char *fmt)
-{
-   const char *start = strchr(fmt, '%');
-   const char *itr;
-
-   for (itr = start + 1; *itr != '\0'; itr++)
-     {
-        if ((*itr == 'd') || (*itr == 'u') || (*itr == 'i') ||
-            (*itr == 'o') || (*itr == 'x') || (*itr == 'X'))
-          return EINA_TRUE;
-        else if ((*itr == 'f'))
-          return EINA_FALSE;
-     }
-
-   return EINA_FALSE;
-}
-
 static void
 _entry_show(Elm_Spinner_Data *sd)
 {
@@ -121,11 +103,7 @@ _entry_show(Elm_Spinner_Data *sd)
                }
           }
      }
-
-   if (_is_label_format_integer(fmt))
-     snprintf(buf, sizeof(buf), fmt, (int)sd->val);
-   else
-     snprintf(buf, sizeof(buf), fmt, sd->val);
+   snprintf(buf, sizeof(buf), fmt, sd->val);
 
 apply:
    elm_object_text_set(sd->ent, buf);
@@ -149,12 +127,7 @@ _label_write(Evas_Object *obj)
           }
      }
    if (sd->label)
-     {
-        if (_is_label_format_integer(sd->label))
-          snprintf(buf, sizeof(buf), sd->label, (int)sd->val);
-        else
-          snprintf(buf, sizeof(buf), sd->label, sd->val);
-     }
+     snprintf(buf, sizeof(buf), sd->label, sd->val);
    else
      snprintf(buf, sizeof(buf), "%.0f", sd->val);
 
@@ -575,10 +548,6 @@ _val_inc_start(void *data)
    //////////////////////////////////////////////////////////
    sd->spin_timer = ecore_timer_add(sd->interval, _spin_value, data);
    _spin_value(data);
-
-   //TIZEN_ONLY(20150922): Prevent scroll in longpressed state.
-   elm_widget_scroll_freeze_push(data);
-   //
    return ECORE_CALLBACK_CANCEL;
 }
 
@@ -591,10 +560,6 @@ _val_inc_stop(Evas_Object *obj)
    sd->spin_speed = 0;
    if (sd->spin_timer) ecore_timer_del(sd->spin_timer);
    sd->spin_timer = NULL;
-
-   //TIZEN_ONLY(20150922): Prevent scroll in longpressed state.
-   elm_widget_scroll_freeze_pop(obj);
-   //
 }
 //////////////////////////////////////////////////////////
 
@@ -613,10 +578,6 @@ _val_dec_start(void *data)
    //////////////////////////////////////////////////////////
    sd->spin_timer = ecore_timer_add(sd->interval, _spin_value, data);
    _spin_value(data);
-
-   //TIZEN_ONLY(20150922): Prevent scroll in longpressed state.
-   elm_widget_scroll_freeze_push(data);
-   //
    return ECORE_CALLBACK_CANCEL;
 }
 
@@ -698,10 +659,6 @@ _val_dec_stop(Evas_Object *obj)
    sd->spin_speed = 0;
    if (sd->spin_timer) ecore_timer_del(sd->spin_timer);
    sd->spin_timer = NULL;
-
-   //TIZEN_ONLY(20150922): Prevent scroll in longpressed state.
-   elm_widget_scroll_freeze_pop(obj);
-   //
 }
 
 static void
@@ -802,24 +759,6 @@ _dec_button_unpressed_cb(void *data,
    _val_dec_stop(data);
 }
 //////////////////////////////////////////////////////////
-
-//TIZEN_ONLY(20150922): Delete longpress_timer in scroll enabled case.
-static void
-_inc_dec_button_mouse_move_cb(void *data,
-                              Evas *evas EINA_UNUSED,
-                              Evas_Object *obj EINA_UNUSED,
-                              void *event_info)
-{
-   Evas_Event_Mouse_Move *ev = event_info;
-   ELM_SPINNER_DATA_GET(data, sd);
-
-   if ((ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) && sd->longpress_timer)
-     {
-        ecore_timer_del(sd->longpress_timer);
-        sd->longpress_timer = NULL;
-     }
-}
-//
 
 EOLIAN static void
 _elm_spinner_elm_layout_sizing_eval(Eo *obj, Elm_Spinner_Data *_pd EINA_UNUSED)
@@ -1109,10 +1048,6 @@ _elm_spinner_evas_object_smart_add(Eo *obj, Elm_Spinner_Data *priv)
       (priv->inc_button, "pressed", _inc_button_pressed_cb, obj);
    evas_object_smart_callback_add
       (priv->inc_button, "unpressed", _inc_button_unpressed_cb, obj);
-   //TIZEN_ONLY(20150922): Delete longpress_timer in scroll enabled case.
-   evas_object_event_callback_add
-      (priv->inc_button, EVAS_CALLBACK_MOUSE_MOVE, _inc_dec_button_mouse_move_cb, obj);
-   //
 
    elm_layout_content_set(obj, "elm.swallow.inc_button", priv->inc_button);
    elm_widget_sub_object_add(obj, priv->inc_button);
@@ -1135,10 +1070,6 @@ _elm_spinner_evas_object_smart_add(Eo *obj, Elm_Spinner_Data *priv)
       (priv->dec_button, "pressed", _dec_button_pressed_cb, obj);
    evas_object_smart_callback_add
       (priv->dec_button, "unpressed", _dec_button_unpressed_cb, obj);
-   //TIZEN_ONLY(20150922): Delete longpress_timer in scroll enabled case.
-   evas_object_event_callback_add
-      (priv->dec_button, EVAS_CALLBACK_MOUSE_MOVE, _inc_dec_button_mouse_move_cb, obj);
-   //
 
    elm_layout_content_set(obj, "elm.swallow.dec_button", priv->dec_button);
    elm_widget_sub_object_add(obj, priv->dec_button);

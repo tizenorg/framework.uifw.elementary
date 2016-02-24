@@ -155,11 +155,7 @@ EAPI void                  elm_map_overlay_del(Elm_Map_Overlay *overlay);
 EAPI Elm_Map_Overlay_Type  elm_map_overlay_type_get(const Elm_Map_Overlay *overlay);
 
  /**
- * @brief Set a pointer of user data for a overlay.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * Set a pointer of user data for a overlay.
  *
  * @param overlay The overlay to own the user data.
  * @param data A pointer of user data
@@ -630,21 +626,17 @@ EAPI void                  elm_map_overlay_class_zoom_max_set(Elm_Map_Overlay *c
 EAPI int                   elm_map_overlay_class_zoom_max_get(const Elm_Map_Overlay *clas);
 
 /**
- * @brief Get the overlay members of the group overlay.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * Get the overlay members of the group overlay.
  *
  * @param grp The group overlay has overlay members.
  *
  * @return The list of group overlay members.
  *
- * @remark The group overlays are virtualy overlays. Those are shown and hidden dynamically.
+ * The group overlays are virtualy overlays. Those are shown and hidden dynamically.
  * You can add callback to the class overlay. If one of the group overlays in this class
  * is clicked, callback will be called and return a virtual group overlays.
  *
- * @remark You can change the state (hidden, paused, etc.) or set the content
+ * You can change the state (hidden, paused, etc.) or set the content
  * or icon of the group overlays by chaning the state of the class overlay.
  * Do not modifty the group overlay itself.
  *
@@ -720,11 +712,7 @@ EAPI void                  elm_map_overlay_bubble_content_clear(Elm_Map_Overlay 
 EAPI void                  elm_map_overlay_polygon_region_add(Elm_Map_Overlay *overlay, double lon, double lat);
 
 /**
- * @brief Remove a route from the map.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * Remove a route from the map.
  *
  * @param route The route to remove.
  *
@@ -733,11 +721,7 @@ EAPI void                  elm_map_overlay_polygon_region_add(Elm_Map_Overlay *o
 EAPI void                  elm_map_route_del(Elm_Map_Route *route);
 
 /**
- * @brief Get the route distance in kilometers.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * Get the route distance in kilometers.
  *
  * @param route The route object.
  * @return The distance of route (unit : km).
@@ -745,11 +729,7 @@ EAPI void                  elm_map_route_del(Elm_Map_Route *route);
 EAPI double                elm_map_route_distance_get(const Elm_Map_Route *route);
 
 /**
- * @brief Get the information of route nodes.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * Get the information of route nodes.
  *
  * @param route The route object.
  * @return Returns a string with the nodes of route.
@@ -757,11 +737,7 @@ EAPI double                elm_map_route_distance_get(const Elm_Map_Route *route
 EAPI const char           *elm_map_route_node_get(const Elm_Map_Route *route);
 
 /**
- * @brief Get the information of route waypoint.
- *
- * @if MOBILE @since_tizen 2.3
- * @elseif WEARABLE @since_tizen 2.3.1
- * @endif
+ * Get the information of route waypoint.
  *
  * @param route the route object.
  * @return Returns a string with information about waypoint of route.

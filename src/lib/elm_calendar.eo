@@ -366,7 +366,7 @@ class Elm_Calendar (Elm_Layout, Elm_Interface_Atspi_Widget_Action)
 
          @remark Add a mark that will be drawn in the calendar respecting the insertion
          time and periodicity. It will emit the type as signal to the widget theme.
-         Default theme supports "holiday", but it can be extended.
+         Default theme supports "holiday" and "checked", but it can be extended.
 
          @remark It won't immediately update the calendar, drawing the marks.
          For this, call elm_calendar_marks_draw(). However, when user selects
@@ -384,6 +384,10 @@ class Elm_Calendar (Elm_Layout, Elm_Interface_Atspi_Widget_Action)
          localtime_r(&current_time, &selected_time);
          elm_calendar_mark_add(cal, "holiday", selected_time,
          ELM_CALENDAR_ANNUALLY);
+
+         current_time = time(NULL) + 1 * (24 * 60 * 60);
+         localtime_r(&current_time, &selected_time);
+         elm_calendar_mark_add(cal, "checked", selected_time, ELM_CALENDAR_UNIQUE);
 
          elm_calendar_marks_draw(cal);
          @endcode

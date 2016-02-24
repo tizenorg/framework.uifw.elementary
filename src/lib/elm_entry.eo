@@ -762,8 +762,6 @@ class Elm_Entry (Elm_Layout, Elm_Interface_Scrollable, Evas.Clickable_Interface,
             /*@
             This selects a region of text within the entry.
 
-            @since_tizen 2.4
-
             @ingroup Entry
             @since 1.9 */
          }
@@ -834,9 +832,6 @@ class Elm_Entry (Elm_Layout, Elm_Interface_Scrollable, Evas.Clickable_Interface,
          set {
             /*@
             This moves the cursor to the end of the entry.
-            @if MOBILE @since_tizen 2.3
-            @elseif WEARABLE @since_tizen 2.3.1
-            @endif
 
             @ingroup Entry */
          }
@@ -1277,10 +1272,6 @@ class Elm_Entry (Elm_Layout, Elm_Interface_Scrollable, Evas.Clickable_Interface,
          The data format MUST be negotiated by both application and the input panel.
          The size and format of data are defined by the input panel.
 
-         @if MOBILE @since_tizen 2.3
-         @elseif WEARABLE @since_tizen 2.3.1
-         @endif
-
          @ingroup Entry */
 
          params {
@@ -1293,10 +1284,6 @@ class Elm_Entry (Elm_Layout, Elm_Interface_Scrollable, Evas.Clickable_Interface,
          Get the specific data of the current input panel.
 
          See @ref elm_entry_input_panel_imdata_set for more details.
-
-         @if MOBILE @since_tizen 2.3
-         @elseif WEARABLE @since_tizen 2.3.1
-         @endif
 
          @ingroup Entry */
          params {

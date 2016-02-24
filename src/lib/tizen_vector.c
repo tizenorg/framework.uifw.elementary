@@ -93,7 +93,7 @@ _radio_icon_update(vg_radio *vd, double progress)
    evas_vg_shape_shape_append_circle(vd->shape[1], center_x, center_y, radius);
 
    //Iconic Circle (Center)
-   radius = (radius - outline_stroke - ELM_VG_SCALE_SIZE(vd->obj, 4)) * progress;
+   radius = (radius - outline_stroke - 4) * progress;
    evas_vg_shape_shape_reset(vd->shape[2]);
    evas_vg_shape_shape_append_circle(vd->shape[2], center_x, center_y, radius);
 }
@@ -231,16 +231,6 @@ tizen_vg_radio_set(Elm_Radio *obj)
    elm_object_part_content_set(obj, "tizen_vg_shape2", vd->vg[2]);
 }
 
-void
-tizen_vg_radio_state_set(Elm_Radio *obj)
-{
-   // Fix for the state change visual change skips one frame.
-   // For vector enabled radio, visual change is handled in the
-   // code and it depends on "elm,radio,action,toggle" signal.
-   // as edje signal emit is asyn force one more message_signal to make sure
-   // state change related visual change occurs in the same frame.
-   edje_object_message_signal_process(elm_layout_edje_get(obj));
-}
 
 /////////////////////////////////////////////////////////////////////////
 /* Check: Favorite */
@@ -944,7 +934,7 @@ check_default_vg_resize_cb(void *data, Evas *e EINA_UNUSED,
    double center_y = ((double)h / 2);
 
    //Update Outline Shape
-   _update_default_check_shape(vd, vd->shape[0], EINA_TRUE);
+   _update_default_check_shape(vd, vd->shape[0], !elm_check_state_get(vd->obj));
 
    //Update BG Shape
    _update_default_check_shape(vd, vd->shape[1], EINA_FALSE);
@@ -1629,6 +1619,16 @@ progressbar_hide_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSE
 }
 
 static void
+progressbar_del_cb(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj,
+                   void *event_info EINA_UNUSED)
+{
+   vg_progressbar *vd = evas_object_data_get(obj, vg_key);
+
+   evas_object_data_set(obj, vg_key, NULL);
+   free(vd);
+}
+
+static void
 transit_progressbar_normal_op1(Elm_Transit_Effect *effect, Elm_Transit *transit EINA_UNUSED, double progress)
 {
    vg_progressbar *vd = effect;
@@ -2002,24 +2002,6 @@ _progressbar_process_pulse_stop(void *data,
 }
 
 static void
-progressbar_del_cb(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj,
-                   void *event_info EINA_UNUSED)
-{
-   vg_progressbar *vd = evas_object_data_get(obj, vg_key);
-
-   _pulse_stop(vd);
-   evas_object_data_set(obj, vg_key, NULL);
-   elm_object_signal_callback_del(vd->obj, "elm,state,pulse,start",
-                                  "*", _progressbar_process_pulse_start);
-   elm_object_signal_callback_del(vd->obj, "elm,state,pulse,stop",
-                                  "*", _progressbar_process_pulse_stop);
-   evas_object_del(vd->vg[0]);
-   evas_object_del(vd->vg[1]);
-   evas_object_del(vd->vg[2]);
-   free(vd);
-}
-
-static void
 _progressbar_process_style(vg_progressbar *vd)
 {
    Efl_VG *root;
@@ -2064,25 +2046,7 @@ tizen_vg_progressbar_set(Elm_Progressbar *obj)
 
    //Apply vector ux only theme has "vector_ux"
    const char *str = elm_layout_data_get(obj, "vector_ux");
-   if (!str)
-     {
-        if (!vd) return;
-
-        _pulse_stop(vd);
-        evas_object_data_set(vd->obj, vg_key, NULL);
-        evas_object_event_callback_del(vd->obj, EVAS_CALLBACK_DEL,
-                                       progressbar_del_cb);
-        evas_object_event_callback_del(vd->obj, EVAS_CALLBACK_HIDE,
-                                       progressbar_hide_cb);
-        elm_object_signal_callback_del(vd->obj, "elm,state,pulse,start",
-                                       "*", _progressbar_process_pulse_start);
-
-        elm_object_signal_callback_del(vd->obj, "elm,state,pulse,stop",
-                                       "*", _progressbar_process_pulse_stop);
-        free(vd);
-
-        return;
-     }
+   if (!str) return;
 
    if (!vd)
      {
@@ -2262,7 +2226,7 @@ slider_level_rest_resize_cb(void *data , Evas *e EINA_UNUSED,
 
 //TIZEN_ONLY(20150915): slider: fix slider's handler bug
 static void
-slider_unfocused_cb(void *data EINA_UNUSED,
+slider_unfocused_cb(void *data,
                    Evas_Object *obj EINA_UNUSED,
                    void *event_info EINA_UNUSED)
 {

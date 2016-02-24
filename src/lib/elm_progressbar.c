@@ -569,7 +569,7 @@ _elm_progressbar_elm_widget_focus_direction_manager_is(Eo *obj EINA_UNUSED, Elm_
 //TIZENONLY (20150825) Add atspi value interface to progressbar
 
 EOLIAN static void
-_elm_progressbar_elm_interface_atspi_value_value_and_text_get(Eo *obj EINA_UNUSED, Elm_Progressbar_Data *_pd, double *value, const char **text EINA_UNUSED)
+_elm_progressbar_elm_interface_atspi_value_value_and_text_get(Eo *obj, Elm_Progressbar_Data *_pd, double *value, const char **text)
 {
    if (value) *value = _pd->val;
 }

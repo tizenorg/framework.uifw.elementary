@@ -7,18 +7,12 @@ class Elm_Multibuttonentry_Item(Elm_Widget_Item)
                  /*@
                   Get the selected state of an item
 
-                  @if MOBILE @since_tizen 2.3
-                  @endif
-
                   @ingroup Multibuttonentry
                  */
              }
              set {
                  /*@
                   Set the selected state of an item
-
-                  @if MOBILE @since_tizen 2.3
-                  @endif
 
                   @ingroup Multibuttonentry
                  */
@@ -33,9 +27,6 @@ class Elm_Multibuttonentry_Item(Elm_Widget_Item)
             /*@
              Get the previous item in the multibuttonentry
 
-             @if MOBILE @since_tizen 2.3
-             @endif
-
              @return The item before the item @p it
 
              @ingroup Multibuttonentry
@@ -45,9 +36,6 @@ class Elm_Multibuttonentry_Item(Elm_Widget_Item)
       next_get @const {
             /*@
              Get the next item in the multibuttonentry
-
-             @if MOBILE @since_tizen 2.3
-             @endif
 
              @return The item after the item @p it
 
@@ -62,6 +50,5 @@ class Elm_Multibuttonentry_Item(Elm_Widget_Item)
         Elm_Widget_Item.signal_emit;
         Elm_Widget_Item.part_text.get;
         Elm_Widget_Item.part_text.set;
-        Elm_Widget_Item.disable;
    }
 }

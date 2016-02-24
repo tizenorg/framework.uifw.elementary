@@ -94,7 +94,6 @@ struct _Mod_Api
    void (*obj_hidemenu) (Evas_Object *obj);
    void (*obj_mouseup) (Evas_Object *obj);
    void (*obj_update_popup_pos) (Evas_Object *obj);
-   Eina_Bool (*obj_popup_showing_get) (Evas_Object *obj);
    //
 };
 
@@ -112,7 +111,6 @@ static void _create_selection_handlers(Evas_Object *obj, Elm_Entry_Data *sd);
 // 20150820: Adjust end of line cursor to prevent zero selection
 // 20150829: Keep selection over text only on long press and move
 // 20150909: Update cursor position on mouse up, not mouse down (with edje)
-// 20151012: Modify scale in drag and drop
 /////////////////////////////////////////////////////////////////
 
 static void _magnifier_create(void *data);
@@ -231,10 +229,14 @@ _entry_icon_create_cb(void *data, Evas_Object *parent, Evas_Coord *xoff, Evas_Co
    int xm, ym;
    Evas_Object *icon;
    int r, g, b, a;
-   const char *text;
+   int font_size = 0;
+   const char *text, *str;
    Evas_Coord margin_w = 0, margin_h = 0;
    Evas_Coord_Rectangle rect;
+   Eina_Strbuf *buf;
    ELM_ENTRY_DATA_GET(data, sd);
+
+   buf = eina_strbuf_new();
 
    icon = evas_object_textblock_add(evas_object_evas_get(parent));
    text = edje_object_part_text_selection_get(sd->entry_edje, "elm.text");
@@ -259,15 +261,28 @@ _entry_icon_create_cb(void *data, Evas_Object *parent, Evas_Coord *xoff, Evas_Co
         evas_textblock_style_set(tb_style_user, tb_style_text);
         evas_object_textblock_style_user_push(icon, tb_style_user);
         evas_textblock_style_free(tb_style_user);
+        eina_strbuf_append_printf(buf, "%s", text);
      }
-
-   evas_object_scale_set(icon,
-         elm_config_scale_get()
-         * elm_object_scale_get(data)
-         / edje_object_base_scale_get(sd->entry_edje));
-
+   else
+     {
+        str = edje_object_data_get(sd->entry_edje, "default_font_size");
+        if (str)
+          {
+             font_size = (int)(atoi(str)
+                             * elm_config_scale_get()
+                             * elm_object_scale_get(data)
+                             / edje_object_base_scale_get(sd->entry_edje));
+             eina_strbuf_append_printf(buf, "<font_size=%d>%s</font_size>",
+                                                              font_size, text);
+          }
+        else
+          {
+             eina_strbuf_append_printf(buf, "%s", text);
+          }
+     }
    evas_object_textblock_size_formatted_get(icon, &margin_w, &margin_h);
-   evas_object_textblock_text_markup_set(icon, text);
+   evas_object_textblock_text_markup_set(icon, eina_strbuf_string_get(buf));
+   eina_strbuf_free(buf);
 
    rect = _selection_geometry_get(data);
 
@@ -825,8 +840,6 @@ _module_find(Evas_Object *obj EINA_UNUSED)
      _elm_module_symbol_get(m, "obj_mouseup");
    ((Mod_Api *)(m->api))->obj_update_popup_pos = //in update selection handler
       _elm_module_symbol_get(m, "obj_update_popup_pos");
-   ((Mod_Api *)(m->api))->obj_popup_showing_get = // check cnp popup showing status
-      _elm_module_symbol_get(m, "obj_popup_showing_get");
    //
 
 ok: // ok - return api
@@ -1130,6 +1143,7 @@ _hide_selection_handler(Evas_Object *obj)
         // TIZEN ONLY (20150901): Support tizen 2.4 CNPUI
         /*edje_object_signal_emit(sd->start_handler, "elm,handler,hide", "elm");*/
         evas_object_hide(sd->start_handler);
+        evas_object_hide(sd->start_edge_handler);
         //
         sd->start_handler_shown = EINA_FALSE;
      }
@@ -1138,6 +1152,7 @@ _hide_selection_handler(Evas_Object *obj)
         // TIZEN ONLY (20150901): Support tizen 2.4 CNPUI
         /*edje_object_signal_emit(sd->end_handler, "elm,handler,hide", "elm");*/
         evas_object_hide(sd->end_handler);
+        evas_object_hide(sd->end_edge_handler);
         //
         sd->end_handler_shown = EINA_FALSE;
      }
@@ -1254,15 +1269,23 @@ _update_selection_handler(Evas_Object *obj)
              hx = ent_x + sx;
              hy = ent_y + sy + sh;
              evas_object_move(sd->start_handler, hx, hy);
+             // TIZEN ONLY (20140901): Support tizen 2.4 CNPUI
+             evas_object_move(sd->start_edge_handler, ent_x + sx, ent_y + sy);
+             evas_object_resize(sd->start_edge_handler, sw, sh);
+             //
           }
         else
           {
              hx = ent_x + ex;
              hy = ent_y + ey + eh;
              evas_object_move(sd->start_handler, hx, hy);
+             // TIZEN ONLY (20140901): Support tizen 2.4 CNPUI
+             evas_object_move(sd->start_edge_handler, ent_x + ex, ent_y + ey);
+             evas_object_resize(sd->start_edge_handler, ew, eh);
+             //
           }
         // TIZEN ONLY (20150901): Show start sel handler on top by default
-        if (ent_y + sy - hh < layrect.y)
+        if (ent_y + sy - sh < layrect.y)
           {
              hy--;
              edje_object_signal_emit(sd->start_handler, "elm,state,bottom", "elm");
@@ -1287,6 +1310,7 @@ _update_selection_handler(Evas_Object *obj)
              /*edje_object_signal_emit(sd->start_handler,
                                      "elm,handler,show", "elm");*/
              evas_object_show(sd->start_handler);
+             evas_object_show(sd->start_edge_handler);
              //
              sd->start_handler_shown = EINA_TRUE;
 
@@ -1297,6 +1321,7 @@ _update_selection_handler(Evas_Object *obj)
              /*edje_object_signal_emit(sd->start_handler,
                                      "elm,handler,hide", "elm");*/
              evas_object_hide(sd->start_handler);
+             evas_object_hide(sd->start_edge_handler);
              //
              sd->start_handler_shown = EINA_FALSE;
           }
@@ -1307,12 +1332,16 @@ _update_selection_handler(Evas_Object *obj)
              hx = ent_x + ex;
              hy = ent_y + ey + eh;
              evas_object_move(sd->end_handler, hx, hy);
+             evas_object_move(sd->end_edge_handler, ent_x + ex, ent_y + ey);
+             evas_object_resize(sd->end_edge_handler, ew, eh);
           }
         else
           {
              hx = ent_x + sx;
              hy = ent_y + sy + sh;
              evas_object_move(sd->end_handler, hx, hy);
+             evas_object_move(sd->end_edge_handler, ent_x + sx, ent_y + sy);
+             evas_object_resize(sd->end_edge_handler, sw, sh);
           }
         // TIZEN ONLY (20150723): Show sel handler on top
         if (hy + hh > layrect.y + layrect.h)
@@ -1340,6 +1369,7 @@ _update_selection_handler(Evas_Object *obj)
              /*edje_object_signal_emit(sd->end_handler,
                                      "elm,handler,show", "elm");*/
              evas_object_show(sd->end_handler);
+             evas_object_show(sd->end_edge_handler);
              //
              sd->end_handler_shown = EINA_TRUE;
           }
@@ -1349,6 +1379,7 @@ _update_selection_handler(Evas_Object *obj)
              /*edje_object_signal_emit(sd->end_handler,
                                      "elm,handler,hide", "elm");*/
              evas_object_hide(sd->end_handler);
+             evas_object_hide(sd->end_edge_handler);
              //
              sd->end_handler_shown = EINA_FALSE;
           }
@@ -1362,6 +1393,7 @@ _update_selection_handler(Evas_Object *obj)
              /*edje_object_signal_emit(sd->start_handler,
                                      "elm,handler,hide", "elm");*/
              evas_object_hide(sd->start_handler);
+             evas_object_hide(sd->start_edge_handler);
              //
              sd->start_handler_shown = EINA_FALSE;
           }
@@ -1371,6 +1403,7 @@ _update_selection_handler(Evas_Object *obj)
              /*edje_object_signal_emit(sd->end_handler,
                                      "elm,handler,hide", "elm");*/
              evas_object_hide(sd->end_handler);
+             evas_object_hide(sd->end_edge_handler);
              //
              sd->end_handler_shown = EINA_FALSE;
           }
@@ -1720,20 +1753,11 @@ _cursor_geometry_recalc(Evas_Object *obj)
 
         edje_object_part_text_cursor_geometry_get
           (sd->entry_edje, "elm.text", &cx, &cy, &cw, &ch);
-#ifdef ELM_FEATURE_DESKTOP
-        // TIZEN_ONLY(20151013): Show region when cursor geometry is
-        // recalculated without focus for Tizen SDK tools on desktop.
         if (sd->cur_changed)
-#else
-        // TIZEN_ONLY(20150924): Only focused entry should show region to
-        // prevent unexpected region change.
-        if (sd->cur_changed && elm_widget_focus_get(obj))
-#endif
           {
              sd->cur_changed = EINA_FALSE;
              elm_widget_show_region_set(obj, cx, cy, cw, ch, EINA_FALSE);
           }
-        //
      }
    else
      sd->deferred_cur = EINA_TRUE;
@@ -1811,20 +1835,11 @@ _deferred_recalc_job(void *data)
 
         edje_object_part_text_cursor_geometry_get
           (sd->entry_edje, "elm.text", &cx, &cy, &cw, &ch);
-#ifdef ELM_FEATURE_DESKTOP
-        // TIZEN_ONLY(20151013): Show region when cursor geometry is
-        // recalculated without focus for Tizen SDK tools on desktop.
         if (sd->cur_changed)
-#else
-        // TIZEN_ONLY(20150924): Only focused entry should show region to
-        // prevent unexpected region change.
-        if (sd->cur_changed && elm_object_focus_get(data))
-#endif
           {
              sd->cur_changed = EINA_FALSE;
              elm_widget_show_region_set(data, cx, cy, cw, ch, EINA_FALSE);
           }
-        //
      }
 }
 
@@ -1843,7 +1858,6 @@ _elm_entry_entry_edje_min_width_adjust(Elm_Entry_Data *sd, int minw, int tb_ex)
 
    edje_object_part_text_cursor_geometry_get(sd->entry_edje, "elm.text", NULL, NULL, &cw, NULL);
    evas_textblock_cursor_geometry_get(cur, &cx, NULL, NULL, NULL, NULL, EVAS_TEXTBLOCK_CURSOR_BEFORE);
-   evas_textblock_cursor_free(cur);
 
    result_w = tb_ex + cx + cw;
 
@@ -2794,7 +2808,6 @@ _long_press_cb(void *data)
    Eina_Bool hit_selection = EINA_FALSE;
 
    sd->long_pressed = EINA_TRUE;
-   sd->long_pressing = EINA_TRUE;
    if (sd->cursor_handler_shown)
      {
         evas_object_hide(sd->cursor_handler);
@@ -2868,15 +2881,10 @@ _long_press_cb(void *data)
           {
              if ((sd->api) && (sd->api->obj_hidemenu))
                sd->api->obj_hidemenu(data);
-             _cursor_down_pos_set(data);
              if (_cursor_coordinate_check(data, sd->downx))
                {
+                  _cursor_down_pos_set(data);
                   _select_word(data, NULL, NULL);
-                  elm_widget_scroll_freeze_push(data);
-               }
-             if (!_elm_config->desktop_entry)
-               {
-                  _menu_call(data);
                }
           }
         //
@@ -2958,7 +2966,6 @@ _mouse_up_cb(void *data,
      {
         ELM_SAFE_FREE(sd->longpress_timer, ecore_timer_del);
         // TIZEN ONLY (20150717): For selection clear on mouse up
-        sd->long_pressing = EINA_FALSE;
         if (ev->flags & EVAS_BUTTON_TRIPLE_CLICK) return;
         if (ev->flags & EVAS_BUTTON_DOUBLE_CLICK) return;
         if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD) return;
@@ -2975,9 +2982,6 @@ _mouse_up_cb(void *data,
                _magnifier_hide(data);
         //
              // TIZEN ONLY (20150603): CopyPasteUI 2.4
-             Eina_Bool popup_showing = EINA_FALSE;
-             if (elm_widget_scroll_freeze_get(data))
-               elm_widget_scroll_freeze_pop(data);
              if (sd->have_selection)
                {
                   if (elm_widget_focus_get(data))
@@ -2985,13 +2989,8 @@ _mouse_up_cb(void *data,
                   else
                     elm_entry_select_none(data);
                }
-             if ((sd->api) && (sd->api->obj_popup_showing_get))
-               popup_showing = sd->api->obj_popup_showing_get(data);
-             if (!popup_showing)
-               {
-                  _menu_call(data);
-               }
              //
+             _menu_call(data);
           }
         else
           {
@@ -3063,7 +3062,8 @@ _mouse_move_cb(void *data,
         // TIZEN ONLY: START ///////////////////////////////////////
         // 20150129: Add drag feature.
         /*if ((sd->long_pressed) && (_elm_config->magnifier_enable))*/
-        if ((sd->long_pressed) && (!sd->drag_started))
+        if ((sd->long_pressed) && (_elm_config->magnifier_enable) &&
+            (!sd->drag_started))
         // TIZEN ONLY: END /////////////////////////////////////////
           {
              Evas_Coord x, y;
@@ -3105,7 +3105,7 @@ _mouse_move_cb(void *data,
              if (_cursor_coordinate_check(data, ev->cur.canvas.x))
                {
                   // TIZEN ONLY (20150603): Support CopyPasteUI
-                  if ((sd->has_text) && (_elm_config->magnifier_enable))
+                  if (sd->has_text)
                     {
                        //_magnifier_move(data, ev->cur.canvas.x, ev->cur.canvas.y);
                        Evas_Coord cx, cy, cw, ch;
@@ -3192,10 +3192,6 @@ _entry_changed_handle(void *data,
    else if (sd->longpress_timer)
      {
         ELM_SAFE_FREE(sd->longpress_timer, ecore_timer_del);
-        // TIZEN_ONLY(20150924): Renew longpress timer when entry is changed.
-        sd->longpress_timer = ecore_timer_add
-           (_elm_config->longpress_timeout, _long_press_cb, data);
-        //
      }
    //
    evas_event_freeze(evas_object_evas_get(data));
@@ -3395,11 +3391,8 @@ _entry_selection_cleared_signal_cb(void *data,
    if (!sd->have_selection) return;
 
    // TIZEN ONLY (20150205): Support CopyPasteUI
-   if (!sd->long_pressing)
-     {
-        if ((sd->api) && (sd->api->obj_hidemenu))
-          sd->api->obj_hidemenu(data);
-     }
+   if ((sd->api) && (sd->api->obj_hidemenu))
+     sd->api->obj_hidemenu(data);
    //
    sd->have_selection = EINA_FALSE;
    evas_object_smart_callback_call(data, SIG_SELECTION_CLEARED, NULL);
@@ -4523,8 +4516,6 @@ buf_free:
    return ret;
 }
 
-//TIZEN_ONLY(20150806): Selection is eanbled for password mode
-/*
 static void
 _entry_selection_callbacks_unregister(Evas_Object *obj)
 {
@@ -4555,8 +4546,6 @@ _entry_selection_callbacks_unregister(Evas_Object *obj)
      (sd->entry_edje, "entry,cut,notify", "elm.text",
      _entry_cut_notify_signal_cb, obj);
 }
-*/
-//
 
 static void
 _entry_selection_callbacks_register(Evas_Object *obj)
@@ -5229,6 +5218,19 @@ _create_selection_handlers(Evas_Object *obj, Elm_Entry_Data *sd)
    evas_object_event_callback_add(handle, EVAS_CALLBACK_MOUSE_UP,
                                   _end_handler_mouse_up_cb, obj);
    evas_object_show(handle);
+   // TIZEN ONLY (20150901): add edge handlers
+   handle = edje_object_add(evas_object_evas_get(obj));
+   _elm_theme_object_set(obj, handle, "entry", "handler/edge/start", style);
+   edje_object_signal_emit(handle, "edje,focus,in", "edje");
+   evas_object_smart_member_add(handle, obj);
+   sd->start_edge_handler = handle;
+
+   handle = edje_object_add(evas_object_evas_get(obj));
+   _elm_theme_object_set(obj, handle, "entry", "handler/edge/end", style);
+   edje_object_signal_emit(handle, "edje,focus,in", "edje");
+   evas_object_smart_member_add(handle, obj);
+   sd->end_edge_handler = handle;
+   //
 }
 
 EOLIAN static void
@@ -5385,15 +5387,7 @@ _elm_entry_evas_object_smart_resize(Eo *obj, Elm_Entry_Data *sd, Evas_Coord w, E
 
    evas_object_resize(sd->hit_rect, w, h);
    if (sd->have_selection)
-     {
-        _update_selection_handler(obj);
-        // TIZEN ONLY (20150721): use job to get correct parent's gometry
-        if (sd->sel_handler_update_job)
-          ecore_job_del(sd->sel_handler_update_job);
-        sd->sel_handler_update_job =
-           ecore_job_add(_sel_handler_update_job_cb, obj);
-        //
-     }
+     _update_selection_handler(obj);
 }
 
 EOLIAN static void

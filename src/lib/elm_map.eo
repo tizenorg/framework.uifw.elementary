@@ -436,28 +436,24 @@ class Elm_Map (Elm_Widget, Elm_Interface_Scrollable,
       route_add {
          /*@
 
-         @brief Add a new route to the map object.
-
-         @if MOBILE @since_tizen 2.3
-         @elseif WEARABLE @since_tizen 2.3.1
-         @endif
+         Add a new route to the map object.
 
          @return The created route or @c NULL upon failure.
 
-         @remark A route will be traced by point on coordinates (@p flat, @p flon)
+         A route will be traced by point on coordinates (@p flat, @p flon)
          to point on coordinates (@p tlat, @p tlon), using the route service
          set with elm_map_source_set().
 
-         @remark It will take @p type on consideration to define the route,
+         It will take @p type on consideration to define the route,
          depending if the user will be walking or driving, the route may vary.
          One of #ELM_MAP_ROUTE_TYPE_MOTOCAR, #ELM_MAP_ROUTE_TYPE_BICYCLE,
          or #ELM_MAP_ROUTE_TYPE_FOOT need to be used.
 
-         @remark Another parameter is what the route should prioritize, the minor distance
+         Another parameter is what the route should prioritize, the minor distance
          or the less time to be spend on the route. So @p method should be one
          of #ELM_MAP_ROUTE_METHOD_SHORTEST or #ELM_MAP_ROUTE_METHOD_FASTEST.
 
-         @remark Routes created with this method can be deleted with
+         Routes created with this method can be deleted with
          elm_map_route_del(),
          and distance can be get with elm_map_route_distance_get().
 
@@ -482,11 +478,7 @@ class Elm_Map (Elm_Widget, Elm_Interface_Scrollable,
       track_add {
          /*@
 
-         @brief Add a track on the map
-
-         @if MOBILE @since_tizen 2.3
-         @elseif WEARABLE @since_tizen 2.3.1
-         @endif
+         Add a track on the map
 
          @return The route object. This is an elm object of type Route.
 
@@ -823,11 +815,7 @@ class Elm_Map (Elm_Widget, Elm_Interface_Scrollable,
       track_remove {
          /*@
 
-         @brief Remove a track from the map
-
-         @if MOBILE @since_tizen 2.3
-         @elseif WEARABLE @since_tizen 2.3.1
-         @endif
+         Remove a track from the map
 
          @ingroup Map */
 

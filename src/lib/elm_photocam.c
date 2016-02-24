@@ -142,8 +142,8 @@ _elm_photocam_pan_evas_object_smart_move(Eo *obj EINA_UNUSED, Elm_Photocam_Pan_D
 {
    ecore_job_del(psd->wsd->calc_job);
    //TIZEN ONLY (20150911): Many job based calculation should be fixed together in the upstream.
+   //psd->wsd->calc_job = ecore_job_add(_calc_job_cb, psd->wobj);
    _calc_job_cb(psd->wobj);
-   psd->wsd->calc_job = ecore_job_add(_calc_job_cb, psd->wobj);
    ///
 }
 
@@ -155,12 +155,11 @@ _elm_photocam_pan_evas_object_smart_resize(Eo *obj, Elm_Photocam_Pan_Data *psd, 
    evas_object_geometry_get(obj, NULL, NULL, &ow, &oh);
    if ((ow == w) && (oh == h)) return;
 
+   psd->wsd->resized = EINA_TRUE;
    ecore_job_del(psd->wsd->calc_job);
    //TIZEN ONLY (20150911): Many job based calculation should be fixed together in the upstream.
-   psd->wsd->resized = EINA_TRUE;
+   //psd->wsd->calc_job = ecore_job_add(_calc_job_cb, psd->wobj);
    _calc_job_cb(psd->wobj);
-   psd->wsd->resized = EINA_TRUE;
-   psd->wsd->calc_job = ecore_job_add(_calc_job_cb, psd->wobj);
    ///
 }
 

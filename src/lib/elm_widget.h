@@ -455,7 +455,7 @@ typedef struct _Elm_Widget_Smart_Data
    Eina_Bool                     on_create : 1; /**< This is true when the widget is on creation(general widget constructor). */
 // TIZEN_ONLY(20150705): Genlist item align feature
    Eina_Bool                     scroll_item_align_enable;
-   const char                          *scroll_item_valign;
+   char                          *scroll_item_valign;
 //
    ///TIZEN_ONLY(20170717) : expose highlight information on atspi
    Eina_Bool                     can_highlight : 1; /**< true if widget have at-spi HIGHLIGHTABLE state */

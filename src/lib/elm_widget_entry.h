@@ -39,6 +39,8 @@ struct _Elm_Entry_Data
    Evas_Object                          *start_handler;
    Evas_Object                          *end_handler;
    Evas_Object                          *cursor_handler; // TIZEN ONLY
+   Evas_Object                          *start_edge_handler; // TIZEN ONLY
+   Evas_Object                          *end_edge_handler; // TIZEN ONLY
    Ecore_Job                            *deferred_recalc_job;
    Ecore_Job                            *sel_handler_update_job; // TIZEN ONLY
    Ecore_Job                            *cursor_handler_update_job; // TIZEN ONLY
@@ -129,7 +131,6 @@ struct _Elm_Entry_Data
    Eina_Bool                             cursor_handler_down : 1; // TIZEN ONLY
    Eina_Bool                             cursor_handler_shown : 1; // TIZEN ONLY
    Eina_Bool                             mgf_bg_color_set : 1; // TIZEN ONLY
-   Eina_Bool                             long_pressing : 1; // TIZEN ONLY
 };
 
 typedef struct _Elm_Entry_Item_Provider     Elm_Entry_Item_Provider;

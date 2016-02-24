@@ -77,27 +77,29 @@ _elm_multibuttonentry_elm_widget_theme_apply(Eo *obj, Elm_Multibuttonentry_Data 
    int hpad = 0, vpad = 0;
    Eina_List *l;
    Elm_Object_Item *eo_item;
-   double pad_scale;
 
    Eina_Bool int_ret = EINA_FALSE;
    eo_do_super(obj, MY_CLASS, int_ret = elm_obj_widget_theme_apply());
    if (!int_ret) return EINA_FALSE;
 
    str = elm_layout_data_get(obj, "horizontal_pad");
-   if (str) hpad = atoi(str);
+   if (str) hpad = atoi(str) / edje_object_base_scale_get(elm_layout_edje_get(obj));
    str = elm_layout_data_get(obj, "vertical_pad");
-   if (str) vpad = atoi(str);
-   pad_scale = elm_widget_scale_get(obj) * elm_config_scale_get()
-      / edje_object_base_scale_get(elm_layout_edje_get(obj));
-   elm_box_padding_set(sd->box, (hpad * pad_scale), (vpad * pad_scale));
+   if (str) vpad = atoi(str) / edje_object_base_scale_get(elm_layout_edje_get(obj));
+   elm_box_padding_set
+      (sd->box,
+       hpad * elm_widget_scale_get(obj) * elm_config_scale_get(),
+       vpad * elm_widget_scale_get(obj) * elm_config_scale_get());
 
    EINA_LIST_FOREACH(sd->items, l, eo_item)
      {
         ELM_MULTIBUTTONENTRY_ITEM_DATA_GET(eo_item, item);
         if (VIEW(item))
-          if (!elm_layout_theme_set
-              (VIEW(item), "multibuttonentry", "btn", elm_widget_style_get(obj)))
-            CRI("Failed to set layout!");
+          elm_layout_theme_set
+            (VIEW(item), "multibuttonentry", "btn", elm_widget_style_get(obj));
+        //TIZEN_ONLY(20150720): Delete useless code
+        //elm_object_scale_set(VIEW(item), elm_widget_scale_get(obj) * elm_config_scale_get());
+        //
      }
 
    elm_widget_theme_object_set
@@ -347,11 +349,9 @@ _elm_multibuttonentry_elm_widget_on_focus(Eo *obj, Elm_Multibuttonentry_Data *sd
      }
    else
      {
-        if (sd->editable)
-          {
-             _view_update(sd);
-             elm_entry_input_panel_hide(sd->entry);
-          }
+        _view_update(sd);
+
+        elm_entry_input_panel_hide(sd->entry);
         evas_object_smart_callback_call(obj, SIG_UNFOCUSED, NULL);
      }
 
@@ -362,10 +362,34 @@ end:
 static void
 _item_del(Elm_Multibuttonentry_Item_Data *item)
 {
+   //TIZEN_ONLY(20150921): Fix MBE item delete logical error.
+   //Eina_List *l;
+   //Elm_Object_Item *eo_it;
+   //
    Evas_Object *obj = WIDGET(item);
 
    ELM_MULTIBUTTONENTRY_DATA_GET_OR_RETURN(obj, sd);
 
+   //TIZEN_ONLY(20150921): Fix MBE item delete logical error.
+   /*
+   EINA_LIST_FOREACH(sd->items, l, eo_it)
+     {
+        ELM_MULTIBUTTONENTRY_ITEM_DATA_GET(eo_it, it);
+        if (it == item)
+          {
+             sd->items = eina_list_remove(sd->items, eo_it);
+             elm_box_unpack(sd->box, VIEW(it));
+
+             evas_object_smart_callback_call(obj, SIG_ITEM_DELETED, eo_it);
+
+             evas_object_del(VIEW(it));
+
+             if (sd->selected_it == it)
+               sd->selected_it = NULL;
+             break;
+          }
+     }
+   */
    sd->items = eina_list_remove(sd->items, EO_OBJ(item));
    elm_box_unpack(sd->box, VIEW(item));
 
@@ -373,6 +397,7 @@ _item_del(Elm_Multibuttonentry_Item_Data *item)
 
    if (sd->selected_it == item)
      sd->selected_it = NULL;
+   //
 
    if (sd->view_state == MULTIBUTTONENTRY_VIEW_SHRINK)
      _shrink_mode_set(obj, EINA_TRUE);
@@ -445,14 +470,18 @@ _item_select(Evas_Object *obj,
         if (elm_widget_focus_get(obj))
           {
              elm_object_focus_set(sd->entry, EINA_FALSE);
+             //TIZEN_ONLY(20150826): Bug Fix. Item layout has to get manage
+             //                      from  elm_focus.
+             //evas_object_focus_set(VIEW(it), EINA_TRUE);
              elm_object_focus_set(VIEW(it), EINA_TRUE);
+             //
 
              // ACCESS
              if (_elm_config->access_mode != ELM_ACCESS_MODE_OFF)
                {
                   Evas_Object *ao, *po;
                   Eina_Strbuf *buf;
-                  const char *part;
+                  const char *part, *text;
 
                   part = "elm.btn.text";
                   po = (Evas_Object *)edje_object_part_object_get(elm_layout_edje_get(VIEW(it)), part);
@@ -464,7 +493,8 @@ _item_select(Evas_Object *obj,
                     "multi button entry item %s is selected",
                     edje_object_part_text_get(elm_layout_edje_get(VIEW(it)), part));
 
-                  _elm_access_say(eina_strbuf_string_get(buf));
+                  text = (const char*)eina_strbuf_string_steal(buf);
+                  _elm_access_say(text);
                   eina_strbuf_free(buf);
                }
           }
@@ -593,9 +623,10 @@ _elm_multibuttonentry_item_elm_widget_item_part_text_set(Eo *eo_item EINA_UNUSED
                                                     const char *label)
 {
    const char *dest_part = NULL;
+   //TIZEN_ONLY(20150820): Fix for Button resize issue on changing text dynamically.
    Evas_Coord minw = -1, minh = -1, boxw;
    ELM_MULTIBUTTONENTRY_DATA_GET_OR_RETURN(WIDGET(item), sd);
-
+   //
    if (!part || !strcmp(part, "elm.text"))
      dest_part = "elm.btn.text";
    else
@@ -603,6 +634,7 @@ _elm_multibuttonentry_item_elm_widget_item_part_text_set(Eo *eo_item EINA_UNUSED
 
    edje_object_part_text_escaped_set(elm_layout_edje_get(VIEW(item)), dest_part, label);
 
+   //TIZEN_ONLY(20150820): Fix for Button resize issue on changing text dynamically.
    elm_coords_finger_size_adjust(1, &minw, 1, &minh);
    edje_object_size_min_restricted_calc
      (elm_layout_edje_get(VIEW(item)), &minw, &minh, minw, minh);
@@ -614,6 +646,7 @@ _elm_multibuttonentry_item_elm_widget_item_part_text_set(Eo *eo_item EINA_UNUSED
          evas_object_size_hint_min_set(VIEW(item), boxw, minh);
          evas_object_resize(VIEW(item), boxw, minh);
      }
+   //
 }
 
 EOLIAN static const char *
@@ -731,7 +764,7 @@ _item_new(Elm_Multibuttonentry_Data *sd,
 
    if (!elm_layout_theme_set
        (VIEW(item), "multibuttonentry", "btn", elm_widget_style_get(obj)))
-     CRI("Failed to set layout!");
+     ERR("Failed to set layout!");
 
    elm_object_part_text_set(VIEW(item), "elm.btn.text", str);
 
@@ -777,6 +810,7 @@ _item_new(Elm_Multibuttonentry_Data *sd,
    // ACCESS
    if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
      {
+        const char *text;
         Eina_Strbuf *buf;
         buf = eina_strbuf_new();
 
@@ -784,7 +818,8 @@ _item_new(Elm_Multibuttonentry_Data *sd,
           "multi button entry item %s is added",
           edje_object_part_text_get(elm_layout_edje_get(VIEW(item)), "elm.btn.text"));
 
-        _elm_access_say(eina_strbuf_string_get(buf));
+        text = (const char*)eina_strbuf_string_steal(buf);
+        _elm_access_say(text);
         eina_strbuf_free(buf);
 
         _access_multibuttonentry_item_register(obj, eo_item, EINA_TRUE);
@@ -795,7 +830,8 @@ _item_new(Elm_Multibuttonentry_Data *sd,
         item->func = func;
      }
 
-   if (!elm_object_focus_get(obj) && sd->view_state == MULTIBUTTONENTRY_VIEW_SHRINK && sd->w_box)
+   if ((sd->view_state == MULTIBUTTONENTRY_VIEW_SHRINK) &&
+       sd->w_box && !elm_object_focus_get(obj))
      _shrink_mode_set(obj, EINA_TRUE);
 
    switch (pos)
@@ -1031,7 +1067,11 @@ _entry_focus_in_cb(void *data,
      {
         item = sd->selected_it;
         elm_object_focus_set(sd->entry, EINA_FALSE);
+        //TIZEN_ONLY(20150826): Bug Fix. Item layout has to get manage
+        //                      from  elm_focus.
+        //evas_object_focus_set(VIEW(item), EINA_TRUE);
         elm_object_focus_set(VIEW(item), EINA_TRUE);
+        //
      }
 }
 
@@ -1260,7 +1300,10 @@ _box_min_size_calculate(Evas_Object *box,
 {
    Evas_Coord mnw, mnh, w, minw, minh = 0, linew = 0, lineh = 0;
    int line_num;
+   //TIZEN_ONLY(20150715): Fix box min size calc error.
+   //Eina_List *l, *l_next;
    Eina_List *l;
+   //
    Evas_Object_Box_Option *opt;
 
    evas_object_geometry_get(box, NULL, NULL, &w, NULL);
@@ -1280,13 +1323,26 @@ _box_min_size_calculate(Evas_Object *box,
           {
              linew = mnw;
              line_num++;
+
+             //TIZEN_ONLY(20150715): Fix box min size calc error.
+             /*
+             l_next = eina_list_next(l);
+             opt = eina_list_data_get(l_next);
+             if (l_next && opt && opt->obj &&
+                 eo_isa(opt->obj, ELM_ENTRY_CLASS))
+               {
+                  linew = 0;
+                  line_num++;
+               }
+             */
+             ////////////////////////////////////////////////////
           }
 
         if ((linew != 0) && (l != eina_list_last(priv->children)))
           linew += priv->pad.h;
      }
-   minh = lineh * line_num + (line_num - 1) * priv->pad.v;
 
+   minh = lineh * line_num + (line_num - 1) * priv->pad.v;
    evas_object_size_hint_min_set(box, minw, minh);
    *line_height = lineh;
 
@@ -1304,7 +1360,6 @@ _box_layout_cb(Evas_Object *o,
    const Eina_List *l, *l_next;
    Evas_Object *obj;
    double ax, ay;
-   Eina_Bool rtl;
 
    if (!_box_min_size_calculate(o, priv, &lineh, data)) return;
 
@@ -1312,10 +1367,6 @@ _box_layout_cb(Evas_Object *o,
 
    evas_object_size_hint_min_get(o, &minw, &minh);
    evas_object_size_hint_align_get(o, &ax, &ay);
-
-   rtl = elm_widget_mirrored_get(data);
-   if (rtl) ax = 1.0 - ax;
-
    if (w < minw)
      {
         x = x + ((w - minw) * (1.0 - ax));
@@ -1345,7 +1396,6 @@ _box_layout_cb(Evas_Object *o,
         fw = fh = EINA_FALSE;
         if (ax == -1.0) {fw = 1; ax = 0.5; }
         if (ay == -1.0) {fh = 1; ay = 0.5; }
-        if (rtl) ax = 1.0 - ax;
 
         ww = mnw;
         if (wx)
@@ -1370,8 +1420,7 @@ _box_layout_cb(Evas_Object *o,
           }
 
         evas_object_move(obj,
-                         ((!rtl) ? (xx) : (x + (w - (xx - x) - ww)))
-                         + (Evas_Coord)(((double)(ww - ow)) * ax),
+                         xx + (Evas_Coord)(((double)(ww - ow)) * ax),
                          yy + (Evas_Coord)(((double)(hh - oh)) * ay));
         evas_object_resize(obj, ow, oh);
 
@@ -1398,7 +1447,6 @@ static void
 _view_init(Evas_Object *obj, Elm_Multibuttonentry_Data *sd)
 {
    const char *str;
-   double pad_scale;
    int hpad = 0, vpad = 0;
 
    sd->box = elm_box_add(obj);
@@ -1406,12 +1454,13 @@ _view_init(Evas_Object *obj, Elm_Multibuttonentry_Data *sd)
    if (!sd->box) return;
 
    str = elm_layout_data_get(obj, "horizontal_pad");
-   if (str) hpad = atoi(str);
+   if (str) hpad = atoi(str) / edje_object_base_scale_get(elm_layout_edje_get(obj));
    str = elm_layout_data_get(obj, "vertical_pad");
-   if (str) vpad = atoi(str);
-   pad_scale = elm_widget_scale_get(obj) * elm_config_scale_get()
-      / edje_object_base_scale_get(elm_layout_edje_get(obj));
-   elm_box_padding_set(sd->box, (hpad * pad_scale), (vpad * pad_scale));
+   if (str) vpad = atoi(str) / edje_object_base_scale_get(elm_layout_edje_get(obj));
+   elm_box_padding_set
+      (sd->box,
+       hpad * elm_widget_scale_get(obj) * elm_config_scale_get(),
+       vpad * elm_widget_scale_get(obj) * elm_config_scale_get());
 
    elm_box_layout_set(sd->box, _box_layout_cb, obj, NULL);
    elm_box_homogeneous_set(sd->box, EINA_FALSE);
@@ -1554,7 +1603,7 @@ _elm_multibuttonentry_evas_object_smart_add(Eo *obj, Elm_Multibuttonentry_Data *
 
    if (!elm_layout_theme_set
        (obj, "multibuttonentry", "base", elm_widget_style_get(obj)))
-     CRI("Failed to set layout!");
+     ERR("Failed to set layout!");
 
    elm_widget_can_focus_set(obj, EINA_TRUE);
 
@@ -1578,7 +1627,6 @@ EOLIAN static void
 _elm_multibuttonentry_evas_object_smart_del(Eo *obj, Elm_Multibuttonentry_Data *sd)
 {
    Elm_Object_Item *eo_item;
-   Elm_Multibuttonentry_Item_Filter *_item_filter = NULL;
 
    EINA_LIST_FREE(sd->items, eo_item)
      eo_del(eo_item);
@@ -1594,9 +1642,6 @@ _elm_multibuttonentry_evas_object_smart_del(Eo *obj, Elm_Multibuttonentry_Data *
    evas_object_del(sd->guide_text);
    evas_object_del(sd->end);
    ecore_timer_del(sd->longpress_timer);
-
-   EINA_LIST_FREE(sd->filter_list, _item_filter)
-     _filter_free(_item_filter);
 
    eo_do_super(obj, MY_CLASS, evas_obj_smart_del());
 }
@@ -1835,8 +1880,24 @@ _elm_multibuttonentry_item_selected_get(Eo *eo_item,
 EOLIAN static void
 _elm_multibuttonentry_clear(Eo *obj EINA_UNUSED, Elm_Multibuttonentry_Data *sd)
 {
+   //TIZEN_ONLY(20150921): Fix MBE item delete logical error.
+   /*
+   Elm_Object_Item *eo_item;
+
+   if (sd->items)
+     {
+        EINA_LIST_FREE(sd->items, eo_item)
+          {
+             ELM_MULTIBUTTONENTRY_ITEM_DATA_GET(eo_item, item);
+             elm_box_unpack(sd->box, VIEW(item));
+             eo_del(eo_item);
+          }
+        sd->items = NULL;
+     }
+   */
    while (sd->items)
      eo_do(eina_list_data_get(sd->items), elm_wdg_item_del());
+   //
 
    sd->selected_it = NULL;
    _view_update(sd);
@@ -1882,18 +1943,6 @@ _elm_multibuttonentry_item_next_get(Eo *eo_it,
           }
      }
    return NULL;
-}
-
-EOLIAN static void
-_elm_multibuttonentry_item_elm_widget_item_disable(Eo *eo_it, Elm_Multibuttonentry_Item_Data *it)
-{
-   const char* emission;
-   if (eo_do(eo_it, elm_wdg_item_disabled_get()))
-     emission = "elm,state,disabled";
-   else
-     emission = "elm,state,enabled";
-
-   elm_layout_signal_emit(VIEW(it), emission, "elm");
 }
 
 EINA_DEPRECATED EAPI void *

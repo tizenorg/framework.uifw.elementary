@@ -203,10 +203,6 @@ class Elm_Index (Elm_Layout)
             /*@
             Set the items level for a given index widget.
 
-            @if MOBILE @since_tizen 2.3
-            @elseif WEARABLE @since_tizen 2.3.1
-            @endif
-
             @see elm_index_item_level_get()
 
             @ingroup Index */
@@ -214,10 +210,6 @@ class Elm_Index (Elm_Layout)
          get {
             /*@
             Get the items level set for a given index widget.
-
-            @if MOBILE @since_tizen 2.3
-            @elseif WEARABLE @since_tizen 2.3.1
-            @endif
 
             @return @c 0 or @c 1, which are the levels @p obj might be at.
 
